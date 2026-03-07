@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- =========================================================
+         Spring Boot Parent — provides plugin management defaults,
+         encoding, resource filtering, and dependency BOM import.
+         Version is the only value that cannot use a property here
+         due to Maven's parent resolution order.
+         ========================================================= -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.5</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.edutech</groupId>
+    <artifactId>edutech-platform</artifactId>
+    <version>${revision}</version>
+    <packaging>pom</packaging>
+
+    <name>EduTech AI Platform</name>
+    <description>Enterprise-grade, AI-first educational technology platform for coaching centers</description>
+
+    <!-- =========================================================
+         Module Declaration Order matters:
+         libs must be built before services that depend on them.
+         ========================================================= -->
+    <modules>
+        <!-- Shared libraries (built first) -->
+        <module>libs/common-security</module>
+        <module>libs/event-contracts</module>
+        <module>libs/test-fixtures</module>
+
+        <!-- Microservices -->
+        <module>services/auth-svc</module>
+        <module>services/parent-svc</module>
+        <module>services/center-svc</module>
+        <module>services/assess-svc</module>
+        <module>services/psych-svc</module>
+        <module>services/ai-gateway-svc</module>
+        <module>services/api-gateway</module>
+
+        <!-- EduPath Student Career Portal -->
+        <module>services/student-profile-svc</module>
+        <module>services/exam-tracker-svc</module>
+        <module>services/performance-svc</module>
+        <module>services/ai-mentor-svc</module>
+        <module>services/career-oracle-svc</module>
+        <module>services/mentor-svc</module>
+        <module>services/student-gateway</module>
+    </modules>
+
+    <!-- =========================================================
+         ALL version numbers live here — one place, no duplicates.
+         Child POMs reference ${property.name}, never inline versions.
+         ========================================================= -->
+    <properties>
+        <!-- Project version — overridden by CI: -Drevision=x.y.z -->
+        <revision>1.0.0-SNAPSHOT</revision>
+
+        <!-- Java version (set to installed JDK; production containers use temurin:21) -->
+        <java.version>17</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- Spring (spring-boot-starter-parent version above = spring.boot.version) -->
+        <spring-cloud.version>2023.0.3</spring-cloud.version>
+
+        <!-- Persistence -->
+        <flyway.version>10.17.3</flyway.version>
+        <pgvector.version>0.1.4</pgvector.version>
+
+        <!-- Mapping (compile-time, zero reflection) -->
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
+
+        <!-- API Documentation -->
+        <springdoc.version>2.6.0</springdoc.version>
+
+        <!-- JWT -->
+        <jjwt.version>0.12.6</jjwt.version>
+
+        <!-- Serialization -->
+        <avro.version>1.11.3</avro.version>
+
+        <!-- Testing & Quality -->
+        <archunit.version>1.3.0</archunit.version>
+        <wiremock.version>3.9.1</wiremock.version>
+
+        <!-- SBOM generation -->
+        <cyclonedx-maven-plugin.version>2.8.1</cyclonedx-maven-plugin.version>
+
+        <!-- Maven plugins (versions not managed by spring-boot-starter-parent) -->
+        <maven-failsafe-plugin.version>3.3.1</maven-failsafe-plugin.version>
+
+        <!-- Virtual Threads — Project Loom (Java 21) -->
+        <spring.threads.virtual.enabled>true</spring.threads.virtual.enabled>
+    </properties>
+
+    <!-- =========================================================
+         Dependency Management (BOM imports + internal modules).
+         No version numbers should appear in child POM <dependencies>
+         unless explicitly overriding something here.
+         ========================================================= -->
+    <dependencyManagement>
+        <dependencies>
+
+            <!-- Spring Cloud BOM -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- ── Internal shared libraries ─────────────────── -->
+            <dependency>
+                <groupId>com.edutech</groupId>
+                <artifactId>common-security</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.edutech</groupId>
+                <artifactId>event-contracts</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.edutech</groupId>
+                <artifactId>test-fixtures</artifactId>
+                <version>${revision}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- ── Mapping ────────────────────────────────────── -->
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct-processor</artifactId>
+                <version>${mapstruct.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- ── API Documentation ──────────────────────────── -->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+
+            <!-- ── JWT ────────────────────────────────────────── -->
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-api</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>${jjwt.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-jackson</artifactId>
+                <version>${jjwt.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <!-- ── Vector DB driver ───────────────────────────── -->
+            <dependency>
+                <groupId>com.pgvector</groupId>
+                <artifactId>pgvector</artifactId>
+                <version>${pgvector.version}</version>
+            </dependency>
+
+            <!-- ── Avro (event schema serialization) ─────────── -->
+            <dependency>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro</artifactId>
+                <version>${avro.version}</version>
+            </dependency>
+
+            <!-- ── Architecture enforcement ──────────────────── -->
+            <dependency>
+                <groupId>com.tngtech.archunit</groupId>
+                <artifactId>archunit-junit5</artifactId>
+                <version>${archunit.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- ── HTTP stub server for integration tests ─────── -->
+            <dependency>
+                <groupId>org.wiremock</groupId>
+                <artifactId>wiremock-standalone</artifactId>
+                <version>${wiremock.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+    <!-- =========================================================
+         Dependencies inherited by EVERY module.
+         Keep minimal — prefer per-service/lib dependencies.
+         ========================================================= -->
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <!-- =========================================================
+         Plugin Management — configures plugins for all modules.
+         Plugins are NOT active until a module adds them to <build>.
+         Exception: plugins from spring-boot-starter-parent are active
+         by default (compiler, resources, surefire).
+         ========================================================= -->
+    <build>
+        <pluginManagement>
+            <plugins>
+
+                <!-- Compiler: Java 21, MapStruct annotation processor -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <release>${java.version}</release>
+                        <compilerArgs>
+                            <!-- Preserves parameter names for Spring DI -->
+                            <arg>-parameters</arg>
+                        </compilerArgs>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.mapstruct</groupId>
+                                <artifactId>mapstruct-processor</artifactId>
+                                <version>${mapstruct.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+
+                <!-- Unit tests -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <configuration>
+                        <!-- JVM args for virtual threads and Testcontainers reuse -->
+                        <argLine>-Dspring.threads.virtual.enabled=true</argLine>
+                    </configuration>
+                </plugin>
+
+                <!-- Integration tests (runs *IT.java classes) -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>${maven-failsafe-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>integration-test</goal>
+                                <goal>verify</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <!-- Spring Boot repackage — only activate in service modules -->
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <configuration>
+                        <!-- Excludes devtools from production JAR -->
+                        <excludeDevtools>true</excludeDevtools>
+                    </configuration>
+                </plugin>
+
+                <!-- Flyway migrations — activated per service -->
+                <plugin>
+                    <groupId>org.flywaydb</groupId>
+                    <artifactId>flyway-maven-plugin</artifactId>
+                    <version>${flyway.version}</version>
+                </plugin>
+
+                <!-- CycloneDX SBOM generation -->
+                <plugin>
+                    <groupId>org.cyclonedx</groupId>
+                    <artifactId>cyclonedx-maven-plugin</artifactId>
+                    <version>${cyclonedx-maven-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>makeAggregateBom</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+            </plugins>
+        </pluginManagement>
+    </build>
+
+</project>

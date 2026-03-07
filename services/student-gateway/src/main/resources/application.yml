@@ -1,0 +1,126 @@
+spring:
+  application:
+    name: ${STUDENT_GATEWAY_NAME}
+  threads:
+    virtual:
+      enabled: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED}
+
+  cloud:
+    gateway:
+      default-filters:
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter.replenish-rate: ${STUDENT_GW_RATE_LIMIT_REPLENISH_RATE}
+            redis-rate-limiter.burst-capacity: ${STUDENT_GW_RATE_LIMIT_BURST_CAPACITY}
+            redis-rate-limiter.requested-tokens: ${STUDENT_GW_RATE_LIMIT_REQUESTED_TOKENS}
+      routes:
+        - id: student-profile-svc
+          uri: ${STUDENT_PROFILE_SVC_URI}
+          predicates:
+            - Path=/api/v1/students/**
+        - id: exam-tracker-svc
+          uri: ${EXAM_TRACKER_SVC_URI}
+          predicates:
+            - Path=/api/v1/exam-tracker/**
+        - id: performance-svc
+          uri: ${PERFORMANCE_SVC_URI}
+          predicates:
+            - Path=/api/v1/performance/**
+        - id: ai-mentor-svc-doubts
+          uri: ${AI_MENTOR_SVC_URI}
+          predicates:
+            - Path=/api/v1/doubts/**
+        - id: ai-mentor-svc-recommendations
+          uri: ${AI_MENTOR_SVC_URI}
+          predicates:
+            - Path=/api/v1/recommendations/**
+        - id: ai-mentor-svc-study-plans
+          uri: ${AI_MENTOR_SVC_URI}
+          predicates:
+            - Path=/api/v1/study-plans/**
+        - id: career-oracle-svc-profiles
+          uri: ${CAREER_ORACLE_SVC_URI}
+          predicates:
+            - Path=/api/v1/career-profiles/**
+        - id: career-oracle-svc-recommendations
+          uri: ${CAREER_ORACLE_SVC_URI}
+          predicates:
+            - Path=/api/v1/career-recommendations/**
+        - id: career-oracle-svc-colleges
+          uri: ${CAREER_ORACLE_SVC_URI}
+          predicates:
+            - Path=/api/v1/college-predictions/**
+        - id: mentor-svc-profiles
+          uri: ${MENTOR_SVC_URI}
+          predicates:
+            - Path=/api/v1/mentors/**
+        - id: mentor-svc-sessions
+          uri: ${MENTOR_SVC_URI}
+          predicates:
+            - Path=/api/v1/mentor-sessions/**
+
+server:
+  port: ${STUDENT_GATEWAY_PORT}
+  shutdown: graceful
+
+# JWT (RS256 — public key for validation only, same auth-svc key)
+jwt:
+  public-key-path: ${JWT_PUBLIC_KEY_PATH}
+  issuer: ${JWT_ISSUER}
+  jwks-uri: ${JWT_JWKS_URI}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      student-profile-svc:
+        sliding-window-size: ${R4J_CB_STUDENT_WINDOW_SIZE}
+        failure-rate-threshold: ${R4J_CB_STUDENT_FAILURE_THRESHOLD}
+        wait-duration-in-open-state: ${R4J_CB_STUDENT_WAIT_DURATION}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${ACTUATOR_ENDPOINTS}
+  metrics:
+    tags:
+      application: ${STUDENT_GATEWAY_NAME}
+      environment: ${APP_ENVIRONMENT}
+  tracing:
+    sampling:
+      probability: ${OTEL_SAMPLING_PROBABILITY}
+
+otel:
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT}
+    com.edutech: ${LOG_LEVEL_APP}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: student-profile-svc
+        url: ${STUDENT_PROFILE_SVC_URI}/api-docs
+      - name: exam-tracker-svc
+        url: ${EXAM_TRACKER_SVC_URI}/api-docs
+      - name: performance-svc
+        url: ${PERFORMANCE_SVC_URI}/api-docs
+      - name: ai-mentor-svc
+        url: ${AI_MENTOR_SVC_URI}/api-docs
+      - name: career-oracle-svc
+        url: ${CAREER_ORACLE_SVC_URI}/api-docs
+      - name: mentor-svc
+        url: ${MENTOR_SVC_URI}/api-docs

@@ -1,0 +1,85 @@
+// src/main/java/com/edutech/parent/application/service/ParentProfileService.java
+package com.edutech.parent.application.service;
+
+import com.edutech.parent.application.dto.AuthPrincipal;
+import com.edutech.parent.application.dto.CreateParentProfileRequest;
+import com.edutech.parent.application.dto.ParentProfileResponse;
+import com.edutech.parent.application.dto.UpdateParentProfileRequest;
+import com.edutech.parent.application.exception.ParentAccessDeniedException;
+import com.edutech.parent.application.exception.ParentProfileNotFoundException;
+import com.edutech.parent.domain.model.ParentProfile;
+import com.edutech.parent.domain.port.in.CreateParentProfileUseCase;
+import com.edutech.parent.domain.port.in.UpdateParentProfileUseCase;
+import com.edutech.parent.domain.port.out.ParentEventPublisher;
+import com.edutech.parent.domain.port.out.ParentProfileRepository;
+import org.slf4j.Logger;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
+
+@Service
+@Transactional
+public class ParentProfileService implements CreateParentProfileUseCase, UpdateParentProfileUseCase {
+
+    private final ParentProfileRepository profileRepository;
+    private final ParentEventPublisher eventPublisher;
+    private final Logger log;
+
+    public ParentProfileService(ParentProfileRepository profileRepository,
+                                 ParentEventPublisher eventPublisher,
+                                 Logger log) {
+        this.profileRepository = profileRepository;
+        this.eventPublisher = eventPublisher;
+        this.log = log;
+    }
+
+    @Override
+    public ParentProfileResponse createProfile(CreateParentProfileRequest request, AuthPrincipal principal) {
+        UUID ownerId = principal.userId();
+        ParentProfile profile = ParentProfile.create(ownerId, request.name(), request.phone());
+        ParentProfile saved = profileRepository.save(profile);
+        log.info("Parent profile created: id={} userId={}", saved.getId(), ownerId);
+        return toResponse(saved);
+    }
+
+    @Override
+    public ParentProfileResponse updateProfile(UUID profileId, UpdateParentProfileRequest request, AuthPrincipal principal) {
+        ParentProfile profile = profileRepository.findById(profileId)
+                .orElseThrow(() -> new ParentProfileNotFoundException(profileId));
+        if (!principal.ownsProfile(profile.getUserId())) {
+            throw new ParentAccessDeniedException();
+        }
+        profile.update(request.name(), request.phone());
+        return toResponse(profileRepository.save(profile));
+    }
+
+    @Transactional(readOnly = true)
+    public ParentProfileResponse getProfile(UUID profileId, AuthPrincipal principal) {
+        ParentProfile profile = profileRepository.findById(profileId)
+                .orElseThrow(() -> new ParentProfileNotFoundException(profileId));
+        if (!principal.ownsProfile(profile.getUserId())) {
+            throw new ParentAccessDeniedException();
+        }
+        return toResponse(profile);
+    }
+
+    @Transactional(readOnly = true)
+    public ParentProfileResponse getMyProfile(AuthPrincipal principal) {
+        return profileRepository.findByUserId(principal.userId())
+                .map(this::toResponse)
+                .orElseThrow(() -> new ParentProfileNotFoundException(null));
+    }
+
+    private ParentProfileResponse toResponse(ParentProfile p) {
+        return new ParentProfileResponse(
+                p.getId(),
+                p.getUserId(),
+                p.getName(),
+                p.getPhone(),
+                p.isVerified(),
+                p.getStatus(),
+                p.getCreatedAt()
+        );
+    }
+}

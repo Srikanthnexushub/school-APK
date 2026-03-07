@@ -1,0 +1,46 @@
+server:
+  port: ${AI_MENTOR_SVC_PORT:8086}
+
+spring:
+  application:
+    name: ai-mentor-svc
+  datasource:
+    url: ${AI_MENTOR_DB_URL:jdbc:postgresql://localhost:5432/edutech}
+    username: ${AI_MENTOR_DB_USER:edutech}
+    password: ${AI_MENTOR_DB_PASSWORD:edutech}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: aimentor_schema
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    schemas: aimentor_schema
+    locations: classpath:db/migration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ai-mentor-svc
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+kafka:
+  topics:
+    study-plan-created: ai.mentor.study.plan.created
+    doubt-submitted: ai.mentor.doubt.submitted
+    doubt-resolved: ai.mentor.doubt.resolved
+
+ai-gateway:
+  base-uri: ${AI_GATEWAY_SVC_URI:http://localhost:8084}
+  timeout-seconds: 30
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

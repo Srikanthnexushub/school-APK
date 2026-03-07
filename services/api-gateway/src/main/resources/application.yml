@@ -1,0 +1,113 @@
+spring:
+  application:
+    name: ${API_GATEWAY_NAME}
+  threads:
+    virtual:
+      enabled: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED}
+
+  cloud:
+    gateway:
+      default-filters:
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter.replenish-rate: ${GATEWAY_RATE_LIMIT_REPLENISH_RATE}
+            redis-rate-limiter.burst-capacity: ${GATEWAY_RATE_LIMIT_BURST_CAPACITY}
+            redis-rate-limiter.requested-tokens: ${GATEWAY_RATE_LIMIT_REQUESTED_TOKENS}
+      routes:
+        - id: auth-svc
+          uri: ${AUTH_SVC_URI}
+          predicates:
+            - Path=/api/v1/auth/**
+        - id: parent-svc
+          uri: ${PARENT_SVC_URI}
+          predicates:
+            - Path=/api/v1/parents/**
+        - id: center-svc
+          uri: ${CENTER_SVC_URI}
+          predicates:
+            - Path=/api/v1/centers/**
+        - id: assess-svc
+          uri: ${ASSESS_SVC_URI}
+          predicates:
+            - Path=/api/v1/assessments/**
+        - id: psych-svc
+          uri: ${PSYCH_SVC_URI}
+          predicates:
+            - Path=/api/v1/psych/**
+        - id: ai-gateway-svc
+          uri: ${AI_GATEWAY_SVC_URI}
+          predicates:
+            - Path=/api/v1/ai/**
+
+server:
+  port: ${API_GATEWAY_PORT}
+  shutdown: graceful
+
+# JWT (RS256 — public key for validation only)
+jwt:
+  public-key-path: ${JWT_PUBLIC_KEY_PATH}
+  issuer: ${JWT_ISSUER}
+  jwks-uri: ${JWT_JWKS_URI}
+
+# Downstream service URIs (used in routes above)
+services:
+  auth-svc-uri: ${AUTH_SVC_URI}
+  parent-svc-uri: ${PARENT_SVC_URI}
+  center-svc-uri: ${CENTER_SVC_URI}
+  assess-svc-uri: ${ASSESS_SVC_URI}
+  psych-svc-uri: ${PSYCH_SVC_URI}
+  ai-gateway-svc-uri: ${AI_GATEWAY_SVC_URI}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      auth-svc:
+        sliding-window-size: ${R4J_CB_AUTH_WINDOW_SIZE}
+        failure-rate-threshold: ${R4J_CB_AUTH_FAILURE_THRESHOLD}
+        wait-duration-in-open-state: ${R4J_CB_AUTH_WAIT_DURATION}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${ACTUATOR_ENDPOINTS}
+  metrics:
+    tags:
+      application: ${API_GATEWAY_NAME}
+      environment: ${APP_ENVIRONMENT}
+  tracing:
+    sampling:
+      probability: ${OTEL_SAMPLING_PROBABILITY}
+
+otel:
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT}
+    com.edutech: ${LOG_LEVEL_APP}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: auth-svc
+        url: ${AUTH_SVC_URI}/api-docs
+      - name: parent-svc
+        url: ${PARENT_SVC_URI}/api-docs
+      - name: center-svc
+        url: ${CENTER_SVC_URI}/api-docs
+      - name: assess-svc
+        url: ${ASSESS_SVC_URI}/api-docs
+      - name: psych-svc
+        url: ${PSYCH_SVC_URI}/api-docs

@@ -1,0 +1,41 @@
+server:
+  port: ${CAREER_ORACLE_SVC_PORT:8087}
+
+spring:
+  application:
+    name: career-oracle-svc
+  datasource:
+    url: ${CAREER_ORACLE_DB_URL:jdbc:postgresql://localhost:5432/edutech}
+    username: ${CAREER_ORACLE_DB_USER:edutech}
+    password: ${CAREER_ORACLE_DB_PASSWORD:edutech}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: careeroracle_schema
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    schemas: careeroracle_schema
+    locations: classpath:db/migration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: career-oracle-svc
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+kafka:
+  topics:
+    career-recommended: career.oracle.recommended
+    career-profile-created: career.oracle.profile.created
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

@@ -1,0 +1,126 @@
+package com.edutech.student.application.service;
+
+import com.edutech.student.application.dto.CreateStudentProfileRequest;
+import com.edutech.student.application.dto.StudentProfileResponse;
+import com.edutech.student.application.dto.UpdateStudentProfileRequest;
+import com.edutech.student.application.exception.DuplicateStudentException;
+import com.edutech.student.application.exception.StudentNotFoundException;
+import com.edutech.student.domain.event.StudentProfileCreatedEvent;
+import com.edutech.student.domain.model.StudentProfile;
+import com.edutech.student.domain.port.in.CreateStudentProfileUseCase;
+import com.edutech.student.domain.port.in.GetStudentProfileUseCase;
+import com.edutech.student.domain.port.in.UpdateStudentProfileUseCase;
+import com.edutech.student.domain.port.out.StudentEventPublisher;
+import com.edutech.student.domain.port.out.StudentProfileRepository;
+import org.slf4j.Logger;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@Service
+@Transactional
+public class StudentProfileService implements CreateStudentProfileUseCase,
+        GetStudentProfileUseCase,
+        UpdateStudentProfileUseCase {
+
+    private final StudentProfileRepository profileRepository;
+    private final StudentEventPublisher eventPublisher;
+    private final Logger log;
+
+    public StudentProfileService(StudentProfileRepository profileRepository,
+                                  StudentEventPublisher eventPublisher,
+                                  Logger log) {
+        this.profileRepository = profileRepository;
+        this.eventPublisher = eventPublisher;
+        this.log = log;
+    }
+
+    @Override
+    public StudentProfileResponse createProfile(CreateStudentProfileRequest request) {
+        profileRepository.findByEmail(request.email()).ifPresent(existing -> {
+            throw new DuplicateStudentException(request.email());
+        });
+
+        StudentProfile profile = StudentProfile.create(
+                request.userId(),
+                request.firstName(),
+                request.lastName(),
+                request.email(),
+                request.phone(),
+                request.gender(),
+                request.dateOfBirth(),
+                request.city(),
+                request.state(),
+                request.pincode(),
+                request.board(),
+                request.currentClass()
+        );
+
+        StudentProfile saved = profileRepository.save(profile);
+        log.info("Student profile created: id={} userId={}", saved.getId(), saved.getUserId());
+
+        eventPublisher.publish(new StudentProfileCreatedEvent(
+                UUID.randomUUID().toString(),
+                saved.getId(),
+                saved.getUserId(),
+                saved.getEmail(),
+                saved.getCity(),
+                saved.getState(),
+                saved.getStream(),
+                Instant.now()
+        ));
+
+        return toResponse(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StudentProfileResponse getProfile(UUID studentId) {
+        return profileRepository.findById(studentId)
+                .map(this::toResponse)
+                .orElseThrow(() -> new StudentNotFoundException(studentId));
+    }
+
+    @Override
+    public StudentProfileResponse updateProfile(UUID studentId, UpdateStudentProfileRequest request) {
+        StudentProfile profile = profileRepository.findById(studentId)
+                .orElseThrow(() -> new StudentNotFoundException(studentId));
+
+        profile.updatePhone(request.phone());
+        profile.updateLocation(request.city(), request.state());
+
+        if (request.stream() != null) {
+            profile.selectStream(request.stream());
+        }
+        if (request.targetYear() != null) {
+            profile.setTargetYear(request.targetYear());
+        }
+
+        StudentProfile saved = profileRepository.save(profile);
+        log.info("Student profile updated: id={}", saved.getId());
+        return toResponse(saved);
+    }
+
+    private StudentProfileResponse toResponse(StudentProfile p) {
+        return new StudentProfileResponse(
+                p.getId(),
+                p.getUserId(),
+                p.getFirstName(),
+                p.getLastName(),
+                p.getEmail(),
+                p.getPhone(),
+                p.getGender(),
+                p.getDateOfBirth(),
+                p.getCity(),
+                p.getState(),
+                p.getCurrentBoard(),
+                p.getCurrentClass(),
+                p.getStream(),
+                p.getTargetYear(),
+                p.getStatus(),
+                p.getCreatedAt()
+        );
+    }
+}

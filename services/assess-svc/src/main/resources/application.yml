@@ -1,0 +1,123 @@
+spring:
+  application:
+    name: ${ASSESS_SVC_NAME}
+  threads:
+    virtual:
+      enabled: true
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${ASSESS_SVC_DB_NAME}
+    username: ${ASSESS_SVC_DB_USERNAME}
+    password: ${ASSESS_SVC_DB_PASSWORD}
+    hikari:
+      pool-name: assess-svc-pool
+      maximum-pool-size: ${ASSESS_SVC_DB_POOL_MAX_SIZE}
+      minimum-idle: ${ASSESS_SVC_DB_POOL_MIN_IDLE}
+      connection-timeout: ${ASSESS_SVC_DB_CONNECTION_TIMEOUT_MS}
+      idle-timeout: ${ASSESS_SVC_DB_IDLE_TIMEOUT_MS}
+
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: assess_schema
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    schemas: assess_schema
+    locations: classpath:db/migration/assess
+    baseline-on-migrate: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: ${ASSESS_SVC_KAFKA_CONSUMER_GROUP}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+
+  # WebSocket (STOMP for real-time exam sessions)
+  websocket:
+    message-broker:
+      application-destination-prefix: ${ASSESS_SVC_WS_DESTINATION_PREFIX}
+      relay-host: ${ASSESS_SVC_WS_RELAY_HOST}
+      relay-port: ${ASSESS_SVC_WS_RELAY_PORT}
+
+server:
+  port: ${ASSESS_SVC_PORT}
+  shutdown: graceful
+
+kafka:
+  topics:
+    assess-events: ${KAFKA_TOPIC_ASSESS_EVENTS}
+    center-events: ${KAFKA_TOPIC_CENTER_EVENTS}
+    audit-immutable: ${KAFKA_TOPIC_AUDIT_IMMUTABLE}
+
+jwt:
+  public-key-path: ${JWT_PUBLIC_KEY_PATH}
+  issuer: ${JWT_ISSUER}
+
+# pgvector — question embedding similarity search
+pgvector:
+  embedding-dimensions: ${AI_EMBEDDING_DIMENSIONS}
+
+ai-gateway:
+  base-url: ${AI_GATEWAY_BASE_URL}
+
+# CAT (Computer Adaptive Testing) engine configuration
+cat:
+  min-questions: ${CAT_MIN_QUESTIONS}
+  max-questions: ${CAT_MAX_QUESTIONS}
+  initial-theta: ${CAT_INITIAL_THETA}
+  convergence-threshold: ${CAT_CONVERGENCE_THRESHOLD}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      ai-gateway:
+        sliding-window-size: ${R4J_CB_AI_WINDOW_SIZE}
+        failure-rate-threshold: ${R4J_CB_AI_FAILURE_THRESHOLD}
+        wait-duration-in-open-state: ${R4J_CB_AI_WAIT_DURATION}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${ACTUATOR_ENDPOINTS}
+  metrics:
+    tags:
+      application: ${ASSESS_SVC_NAME}
+      environment: ${APP_ENVIRONMENT}
+  tracing:
+    sampling:
+      probability: ${OTEL_SAMPLING_PROBABILITY}
+
+otel:
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT}
+    com.edutech: ${LOG_LEVEL_APP}
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
