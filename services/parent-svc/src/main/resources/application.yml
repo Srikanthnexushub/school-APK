@@ -28,6 +28,7 @@ spring:
     schemas: parent_schema
     locations: classpath:db/migration/parent
     baseline-on-migrate: false
+    placeholder-replacement: false
 
   data:
     redis:

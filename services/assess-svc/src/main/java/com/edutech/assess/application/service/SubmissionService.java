@@ -23,6 +23,7 @@ import com.edutech.assess.domain.model.Question;
 import com.edutech.assess.domain.model.Submission;
 import com.edutech.assess.domain.model.SubmissionAnswer;
 import com.edutech.assess.domain.model.SubmissionStatus;
+import com.edutech.assess.domain.service.IrtThetaEstimator;
 import com.edutech.assess.domain.port.in.StartSubmissionUseCase;
 import com.edutech.assess.domain.port.in.SubmitAnswersUseCase;
 import com.edutech.assess.domain.port.out.AssessEventPublisher;
@@ -40,6 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -54,6 +56,7 @@ public class SubmissionService implements StartSubmissionUseCase, SubmitAnswersU
     private final SubmissionAnswerRepository answerRepository;
     private final GradeRepository gradeRepository;
     private final AssessEventPublisher eventPublisher;
+    private final IrtThetaEstimator irtThetaEstimator;
 
     public SubmissionService(SubmissionRepository submissionRepository,
                               ExamRepository examRepository,
@@ -69,6 +72,7 @@ public class SubmissionService implements StartSubmissionUseCase, SubmitAnswersU
         this.answerRepository = answerRepository;
         this.gradeRepository = gradeRepository;
         this.eventPublisher = eventPublisher;
+        this.irtThetaEstimator = new IrtThetaEstimator();
     }
 
     @Override
@@ -102,6 +106,8 @@ public class SubmissionService implements StartSubmissionUseCase, SubmitAnswersU
         }
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ExamNotFoundException(examId));
+        List<Question> answeredQuestions = new ArrayList<>();
+        List<Boolean> correctnessResults = new ArrayList<>();
         List<SubmissionAnswer> submissionAnswers = new ArrayList<>();
         for (AnswerEntry entry : request.answers()) {
             Question q = questionRepository.findById(entry.questionId())
@@ -111,12 +117,24 @@ public class SubmissionService implements StartSubmissionUseCase, SubmitAnswersU
             submissionAnswers.add(SubmissionAnswer.mark(
                     submissionId, entry.questionId(), entry.selectedOption(), isCorrect, marksAwarded
             ));
+            answeredQuestions.add(q);
+            correctnessResults.add(isCorrect);
         }
         answerRepository.saveAll(submissionAnswers);
         double scoredMarks = submissionAnswers.stream()
                 .mapToDouble(SubmissionAnswer::getMarksAwarded)
                 .sum();
         sub.grade(scoredMarks, exam.getTotalMarks());
+
+        // Estimate IRT theta using 3PL MLE and record it on the submission
+        try {
+            double theta = irtThetaEstimator.estimateTheta(answeredQuestions, correctnessResults);
+            sub.recordThetaEstimate(theta);
+            log.debug("IRT theta estimated: submissionId={} theta={}", submissionId, theta);
+        } catch (Exception e) {
+            log.warn("IRT theta estimation failed for submissionId={}: {}", submissionId, e.getMessage());
+        }
+
         Submission saved = submissionRepository.save(sub);
         double passingPct = exam.getTotalMarks() > 0
                 ? (exam.getPassingMarks() / exam.getTotalMarks()) * 100.0
@@ -155,7 +173,7 @@ public class SubmissionService implements StartSubmissionUseCase, SubmitAnswersU
         return new SubmissionResponse(
                 s.getId(), s.getExamId(), s.getStudentId(), s.getStartedAt(),
                 s.getSubmittedAt(), s.getTotalMarks(), s.getScoredMarks(), s.getPercentage(),
-                s.getStatus(), s.getAttemptNumber()
+                s.getStatus(), s.getAttemptNumber(), s.getThetaEstimate()
         );
     }
 }

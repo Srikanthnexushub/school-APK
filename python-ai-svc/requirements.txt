@@ -1,0 +1,23 @@
+# Web framework & server
+fastapi==0.111.1
+uvicorn[standard]==0.30.1
+python-multipart==0.0.9
+
+# Settings management
+pydantic-settings==2.3.4
+pydantic==2.7.4
+
+# ML / numeric
+scikit-learn==1.5.0
+numpy==1.26.4
+scipy==1.13.1
+
+# Embeddings (plagiarism detection)
+sentence-transformers==3.0.1
+
+# HTTP client (used in tests)
+httpx==0.27.0
+
+# Testing
+pytest==8.2.2
+pytest-asyncio==0.23.7

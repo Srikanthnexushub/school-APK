@@ -30,6 +30,7 @@ spring:
     locations: classpath:db/migration/examtracker
     schemas: examtracker_schema
     baseline-on-migrate: false
+    placeholder-replacement: false
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
@@ -38,6 +39,14 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.add.type.headers: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED}
 
 server:
   port: ${EXAM_TRACKER_SVC_PORT}

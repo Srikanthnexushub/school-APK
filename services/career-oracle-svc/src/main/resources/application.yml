@@ -5,9 +5,9 @@ spring:
   application:
     name: career-oracle-svc
   datasource:
-    url: ${CAREER_ORACLE_DB_URL:jdbc:postgresql://localhost:5432/edutech}
-    username: ${CAREER_ORACLE_DB_USER:edutech}
-    password: ${CAREER_ORACLE_DB_PASSWORD:edutech}
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${CAREER_ORACLE_DB_NAME}
+    username: ${CAREER_ORACLE_DB_USER}
+    password: ${CAREER_ORACLE_DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -19,7 +19,7 @@ spring:
     schemas: careeroracle_schema
     locations: classpath:db/migration
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
     consumer:
       group-id: career-oracle-svc
       auto-offset-reset: earliest
@@ -31,8 +31,8 @@ spring:
 
 kafka:
   topics:
-    career-recommended: career.oracle.recommended
-    career-profile-created: career.oracle.profile.created
+    career-recommended: ${KAFKA_TOPIC_CAREER_ORACLE_RECOMMENDED}
+    career-profile-created: ${KAFKA_TOPIC_CAREER_ORACLE_PROFILE_CREATED}
 
 management:
   endpoints:

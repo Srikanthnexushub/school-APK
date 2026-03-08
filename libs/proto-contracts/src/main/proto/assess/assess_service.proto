@@ -1,0 +1,70 @@
+syntax = "proto3";
+package com.edutech.assess;
+option java_package = "com.edutech.proto.assess";
+option java_multiple_files = true;
+
+import "common/common.proto";
+
+service AssessService {
+  rpc GetQuestion (GetQuestionRequest) returns (QuestionResponse);
+  rpc ListQuestions (ListQuestionsRequest) returns (QuestionListResponse);
+  rpc FindSimilarQuestions (SimilarQuestionsRequest) returns (QuestionListResponse);
+  rpc GetExamEnrollment (GetEnrollmentRequest) returns (EnrollmentResponse);
+  rpc SubmitAnswer (SubmitAnswerRequest) returns (SubmitAnswerResponse);
+}
+
+message GetQuestionRequest {
+  string questionId = 1;
+}
+
+message ListQuestionsRequest {
+  string examId = 1;
+  com.edutech.common.PageRequest page = 2;
+}
+
+message SimilarQuestionsRequest {
+  repeated float queryEmbedding = 1;
+  int32 topK = 2;
+  repeated string excludeIds = 3;
+}
+
+message QuestionResponse {
+  string id = 1;
+  string examId = 2;
+  string text = 3;
+  repeated string options = 4;
+  double marks = 5;
+  double difficulty = 6;
+  double discriminationParam = 7;
+  double guessingParam = 8;
+}
+
+message QuestionListResponse {
+  repeated QuestionResponse questions = 1;
+  int32 total = 2;
+}
+
+message GetEnrollmentRequest {
+  string enrollmentId = 1;
+}
+
+message EnrollmentResponse {
+  string id = 1;
+  string studentId = 2;
+  string examId = 3;
+  string status = 4;
+  string enrolledAt = 5;
+}
+
+message SubmitAnswerRequest {
+  string enrollmentId = 1;
+  string questionId = 2;
+  int32 selectedOption = 3;
+  string studentId = 4;
+}
+
+message SubmitAnswerResponse {
+  bool correct = 1;
+  double marksAwarded = 2;
+  string feedback = 3;
+}

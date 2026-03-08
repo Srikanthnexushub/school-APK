@@ -7,15 +7,23 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
  * Security configuration for exam-tracker-svc.
  * JWT validation is performed upstream by the student-gateway.
  * This service trusts the X-User-Id and X-User-Role headers forwarded by the gateway.
+ * Requests missing these headers (i.e., bypassing the gateway) are rejected with HTTP 403.
  */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    private final GatewayHeaderAuthFilter gatewayHeaderAuthFilter;
+
+    public SecurityConfig(GatewayHeaderAuthFilter gatewayHeaderAuthFilter) {
+        this.gatewayHeaderAuthFilter = gatewayHeaderAuthFilter;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -23,7 +31,18 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .addFilterBefore(gatewayHeaderAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/actuator/health",
+                                "/actuator/info",
+                                "/actuator/metrics",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
+                        .anyRequest().authenticated()
+                )
                 .build();
     }
 }

@@ -5,9 +5,9 @@ spring:
   application:
     name: ai-mentor-svc
   datasource:
-    url: ${AI_MENTOR_DB_URL:jdbc:postgresql://localhost:5432/edutech}
-    username: ${AI_MENTOR_DB_USER:edutech}
-    password: ${AI_MENTOR_DB_PASSWORD:edutech}
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${AI_MENTOR_DB_NAME}
+    username: ${AI_MENTOR_DB_USER}
+    password: ${AI_MENTOR_DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -19,7 +19,7 @@ spring:
     schemas: aimentor_schema
     locations: classpath:db/migration
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
     consumer:
       group-id: ai-mentor-svc
       auto-offset-reset: earliest
@@ -31,12 +31,12 @@ spring:
 
 kafka:
   topics:
-    study-plan-created: ai.mentor.study.plan.created
-    doubt-submitted: ai.mentor.doubt.submitted
-    doubt-resolved: ai.mentor.doubt.resolved
+    study-plan-created: ${KAFKA_TOPIC_AI_MENTOR_STUDY_PLAN_CREATED}
+    doubt-submitted: ${KAFKA_TOPIC_AI_MENTOR_DOUBT_SUBMITTED}
+    doubt-resolved: ${KAFKA_TOPIC_AI_MENTOR_DOUBT_RESOLVED}
 
 ai-gateway:
-  base-uri: ${AI_GATEWAY_SVC_URI:http://localhost:8084}
+  base-uri: ${AI_GATEWAY_SVC_URI}
   timeout-seconds: 30
 
 management:

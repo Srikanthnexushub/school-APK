@@ -7,13 +7,15 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
  * Security configuration for ai-mentor-svc.
  *
  * This service sits behind the student-gateway, which validates JWTs and injects
  * X-User-Id and X-User-Role headers. No JWT re-validation is performed here.
- * All requests with these trusted headers are accepted as authenticated.
+ * Requests missing gateway-injected headers are rejected with HTTP 403, providing
+ * defence-in-depth against direct access that bypasses the gateway.
  *
  * Network-level security (only traffic from the gateway reaches this service)
  * is enforced via the deployment topology (Kubernetes NetworkPolicy / service mesh).
@@ -22,21 +24,29 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private final GatewayHeaderAuthFilter gatewayHeaderAuthFilter;
+
+    public SecurityConfig(GatewayHeaderAuthFilter gatewayHeaderAuthFilter) {
+        this.gatewayHeaderAuthFilter = gatewayHeaderAuthFilter;
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(gatewayHeaderAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/actuator/health",
                                 "/actuator/info",
                                 "/actuator/metrics",
-                                "/api-docs/**",
+                                "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html").permitAll()
-                        .anyRequest().permitAll()  // Gateway has already authenticated the request
+                                "/swagger-ui.html"
+                        ).permitAll()
+                        .anyRequest().authenticated()
                 )
                 .build();
     }

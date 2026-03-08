@@ -50,7 +50,8 @@ class DoubtServiceTest {
 
     @BeforeEach
     void setUp() {
-        doubtService = new DoubtService(doubtTicketRepository, aiGatewayClient, eventPublisher);
+        RagContextBuilder ragContextBuilder = new RagContextBuilder();
+        doubtService = new DoubtService(doubtTicketRepository, aiGatewayClient, eventPublisher, ragContextBuilder);
     }
 
     @Test

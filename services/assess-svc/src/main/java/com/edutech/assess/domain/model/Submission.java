@@ -50,6 +50,9 @@ public class Submission {
     @Column
     private double percentage;
 
+    @Column(name = "theta_estimate")
+    private Double thetaEstimate; // IRT 3PL theta after final submission (null until graded)
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SubmissionStatus status;
@@ -91,6 +94,11 @@ public class Submission {
         this.updatedAt = Instant.now();
     }
 
+    public void recordThetaEstimate(double theta) {
+        this.thetaEstimate = theta;
+        this.updatedAt = Instant.now();
+    }
+
     public void invalidate() {
         this.status = SubmissionStatus.INVALIDATED;
         this.updatedAt = Instant.now();
@@ -106,6 +114,7 @@ public class Submission {
     public double getTotalMarks() { return totalMarks; }
     public double getScoredMarks() { return scoredMarks; }
     public double getPercentage() { return percentage; }
+    public Double getThetaEstimate() { return thetaEstimate; }
     public SubmissionStatus getStatus() { return status; }
     public Long getVersion() { return version; }
     public Instant getCreatedAt() { return createdAt; }

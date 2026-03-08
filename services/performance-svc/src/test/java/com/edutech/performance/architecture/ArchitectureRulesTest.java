@@ -67,4 +67,39 @@ class ArchitectureRulesTest {
                 .should().resideOutsideOfPackage("..application.service..");
         rule.check(classes);
     }
+
+    /**
+     * ADR: JPA annotations are allowed in the domain layer as a pragmatic compromise
+     * (rich entity model without a separate ORM mapping layer). This rule documents
+     * the known exception. If a future refactor introduces pure-Java domain objects
+     * with JPA entities in infrastructure, remove the allowedDependency() call.
+     */
+    @Test
+    @DisplayName("Domain layer must not depend on infrastructure persistence (JPA) — no Lombok allowed")
+    void domain_must_not_depend_on_lombok() {
+        ArchRule rule = noClasses()
+                .that().resideInAPackage("..domain..")
+                .should().dependOnClassesThat()
+                .resideInAPackage("org.projectlombok..");
+        rule.check(classes);
+    }
+
+    @Test
+    @DisplayName("No class in any layer may use Lombok annotations")
+    void no_lombok_in_any_layer() {
+        ArchRule rule = noClasses()
+                .should().dependOnClassesThat()
+                .resideInAPackage("org.projectlombok..");
+        rule.check(classes);
+    }
+
+    @Test
+    @DisplayName("Domain layer must not depend on WebClient or HTTP infrastructure")
+    void domain_must_not_depend_on_webclient() {
+        ArchRule rule = noClasses()
+                .that().resideInAPackage("..domain..")
+                .should().dependOnClassesThat()
+                .resideInAnyPackage("org.springframework.web.reactive..");
+        rule.check(classes);
+    }
 }

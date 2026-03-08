@@ -42,7 +42,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getPath().value();
         if (isPublic(path)) {
-            return chain.filter(exchange);
+            // Strip any inbound X-User-* headers even on public paths to prevent injection
+            ServerHttpRequest sanitised = stripUserHeaders(exchange.getRequest());
+            return chain.filter(exchange.mutate().request(sanitised).build());
         }
 
         String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
@@ -54,7 +56,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         String token = authHeader.substring(7);
         try {
             Claims claims = jwtTokenValidator.validate(token);
-            ServerHttpRequest.Builder requestBuilder = exchange.getRequest().mutate()
+            // Strip any client-supplied X-User-* headers first, then inject from validated JWT claims
+            ServerHttpRequest.Builder requestBuilder = stripUserHeaders(exchange.getRequest()).mutate()
                     .header("X-User-Id", claims.getSubject());
             String role = claims.get("role", String.class);
             if (role != null) {
@@ -74,5 +77,16 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private boolean isPublic(String path) {
         return PUBLIC_PATH_PREFIXES.stream().anyMatch(path::startsWith);
+    }
+
+    /** Remove any client-supplied X-User-* headers to prevent header injection attacks. */
+    private ServerHttpRequest stripUserHeaders(ServerHttpRequest request) {
+        return request.mutate()
+                .headers(h -> {
+                    h.remove("X-User-Id");
+                    h.remove("X-User-Role");
+                    h.remove("X-User-Center-Id");
+                })
+                .build();
     }
 }

@@ -28,6 +28,7 @@ spring:
     schemas: assess_schema
     locations: classpath:db/migration/assess
     baseline-on-migrate: false
+    placeholder-replacement: false
 
   data:
     redis:
@@ -60,6 +61,10 @@ spring:
 server:
   port: ${ASSESS_SVC_PORT}
   shutdown: graceful
+
+grpc:
+  server:
+    port: ${ASSESS_SVC_GRPC_PORT:9092}
 
 kafka:
   topics:

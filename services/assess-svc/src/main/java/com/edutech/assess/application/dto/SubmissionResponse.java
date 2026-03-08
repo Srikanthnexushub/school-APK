@@ -16,5 +16,6 @@ public record SubmissionResponse(
         double scoredMarks,
         double percentage,
         SubmissionStatus status,
-        int attemptNumber
+        int attemptNumber,
+        Double thetaEstimate
 ) {}

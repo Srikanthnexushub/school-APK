@@ -1,6 +1,7 @@
 // src/main/java/com/edutech/parent/api/GlobalExceptionHandler.java
 package com.edutech.parent.api;
 
+import com.edutech.parent.application.exception.ConversationNotFoundException;
 import com.edutech.parent.application.exception.DuplicateStudentLinkException;
 import com.edutech.parent.application.exception.FeePaymentNotFoundException;
 import com.edutech.parent.application.exception.ParentAccessDeniedException;
@@ -58,6 +59,14 @@ public class GlobalExceptionHandler {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
         pd.setType(URI.create(BASE_URI + "fee-payment-not-found"));
         pd.setTitle("Fee Payment Not Found");
+        return pd;
+    }
+
+    @ExceptionHandler(ConversationNotFoundException.class)
+    public ProblemDetail handleConversationNotFound(ConversationNotFoundException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        pd.setType(URI.create(BASE_URI + "conversation-not-found"));
+        pd.setTitle("Copilot Conversation Not Found");
         return pd;
     }
 

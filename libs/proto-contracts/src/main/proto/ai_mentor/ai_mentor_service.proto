@@ -1,0 +1,67 @@
+syntax = "proto3";
+package com.edutech.aimentor;
+option java_package = "com.edutech.proto.aimentor";
+option java_multiple_files = true;
+
+service AiMentorService {
+  rpc CreateStudyPlan (CreateStudyPlanRequest) returns (StudyPlanResponse);
+  rpc GetStudyPlan (GetStudyPlanRequest) returns (StudyPlanResponse);
+  rpc SubmitDoubt (SubmitDoubtRequest) returns (DoubtResponse);
+  rpc GetRecommendations (GetRecommendationsRequest) returns (RecommendationListResponse);
+}
+
+message CreateStudyPlanRequest {
+  string studentId = 1;
+  string targetExam = 2;
+  int32 daysUntilExam = 3;
+  repeated string weakSubjects = 4;
+}
+
+message GetStudyPlanRequest {
+  string planId = 1;
+}
+
+message StudyPlanResponse {
+  string id = 1;
+  string studentId = 2;
+  string targetExam = 3;
+  string status = 4;
+  repeated StudyPlanItem items = 5;
+}
+
+message StudyPlanItem {
+  string id = 1;
+  string subject = 2;
+  string topic = 3;
+  string priority = 4;
+  bool completed = 5;
+}
+
+message SubmitDoubtRequest {
+  string studentId = 1;
+  string subject = 2;
+  string questionText = 3;
+}
+
+message DoubtResponse {
+  string id = 1;
+  string studentId = 2;
+  string status = 3;
+  string questionText = 4;
+  string answer = 5;
+}
+
+message GetRecommendationsRequest {
+  string studentId = 1;
+}
+
+message RecommendationListResponse {
+  repeated Recommendation recommendations = 1;
+}
+
+message Recommendation {
+  string id = 1;
+  string subject = 2;
+  string content = 3;
+  string type = 4;
+}

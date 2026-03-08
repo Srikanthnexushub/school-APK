@@ -34,6 +34,7 @@
         <module>libs/common-security</module>
         <module>libs/event-contracts</module>
         <module>libs/test-fixtures</module>
+        <module>libs/proto-contracts</module>
 
         <!-- Microservices -->
         <module>services/auth-svc</module>
@@ -133,6 +134,11 @@
                 <artifactId>test-fixtures</artifactId>
                 <version>${revision}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.edutech</groupId>
+                <artifactId>proto-contracts</artifactId>
+                <version>${revision}</version>
             </dependency>
 
             <!-- ── Mapping ────────────────────────────────────── -->

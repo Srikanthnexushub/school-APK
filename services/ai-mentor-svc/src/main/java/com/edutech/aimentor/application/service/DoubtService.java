@@ -27,13 +27,16 @@ public class DoubtService implements SubmitDoubtUseCase, GetDoubtUseCase {
     private final DoubtTicketRepository doubtTicketRepository;
     private final AiGatewayClient aiGatewayClient;
     private final AiMentorEventPublisher eventPublisher;
+    private final RagContextBuilder ragContextBuilder;
 
     public DoubtService(DoubtTicketRepository doubtTicketRepository,
                         AiGatewayClient aiGatewayClient,
-                        AiMentorEventPublisher eventPublisher) {
+                        AiMentorEventPublisher eventPublisher,
+                        RagContextBuilder ragContextBuilder) {
         this.doubtTicketRepository = doubtTicketRepository;
         this.aiGatewayClient = aiGatewayClient;
         this.eventPublisher = eventPublisher;
+        this.ragContextBuilder = ragContextBuilder;
     }
 
     @Override
@@ -46,9 +49,10 @@ public class DoubtService implements SubmitDoubtUseCase, GetDoubtUseCase {
                 request.question()
         );
 
-        // Attempt AI resolution — graceful degradation if AI is unavailable
+        // Attempt AI resolution with RAG-enriched prompt — graceful degradation if AI is unavailable
         try {
-            String aiAnswer = aiGatewayClient.resolveDoubt(request.question(), request.subjectArea());
+            String enrichedPrompt = ragContextBuilder.buildPrompt(ticket);
+            String aiAnswer = aiGatewayClient.resolveDoubt(enrichedPrompt, request.subjectArea());
             ticket.resolve(aiAnswer);
             log.info("AI resolved doubt for studentId={} subjectArea={}", request.studentId(), request.subjectArea());
         } catch (Exception e) {

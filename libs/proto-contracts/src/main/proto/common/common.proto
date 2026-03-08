@@ -1,0 +1,17 @@
+syntax = "proto3";
+package com.edutech.common;
+option java_package = "com.edutech.proto.common";
+option java_multiple_files = true;
+
+message Empty {}
+
+message PageRequest {
+  int32 page = 1;
+  int32 size = 2;
+}
+
+message ErrorResponse {
+  string code = 1;
+  string message = 2;
+  int32 httpStatus = 3;
+}

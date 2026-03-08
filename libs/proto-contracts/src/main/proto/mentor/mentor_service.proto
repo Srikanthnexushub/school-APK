@@ -1,0 +1,42 @@
+syntax = "proto3";
+package com.edutech.mentorsvc;
+option java_package = "com.edutech.proto.mentorsvc";
+option java_multiple_files = true;
+
+service MentorService {
+  rpc GetMentorProfile (GetMentorRequest) returns (MentorProfileResponse);
+  rpc ListAvailableMentors (ListMentorsRequest) returns (MentorListResponse);
+  rpc BookSession (BookSessionRequest) returns (SessionResponse);
+  rpc GetSession (GetSessionRequest) returns (SessionResponse);
+}
+
+message GetMentorRequest { string mentorId = 1; }
+message ListMentorsRequest { string expertiseArea = 1; }
+
+message MentorProfileResponse {
+  string id = 1;
+  string name = 2;
+  string bio = 3;
+  repeated string expertiseAreas = 4;
+  bool available = 5;
+}
+
+message MentorListResponse {
+  repeated MentorProfileResponse mentors = 1;
+}
+
+message BookSessionRequest {
+  string studentId = 1;
+  string mentorId = 2;
+  string scheduledAt = 3;
+}
+
+message SessionResponse {
+  string id = 1;
+  string studentId = 2;
+  string mentorId = 3;
+  string status = 4;
+  string scheduledAt = 5;
+}
+
+message GetSessionRequest { string sessionId = 1; }

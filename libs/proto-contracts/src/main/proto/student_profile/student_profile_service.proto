@@ -1,0 +1,27 @@
+syntax = "proto3";
+package com.edutech.studentprofile;
+option java_package = "com.edutech.proto.studentprofile";
+option java_multiple_files = true;
+
+service StudentProfileService {
+  rpc GetStudentProfile (GetProfileRequest) returns (StudentProfileResponse);
+  rpc GetTargetExam (GetTargetExamRequest) returns (TargetExamResponse);
+}
+
+message GetProfileRequest { string studentId = 1; }
+
+message StudentProfileResponse {
+  string studentId = 1;
+  string name = 2;
+  string email = 3;
+  string academicStream = 4;
+  string currentGrade = 5;
+}
+
+message GetTargetExamRequest { string studentId = 1; }
+
+message TargetExamResponse {
+  string studentId = 1;
+  string examName = 2;
+  string examDate = 3;
+}

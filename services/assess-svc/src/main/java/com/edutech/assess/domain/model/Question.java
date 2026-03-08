@@ -48,8 +48,14 @@ public class Question {
     @Column(name = "guessing_param")
     private double guessingParam;
 
-    @Column(name = "embedding_json", columnDefinition = "TEXT")
-    private String embeddingJson;
+    /**
+     * pgvector float array (1536 dims, OpenAI text-embedding-3-small).
+     * Stored as a native vector column; NULL until generated via ai-gateway-svc.
+     * The domain model uses a plain float[] — no pgvector dependency here.
+     * The infrastructure adapter handles the JDBC type conversion.
+     */
+    @Column(columnDefinition = "vector(1536)")
+    private float[] embedding;
 
     @Version
     private Long version;
@@ -79,9 +85,35 @@ public class Question {
         q.difficulty = difficulty;
         q.discrimination = discrimination;
         q.guessingParam = guessingParam;
-        q.embeddingJson = null;
+        q.embedding = null;
         q.createdAt = Instant.now();
         q.updatedAt = Instant.now();
+        return q;
+    }
+
+    /**
+     * Reconstitutes a Question from a raw JDBC ResultSet row (used by similarity search adapter).
+     * Does not set the embedding field — embedding is only needed for persistence, not domain logic.
+     */
+    public static Question reconstitute(UUID id, UUID examId, String questionText, String optionsJson,
+                                        int correctAnswer, String explanation, double marks,
+                                        double difficulty, double discrimination, double guessingParam,
+                                        long version, Instant createdAt, Instant updatedAt, Instant deletedAt) {
+        Question q = new Question();
+        q.id = id;
+        q.examId = examId;
+        q.questionText = questionText;
+        q.optionsJson = optionsJson;
+        q.correctAnswer = correctAnswer;
+        q.explanation = explanation;
+        q.marks = marks;
+        q.difficulty = difficulty;
+        q.discrimination = discrimination;
+        q.guessingParam = guessingParam;
+        q.version = version;
+        q.createdAt = createdAt;
+        q.updatedAt = updatedAt;
+        q.deletedAt = deletedAt;
         return q;
     }
 
@@ -95,7 +127,8 @@ public class Question {
     public double getDifficulty() { return difficulty; }
     public double getDiscrimination() { return discrimination; }
     public double getGuessingParam() { return guessingParam; }
-    public String getEmbeddingJson() { return embeddingJson; }
+    public float[] getEmbedding() { return embedding; }
+    public void setEmbedding(float[] embedding) { this.embedding = embedding; }
     public Long getVersion() { return version; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

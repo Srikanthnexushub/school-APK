@@ -1,0 +1,40 @@
+syntax = "proto3";
+package com.edutech.careeroracle;
+option java_package = "com.edutech.proto.careeroracle";
+option java_multiple_files = true;
+
+service CareerOracleService {
+  rpc GenerateCareerProfile (GenerateProfileRequest) returns (CareerProfileResponse);
+  rpc GetCareerProfile (GetProfileRequest) returns (CareerProfileResponse);
+  rpc GetTopRecommendations (TopRecommendationsRequest) returns (CareerRecommendationListResponse);
+}
+
+message GenerateProfileRequest {
+  string studentId = 1;
+}
+
+message GetProfileRequest {
+  string studentId = 1;
+}
+
+message TopRecommendationsRequest {
+  string studentId = 1;
+  int32 topN = 2;
+}
+
+message CareerProfileResponse {
+  string studentId = 1;
+  repeated CareerRecommendation recommendations = 2;
+  string generatedAt = 3;
+}
+
+message CareerRecommendation {
+  int32 rank = 1;
+  string careerDomain = 2;
+  double score = 3;
+  string label = 4;
+}
+
+message CareerRecommendationListResponse {
+  repeated CareerRecommendation recommendations = 1;
+}

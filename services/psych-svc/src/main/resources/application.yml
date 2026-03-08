@@ -28,6 +28,7 @@ spring:
     schemas: psych_schema
     locations: classpath:db/migration/psych
     baseline-on-migrate: false
+    placeholder-replacement: false
 
   data:
     redis:

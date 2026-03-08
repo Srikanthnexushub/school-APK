@@ -28,6 +28,7 @@ spring:
     schemas: center_schema
     locations: classpath:db/migration/center
     baseline-on-migrate: false
+    placeholder-replacement: false
 
   data:
     redis:

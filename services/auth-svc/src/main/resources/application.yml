@@ -28,6 +28,7 @@ spring:
     schemas: auth_schema
     locations: classpath:db/migration/auth
     baseline-on-migrate: false
+    placeholder-replacement: false
 
   data:
     redis:

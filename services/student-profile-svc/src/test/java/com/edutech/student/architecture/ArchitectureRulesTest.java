@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import com.tngtech.archunit.lang.ArchRule;
 
 @DisplayName("student-profile-svc Architecture Rules")
 class ArchitectureRulesTest {
@@ -64,5 +65,30 @@ class ArchitectureRulesTest {
                 .that().resideInAPackage("com.edutech.student.api..")
                 .should().dependOnClassesThat().resideInAPackage("com.edutech.student.infrastructure..")
                 .check(classes);
+    }
+
+    /**
+     * ADR: JPA annotations are allowed in the domain layer as a pragmatic compromise
+     * (rich entity model without a separate ORM mapping layer). This rule documents
+     * the known exception. If a future refactor introduces pure-Java domain objects
+     * with JPA entities in infrastructure, remove the allowedDependency() call.
+     */
+    @Test
+    @DisplayName("Domain layer must not depend on infrastructure persistence (JPA) — no Lombok allowed")
+    void domain_must_not_depend_on_lombok() {
+        ArchRule rule = noClasses()
+                .that().resideInAPackage("..domain..")
+                .should().dependOnClassesThat()
+                .resideInAPackage("org.projectlombok..");
+        rule.check(classes);
+    }
+
+    @Test
+    @DisplayName("No class in any layer may use Lombok annotations")
+    void no_lombok_in_any_layer() {
+        ArchRule rule = noClasses()
+                .should().dependOnClassesThat()
+                .resideInAPackage("org.projectlombok..");
+        rule.check(classes);
     }
 }

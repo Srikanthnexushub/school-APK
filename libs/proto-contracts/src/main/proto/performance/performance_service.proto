@@ -1,0 +1,76 @@
+syntax = "proto3";
+package com.edutech.performance;
+option java_package = "com.edutech.proto.performance";
+option java_multiple_files = true;
+
+import "common/common.proto";
+
+service PerformanceService {
+  rpc GetReadinessScore (GetReadinessRequest) returns (ReadinessResponse);
+  rpc GetDropoutRisk (DropoutRiskRequest) returns (DropoutRiskResponse);
+  rpc GetWeakAreas (WeakAreaRequest) returns (WeakAreaListResponse);
+  rpc GetReadinessTrend (ReadinessTrendRequest) returns (ReadinessTrendResponse);
+}
+
+message GetReadinessRequest {
+  string studentId = 1;
+  string enrollmentId = 2;
+}
+
+message ReadinessResponse {
+  string id = 1;
+  string studentId = 2;
+  string enrollmentId = 3;
+  double ersScore = 4;
+  double syllabusCoveragePercent = 5;
+  double mockTestTrendScore = 6;
+  double masteryAverage = 7;
+  double accuracyConsistency = 8;
+  string computedAt = 9;
+}
+
+message DropoutRiskRequest {
+  string studentId = 1;
+  string enrollmentId = 2;
+}
+
+message DropoutRiskResponse {
+  string studentId = 1;
+  double riskScore = 2;
+  string riskLevel = 3;
+  string primaryFactor = 4;
+}
+
+message WeakAreaRequest {
+  string studentId = 1;
+  string enrollmentId = 2;
+}
+
+message WeakAreaListResponse {
+  repeated WeakArea weakAreas = 1;
+}
+
+message WeakArea {
+  string id = 1;
+  string studentId = 2;
+  string subject = 3;
+  string topicName = 4;
+  double masteryPercent = 5;
+  string primaryErrorType = 6;
+  string detectedAt = 7;
+}
+
+message ReadinessTrendRequest {
+  string studentId = 1;
+  int32 lastDays = 2;
+}
+
+message ReadinessTrendResponse {
+  repeated DailyReadiness points = 1;
+}
+
+message DailyReadiness {
+  string day = 1;
+  double avgErsScore = 2;
+  int32 snapshotCount = 3;
+}

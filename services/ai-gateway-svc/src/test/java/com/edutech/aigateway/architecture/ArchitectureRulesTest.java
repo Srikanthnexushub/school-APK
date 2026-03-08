@@ -68,4 +68,13 @@ class ArchitectureRulesTest {
             .should().resideOutsideOfPackage("..application.service..");
         rule.check(classes);
     }
+
+    @Test
+    @DisplayName("No class in any layer may use Lombok annotations")
+    void no_lombok_in_any_layer() {
+        ArchRule rule = noClasses()
+                .should().dependOnClassesThat()
+                .resideInAPackage("org.projectlombok..");
+        rule.check(classes);
+    }
 }
