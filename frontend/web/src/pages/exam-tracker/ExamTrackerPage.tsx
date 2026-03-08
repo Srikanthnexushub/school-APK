@@ -339,7 +339,7 @@ export default function ExamTrackerPage() {
     queryFn: async () => {
       try {
         const res = await api.get(
-          `/api/v1/exam-tracker/enrollments?studentId=${studentId}`
+          `/api/v1/exam-tracker/students/${studentId}/enrollments`
         );
         return res.data;
       } catch {
@@ -355,7 +355,7 @@ export default function ExamTrackerPage() {
     queryFn: async () => {
       try {
         const res = await api.get(
-          `/api/v1/exam-tracker/mock-tests?studentId=${studentId}`
+          `/api/v1/exam-tracker/students/${studentId}/mock-tests`
         );
         return res.data;
       } catch {

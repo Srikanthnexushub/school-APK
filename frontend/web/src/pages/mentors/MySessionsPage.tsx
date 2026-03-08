@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
+import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../lib/utils';
 import { Avatar } from '../../components/ui/Avatar';
 import { StarRating } from '../../components/ui/StarRating';
@@ -53,7 +54,7 @@ function FeedbackModal({ session, onClose }: FeedbackModalProps) {
 
   const feedbackMutation = useMutation({
     mutationFn: () =>
-      api.patch(`/api/v1/sessions/${session?.id}/complete`, { rating, feedback: comment }),
+      api.post(`/api/v1/mentor-sessions/${session?.id}/feedback`, { rating, comment }),
     onSuccess: () => {
       toast.success('Feedback submitted! Thank you.');
       queryClient.invalidateQueries({ queryKey: ['my-sessions'] });
@@ -200,23 +201,25 @@ function SessionCard({ session, index, onFeedback, onCancel }: SessionCardProps)
 }
 
 export default function MySessionsPage() {
+  const user = useAuthStore((s) => s.user);
   const [activeTab, setActiveTab] = useState<SessionStatus>('UPCOMING');
   const [feedbackSession, setFeedbackSession] = useState<MentorSession | null>(null);
   const queryClient = useQueryClient();
 
   const { data: sessions } = useQuery<MentorSession[]>({
-    queryKey: ['my-sessions'],
+    queryKey: ['my-sessions', user?.id],
     queryFn: async () => {
-      const res = await api.get('/api/v1/sessions/my');
+      const res = await api.get(`/api/v1/mentor-sessions?studentId=${user?.id}`);
       return res.data;
     },
+    enabled: !!user?.id,
     retry: false,
     placeholderData: MOCK_SESSIONS,
   });
 
   const cancelMutation = useMutation({
     mutationFn: (sessionId: string) =>
-      api.patch(`/api/v1/sessions/${sessionId}/cancel`),
+      api.post(`/api/v1/mentor-sessions/${sessionId}/complete`),
     onSuccess: () => {
       toast.success('Session cancelled.');
       queryClient.invalidateQueries({ queryKey: ['my-sessions'] });

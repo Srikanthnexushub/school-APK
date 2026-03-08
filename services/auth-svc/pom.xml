@@ -133,6 +133,14 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- BouncyCastle — required by Spring Security Argon2PasswordEncoder at runtime -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>1.78</version>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- Internal shared libs -->
         <dependency>
             <groupId>com.edutech</groupId>

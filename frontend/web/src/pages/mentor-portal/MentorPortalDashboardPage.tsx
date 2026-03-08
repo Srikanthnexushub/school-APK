@@ -86,7 +86,7 @@ export default function MentorPortalDashboardPage() {
   const { data: upcomingSessions } = useQuery<UpcomingSession[]>({
     queryKey: ['mentor-upcoming-sessions', user?.id],
     queryFn: async () => {
-      const res = await api.get(`/api/v1/sessions/mentor/${user?.id}/upcoming`);
+      const res = await api.get(`/api/v1/mentor-sessions?mentorId=${user?.id}`);
       return res.data;
     },
     retry: false,

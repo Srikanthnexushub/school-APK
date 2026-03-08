@@ -219,7 +219,7 @@ export default function AssessmentsPage() {
     queryKey: ['exams', user?.id],
     queryFn: async () => {
       try {
-        const res = await api.get('/api/v1/assess/exams');
+        const res = await api.get('/api/v1/exams');
         return res.data;
       } catch (err: unknown) {
         const axiosErr = err as { response?: { status?: number } };
@@ -231,7 +231,7 @@ export default function AssessmentsPage() {
   });
 
   const enrollMutation = useMutation({
-    mutationFn: (examId: string) => api.post('/api/v1/assess/enrollments', { examId }),
+    mutationFn: (examId: string) => api.post(`/api/v1/exams/${examId}/enrollments`, { studentId: user?.id }),
     onSuccess: () => {
       toast.success('Successfully enrolled in exam!');
       queryClient.invalidateQueries({ queryKey: ['exams'] });

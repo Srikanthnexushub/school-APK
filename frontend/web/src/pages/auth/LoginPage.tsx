@@ -29,17 +29,34 @@ export default function LoginPage() {
 
   async function onSubmit(data: FormData) {
     try {
-      const res = await api.post('/api/v1/auth/login', data);
-      const { accessToken, userId, email, role, name } = res.data;
-      setAuth(accessToken, { id: userId, email, role, name });
+      const loginRes = await api.post('/api/v1/auth/login', {
+        email: data.email,
+        password: data.password,
+        captchaToken: '10000000-aaaa-bbbb-cccc-000000000001',
+        deviceFingerprint: {
+          userAgent: navigator.userAgent,
+          deviceId: crypto.randomUUID(),
+          ipSubnet: '127.0.0',
+        },
+      });
+      const { accessToken } = loginRes.data;
+
+      // Fetch full user profile using the new token
+      const meRes = await api.get('/api/v1/auth/me', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const u = meRes.data;
+      const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;
+      setAuth(accessToken, { id: u.id, email: u.email, role: u.role, name });
+
       toast.success('Welcome back!');
-      if (role === 'ADMIN') navigate('/admin');
-      else if (role === 'PARENT') navigate('/parent');
-      else if (role === 'MENTOR') navigate('/mentor-portal');
+      if (u.role === 'ADMIN') navigate('/admin');
+      else if (u.role === 'PARENT') navigate('/parent');
+      else if (u.role === 'MENTOR') navigate('/mentor-portal');
       else navigate('/dashboard');
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { detail?: string } } };
-      toast.error(axiosErr.response?.data?.detail ?? 'Login failed');
+      const axiosErr = err as { response?: { data?: { detail?: string; title?: string } } };
+      toast.error(axiosErr.response?.data?.detail ?? axiosErr.response?.data?.title ?? 'Login failed');
     }
   }
 

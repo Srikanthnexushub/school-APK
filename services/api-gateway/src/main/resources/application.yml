@@ -26,6 +26,10 @@ spring:
           uri: ${AUTH_SVC_URI}
           predicates:
             - Path=/api/v1/auth/**
+        - id: auth-svc-otp
+          uri: ${AUTH_SVC_URI}
+          predicates:
+            - Path=/api/v1/otp/**
         - id: parent-svc
           uri: ${PARENT_SVC_URI}
           predicates:
@@ -34,10 +38,14 @@ spring:
           uri: ${CENTER_SVC_URI}
           predicates:
             - Path=/api/v1/centers/**
-        - id: assess-svc
+        - id: assess-svc-exams
           uri: ${ASSESS_SVC_URI}
           predicates:
-            - Path=/api/v1/assessments/**
+            - Path=/api/v1/exams/**
+        - id: assess-svc-grades
+          uri: ${ASSESS_SVC_URI}
+          predicates:
+            - Path=/api/v1/questions/**
         - id: psych-svc
           uri: ${PSYCH_SVC_URI}
           predicates:

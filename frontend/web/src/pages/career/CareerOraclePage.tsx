@@ -214,7 +214,7 @@ export default function CareerOraclePage() {
   const { data: profile, refetch } = useQuery<CareerProfile>({
     queryKey: ['career-profile', user?.id],
     queryFn: async () => {
-      const res = await api.get(`/api/v1/career-profiles/${user?.id}`);
+      const res = await api.get(`/api/v1/career-profiles/by-student/${user?.id}`);
       return res.data;
     },
     retry: false,

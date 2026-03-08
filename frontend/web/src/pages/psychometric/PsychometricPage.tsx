@@ -141,7 +141,7 @@ export default function PsychometricPage() {
   const { data: profile } = useQuery<PsychProfile>({
     queryKey: ['psych-profile', user?.id],
     queryFn: async () => {
-      const res = await api.get(`/api/v1/psych-profiles/${user?.id}`);
+      const res = await api.get(`/api/v1/psych/profiles/${user?.id}`);
       return res.data;
     },
     retry: false,

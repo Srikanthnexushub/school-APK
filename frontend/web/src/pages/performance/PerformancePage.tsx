@@ -282,7 +282,7 @@ function WeakAreasTab({ studentId }: { studentId: string }) {
 
   const studyPlanMutation = useMutation({
     mutationFn: () =>
-      api.post(`/api/v1/ai-mentor/study-plan`, {
+      api.post(`/api/v1/study-plans`, {
         studentId,
         weakAreaIds: weakAreas.map((w) => w.id),
       }),

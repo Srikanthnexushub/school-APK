@@ -7,14 +7,22 @@ import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Set;
 
+/**
+ * JWT GlobalFilter for student-gateway.
+ * Uses ServerHttpRequestDecorator to avoid UnsupportedOperationException from
+ * ReadOnlyHttpHeaders (Reactor Netty / Spring Web 6.1.x).
+ */
 @Component
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
@@ -25,6 +33,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/swagger-ui",
             "/v3/api-docs",
             "/webjars"
+    );
+
+    private static final Set<String> STRIPPED_HEADERS = Set.of(
+            "X-User-Id", "X-User-Role", "X-User-Center-Id"
     );
 
     private final JwtTokenValidator jwtTokenValidator;
@@ -42,9 +54,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getPath().value();
         if (isPublic(path)) {
-            // Strip any inbound X-User-* headers even on public paths to prevent injection
-            ServerHttpRequest sanitised = stripUserHeaders(exchange.getRequest());
-            return chain.filter(exchange.mutate().request(sanitised).build());
+            return chain.filter(exchange.mutate().request(stripped(exchange.getRequest())).build());
         }
 
         String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
@@ -56,18 +66,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         String token = authHeader.substring(7);
         try {
             Claims claims = jwtTokenValidator.validate(token);
-            // Strip any client-supplied X-User-* headers first, then inject from validated JWT claims
-            ServerHttpRequest.Builder requestBuilder = stripUserHeaders(exchange.getRequest()).mutate()
-                    .header("X-User-Id", claims.getSubject());
-            String role = claims.get("role", String.class);
-            if (role != null) {
-                requestBuilder.header("X-User-Role", role);
-            }
-            String centerId = claims.get("centerId", String.class);
-            if (centerId != null) {
-                requestBuilder.header("X-User-Center-Id", centerId);
-            }
-            return chain.filter(exchange.mutate().request(requestBuilder.build()).build());
+            ServerHttpRequest enriched = withUserHeaders(exchange.getRequest(), claims);
+            return chain.filter(exchange.mutate().request(enriched).build());
         } catch (JwtException e) {
             log.warn("JWT validation failed for path {}: {}", path, e.getMessage());
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
@@ -79,14 +79,38 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         return PUBLIC_PATH_PREFIXES.stream().anyMatch(path::startsWith);
     }
 
-    /** Remove any client-supplied X-User-* headers to prevent header injection attacks. */
-    private ServerHttpRequest stripUserHeaders(ServerHttpRequest request) {
-        return request.mutate()
-                .headers(h -> {
-                    h.remove("X-User-Id");
-                    h.remove("X-User-Role");
-                    h.remove("X-User-Center-Id");
-                })
-                .build();
+    private ServerHttpRequest stripped(ServerHttpRequest request) {
+        return new ServerHttpRequestDecorator(request) {
+            @Override
+            public HttpHeaders getHeaders() {
+                HttpHeaders headers = new HttpHeaders();
+                super.getHeaders().forEach((name, values) -> {
+                    if (!STRIPPED_HEADERS.contains(name)) {
+                        headers.put(name, values);
+                    }
+                });
+                return headers;
+            }
+        };
+    }
+
+    private ServerHttpRequest withUserHeaders(ServerHttpRequest request, Claims claims) {
+        return new ServerHttpRequestDecorator(request) {
+            @Override
+            public HttpHeaders getHeaders() {
+                HttpHeaders headers = new HttpHeaders();
+                super.getHeaders().forEach((name, values) -> {
+                    if (!STRIPPED_HEADERS.contains(name)) {
+                        headers.put(name, values);
+                    }
+                });
+                headers.set("X-User-Id", claims.getSubject());
+                String role = claims.get("role", String.class);
+                if (role != null) headers.set("X-User-Role", role);
+                String centerId = claims.get("centerId", String.class);
+                if (centerId != null) headers.set("X-User-Center-Id", centerId);
+                return headers;
+            }
+        };
     }
 }

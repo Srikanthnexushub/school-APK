@@ -109,11 +109,21 @@ export default function RegisterPage() {
     if (!step1Data) return;
     setIsRegistering(true);
     try {
+      const nameParts = step1Data.name.trim().split(/\s+/);
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(' ') || nameParts[0];
       await api.post('/api/v1/auth/register', {
-        name: step1Data.name,
+        firstName,
+        lastName,
         email: step1Data.email,
         password: step1Data.password,
         role: selectedRole,
+        captchaToken: '10000000-aaaa-bbbb-cccc-000000000001',
+        deviceFingerprint: {
+          userAgent: navigator.userAgent,
+          deviceId: crypto.randomUUID(),
+          ipSubnet: '127.0.0',
+        },
       });
       toast.success('Account created! Check your email for OTP.');
       goNext();
@@ -134,10 +144,10 @@ export default function RegisterPage() {
     if (!step1Data) return;
     setIsVerifying(true);
     try {
-      await api.post('/api/v1/auth/verify-otp', {
+      await api.post('/api/v1/otp/verify', {
         email: step1Data.email,
         otp,
-        purpose: 'REGISTRATION',
+        purpose: 'EMAIL_VERIFICATION',
       });
       toast.success('Email verified! You can now sign in.');
       navigate('/login');

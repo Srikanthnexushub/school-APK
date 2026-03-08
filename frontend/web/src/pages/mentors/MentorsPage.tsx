@@ -65,7 +65,7 @@ function BookingModal({ mentor, onClose }: BookingModalProps) {
       const [h, m] = selectedTime.split(':').map(Number);
       const scheduledAt = new Date(selectedDate);
       scheduledAt.setHours(h, m, 0, 0);
-      return api.post('/api/v1/sessions', {
+      return api.post('/api/v1/mentor-sessions', {
         mentorId: mentor.id,
         studentId: user?.id,
         scheduledAt: scheduledAt.toISOString(),

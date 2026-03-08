@@ -530,7 +530,7 @@ function RecommendationsTab() {
   const recsQuery = useQuery<Recommendation[]>({
     queryKey: ['recommendations'],
     queryFn: () =>
-      api.get('/api/v1/ai-mentor/recommendations').then((r) => r.data),
+      api.get('/api/v1/recommendations').then((r) => r.data),
     staleTime: 5 * 60 * 1000,
   });
 
