@@ -12,4 +12,5 @@ public interface ExamRepository {
     Optional<Exam> findById(UUID id);
     List<Exam> findByBatchId(UUID batchId);
     List<Exam> findByCenterId(UUID centerId);
+    List<Exam> findAllPublished();
 }

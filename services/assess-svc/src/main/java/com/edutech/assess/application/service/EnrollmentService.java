@@ -46,7 +46,11 @@ public class EnrollmentService implements EnrollStudentUseCase {
         if (exam.getStatus() != ExamStatus.PUBLISHED) {
             throw new ExamNotPublishedException(examId);
         }
-        if (!principal.belongsToCenter(exam.getCenterId()) && !principal.isSuperAdmin()) {
+        // Students may self-enroll in any published exam.
+        // Admins and teachers must belong to the exam's center (or be super-admin).
+        boolean isSelfEnrollment = principal.isStudent() &&
+                request.studentId().equals(principal.userId());
+        if (!isSelfEnrollment && !principal.belongsToCenter(exam.getCenterId()) && !principal.isSuperAdmin()) {
             throw new AssessAccessDeniedException();
         }
         Optional<ExamEnrollment> existing =

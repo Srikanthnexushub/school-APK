@@ -37,9 +37,11 @@ public class EnrollmentController {
     @ResponseStatus(HttpStatus.CREATED)
     public EnrollmentResponse enrollStudent(
             @PathVariable UUID examId,
-            @Valid @RequestBody EnrollStudentRequest request,
+            @RequestBody(required = false) EnrollStudentRequest request,
             @AuthenticationPrincipal AuthPrincipal principal) {
-        return enrollmentService.enrollStudent(examId, request, principal);
+        // Always use the authenticated user's ID — ignore any studentId in the body
+        EnrollStudentRequest secureRequest = new EnrollStudentRequest(principal.userId());
+        return enrollmentService.enrollStudent(examId, secureRequest, principal);
     }
 
     @GetMapping

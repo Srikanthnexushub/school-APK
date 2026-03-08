@@ -17,4 +17,7 @@ interface SpringDataExamEnrollmentRepository extends JpaRepository<ExamEnrollmen
 
     @Query("SELECT e FROM ExamEnrollment e WHERE e.examId = :examId ORDER BY e.enrolledAt DESC")
     List<ExamEnrollment> findByExamId(@Param("examId") UUID examId);
+
+    @Query("SELECT e FROM ExamEnrollment e WHERE e.studentId = :studentId")
+    List<ExamEnrollment> findByStudentId(@Param("studentId") UUID studentId);
 }

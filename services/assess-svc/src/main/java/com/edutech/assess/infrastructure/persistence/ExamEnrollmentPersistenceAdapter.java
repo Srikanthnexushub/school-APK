@@ -37,4 +37,9 @@ class ExamEnrollmentPersistenceAdapter implements ExamEnrollmentRepository {
     public List<ExamEnrollment> findByExamId(UUID examId) {
         return repository.findByExamId(examId);
     }
+
+    @Override
+    public List<ExamEnrollment> findByStudentId(UUID studentId) {
+        return repository.findByStudentId(studentId);
+    }
 }
