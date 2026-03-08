@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuthStore } from '../../stores/authStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -66,8 +67,20 @@ const TYPE_VARIANTS: Record<string, 'info' | 'success' | 'warning' | 'default'> 
 
 // ─── Study Plans Tab ─────────────────────────────────────────────────────────
 
+const SUBJECT_AREA_MAP: Record<string, string> = {
+  Mathematics: 'MATHEMATICS',
+  Physics: 'PHYSICS',
+  Chemistry: 'CHEMISTRY',
+  Biology: 'BIOLOGY',
+  English: 'ENGLISH',
+  History: 'GENERAL',
+  Geography: 'GENERAL',
+  'Computer Science': 'GENERAL',
+};
+
 function StudyPlansTab() {
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
   const [modalOpen, setModalOpen] = useState(false);
   const [targetExam, setTargetExam] = useState('');
   const [daysUntil, setDaysUntil] = useState('');
@@ -81,9 +94,10 @@ function StudyPlansTab() {
 
   const createMutation = useMutation({
     mutationFn: (payload: {
-      targetExam: string;
-      daysUntilExam: number;
-      weakSubjects: string[];
+      studentId: string;
+      title: string;
+      targetExamDate: string;
+      items: { subjectArea: string; topic: string; priorityLevel: string }[];
     }) => api.post('/api/v1/study-plans', payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['study-plans'] });
@@ -101,10 +115,20 @@ function StudyPlansTab() {
       toast.error('Enter a target exam name');
       return;
     }
+    const days = Number(daysUntil) || 90;
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + days);
+    const targetExamDate = targetDate.toISOString().split('T')[0];
+    const items = weakSubjects.map((s) => ({
+      subjectArea: SUBJECT_AREA_MAP[s] ?? 'GENERAL',
+      topic: s,
+      priorityLevel: 'HIGH',
+    }));
     createMutation.mutate({
-      targetExam: targetExam.trim(),
-      daysUntilExam: Number(daysUntil) || 90,
-      weakSubjects,
+      studentId: user?.id ?? '',
+      title: targetExam.trim(),
+      targetExamDate,
+      items,
     });
   }
 

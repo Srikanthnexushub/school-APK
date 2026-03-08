@@ -12,7 +12,7 @@ import java.util.UUID;
 
 public record CreateStudyPlanRequest(
         @NotNull UUID studentId,
-        @NotNull UUID enrollmentId,
+        UUID enrollmentId,
         @NotBlank String title,
         String description,
         LocalDate targetExamDate,

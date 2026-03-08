@@ -27,7 +27,7 @@ public class StudyPlan {
     @Column(name = "student_id", updatable = false, nullable = false)
     private UUID studentId;
 
-    @Column(name = "enrollment_id", updatable = false, nullable = false)
+    @Column(name = "enrollment_id", updatable = false)
     private UUID enrollmentId;
 
     @Column(nullable = false, length = 255)

@@ -55,7 +55,16 @@ public class StudyPlanController {
             @Valid @RequestBody CreateStudyPlanRequest request,
             @RequestHeader("X-User-Id") UUID userId,
             @RequestHeader("X-User-Role") String userRole) {
-        StudyPlanResponse response = createStudyPlanUseCase.createStudyPlan(request);
+        // Always bind studentId from the authenticated user (header-injected by gateway)
+        CreateStudyPlanRequest secured = new CreateStudyPlanRequest(
+                userId,
+                request.enrollmentId(),
+                request.title(),
+                request.description(),
+                request.targetExamDate(),
+                request.items()
+        );
+        StudyPlanResponse response = createStudyPlanUseCase.createStudyPlan(secured);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
