@@ -31,4 +31,9 @@ public class SubjectMasteryPersistenceAdapter implements SubjectMasteryRepositor
     public Optional<SubjectMastery> findByStudentIdAndEnrollmentIdAndSubject(UUID studentId, UUID enrollmentId, String subject) {
         return springData.findByStudentIdAndEnrollmentIdAndSubject(studentId, enrollmentId, subject);
     }
+
+    @Override
+    public List<SubjectMastery> findByStudentId(UUID studentId) {
+        return springData.findByStudentId(studentId);
+    }
 }

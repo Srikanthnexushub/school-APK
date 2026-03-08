@@ -18,4 +18,7 @@ interface SpringDataReadinessScoreRepository extends JpaRepository<ReadinessScor
     @Query("SELECT r FROM ReadinessScore r WHERE r.studentId = :studentId AND r.enrollmentId = :enrollmentId AND r.deletedAt IS NULL ORDER BY r.computedAt DESC")
     List<ReadinessScore> findByStudentIdAndEnrollmentId(@Param("studentId") UUID studentId,
                                                          @Param("enrollmentId") UUID enrollmentId);
+
+    @Query("SELECT r FROM ReadinessScore r WHERE r.studentId = :studentId AND r.deletedAt IS NULL ORDER BY r.computedAt DESC LIMIT 1")
+    Optional<ReadinessScore> findLatestByStudentId(@Param("studentId") UUID studentId);
 }

@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -26,12 +25,11 @@ public class RecommendationController {
     }
 
     @GetMapping
-    @Operation(summary = "Get active recommendations for a student")
+    @Operation(summary = "Get active recommendations for the authenticated student")
     public ResponseEntity<List<RecommendationResponse>> getRecommendations(
-            @RequestParam UUID studentId,
             @RequestHeader("X-User-Id") UUID userId,
             @RequestHeader("X-User-Role") String userRole) {
-        List<RecommendationResponse> recommendations = getRecommendationsUseCase.getRecommendations(studentId);
+        List<RecommendationResponse> recommendations = getRecommendationsUseCase.getRecommendations(userId);
         return ResponseEntity.ok(recommendations);
     }
 }

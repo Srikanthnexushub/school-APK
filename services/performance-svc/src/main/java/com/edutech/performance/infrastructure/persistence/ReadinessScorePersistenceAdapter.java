@@ -31,4 +31,9 @@ public class ReadinessScorePersistenceAdapter implements ReadinessScoreRepositor
     public List<ReadinessScore> findByStudentIdAndEnrollmentId(UUID studentId, UUID enrollmentId) {
         return springData.findByStudentIdAndEnrollmentId(studentId, enrollmentId);
     }
+
+    @Override
+    public Optional<ReadinessScore> findLatestByStudentId(UUID studentId) {
+        return springData.findLatestByStudentId(studentId);
+    }
 }

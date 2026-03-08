@@ -3,6 +3,7 @@ package com.edutech.aimentor.api;
 import com.edutech.aimentor.application.dto.DoubtTicketResponse;
 import com.edutech.aimentor.application.dto.SubmitDoubtRequest;
 import com.edutech.aimentor.domain.port.in.GetDoubtUseCase;
+import com.edutech.aimentor.domain.port.in.ListDoubtsUseCase;
 import com.edutech.aimentor.domain.port.in.SubmitDoubtUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -27,11 +29,23 @@ public class DoubtController {
 
     private final SubmitDoubtUseCase submitDoubtUseCase;
     private final GetDoubtUseCase getDoubtUseCase;
+    private final ListDoubtsUseCase listDoubtsUseCase;
 
     public DoubtController(SubmitDoubtUseCase submitDoubtUseCase,
-                           GetDoubtUseCase getDoubtUseCase) {
+                           GetDoubtUseCase getDoubtUseCase,
+                           ListDoubtsUseCase listDoubtsUseCase) {
         this.submitDoubtUseCase = submitDoubtUseCase;
         this.getDoubtUseCase = getDoubtUseCase;
+        this.listDoubtsUseCase = listDoubtsUseCase;
+    }
+
+    @GetMapping
+    @Operation(summary = "List all doubt tickets for the authenticated student")
+    public ResponseEntity<List<DoubtTicketResponse>> listDoubts(
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-User-Role") String userRole) {
+        List<DoubtTicketResponse> response = listDoubtsUseCase.listDoubts(userId);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping

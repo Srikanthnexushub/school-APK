@@ -38,7 +38,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
                 .requestMatchers(HttpMethod.GET,
-                    "/api/v1/captcha/challenge").permitAll()
+                    "/api/v1/captcha/challenge",
+                    "/api/v1/auth/jwks").permitAll()
                 .requestMatchers(HttpMethod.POST,
                     "/api/v1/auth/register",
                     "/api/v1/auth/login",

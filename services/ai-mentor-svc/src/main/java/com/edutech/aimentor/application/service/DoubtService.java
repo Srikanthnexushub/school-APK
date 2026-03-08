@@ -7,6 +7,7 @@ import com.edutech.aimentor.domain.event.DoubtResolvedEvent;
 import com.edutech.aimentor.domain.event.DoubtSubmittedEvent;
 import com.edutech.aimentor.domain.model.DoubtTicket;
 import com.edutech.aimentor.domain.port.in.GetDoubtUseCase;
+import com.edutech.aimentor.domain.port.in.ListDoubtsUseCase;
 import com.edutech.aimentor.domain.port.in.SubmitDoubtUseCase;
 import com.edutech.aimentor.domain.port.out.AiGatewayClient;
 import com.edutech.aimentor.domain.port.out.AiMentorEventPublisher;
@@ -17,10 +18,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Service
-public class DoubtService implements SubmitDoubtUseCase, GetDoubtUseCase {
+public class DoubtService implements SubmitDoubtUseCase, GetDoubtUseCase, ListDoubtsUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(DoubtService.class);
 
@@ -104,6 +106,14 @@ public class DoubtService implements SubmitDoubtUseCase, GetDoubtUseCase {
                 .findByIdAndStudentId(doubtTicketId, studentId)
                 .orElseThrow(() -> new DoubtNotFoundException(doubtTicketId, studentId));
         return toResponse(ticket);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DoubtTicketResponse> listDoubts(UUID studentId) {
+        return doubtTicketRepository.findAllByStudentId(studentId).stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     private DoubtTicketResponse toResponse(DoubtTicket ticket) {

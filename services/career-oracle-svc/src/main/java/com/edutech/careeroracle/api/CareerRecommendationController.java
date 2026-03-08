@@ -47,4 +47,13 @@ public class CareerRecommendationController {
                 generateCareerRecommendationsUseCase.getActiveRecommendations(studentId);
         return ResponseEntity.ok(recommendations);
     }
+
+    @GetMapping("/by-student/{studentId}")
+    @Operation(summary = "Get active career recommendations for a student (frontend alias)")
+    public ResponseEntity<List<CareerRecommendationResponse>> getActiveRecommendationsByStudent(
+            @PathVariable UUID studentId) {
+        List<CareerRecommendationResponse> recommendations =
+                generateCareerRecommendationsUseCase.getActiveRecommendations(studentId);
+        return ResponseEntity.ok(recommendations);
+    }
 }

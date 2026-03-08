@@ -12,4 +12,6 @@ interface SpringDataSubjectMasteryRepository extends JpaRepository<SubjectMaster
     List<SubjectMastery> findByStudentIdAndEnrollmentId(UUID studentId, UUID enrollmentId);
 
     Optional<SubjectMastery> findByStudentIdAndEnrollmentIdAndSubject(UUID studentId, UUID enrollmentId, String subject);
+
+    List<SubjectMastery> findByStudentId(UUID studentId);
 }

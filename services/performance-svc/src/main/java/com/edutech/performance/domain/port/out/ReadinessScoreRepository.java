@@ -13,4 +13,6 @@ public interface ReadinessScoreRepository {
     Optional<ReadinessScore> findLatestByStudentIdAndEnrollmentId(UUID studentId, UUID enrollmentId);
 
     List<ReadinessScore> findByStudentIdAndEnrollmentId(UUID studentId, UUID enrollmentId);
+
+    Optional<ReadinessScore> findLatestByStudentId(UUID studentId);
 }

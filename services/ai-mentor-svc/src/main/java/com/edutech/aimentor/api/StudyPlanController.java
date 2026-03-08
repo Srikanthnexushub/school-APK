@@ -5,6 +5,7 @@ import com.edutech.aimentor.application.dto.StudyPlanItemResponse;
 import com.edutech.aimentor.application.dto.StudyPlanResponse;
 import com.edutech.aimentor.domain.port.in.CreateStudyPlanUseCase;
 import com.edutech.aimentor.domain.port.in.GetStudyPlanUseCase;
+import com.edutech.aimentor.domain.port.in.ListStudyPlansUseCase;
 import com.edutech.aimentor.domain.port.in.UpdateStudyPlanItemUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -33,13 +35,16 @@ public class StudyPlanController {
 
     private final CreateStudyPlanUseCase createStudyPlanUseCase;
     private final GetStudyPlanUseCase getStudyPlanUseCase;
+    private final ListStudyPlansUseCase listStudyPlansUseCase;
     private final UpdateStudyPlanItemUseCase updateStudyPlanItemUseCase;
 
     public StudyPlanController(CreateStudyPlanUseCase createStudyPlanUseCase,
                                GetStudyPlanUseCase getStudyPlanUseCase,
+                               ListStudyPlansUseCase listStudyPlansUseCase,
                                UpdateStudyPlanItemUseCase updateStudyPlanItemUseCase) {
         this.createStudyPlanUseCase = createStudyPlanUseCase;
         this.getStudyPlanUseCase = getStudyPlanUseCase;
+        this.listStudyPlansUseCase = listStudyPlansUseCase;
         this.updateStudyPlanItemUseCase = updateStudyPlanItemUseCase;
     }
 
@@ -55,7 +60,16 @@ public class StudyPlanController {
     }
 
     @GetMapping
-    @Operation(summary = "Get study plan for a student enrollment")
+    @Operation(summary = "List all study plans for the authenticated student")
+    public ResponseEntity<List<StudyPlanResponse>> listStudyPlans(
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-User-Role") String userRole) {
+        List<StudyPlanResponse> response = listStudyPlansUseCase.listStudyPlans(userId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/by-enrollment")
+    @Operation(summary = "Get study plan for a specific student enrollment")
     public ResponseEntity<StudyPlanResponse> getStudyPlan(
             @RequestParam UUID studentId,
             @RequestParam UUID enrollmentId,

@@ -10,6 +10,7 @@ import com.edutech.aimentor.domain.model.StudyPlan;
 import com.edutech.aimentor.domain.model.StudyPlanItem;
 import com.edutech.aimentor.domain.port.in.CreateStudyPlanUseCase;
 import com.edutech.aimentor.domain.port.in.GetStudyPlanUseCase;
+import com.edutech.aimentor.domain.port.in.ListStudyPlansUseCase;
 import com.edutech.aimentor.domain.port.in.UpdateStudyPlanItemUseCase;
 import com.edutech.aimentor.domain.port.out.AiMentorEventPublisher;
 import com.edutech.aimentor.domain.port.out.StudyPlanRepository;
@@ -23,7 +24,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public class StudyPlanService implements CreateStudyPlanUseCase, GetStudyPlanUseCase, UpdateStudyPlanItemUseCase {
+public class StudyPlanService implements CreateStudyPlanUseCase, GetStudyPlanUseCase, ListStudyPlansUseCase, UpdateStudyPlanItemUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(StudyPlanService.class);
 
@@ -90,6 +91,14 @@ public class StudyPlanService implements CreateStudyPlanUseCase, GetStudyPlanUse
                 .findByStudentIdAndEnrollmentId(studentId, enrollmentId)
                 .orElseThrow(() -> new StudyPlanNotFoundException(studentId, enrollmentId));
         return toResponse(studyPlan);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudyPlanResponse> listStudyPlans(UUID studentId) {
+        return studyPlanRepository.findAllByStudentId(studentId).stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     @Override
