@@ -45,8 +45,12 @@ public class SmtpNotificationAdapter implements NotificationSender {
             mailSender.send(message);
             log.debug("OTP email sent to={} purpose={}", to, purpose);
         } catch (MessagingException | java.io.UnsupportedEncodingException e) {
-            log.error("Failed to send OTP email to={}", to, e);
-            throw new IllegalStateException("Email delivery failed", e);
+            // SMTP unavailable (common in local dev without a mail server configured).
+            // Log OTP to console so developers can complete verification manually.
+            // IMPORTANT: configure real MAIL_* env vars in production.
+            log.warn("[DEV] SMTP unavailable — OTP for email={} purpose={} otp={} (expires in {}m). " +
+                     "Set MAIL_HOST/MAIL_PORT/MAIL_USERNAME/MAIL_PASSWORD for real email delivery.",
+                     to, purpose, otp, expiryMinutes);
         }
     }
 

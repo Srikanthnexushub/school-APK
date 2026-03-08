@@ -79,6 +79,7 @@ export default function RegisterPage() {
   const [otpValues, setOtpValues] = useState<string[]>(Array(6).fill(''));
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   const {
     register,
@@ -128,10 +129,35 @@ export default function RegisterPage() {
       toast.success('Account created! Check your email for OTP.');
       goNext();
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { detail?: string } } };
-      toast.error(axiosErr.response?.data?.detail ?? 'Registration failed');
+      const axiosErr = err as { response?: { status?: number; data?: { detail?: string } } };
+      if (axiosErr.response?.status === 409) {
+        // Account already exists but may not be verified — send a fresh OTP and proceed to verify
+        toast.info('Account already exists. Sending a new verification code…');
+        try {
+          await api.post('/api/v1/otp/send', { email: step1Data.email, purpose: 'EMAIL_VERIFICATION', channel: 'email' });
+        } catch {
+          // OTP send error is non-fatal — user can retry from step 3
+        }
+        goNext();
+      } else {
+        toast.error(axiosErr.response?.data?.detail ?? 'Registration failed');
+      }
     } finally {
       setIsRegistering(false);
+    }
+  }
+
+  async function onResendOtp() {
+    if (!step1Data) return;
+    setIsResending(true);
+    try {
+      await api.post('/api/v1/otp/send', { email: step1Data.email, purpose: 'EMAIL_VERIFICATION', channel: 'email' });
+      toast.success('New code sent! Check your email (or auth-svc console in local dev).');
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      toast.error(axiosErr.response?.data?.detail ?? 'Failed to resend code');
+    } finally {
+      setIsResending(false);
     }
   }
 
@@ -454,14 +480,24 @@ export default function RegisterPage() {
                   )}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={goBack}
-                  className="text-xs text-white/30 hover:text-white/60 transition-colors"
-                >
-                  <ArrowLeft className="w-3 h-3 inline mr-1" />
-                  Go back
-                </button>
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={goBack}
+                    className="text-xs text-white/30 hover:text-white/60 transition-colors"
+                  >
+                    <ArrowLeft className="w-3 h-3 inline mr-1" />
+                    Go back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onResendOtp}
+                    disabled={isResending}
+                    className="text-xs text-brand-400 hover:text-brand-300 transition-colors disabled:opacity-50"
+                  >
+                    {isResending ? 'Sending…' : 'Resend code'}
+                  </button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
