@@ -13,10 +13,10 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 
 /**
- * Adapter: verifies hCaptcha Enterprise tokens via the hCaptcha REST API.
- * Circuit-breaker protected — if hCaptcha is unreachable, falls back to rejection.
+ * External hCaptcha/Google reCAPTCHA REST adapter — kept for reference but disabled.
+ * The active CaptchaVerifier bean is LocalCaptchaVerifierAdapter (server-generated image CAPTCHA).
+ * Re-enable by adding @Component and removing it from LocalCaptchaVerifierAdapter.
  */
-@Component
 public class HCaptchaRestAdapter implements CaptchaVerifier {
 
     private static final Logger log = LoggerFactory.getLogger(HCaptchaRestAdapter.class);

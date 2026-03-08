@@ -197,7 +197,7 @@ function SidebarContent({
             <BookOpen className="w-4 h-4 text-brand-400" />
           </div>
           {!collapsed && (
-            <span className="font-bold text-white truncate">EduPath</span>
+            <span className="font-bold text-white truncate">NexusEd</span>
           )}
         </div>
         {!collapsed && (
@@ -432,7 +432,7 @@ export default function AppLayout() {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Topbar */}
-        <header className="flex items-center justify-between px-4 lg:px-6 h-14 border-b border-white/5 bg-surface-50/20 backdrop-blur-sm flex-shrink-0">
+        <header className="relative z-40 flex items-center justify-between px-4 lg:px-6 h-14 border-b border-white/5 bg-surface-50/20 backdrop-blur-sm flex-shrink-0">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileOpen(true)}
@@ -481,8 +481,17 @@ export default function AppLayout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto flex flex-col">
+          <div className="flex-1">
+            <Outlet />
+          </div>
+          <footer className="flex-shrink-0 border-t border-white/5 px-6 py-3 flex items-center justify-between gap-4">
+            <span className="text-xs text-white/20 font-medium">NexusEd</span>
+            <span className="text-xs text-white/20 text-center">
+              © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
+            </span>
+            <span className="text-xs text-white/10 hidden sm:block">v1.0.0</span>
+          </footer>
         </main>
       </div>
 

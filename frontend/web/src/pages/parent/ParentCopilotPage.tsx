@@ -178,8 +178,8 @@ function ConvItem({
 const greetingMessage = (id: string): Message => ({
   id,
   role: 'assistant',
-  content: "Hello! I'm your Parent Copilot — powered by EduPath AI.\n\nI can help you with:\n• Your child's performance and progress\n• Fee and attendance queries\n• Study recommendations and weak areas\n• Exam schedules and upcoming tests\n• Booking mentor sessions\n\nHow can I help you today?",
-  displayedContent: "Hello! I'm your Parent Copilot — powered by EduPath AI.\n\nI can help you with:\n• Your child's performance and progress\n• Fee and attendance queries\n• Study recommendations and weak areas\n• Exam schedules and upcoming tests\n• Booking mentor sessions\n\nHow can I help you today?",
+  content: "Hello! I'm your Parent Copilot — powered by NexusEd AI.\n\nI can help you with:\n• Your child's performance and progress\n• Fee and attendance queries\n• Study recommendations and weak areas\n• Exam schedules and upcoming tests\n• Booking mentor sessions\n\nHow can I help you today?",
+  displayedContent: "Hello! I'm your Parent Copilot — powered by NexusEd AI.\n\nI can help you with:\n• Your child's performance and progress\n• Fee and attendance queries\n• Study recommendations and weak areas\n• Exam schedules and upcoming tests\n• Booking mentor sessions\n\nHow can I help you today?",
   complete: true,
   timestamp: new Date(),
 });

@@ -29,11 +29,11 @@ interface Center {
 }
 
 const initialCenters: Center[] = [
-  { id: 'ct1', name: 'EduPath Koramangala', city: 'Bengaluru', address: '5th Block, Koramangala', phone: '+91 98765 43210', students: 142, batches: 8, status: 'Active' },
-  { id: 'ct2', name: 'EduPath Indiranagar',  city: 'Bengaluru', address: '100 Feet Road, Indiranagar', phone: '+91 98765 43211', students: 98, batches: 5, status: 'Active' },
-  { id: 'ct3', name: 'EduPath Andheri',      city: 'Mumbai',    address: 'Veera Desai Rd, Andheri W', phone: '+91 98765 43212', students: 211, batches: 11, status: 'Active' },
-  { id: 'ct4', name: 'EduPath Powai',        city: 'Mumbai',    address: 'Hiranandani Gardens, Powai', phone: '+91 98765 43213', students: 67,  batches: 4, status: 'Pending' },
-  { id: 'ct5', name: 'EduPath Banjara Hills', city: 'Hyderabad', address: 'Road No. 12, Banjara Hills', phone: '+91 98765 43214', students: 0,   batches: 0, status: 'Inactive' },
+  { id: 'ct1', name: 'NexusEd Koramangala', city: 'Bengaluru', address: '5th Block, Koramangala', phone: '+91 98765 43210', students: 142, batches: 8, status: 'Active' },
+  { id: 'ct2', name: 'NexusEd Indiranagar',  city: 'Bengaluru', address: '100 Feet Road, Indiranagar', phone: '+91 98765 43211', students: 98, batches: 5, status: 'Active' },
+  { id: 'ct3', name: 'NexusEd Andheri',      city: 'Mumbai',    address: 'Veera Desai Rd, Andheri W', phone: '+91 98765 43212', students: 211, batches: 11, status: 'Active' },
+  { id: 'ct4', name: 'NexusEd Powai',        city: 'Mumbai',    address: 'Hiranandani Gardens, Powai', phone: '+91 98765 43213', students: 67,  batches: 4, status: 'Pending' },
+  { id: 'ct5', name: 'NexusEd Banjara Hills', city: 'Hyderabad', address: 'Road No. 12, Banjara Hills', phone: '+91 98765 43214', students: 0,   batches: 0, status: 'Inactive' },
 ];
 
 const enrollmentByBatch = [
@@ -170,7 +170,7 @@ function AddCenterModal({ onClose, onAdd }: { onClose: () => void; onAdd: (data:
               <label className="block text-xs font-medium text-white/60 mb-1.5">Center Name</label>
               <div className="relative">
                 <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                <input {...register('name')} placeholder="EduPath Whitefield" className="input pl-10 w-full" />
+                <input {...register('name')} placeholder="NexusEd Whitefield" className="input pl-10 w-full" />
               </div>
               {errors.name && <p className="text-xs text-red-400 mt-1">{errors.name.message}</p>}
             </div>

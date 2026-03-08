@@ -409,7 +409,7 @@ export default function PsychometricPage() {
           </div>
           <h3 className="text-xl font-bold text-white">Psychometric Assessment</h3>
           <p className="text-white/50 text-sm leading-relaxed">
-            A science-backed 10-minute assessment covering personality traits, learning styles, and career interests. Your results personalise your entire EduPath experience.
+            A science-backed 10-minute assessment covering personality traits, learning styles, and career interests. Your results personalise your entire NexusEd experience.
           </p>
           <div className="grid grid-cols-3 gap-3 text-center">
             {[{ value: '10 min', label: 'Duration' }, { value: '50+', label: 'Questions' }, { value: 'Big Five', label: 'Framework' }].map((stat) => (

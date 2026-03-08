@@ -125,7 +125,7 @@ export default function OtpPage() {
           <div className="p-2 rounded-xl bg-brand-600/20 border border-brand-500/30">
             <BookOpen className="w-5 h-5 text-brand-400" />
           </div>
-          <span className="font-bold text-lg text-white">EduPath</span>
+          <span className="font-bold text-lg text-white">NexusEd</span>
         </div>
 
         <div className="card text-center">

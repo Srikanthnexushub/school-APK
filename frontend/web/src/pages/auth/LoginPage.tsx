@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { motion } from 'framer-motion';
 import { BookOpen, Sparkles, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
+import CaptchaWidget from '../../components/CaptchaWidget';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../lib/utils';
@@ -21,6 +22,8 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
   const [showPw, setShowPw] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const handleCaptchaVerify = useCallback((token: string | null) => setCaptchaToken(token), []);
   const {
     register,
     handleSubmit,
@@ -32,7 +35,7 @@ export default function LoginPage() {
       const loginRes = await api.post('/api/v1/auth/login', {
         email: data.email,
         password: data.password,
-        captchaToken: '10000000-aaaa-bbbb-cccc-000000000001',
+        captchaToken: captchaToken!,
         deviceFingerprint: {
           userAgent: navigator.userAgent,
           deviceId: crypto.randomUUID(),
@@ -41,7 +44,6 @@ export default function LoginPage() {
       });
       const { accessToken } = loginRes.data;
 
-      // Fetch full user profile using the new token
       const meRes = await api.get('/api/v1/auth/me', {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
@@ -57,6 +59,7 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { detail?: string; title?: string } } };
       toast.error(axiosErr.response?.data?.detail ?? axiosErr.response?.data?.title ?? 'Login failed');
+      setCaptchaToken(null);
     }
   }
 
@@ -64,7 +67,6 @@ export default function LoginPage() {
     <div className="min-h-screen bg-surface flex">
       {/* Left panel */}
       <div className="hidden lg:flex flex-1 relative overflow-hidden bg-gradient-to-br from-brand-950 via-surface to-surface items-center justify-center p-12">
-        {/* Animated orbs */}
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-brand-600/20 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-1/3 right-1/4 w-48 h-48 bg-violet-600/20 rounded-full blur-3xl animate-pulse delay-700" />
         <div className="absolute top-1/2 right-1/3 w-32 h-32 bg-cyan-600/15 rounded-full blur-2xl animate-pulse delay-1000" />
@@ -117,7 +119,7 @@ export default function LoginPage() {
             <div className="p-2 rounded-xl bg-brand-600/20 border border-brand-500/30">
               <BookOpen className="w-5 h-5 text-brand-400" />
             </div>
-            <span className="font-bold text-lg text-white">EduPath</span>
+            <span className="font-bold text-lg text-white">NexusEd</span>
           </div>
 
           <h2 className="text-3xl font-bold text-white mb-2">Welcome back</h2>
@@ -171,10 +173,12 @@ export default function LoginPage() {
               </Link>
             </div>
 
+            <CaptchaWidget onVerify={handleCaptchaVerify} />
+
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="btn-primary w-full flex items-center justify-center gap-2 py-3"
+              disabled={isSubmitting || !captchaToken}
+              className="btn-primary w-full flex items-center justify-center gap-2 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -194,6 +198,10 @@ export default function LoginPage() {
             >
               Create one
             </Link>
+          </p>
+
+          <p className="mt-10 text-center text-white/15 text-xs">
+            © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
           </p>
         </motion.div>
       </div>

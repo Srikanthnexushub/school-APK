@@ -268,7 +268,7 @@ export default function ExamPage() {
           <div className="p-1.5 rounded-lg bg-brand-600/20 border border-brand-500/30">
             <BookOpen className="w-4 h-4 text-brand-400" />
           </div>
-          <span className="font-bold text-white text-sm hidden sm:block">EduPath</span>
+          <span className="font-bold text-white text-sm hidden sm:block">NexusEd</span>
         </div>
 
         <div className="flex items-center gap-2 text-white/60 text-sm font-medium">

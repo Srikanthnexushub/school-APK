@@ -30,6 +30,10 @@ spring:
           uri: ${AUTH_SVC_URI}
           predicates:
             - Path=/api/v1/otp/**
+        - id: auth-svc-captcha
+          uri: ${AUTH_SVC_URI}
+          predicates:
+            - Path=/api/v1/captcha/**
         - id: parent-svc
           uri: ${PARENT_SVC_URI}
           predicates:

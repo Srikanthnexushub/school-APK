@@ -37,6 +37,8 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
+                .requestMatchers(HttpMethod.GET,
+                    "/api/v1/captcha/challenge").permitAll()
                 .requestMatchers(HttpMethod.POST,
                     "/api/v1/auth/register",
                     "/api/v1/auth/login",

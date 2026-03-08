@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,8 +16,10 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import CaptchaWidget from '../../components/CaptchaWidget';
 import api from '../../lib/api';
 import { cn } from '../../lib/utils';
+
 
 const step1Schema = z
   .object({
@@ -80,6 +82,8 @@ export default function RegisterPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const handleCaptchaVerify = useCallback((token: string | null) => setCaptchaToken(token), []);
 
   const {
     register,
@@ -119,7 +123,7 @@ export default function RegisterPage() {
         email: step1Data.email,
         password: step1Data.password,
         role: selectedRole,
-        captchaToken: '10000000-aaaa-bbbb-cccc-000000000001',
+        captchaToken: captchaToken!,
         deviceFingerprint: {
           userAgent: navigator.userAgent,
           deviceId: crypto.randomUUID(),
@@ -141,6 +145,7 @@ export default function RegisterPage() {
         goNext();
       } else {
         toast.error(axiosErr.response?.data?.detail ?? 'Registration failed');
+        setCaptchaToken(null);
       }
     } finally {
       setIsRegistering(false);
@@ -213,7 +218,7 @@ export default function RegisterPage() {
           <div className="p-2 rounded-xl bg-brand-600/20 border border-brand-500/30">
             <BookOpen className="w-5 h-5 text-brand-400" />
           </div>
-          <span className="font-bold text-lg text-white">EduPath</span>
+          <span className="font-bold text-lg text-white">NexusEd</span>
         </div>
 
         {/* Progress bar */}
@@ -275,7 +280,7 @@ export default function RegisterPage() {
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
               >
                 <h2 className="text-2xl font-bold text-white mb-1">Create your account</h2>
-                <p className="text-white/40 mb-6 text-sm">Get started with EduPath today.</p>
+                <p className="text-white/40 mb-6 text-sm">Get started with NexusEd today.</p>
 
                 <form onSubmit={handleSubmit(onStep1Submit)} className="space-y-4">
                   <div>
@@ -360,7 +365,7 @@ export default function RegisterPage() {
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
               >
                 <h2 className="text-2xl font-bold text-white mb-1">Choose your role</h2>
-                <p className="text-white/40 mb-6 text-sm">Select how you&apos;ll use EduPath.</p>
+                <p className="text-white/40 mb-6 text-sm">Select how you&apos;ll use NexusEd.</p>
 
                 <div className="space-y-3 mb-6">
                   {roleCards.map(({ role, label, description, Icon }) => (
@@ -406,6 +411,10 @@ export default function RegisterPage() {
                   ))}
                 </div>
 
+                <div className="flex justify-center mb-4">
+                  <CaptchaWidget onVerify={handleCaptchaVerify} />
+                </div>
+
                 <div className="flex gap-3">
                   <button type="button" onClick={goBack} className="btn-ghost flex items-center gap-2 py-3 px-4">
                     <ArrowLeft className="w-4 h-4" /> Back
@@ -413,7 +422,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={onStep2Continue}
-                    disabled={isRegistering}
+                    disabled={isRegistering || !captchaToken}
                     className="btn-primary flex-1 flex items-center justify-center gap-2 py-3"
                   >
                     {isRegistering ? (
@@ -508,6 +517,10 @@ export default function RegisterPage() {
           <Link to="/login" className="text-brand-400 hover:text-brand-300 font-medium transition-colors">
             Sign in
           </Link>
+        </p>
+
+        <p className="mt-6 text-center text-white/15 text-xs">
+          © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
         </p>
       </div>
     </div>
