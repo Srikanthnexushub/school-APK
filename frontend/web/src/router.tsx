@@ -23,6 +23,7 @@ import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import MentorPortalDashboardPage from './pages/mentor-portal/MentorPortalDashboardPage';
 import MentorPortalSessionsPage from './pages/mentor-portal/MentorPortalSessionsPage';
 import MentorPortalInsightsPage from './pages/mentor-portal/MentorPortalInsightsPage';
+import MentorPortalExamsPage from './pages/mentor-portal/MentorPortalExamsPage';
 
 export const router = createBrowserRouter([
   {
@@ -102,6 +103,7 @@ export const router = createBrowserRouter([
       { path: 'dashboard', element: <MentorPortalDashboardPage /> },
       { path: 'sessions', element: <MentorPortalSessionsPage /> },
       { path: 'insights', element: <MentorPortalInsightsPage /> },
+      { path: 'exams',    element: <MentorPortalExamsPage /> },
     ],
   },
 ]);
