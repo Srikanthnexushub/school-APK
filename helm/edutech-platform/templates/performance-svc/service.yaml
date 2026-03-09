@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: performance-svc
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{ include "edutech.labels" . | nindent 4 }}
+    {{ include "edutech.selectorLabels" (dict "app" "performance-svc") | nindent 4 }}
+spec:
+  selector:
+    {{ include "edutech.selectorLabels" (dict "app" "performance-svc") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.services.performanceSvc.port }}
+      targetPort: {{ .Values.services.performanceSvc.port }}
+      protocol: TCP
+    - name: grpc
+      port: {{ .Values.services.performanceSvc.grpcPort }}
+      targetPort: {{ .Values.services.performanceSvc.grpcPort }}
+      protocol: TCP
+  type: ClusterIP

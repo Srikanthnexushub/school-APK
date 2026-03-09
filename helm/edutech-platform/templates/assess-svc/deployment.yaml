@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assess-svc
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{ include "edutech.labels" . | nindent 4 }}
+    {{ include "edutech.selectorLabels" (dict "app" "assess-svc") | nindent 4 }}
+spec:
+  replicas: {{ .Values.services.assessSvc.replicas }}
+  selector:
+    matchLabels:
+      {{ include "edutech.selectorLabels" (dict "app" "assess-svc") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{ include "edutech.selectorLabels" (dict "app" "assess-svc") | nindent 8 }}
+        app.kubernetes.io/part-of: edutech-platform
+      annotations:
+        {{ include "edutech.prometheusAnnotations" (dict "port" (toString .Values.services.assessSvc.port)) | nindent 8 }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      securityContext:
+        {{ include "edutech.podSecurityContext" . | nindent 8 }}
+      {{ include "edutech.imagePullSecrets" . | nindent 6 }}
+      containers:
+        - name: assess-svc
+          image: {{ include "edutech.image" (dict "name" "assess-svc" "Values" .Values) }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.services.assessSvc.port }}
+              name: http
+              protocol: TCP
+            - containerPort: {{ .Values.services.assessSvc.grpcPort }}
+              name: grpc
+              protocol: TCP
+          {{ include "edutech.envFrom" . | nindent 10 }}
+          env:
+            - name: SERVER_PORT
+              value: {{ .Values.services.assessSvc.port | quote }}
+            - name: ASSESS_SVC_PORT
+              value: {{ .Values.services.assessSvc.port | quote }}
+          {{ include "edutech.readinessProbe" (dict "port" .Values.services.assessSvc.port) | nindent 10 }}
+          {{ include "edutech.livenessProbe" (dict "port" .Values.services.assessSvc.port) | nindent 10 }}
+          resources:
+            {{- toYaml .Values.services.assessSvc.resources | nindent 12 }}
+          securityContext:
+            {{ include "edutech.containerSecurityContext" . | nindent 12 }}

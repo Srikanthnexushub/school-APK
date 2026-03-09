@@ -1,0 +1,10 @@
+apiVersion: 1
+
+datasources:
+  - name: Jaeger
+    type: jaeger
+    access: proxy
+    url: http://jaeger:${JAEGER_UI_PORT:-16686}
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: prometheus

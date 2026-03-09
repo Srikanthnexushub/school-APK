@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="notification-svc"/>
+    <springProperty scope="context" name="LOG_LEVEL_ROOT" source="logging.level.root" defaultValue="INFO"/>
+    <springProperty scope="context" name="LOG_LEVEL_APP" source="logging.level.com.edutech" defaultValue="INFO"/>
+
+    <!-- JSON structured logging for production (Logstash/ELK ingestion) -->
+    <appender name="JSON_STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"service":"${APP_NAME}"}</customFields>
+            <fieldNames>
+                <timestamp>timestamp</timestamp>
+                <message>message</message>
+                <logger>logger</logger>
+                <thread>thread</thread>
+                <level>level</level>
+            </fieldNames>
+            <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                <maxDepthPerCause>20</maxDepthPerCause>
+                <shortenedClassNameLength>35</shortenedClassNameLength>
+            </throwableConverter>
+        </encoder>
+    </appender>
+
+    <!-- Human-readable console logging for local development -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Use JSON in production, plain text in local dev -->
+    <springProfile name="prod,staging">
+        <root level="${LOG_LEVEL_ROOT}">
+            <appender-ref ref="JSON_STDOUT"/>
+        </root>
+        <logger name="com.edutech" level="${LOG_LEVEL_APP}" additivity="false">
+            <appender-ref ref="JSON_STDOUT"/>
+        </logger>
+    </springProfile>
+
+    <springProfile name="!prod &amp; !staging">
+        <root level="${LOG_LEVEL_ROOT}">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+        <logger name="com.edutech" level="${LOG_LEVEL_APP}" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
+    </springProfile>
+
+</configuration>

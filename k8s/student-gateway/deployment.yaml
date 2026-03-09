@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: student-gateway
+  namespace: edutech
+  labels:
+    app: student-gateway
+    app.kubernetes.io/name: student-gateway
+    app.kubernetes.io/part-of: edutech-platform
+    app.kubernetes.io/component: gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: student-gateway
+  template:
+    metadata:
+      labels:
+        app: student-gateway
+        app.kubernetes.io/name: student-gateway
+        app.kubernetes.io/part-of: edutech-platform
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8089"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+        - name: student-gateway
+          image: "$(DOCKER_REGISTRY)/$(DOCKER_IMAGE_PREFIX)/student-gateway:$(IMAGE_TAG)"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8089
+              name: http
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: edutech-common-config
+            - secretRef:
+                name: edutech-secrets
+          env:
+            - name: SERVER_PORT
+              value: "8089"
+            - name: STUDENT_GATEWAY_PORT
+              value: "8089"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8089
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8089
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 3
+            timeoutSeconds: 5
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+      imagePullSecrets:
+        - name: registry-credentials

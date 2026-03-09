@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assess-svc
+  namespace: edutech
+  labels:
+    app: assess-svc
+    app.kubernetes.io/name: assess-svc
+    app.kubernetes.io/part-of: edutech-platform
+    app.kubernetes.io/component: service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: assess-svc
+  template:
+    metadata:
+      labels:
+        app: assess-svc
+        app.kubernetes.io/name: assess-svc
+        app.kubernetes.io/part-of: edutech-platform
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8084"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+        - name: assess-svc
+          image: "$(DOCKER_REGISTRY)/$(DOCKER_IMAGE_PREFIX)/assess-svc:$(IMAGE_TAG)"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8084
+              name: http
+              protocol: TCP
+            - containerPort: 9093
+              name: grpc
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: edutech-common-config
+            - secretRef:
+                name: edutech-secrets
+          env:
+            - name: SERVER_PORT
+              value: "8084"
+            - name: ASSESS_SVC_PORT
+              value: "8084"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8084
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8084
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 3
+            timeoutSeconds: 5
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+      imagePullSecrets:
+        - name: registry-credentials

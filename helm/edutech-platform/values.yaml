@@ -1,0 +1,277 @@
+# =============================================================================
+# EduTech Platform — Helm Values
+# =============================================================================
+# IMPORTANT: Never set secret values here. All secrets must be injected via:
+#   --set global.secretValues.*  (CI/CD pipeline from Vault/AWS SM)
+#   OR via a pre-created Kubernetes Secret named "edutech-secrets"
+# =============================================================================
+
+# Global settings
+global:
+  registry: ""           # REQUIRED: set via --set global.registry=your-registry.io
+  imagePrefix: "edutech" # Override with --set global.imagePrefix=your-prefix
+  imageTag: "latest"     # Override with git SHA: --set global.imageTag=sha-abc123
+  imagePullPolicy: Always
+  imagePullSecrets:
+    - name: registry-credentials
+
+# Namespace
+namespace: edutech
+
+# Common non-secret environment configuration
+env:
+  appEnvironment: "production"
+  logLevelRoot: "INFO"
+  logLevelApp: "INFO"
+  otlpEndpoint: ""              # REQUIRED: e.g. http://jaeger-collector:4318
+  otlpSamplingProbability: "1.0"
+  actuatorEndpoints: "health,info,prometheus,metrics"
+  kafkaSchemaRegistryUrl: ""    # e.g. http://schema-registry:8081
+  pythonAiSvcBaseUrl: "http://python-ai-svc:8000"
+  # CAT engine tuning (non-secret)
+  catMinQuestions: "10"
+  catMaxQuestions: "40"
+  catInitialTheta: "0.0"
+  catConvergenceThreshold: "0.01"
+
+# Infrastructure endpoints — REQUIRED, no defaults for security
+infra:
+  postgres:
+    host: ""        # REQUIRED: set via --set infra.postgres.host=edutech-postgres
+    port: "5432"
+  redis:
+    host: ""        # REQUIRED: set via --set infra.redis.host=edutech-redis
+    port: "6379"
+    sslEnabled: "false"
+  kafka:
+    bootstrapServers: "" # REQUIRED: e.g. edutech-kafka:9092
+  mail:
+    host: ""        # REQUIRED: e.g. smtp.sendgrid.net
+    port: "587"
+
+# Per-service configuration
+services:
+  authSvc:
+    replicas: 2
+    port: 8182
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    hpa:
+      enabled: false
+
+  apiGateway:
+    replicas: 2
+    port: 8180
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "200m"
+      limits:
+        memory: "512Mi"
+        cpu: "1000m"
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCpuUtilization: 70
+      targetMemoryUtilization: 80
+
+  assessSvc:
+    replicas: 2
+    port: 8084
+    grpcPort: 9093
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "200m"
+      limits:
+        memory: "1Gi"
+        cpu: "1000m"
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 8
+      targetCpuUtilization: 70
+      targetMemoryUtilization: 80
+
+  aiGatewaySvc:
+    replicas: 2
+    port: 8086
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "200m"
+      limits:
+        memory: "1Gi"
+        cpu: "1000m"
+    hpa:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 8
+      targetCpuUtilization: 70
+      targetMemoryUtilization: 80
+
+  centerSvc:
+    replicas: 1
+    port: 8083
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    hpa:
+      enabled: false
+
+  parentSvc:
+    replicas: 1
+    port: 8082
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    hpa:
+      enabled: false
+
+  psychSvc:
+    replicas: 1
+    port: 8085
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    hpa:
+      enabled: false
+
+  studentProfileSvc:
+    replicas: 1
+    port: 8090
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    hpa:
+      enabled: false
+
+  examTrackerSvc:
+    replicas: 1
+    port: 8091
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    hpa:
+      enabled: false
+
+  performanceSvc:
+    replicas: 1
+    port: 8092
+    grpcPort: 9094
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    hpa:
+      enabled: false
+
+  aiMentorSvc:
+    replicas: 1
+    port: 8093
+    grpcPort: 9096
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    hpa:
+      enabled: false
+
+  careerOracleSvc:
+    replicas: 1
+    port: 8087
+    grpcPort: 9097
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    hpa:
+      enabled: false
+
+  mentorSvc:
+    replicas: 1
+    port: 8088
+    grpcPort: 9098
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    hpa:
+      enabled: false
+
+  studentGateway:
+    replicas: 2
+    port: 8089
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "200m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    hpa:
+      enabled: false
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  apiGateway:
+    host: ""           # REQUIRED: e.g. api.yourdomain.com
+    tls: true
+    tlsSecretName: ""  # REQUIRED if tls=true
+  studentGateway:
+    host: ""           # REQUIRED: e.g. student-api.yourdomain.com
+    tls: true
+    tlsSecretName: ""  # REQUIRED if tls=true
+
+# Monitoring
+monitoring:
+  prometheus:
+    enabled: true
+    scrapeInterval: "15s"
+  serviceMonitor:
+    enabled: false   # Requires prometheus-operator CRDs
+    namespace: monitoring
+
+# Network policies
+networkPolicy:
+  enabled: true

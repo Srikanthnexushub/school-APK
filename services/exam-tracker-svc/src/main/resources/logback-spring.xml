@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty scope="context" name="LOG_LEVEL_ROOT" source="logging.level.root" defaultValue="INFO"/>
+    <springProperty scope="context" name="LOG_LEVEL_APP" source="logging.level.com.edutech" defaultValue="INFO"/>
+    <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="exam-tracker-svc"/>
+    <springProperty scope="context" name="APP_ENV" source="management.metrics.tags.environment" defaultValue="local"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"service":"${APP_NAME}","environment":"${APP_ENV}"}</customFields>
+            <fieldNames>
+                <timestamp>timestamp</timestamp>
+                <version>[ignore]</version>
+            </fieldNames>
+            <shortenedLoggerNameLength>36</shortenedLoggerNameLength>
+        </encoder>
+    </appender>
+
+    <!-- Development profile: human-readable -->
+    <springProfile name="local,dev">
+        <appender name="CONSOLE_PLAIN" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+        <root level="${LOG_LEVEL_ROOT}">
+            <appender-ref ref="CONSOLE_PLAIN"/>
+        </root>
+        <logger name="com.edutech" level="${LOG_LEVEL_APP}"/>
+    </springProfile>
+
+    <!-- Production profile: structured JSON -->
+    <springProfile name="!local &amp; !dev">
+        <root level="${LOG_LEVEL_ROOT}">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+        <logger name="com.edutech" level="${LOG_LEVEL_APP}"/>
+    </springProfile>
+</configuration>

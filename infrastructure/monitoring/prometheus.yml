@@ -1,0 +1,128 @@
+global:
+  scrape_interval: ${PROMETHEUS_SCRAPE_INTERVAL:-15s}
+  evaluation_interval: ${PROMETHEUS_EVAL_INTERVAL:-15s}
+  external_labels:
+    environment: ${APP_ENVIRONMENT}
+    platform: edutech-ai
+
+scrape_configs:
+  # Prometheus self-scrape
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # -------------------------------------------------------------------------
+  # Java microservices — Spring Boot Actuator /actuator/prometheus
+  # Targets use Docker DNS names matching service names in docker-compose
+  # -------------------------------------------------------------------------
+  - job_name: auth-svc
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['auth-svc:${AUTH_SVC_PORT}']
+        labels:
+          service: auth-svc
+          layer: identity
+
+  - job_name: center-svc
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['center-svc:${CENTER_SVC_PORT}']
+        labels:
+          service: center-svc
+          layer: core
+
+  - job_name: parent-svc
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['parent-svc:${PARENT_SVC_PORT}']
+        labels:
+          service: parent-svc
+          layer: core
+
+  - job_name: assess-svc
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['assess-svc:${ASSESS_SVC_PORT}']
+        labels:
+          service: assess-svc
+          layer: core
+
+  - job_name: psych-svc
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['psych-svc:${PSYCH_SVC_PORT}']
+        labels:
+          service: psych-svc
+          layer: core
+
+  - job_name: ai-gateway-svc
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['ai-gateway-svc:${AI_GATEWAY_SVC_PORT}']
+        labels:
+          service: ai-gateway-svc
+          layer: ai
+
+  - job_name: api-gateway
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['api-gateway:${API_GATEWAY_PORT}']
+        labels:
+          service: api-gateway
+          layer: gateway
+
+  - job_name: student-profile-svc
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['student-profile-svc:${STUDENT_PROFILE_SVC_PORT}']
+        labels:
+          service: student-profile-svc
+          layer: student
+
+  - job_name: exam-tracker-svc
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['exam-tracker-svc:${EXAM_TRACKER_SVC_PORT}']
+        labels:
+          service: exam-tracker-svc
+          layer: student
+
+  - job_name: performance-svc
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['performance-svc:${PERFORMANCE_SVC_PORT}']
+        labels:
+          service: performance-svc
+          layer: student
+
+  - job_name: ai-mentor-svc
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['ai-mentor-svc:${AI_MENTOR_SVC_PORT}']
+        labels:
+          service: ai-mentor-svc
+          layer: ai
+
+  - job_name: career-oracle-svc
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['career-oracle-svc:${CAREER_ORACLE_SVC_PORT}']
+        labels:
+          service: career-oracle-svc
+          layer: ai
+
+  - job_name: mentor-svc
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['mentor-svc:${MENTOR_SVC_PORT}']
+        labels:
+          service: mentor-svc
+          layer: core
+
+  - job_name: student-gateway
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['student-gateway:${STUDENT_GATEWAY_PORT}']
+        labels:
+          service: student-gateway
+          layer: gateway

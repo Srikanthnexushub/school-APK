@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: psych-svc
+  namespace: edutech
+  labels:
+    app: psych-svc
+    app.kubernetes.io/name: psych-svc
+    app.kubernetes.io/part-of: edutech-platform
+spec:
+  selector:
+    app: psych-svc
+  ports:
+    - name: http
+      port: 8085
+      targetPort: 8085
+      protocol: TCP
+  type: ClusterIP

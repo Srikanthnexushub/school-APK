@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{ include "edutech.labels" . | nindent 4 }}
+    {{ include "edutech.selectorLabels" (dict "app" "api-gateway") | nindent 4 }}
+spec:
+  replicas: {{ .Values.services.apiGateway.replicas }}
+  selector:
+    matchLabels:
+      {{ include "edutech.selectorLabels" (dict "app" "api-gateway") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{ include "edutech.selectorLabels" (dict "app" "api-gateway") | nindent 8 }}
+        app.kubernetes.io/part-of: edutech-platform
+      annotations:
+        {{ include "edutech.prometheusAnnotations" (dict "port" (toString .Values.services.apiGateway.port)) | nindent 8 }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      securityContext:
+        {{ include "edutech.podSecurityContext" . | nindent 8 }}
+      {{ include "edutech.imagePullSecrets" . | nindent 6 }}
+      containers:
+        - name: api-gateway
+          image: {{ include "edutech.image" (dict "name" "api-gateway" "Values" .Values) }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.services.apiGateway.port }}
+              name: http
+              protocol: TCP
+          {{ include "edutech.envFrom" . | nindent 10 }}
+          env:
+            - name: SERVER_PORT
+              value: {{ .Values.services.apiGateway.port | quote }}
+            - name: API_GATEWAY_PORT
+              value: {{ .Values.services.apiGateway.port | quote }}
+            # Downstream service URIs for Spring Cloud Gateway routing
+            - name: AUTH_SVC_URI
+              value: "http://auth-svc:{{ .Values.services.authSvc.port }}"
+            - name: ASSESS_SVC_URI
+              value: "http://assess-svc:{{ .Values.services.assessSvc.port }}"
+            - name: PSYCH_SVC_URI
+              value: "http://psych-svc:{{ .Values.services.psychSvc.port }}"
+            - name: PARENT_SVC_URI
+              value: "http://parent-svc:{{ .Values.services.parentSvc.port }}"
+            - name: CENTER_SVC_URI
+              value: "http://center-svc:{{ .Values.services.centerSvc.port }}"
+            - name: AI_GATEWAY_SVC_URI
+              value: "http://ai-gateway-svc:{{ .Values.services.aiGatewaySvc.port }}"
+          {{ include "edutech.readinessProbe" (dict "port" .Values.services.apiGateway.port) | nindent 10 }}
+          {{ include "edutech.livenessProbe" (dict "port" .Values.services.apiGateway.port) | nindent 10 }}
+          resources:
+            {{- toYaml .Values.services.apiGateway.resources | nindent 12 }}
+          securityContext:
+            {{ include "edutech.containerSecurityContext" . | nindent 12 }}

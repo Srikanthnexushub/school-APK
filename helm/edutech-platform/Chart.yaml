@@ -1,0 +1,15 @@
+apiVersion: v2
+name: edutech-platform
+description: EduTech AI Platform — Enterprise coaching platform with 14 microservices
+type: application
+version: 1.0.0
+appVersion: 1.0.0-SNAPSHOT
+keywords:
+  - education
+  - AI
+  - microservices
+  - coaching
+  - edtech
+home: https://github.com/your-org/school-APK
+maintainers:
+  - name: EduTech Platform Team

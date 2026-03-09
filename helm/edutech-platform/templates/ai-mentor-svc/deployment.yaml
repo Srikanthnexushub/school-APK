@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-mentor-svc
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{ include "edutech.labels" . | nindent 4 }}
+    {{ include "edutech.selectorLabels" (dict "app" "ai-mentor-svc") | nindent 4 }}
+spec:
+  replicas: {{ .Values.services.aiMentorSvc.replicas }}
+  selector:
+    matchLabels:
+      {{ include "edutech.selectorLabels" (dict "app" "ai-mentor-svc") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{ include "edutech.selectorLabels" (dict "app" "ai-mentor-svc") | nindent 8 }}
+        app.kubernetes.io/part-of: edutech-platform
+      annotations:
+        {{ include "edutech.prometheusAnnotations" (dict "port" (toString .Values.services.aiMentorSvc.port)) | nindent 8 }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      securityContext:
+        {{ include "edutech.podSecurityContext" . | nindent 8 }}
+      {{ include "edutech.imagePullSecrets" . | nindent 6 }}
+      containers:
+        - name: ai-mentor-svc
+          image: {{ include "edutech.image" (dict "name" "ai-mentor-svc" "Values" .Values) }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.services.aiMentorSvc.port }}
+              name: http
+              protocol: TCP
+            - containerPort: {{ .Values.services.aiMentorSvc.grpcPort }}
+              name: grpc
+              protocol: TCP
+          {{ include "edutech.envFrom" . | nindent 10 }}
+          env:
+            - name: SERVER_PORT
+              value: {{ .Values.services.aiMentorSvc.port | quote }}
+            - name: AI_MENTOR_SVC_PORT
+              value: {{ .Values.services.aiMentorSvc.port | quote }}
+          {{ include "edutech.readinessProbe" (dict "port" .Values.services.aiMentorSvc.port) | nindent 10 }}
+          {{ include "edutech.livenessProbe" (dict "port" .Values.services.aiMentorSvc.port) | nindent 10 }}
+          resources:
+            {{- toYaml .Values.services.aiMentorSvc.resources | nindent 12 }}
+          securityContext:
+            {{ include "edutech.containerSecurityContext" . | nindent 12 }}

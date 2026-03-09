@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edutech-common-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{ include "edutech.labels" . | nindent 4 }}
+data:
+  POSTGRES_HOST: {{ required "infra.postgres.host is required" .Values.infra.postgres.host | quote }}
+  POSTGRES_PORT: {{ .Values.infra.postgres.port | quote }}
+  REDIS_HOST: {{ required "infra.redis.host is required" .Values.infra.redis.host | quote }}
+  REDIS_PORT: {{ .Values.infra.redis.port | quote }}
+  REDIS_SSL_ENABLED: {{ .Values.infra.redis.sslEnabled | quote }}
+  KAFKA_BOOTSTRAP_SERVERS: {{ required "infra.kafka.bootstrapServers is required" .Values.infra.kafka.bootstrapServers | quote }}
+  {{- if .Values.env.kafkaSchemaRegistryUrl }}
+  KAFKA_SCHEMA_REGISTRY_URL: {{ .Values.env.kafkaSchemaRegistryUrl | quote }}
+  {{- end }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.env.otlpEndpoint | quote }}
+  OTEL_SAMPLING_PROBABILITY: {{ .Values.env.otlpSamplingProbability | quote }}
+  LOG_LEVEL_ROOT: {{ .Values.env.logLevelRoot | quote }}
+  LOG_LEVEL_APP: {{ .Values.env.logLevelApp | quote }}
+  APP_ENVIRONMENT: {{ .Values.env.appEnvironment | quote }}
+  ACTUATOR_ENDPOINTS: {{ .Values.env.actuatorEndpoints | quote }}
+  MAIL_HOST: {{ .Values.infra.mail.host | quote }}
+  MAIL_PORT: {{ .Values.infra.mail.port | quote }}
+  PYTHON_AI_SVC_BASE_URL: {{ .Values.env.pythonAiSvcBaseUrl | quote }}
+  # In-cluster service URIs (resolved via Kubernetes DNS)
+  STUDENT_PROFILE_SVC_URI: "http://student-profile-svc:{{ .Values.services.studentProfileSvc.port }}"
+  EXAM_TRACKER_SVC_URI: "http://exam-tracker-svc:{{ .Values.services.examTrackerSvc.port }}"
+  PERFORMANCE_SVC_URI: "http://performance-svc:{{ .Values.services.performanceSvc.port }}"
+  AI_MENTOR_SVC_URI: "http://ai-mentor-svc:{{ .Values.services.aiMentorSvc.port }}"
+  CAREER_ORACLE_SVC_URI: "http://career-oracle-svc:{{ .Values.services.careerOracleSvc.port }}"
+  MENTOR_SVC_URI: "http://mentor-svc:{{ .Values.services.mentorSvc.port }}"
+  AI_GATEWAY_BASE_URL: "http://ai-gateway-svc:{{ .Values.services.aiGatewaySvc.port }}"
+  # gRPC ports
+  ASSESS_SVC_GRPC_PORT: {{ .Values.services.assessSvc.grpcPort | quote }}
+  PERFORMANCE_SVC_GRPC_PORT: {{ .Values.services.performanceSvc.grpcPort | quote }}
+  AI_MENTOR_SVC_GRPC_PORT: {{ .Values.services.aiMentorSvc.grpcPort | quote }}
+  CAREER_ORACLE_SVC_GRPC_PORT: {{ .Values.services.careerOracleSvc.grpcPort | quote }}
+  MENTOR_SVC_GRPC_PORT: {{ .Values.services.mentorSvc.grpcPort | quote }}
+  # CAT engine tuning
+  CAT_MIN_QUESTIONS: {{ .Values.env.catMinQuestions | quote }}
+  CAT_MAX_QUESTIONS: {{ .Values.env.catMaxQuestions | quote }}
+  CAT_INITIAL_THETA: {{ .Values.env.catInitialTheta | quote }}
+  CAT_CONVERGENCE_THRESHOLD: {{ .Values.env.catConvergenceThreshold | quote }}

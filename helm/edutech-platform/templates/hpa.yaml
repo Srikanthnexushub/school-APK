@@ -1,0 +1,96 @@
+{{- if .Values.services.apiGateway.hpa.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-gateway
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{ include "edutech.labels" . | nindent 4 }}
+    app: api-gateway
+    app.kubernetes.io/name: api-gateway
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway
+  minReplicas: {{ .Values.services.apiGateway.hpa.minReplicas }}
+  maxReplicas: {{ .Values.services.apiGateway.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.apiGateway.hpa.targetCpuUtilization }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.apiGateway.hpa.targetMemoryUtilization }}
+{{- end }}
+{{- if .Values.services.assessSvc.hpa.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: assess-svc
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{ include "edutech.labels" . | nindent 4 }}
+    app: assess-svc
+    app.kubernetes.io/name: assess-svc
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: assess-svc
+  minReplicas: {{ .Values.services.assessSvc.hpa.minReplicas }}
+  maxReplicas: {{ .Values.services.assessSvc.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.assessSvc.hpa.targetCpuUtilization }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.assessSvc.hpa.targetMemoryUtilization }}
+{{- end }}
+{{- if .Values.services.aiGatewaySvc.hpa.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ai-gateway-svc
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{ include "edutech.labels" . | nindent 4 }}
+    app: ai-gateway-svc
+    app.kubernetes.io/name: ai-gateway-svc
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ai-gateway-svc
+  minReplicas: {{ .Values.services.aiGatewaySvc.hpa.minReplicas }}
+  maxReplicas: {{ .Values.services.aiGatewaySvc.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.aiGatewaySvc.hpa.targetCpuUtilization }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.aiGatewaySvc.hpa.targetMemoryUtilization }}
+{{- end }}

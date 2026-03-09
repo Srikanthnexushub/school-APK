@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: psych-svc
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{ include "edutech.labels" . | nindent 4 }}
+    {{ include "edutech.selectorLabels" (dict "app" "psych-svc") | nindent 4 }}
+spec:
+  selector:
+    {{ include "edutech.selectorLabels" (dict "app" "psych-svc") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.services.psychSvc.port }}
+      targetPort: {{ .Values.services.psychSvc.port }}
+      protocol: TCP
+  type: ClusterIP

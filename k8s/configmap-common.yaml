@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edutech-common-config
+  namespace: edutech
+  labels:
+    app.kubernetes.io/part-of: edutech-platform
+    app.kubernetes.io/managed-by: kubectl
+data:
+  POSTGRES_HOST: "edutech-postgres"
+  POSTGRES_PORT: "5432"
+  REDIS_HOST: "edutech-redis"
+  REDIS_PORT: "6379"
+  REDIS_SSL_ENABLED: "false"
+  KAFKA_BOOTSTRAP_SERVERS: "edutech-kafka:9092"
+  KAFKA_SCHEMA_REGISTRY_URL: "http://edutech-schema-registry:8081"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://edutech-jaeger:4318"
+  OTEL_SAMPLING_PROBABILITY: "1.0"
+  LOG_LEVEL_ROOT: "INFO"
+  LOG_LEVEL_APP: "INFO"
+  APP_ENVIRONMENT: "production"
+  ACTUATOR_ENDPOINTS: "health,info,prometheus,metrics"
+  MAIL_HOST: "edutech-mailhog"
+  MAIL_PORT: "1025"
+  PYTHON_AI_SVC_BASE_URL: "http://python-ai-svc:8000"
+  # Service URIs (in-cluster DNS)
+  STUDENT_PROFILE_SVC_URI: "http://student-profile-svc:8090"
+  EXAM_TRACKER_SVC_URI: "http://exam-tracker-svc:8091"
+  PERFORMANCE_SVC_URI: "http://performance-svc:8092"
+  AI_MENTOR_SVC_URI: "http://ai-mentor-svc:8093"
+  CAREER_ORACLE_SVC_URI: "http://career-oracle-svc:8087"
+  MENTOR_SVC_URI: "http://mentor-svc:8088"
+  AI_GATEWAY_BASE_URL: "http://ai-gateway-svc:8086"
+  # gRPC ports
+  ASSESS_SVC_GRPC_PORT: "9093"
+  PERFORMANCE_SVC_GRPC_PORT: "9094"
+  AI_MENTOR_SVC_GRPC_PORT: "9096"
+  CAREER_ORACLE_SVC_GRPC_PORT: "9097"
+  MENTOR_SVC_GRPC_PORT: "9098"
+  # CAT engine defaults (non-secret tuning)
+  CAT_MIN_QUESTIONS: "10"
+  CAT_MAX_QUESTIONS: "40"
+  CAT_INITIAL_THETA: "0.0"
+  CAT_CONVERGENCE_THRESHOLD: "0.01"

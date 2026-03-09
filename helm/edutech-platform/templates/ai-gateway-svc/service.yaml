@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-gateway-svc
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{ include "edutech.labels" . | nindent 4 }}
+    {{ include "edutech.selectorLabels" (dict "app" "ai-gateway-svc") | nindent 4 }}
+spec:
+  selector:
+    {{ include "edutech.selectorLabels" (dict "app" "ai-gateway-svc") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.services.aiGatewaySvc.port }}
+      targetPort: {{ .Values.services.aiGatewaySvc.port }}
+      protocol: TCP
+  type: ClusterIP

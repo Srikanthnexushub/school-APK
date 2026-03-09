@@ -1,0 +1,41 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: student-gateway
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{ include "edutech.labels" . | nindent 4 }}
+    {{ include "edutech.selectorLabels" (dict "app" "student-gateway") | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: {{ .Values.ingress.studentGateway.tls | quote }}
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/enable-cors: "false"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+      more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+      more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains";
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.studentGateway.tls }}
+  tls:
+    - hosts:
+        - {{ required "ingress.studentGateway.host is required" .Values.ingress.studentGateway.host | quote }}
+      secretName: {{ required "ingress.studentGateway.tlsSecretName is required when tls=true" .Values.ingress.studentGateway.tlsSecretName | quote }}
+  {{- end }}
+  rules:
+    - host: {{ required "ingress.studentGateway.host is required" .Values.ingress.studentGateway.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: student-gateway
+                port:
+                  number: {{ .Values.services.studentGateway.port }}
+{{- end }}

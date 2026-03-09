@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-svc
+  namespace: edutech
+  labels:
+    app: auth-svc
+    app.kubernetes.io/name: auth-svc
+    app.kubernetes.io/part-of: edutech-platform
+    app.kubernetes.io/component: service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: auth-svc
+  template:
+    metadata:
+      labels:
+        app: auth-svc
+        app.kubernetes.io/name: auth-svc
+        app.kubernetes.io/part-of: edutech-platform
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8182"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+        - name: auth-svc
+          image: "$(DOCKER_REGISTRY)/$(DOCKER_IMAGE_PREFIX)/auth-svc:$(IMAGE_TAG)"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8182
+              name: http
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: edutech-common-config
+            - secretRef:
+                name: edutech-secrets
+          env:
+            - name: SERVER_PORT
+              value: "8182"
+            - name: AUTH_SVC_PORT
+              value: "8182"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8182
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8182
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 3
+            timeoutSeconds: 5
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+      imagePullSecrets:
+        - name: registry-credentials

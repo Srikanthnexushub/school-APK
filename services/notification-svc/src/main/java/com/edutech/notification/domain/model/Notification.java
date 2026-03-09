@@ -1,0 +1,102 @@
+package com.edutech.notification.domain.model;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@Entity
+@Table(name = "notifications", schema = "notification_schema")
+public class Notification {
+
+    @Id
+    @Column(name = "id", nullable = false, updatable = false)
+    private UUID id;
+
+    @Column(name = "recipient_id", nullable = false)
+    private UUID recipientId;
+
+    @Column(name = "recipient_email", length = 255)
+    private String recipientEmail;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "channel", nullable = false, length = 20)
+    private NotificationChannel channel;
+
+    @Column(name = "subject", length = 500)
+    private String subject;
+
+    @Column(name = "body", nullable = false, columnDefinition = "TEXT")
+    private String body;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private NotificationStatus status;
+
+    @Column(name = "retry_count", nullable = false)
+    private int retryCount;
+
+    @Column(name = "error_message", columnDefinition = "TEXT")
+    private String errorMessage;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @Column(name = "sent_at")
+    private Instant sentAt;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private long version;
+
+    protected Notification() {
+    }
+
+    private Notification(UUID id, UUID recipientId, String recipientEmail,
+                         NotificationChannel channel, String subject, String body) {
+        this.id = id;
+        this.recipientId = recipientId;
+        this.recipientEmail = recipientEmail;
+        this.channel = channel;
+        this.subject = subject;
+        this.body = body;
+        this.status = NotificationStatus.PENDING;
+        this.retryCount = 0;
+        this.createdAt = Instant.now();
+    }
+
+    public static Notification create(UUID recipientId, String recipientEmail,
+                                      NotificationChannel channel, String subject, String body) {
+        return new Notification(UUID.randomUUID(), recipientId, recipientEmail, channel, subject, body);
+    }
+
+    public void markSent() {
+        this.status = NotificationStatus.SENT;
+        this.sentAt = Instant.now();
+    }
+
+    public void markFailed(String errorMessage) {
+        this.status = NotificationStatus.FAILED;
+        this.errorMessage = errorMessage;
+        this.retryCount++;
+    }
+
+    public UUID getId() { return id; }
+    public UUID getRecipientId() { return recipientId; }
+    public String getRecipientEmail() { return recipientEmail; }
+    public NotificationChannel getChannel() { return channel; }
+    public String getSubject() { return subject; }
+    public String getBody() { return body; }
+    public NotificationStatus getStatus() { return status; }
+    public int getRetryCount() { return retryCount; }
+    public String getErrorMessage() { return errorMessage; }
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getSentAt() { return sentAt; }
+    public long getVersion() { return version; }
+}

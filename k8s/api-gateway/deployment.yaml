@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: edutech
+  labels:
+    app: api-gateway
+    app.kubernetes.io/name: api-gateway
+    app.kubernetes.io/part-of: edutech-platform
+    app.kubernetes.io/component: gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        app.kubernetes.io/name: api-gateway
+        app.kubernetes.io/part-of: edutech-platform
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8180"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+        - name: api-gateway
+          image: "$(DOCKER_REGISTRY)/$(DOCKER_IMAGE_PREFIX)/api-gateway:$(IMAGE_TAG)"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8180
+              name: http
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: edutech-common-config
+            - secretRef:
+                name: edutech-secrets
+          env:
+            - name: SERVER_PORT
+              value: "8180"
+            - name: API_GATEWAY_PORT
+              value: "8180"
+            # Downstream service URIs for Spring Cloud Gateway routing
+            - name: AUTH_SVC_URI
+              value: "http://auth-svc:8182"
+            - name: ASSESS_SVC_URI
+              value: "http://assess-svc:8084"
+            - name: PSYCH_SVC_URI
+              value: "http://psych-svc:8085"
+            - name: PARENT_SVC_URI
+              value: "http://parent-svc:8082"
+            - name: CENTER_SVC_URI
+              value: "http://center-svc:8083"
+            - name: AI_GATEWAY_SVC_URI
+              value: "http://ai-gateway-svc:8086"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8180
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8180
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 3
+            timeoutSeconds: 5
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+      imagePullSecrets:
+        - name: registry-credentials

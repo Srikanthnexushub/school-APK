@@ -1,0 +1,76 @@
+{{- if .Values.networkPolicy.enabled }}
+---
+# Policy 1: EduPath backend services — only student-gateway may call them
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: edupath-backend-policy
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{ include "edutech.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - student-profile-svc
+          - exam-tracker-svc
+          - performance-svc
+          - ai-mentor-svc
+          - career-oracle-svc
+          - mentor-svc
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: student-gateway
+---
+# Policy 2: Core backend services — only api-gateway may call them
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: core-backend-policy
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{ include "edutech.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - auth-svc
+          - center-svc
+          - parent-svc
+          - assess-svc
+          - psych-svc
+          - ai-gateway-svc
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-gateway
+---
+# Policy 3: Allow Prometheus scraping from monitoring namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-scrape
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{ include "edutech.labels" . | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.monitoring.serviceMonitor.namespace }}
+{{- end }}

@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: student-gateway
+  namespace: edutech
+  labels:
+    app: student-gateway
+    app.kubernetes.io/name: student-gateway
+    app.kubernetes.io/part-of: edutech-platform
+spec:
+  selector:
+    app: student-gateway
+  ports:
+    - name: http
+      port: 8089
+      targetPort: 8089
+      protocol: TCP
+  type: ClusterIP
