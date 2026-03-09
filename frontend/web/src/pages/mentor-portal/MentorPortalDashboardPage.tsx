@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Users, Star, Clock, TrendingUp, Video, Calendar,
   CheckCircle2, XCircle, AlertCircle, Check,
@@ -117,6 +117,23 @@ export default function MentorPortalDashboardPage() {
 
   const s = stats;
 
+  // Save availability mutation
+  const saveAvailabilityMutation = useMutation({
+    mutationFn: async () => {
+      if (!profileId) throw new Error('Mentor profile not loaded');
+      // The UpdateMentorAvailabilityRequest DTO takes a single boolean `available`.
+      // We derive it as true if any day is selected, false if none are selected.
+      const isAvailable = Object.values(availability).some(Boolean);
+      await api.patch(`/api/v1/mentors/${profileId}/availability`, { available: isAvailable });
+    },
+    onSuccess: () => {
+      toast.success('Availability saved!');
+    },
+    onError: () => {
+      toast.error('Failed to save availability. Please try again.');
+    },
+  });
+
   function toggleDay(day: string) {
     setAvailability((prev) => {
       const next = { ...prev, [day]: !prev[day] };
@@ -150,7 +167,6 @@ export default function MentorPortalDashboardPage() {
           icon={<Clock className="w-5 h-5 text-brand-400" />}
           label="Sessions This Week"
           value={s.sessionsThisWeek}
-          sub="↑ 2 from last week"
           color="bg-brand-600/20"
         />
         <StatCard
@@ -303,8 +319,9 @@ export default function MentorPortalDashboardPage() {
             Available on: {DAYS_OF_WEEK.filter((d) => availability[d]).join(', ') || 'No days selected'}
           </p>
           <button
-            onClick={() => toast.success('Availability saved!')}
-            className="btn-primary text-sm flex items-center gap-2"
+            onClick={() => saveAvailabilityMutation.mutate()}
+            disabled={!profileId || saveAvailabilityMutation.isPending}
+            className="btn-primary text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Check className="w-4 h-4" /> Save Availability
           </button>

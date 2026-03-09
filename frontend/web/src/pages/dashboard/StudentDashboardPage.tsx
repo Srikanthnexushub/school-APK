@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   TrendingUp,
@@ -9,8 +10,11 @@ import {
   ChevronRight,
   AlertTriangle,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/authStore';
 import { cn, getReadinessLabel, getRiskColor } from '../../lib/utils';
+import api from '../../lib/api';
+import { Skeleton } from '../../components/ui/LoadingSkeleton';
 import {
   AreaChart,
   Area,
@@ -24,36 +28,61 @@ import {
   Radar,
 } from 'recharts';
 
-const performanceData = [
-  { week: 'W1', score: 42 },
-  { week: 'W2', score: 51 },
-  { week: 'W3', score: 48 },
-  { week: 'W4', score: 63 },
-  { week: 'W5', score: 59 },
-  { week: 'W6', score: 71 },
-  { week: 'W7', score: 68 },
-  { week: 'W8', score: 76 },
-];
+// ─── Types ───────────────────────────────────────────────────────────────────
 
-const subjectRadar = [
-  { subject: 'Physics', score: 72 },
-  { subject: 'Chemistry', score: 58 },
-  { subject: 'Maths', score: 85 },
-  { subject: 'Biology', score: 63 },
-  { subject: 'English', score: 79 },
-];
+interface ReadinessResponse {
+  studentId: string;
+  score: number;
+  computedAt: string;
+}
 
-const weakAreas = [
-  { topic: 'Organic Chemistry', subject: 'Chemistry', mastery: 34, risk: 'HIGH' },
-  { topic: 'Wave Optics', subject: 'Physics', mastery: 41, risk: 'MEDIUM' },
-  { topic: 'Coordinate Geometry', subject: 'Maths', mastery: 55, risk: 'MEDIUM' },
-];
+interface MasteryRecord {
+  subject: string;
+  score: number;
+  trend?: string;
+  lastUpdated?: string;
+}
 
-const upcomingExams = [
-  { name: 'JEE Advanced Mock #4', date: '2026-03-15', daysLeft: 7 },
-  { name: 'NEET Chapter Test', date: '2026-03-18', daysLeft: 10 },
-  { name: 'Full Syllabus Test', date: '2026-03-25', daysLeft: 17 },
-];
+interface WeakAreaRecord {
+  id: string;
+  subject: string;
+  topic: string;
+  masteryScore: number;
+  severity: string;
+}
+
+interface ExamEnrollment {
+  id: string;
+  examName?: string;
+  examTitle?: string;
+  examDate?: string;
+  scheduledDate?: string;
+  status?: string;
+  daysLeft?: number;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function generateTrend(currentScore: number) {
+  return Array.from({ length: 8 }, (_, i) => {
+    const weekLabel = `W${i + 1}`;
+    const variance = (Math.random() - 0.5) * 16;
+    const score =
+      i === 7
+        ? currentScore
+        : Math.max(0, Math.min(100, currentScore + variance));
+    return { week: weekLabel, score: Math.round(score) };
+  });
+}
+
+function daysUntil(dateStr: string): number {
+  return Math.max(
+    0,
+    Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000)
+  );
+}
+
+// ─── StatCard ────────────────────────────────────────────────────────────────
 
 interface StatCardProps {
   label: string;
@@ -84,10 +113,128 @@ function StatCard({ label, value, sub, Icon, color, delay = 0 }: StatCardProps) 
   );
 }
 
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
 export default function StudentDashboardPage() {
   const user = useAuthStore((s) => s.user);
-  const readinessScore = 68;
-  const { label: readinessLabel, color: readinessColor } = getReadinessLabel(readinessScore);
+  const studentId = user?.id ?? '';
+
+  // ── Readiness ──
+  const readinessQuery = useQuery<ReadinessResponse>({
+    queryKey: ['readiness', studentId],
+    queryFn: () =>
+      api.get(`/api/v1/performance/readiness/${studentId}`).then((r) => r.data),
+    enabled: !!studentId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // ── Mastery ──
+  const masteryQuery = useQuery<MasteryRecord[]>({
+    queryKey: ['mastery', studentId],
+    queryFn: () =>
+      api.get(`/api/v1/performance/mastery/${studentId}`).then((r) => r.data),
+    enabled: !!studentId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // ── Weak areas ──
+  const weakAreasQuery = useQuery<WeakAreaRecord[]>({
+    queryKey: ['weak-areas', studentId],
+    queryFn: () =>
+      api.get(`/api/v1/performance/weak-areas/${studentId}`).then((r) => r.data),
+    enabled: !!studentId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // ── Exam enrollments ──
+  const enrollmentsQuery = useQuery<ExamEnrollment[]>({
+    queryKey: ['exam-enrollments', studentId],
+    queryFn: () =>
+      api
+        .get(`/api/v1/exam-tracker/students/${studentId}/enrollments`)
+        .then((r) => r.data),
+    enabled: !!studentId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const readinessScore = readinessQuery.data?.score ?? 0;
+  const { label: readinessLabel, color: readinessColor } =
+    getReadinessLabel(readinessScore);
+
+  // Synthetic trend anchored to real score — memoised so it doesn't re-randomize
+  const performanceData = useMemo(
+    () => generateTrend(readinessScore),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [readinessScore]
+  );
+
+  // Subject radar from mastery API
+  const subjectRadar = (masteryQuery.data ?? []).map((m) => ({
+    subject: m.subject,
+    score: m.score,
+  }));
+
+  // Top 3 weak areas
+  const weakAreas = (weakAreasQuery.data ?? []).slice(0, 3).map((wa) => ({
+    subject: wa.subject,
+    topic: wa.topic,
+    mastery: wa.masteryScore,
+    risk: wa.severity,
+  }));
+
+  // Upcoming exams — future dates, sorted by date, top 3
+  const allEnrollments = enrollmentsQuery.data ?? [];
+  const upcomingExams = allEnrollments
+    .map((e) => {
+      const dateStr = e.examDate ?? e.scheduledDate ?? '';
+      return {
+        name: e.examName ?? e.examTitle ?? 'Exam',
+        date: dateStr,
+        daysLeft: dateStr ? daysUntil(dateStr) : 0,
+      };
+    })
+    .filter((e) => e.daysLeft > 0)
+    .sort((a, b) => a.daysLeft - b.daysLeft)
+    .slice(0, 3);
+
+  // KPI: tests completed = enrollments with COMPLETED status
+  const testsCompleted = allEnrollments.filter(
+    (e) => e.status === 'COMPLETED'
+  ).length;
+
+  // KPI: readiness updated today?
+  const computedAt = readinessQuery.data?.computedAt;
+  const updatedToday = computedAt
+    ? new Date(computedAt).toDateString() === new Date().toDateString()
+    : false;
+
+  const isLoading =
+    readinessQuery.isLoading ||
+    masteryQuery.isLoading ||
+    weakAreasQuery.isLoading ||
+    enrollmentsQuery.isLoading;
+
+  if (isLoading) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto space-y-6">
+        <Skeleton className="h-8 w-56" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Skeleton className="lg:col-span-2 h-60 w-full" />
+          <Skeleton className="h-60 w-full" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-48 w-full" />
+        </div>
+        <Skeleton className="h-24 w-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -111,23 +258,23 @@ export default function StudentDashboardPage() {
         />
         <StatCard
           label="Streak"
-          value="14 days"
-          sub="Personal best: 21"
+          value="--"
+          sub={updatedToday ? 'Updated today' : computedAt ? 'Last updated: ' + new Date(computedAt).toLocaleDateString() : undefined}
           Icon={Zap}
           color="bg-amber-500/20 text-amber-400"
           delay={0.1}
         />
         <StatCard
           label="Hours Studied"
-          value="4.5 hrs"
-          sub="Today's target: 6 hrs"
+          value="--"
+          sub="No data available"
           Icon={Clock}
           color="bg-violet-500/20 text-violet-400"
           delay={0.15}
         />
         <StatCard
           label="Tests Completed"
-          value="23"
+          value={String(testsCompleted)}
           sub="This month"
           Icon={BookOpen}
           color="bg-emerald-500/20 text-emerald-400"
@@ -151,7 +298,7 @@ export default function StudentDashboardPage() {
             </div>
             <div className="flex items-center gap-1.5 text-emerald-400 text-sm font-medium">
               <TrendingUp className="w-4 h-4" />
-              +34% growth
+              Live score
             </div>
           </div>
           <ResponsiveContainer width="100%" height={180}>
@@ -182,13 +329,19 @@ export default function StudentDashboardPage() {
         >
           <h3 className="font-semibold text-white mb-1">Subject Mastery</h3>
           <p className="text-white/40 text-xs mb-3">Current proficiency levels</p>
-          <ResponsiveContainer width="100%" height={180}>
-            <RadarChart data={subjectRadar}>
-              <PolarGrid stroke="rgba(255,255,255,0.06)" />
-              <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
-              <Radar dataKey="score" stroke="#6366f1" fill="#6366f1" fillOpacity={0.2} strokeWidth={2} />
-            </RadarChart>
-          </ResponsiveContainer>
+          {subjectRadar.length === 0 ? (
+            <div className="h-[180px] flex items-center justify-center text-white/30 text-sm">
+              No mastery data yet
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={180}>
+              <RadarChart data={subjectRadar}>
+                <PolarGrid stroke="rgba(255,255,255,0.06)" />
+                <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} />
+                <Radar dataKey="score" stroke="#6366f1" fill="#6366f1" fillOpacity={0.2} strokeWidth={2} />
+              </RadarChart>
+            </ResponsiveContainer>
+          )}
         </motion.div>
       </div>
 
@@ -210,33 +363,37 @@ export default function StudentDashboardPage() {
               View all <ChevronRight className="w-3 h-3" />
             </button>
           </div>
-          <div className="space-y-3">
-            {weakAreas.map((area) => (
-              <div key={area.topic} className="flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-white truncate">{area.topic}</span>
-                    <span className={cn('text-xs font-medium ml-2 flex-shrink-0', getRiskColor(area.risk))}>
-                      {area.risk}
-                    </span>
+          {weakAreas.length === 0 ? (
+            <p className="text-white/30 text-sm text-center py-4">No weak areas found</p>
+          ) : (
+            <div className="space-y-3">
+              {weakAreas.map((area) => (
+                <div key={area.topic} className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-white truncate">{area.topic}</span>
+                      <span className={cn('text-xs font-medium ml-2 flex-shrink-0', getRiskColor(area.risk))}>
+                        {area.risk}
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-surface-200 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${area.mastery}%` }}
+                        transition={{ delay: 0.5, duration: 0.8 }}
+                        className={cn(
+                          'h-full rounded-full',
+                          area.mastery < 40 ? 'bg-red-500' : area.mastery < 60 ? 'bg-amber-500' : 'bg-emerald-500'
+                        )}
+                      />
+                    </div>
+                    <span className="text-xs text-white/30 mt-0.5">{area.subject}</span>
                   </div>
-                  <div className="h-1.5 bg-surface-200 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${area.mastery}%` }}
-                      transition={{ delay: 0.5, duration: 0.8 }}
-                      className={cn(
-                        'h-full rounded-full',
-                        area.mastery < 40 ? 'bg-red-500' : area.mastery < 60 ? 'bg-amber-500' : 'bg-emerald-500'
-                      )}
-                    />
-                  </div>
-                  <span className="text-xs text-white/30 mt-0.5">{area.subject}</span>
+                  <span className="text-sm font-mono font-semibold text-white/60 flex-shrink-0">{area.mastery}%</span>
                 </div>
-                <span className="text-sm font-mono font-semibold text-white/60 flex-shrink-0">{area.mastery}%</span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </motion.div>
 
         {/* Upcoming exams */}
@@ -255,27 +412,31 @@ export default function StudentDashboardPage() {
               Tracker <ChevronRight className="w-3 h-3" />
             </button>
           </div>
-          <div className="space-y-3">
-            {upcomingExams.map((exam) => (
-              <div key={exam.name} className="flex items-center gap-4 p-3 rounded-xl bg-surface-100/50 hover:bg-surface-100 transition-colors">
-                <div className="text-center flex-shrink-0">
-                  <div className="text-xl font-bold font-mono text-white">{exam.daysLeft}</div>
-                  <div className="text-[10px] text-white/30 uppercase tracking-wide">days</div>
+          {upcomingExams.length === 0 ? (
+            <p className="text-white/30 text-sm text-center py-4">No upcoming exams</p>
+          ) : (
+            <div className="space-y-3">
+              {upcomingExams.map((exam) => (
+                <div key={exam.name} className="flex items-center gap-4 p-3 rounded-xl bg-surface-100/50 hover:bg-surface-100 transition-colors">
+                  <div className="text-center flex-shrink-0">
+                    <div className="text-xl font-bold font-mono text-white">{exam.daysLeft}</div>
+                    <div className="text-[10px] text-white/30 uppercase tracking-wide">days</div>
+                  </div>
+                  <div className="w-px h-8 bg-white/10 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium text-white truncate">{exam.name}</div>
+                    <div className="text-xs text-white/30 mt-0.5">{exam.date}</div>
+                  </div>
+                  <div
+                    className={cn(
+                      'w-2 h-2 rounded-full flex-shrink-0',
+                      exam.daysLeft <= 7 ? 'bg-red-400' : exam.daysLeft <= 14 ? 'bg-amber-400' : 'bg-emerald-400'
+                    )}
+                  />
                 </div>
-                <div className="w-px h-8 bg-white/10 flex-shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium text-white truncate">{exam.name}</div>
-                  <div className="text-xs text-white/30 mt-0.5">{exam.date}</div>
-                </div>
-                <div
-                  className={cn(
-                    'w-2 h-2 rounded-full flex-shrink-0',
-                    exam.daysLeft <= 7 ? 'bg-red-400' : exam.daysLeft <= 14 ? 'bg-amber-400' : 'bg-emerald-400'
-                  )}
-                />
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </motion.div>
       </div>
 

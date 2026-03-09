@@ -36,12 +36,12 @@ const MOCK_SESSIONS: MentorSession[] = [
 
 type FilterTab = 'ALL' | 'UPCOMING' | 'COMPLETED' | 'PENDING';
 
-const STATUS_BADGE: Record<MentorSession['status'], { variant: 'success' | 'info' | 'warning' | 'default' | 'error'; label: string }> = {
+const STATUS_BADGE: Record<MentorSession['status'], { variant: 'success' | 'info' | 'warning' | 'default' | 'danger'; label: string }> = {
   IN_PROGRESS: { variant: 'success',  label: 'In Progress' },
   SCHEDULED:   { variant: 'info',     label: 'Scheduled'   },
   PENDING:     { variant: 'warning',  label: 'Pending'     },
   COMPLETED:   { variant: 'default',  label: 'Completed'   },
-  CANCELLED:   { variant: 'error',    label: 'Cancelled'   },
+  CANCELLED:   { variant: 'danger',   label: 'Cancelled'   },
 };
 
 export default function MentorPortalSessionsPage() {

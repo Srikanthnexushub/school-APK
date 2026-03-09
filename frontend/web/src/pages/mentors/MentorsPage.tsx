@@ -12,28 +12,23 @@ import { Modal } from '../../components/ui/Modal';
 
 interface Mentor {
   id: string;
-  name: string;
-  expertise: string[];
-  rating: number;
-  totalSessions: number;
+  userId: string;
+  fullName: string;
+  email: string;
   bio: string;
-  availability: string[];
-  avatarUrl?: string;
-  responseRate: number;
+  specializations: string;
+  yearsOfExperience: number;
+  hourlyRate: number;
+  isAvailable: boolean;
+  averageRating: number;
+  totalSessions: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 const SUBJECTS = ['Math', 'Physics', 'Chemistry', 'Biology', 'English', 'CS'];
 const SORT_OPTIONS = ['Highest Rated', 'Most Sessions', 'Available Now'] as const;
 type SortOption = typeof SORT_OPTIONS[number];
-
-const MOCK_MENTORS: Mentor[] = [
-  { id: 'm1', name: 'Dr. Priya Sharma', expertise: ['Mathematics', 'Physics'], rating: 4.9, totalSessions: 127, bio: 'Passionate about making calculus click for students. IIT Delhi PhD. 8 years teaching.', availability: ['Mon', 'Wed', 'Fri'], responseRate: 98 },
-  { id: 'm2', name: 'Rahul Verma', expertise: ['Chemistry', 'Biology'], rating: 4.7, totalSessions: 89, bio: 'NEET expert with 6 years coaching experience. 200+ MBBS admissions.', availability: ['Tue', 'Thu', 'Sat'], responseRate: 94 },
-  { id: 'm3', name: 'Anika Mehta', expertise: ['English', 'CS'], rating: 4.8, totalSessions: 203, bio: 'Former Google engineer turned educator. Makes programming intuitive and fun.', availability: ['Mon', 'Tue', 'Wed', 'Thu'], responseRate: 99 },
-  { id: 'm4', name: 'Suresh Iyer', expertise: ['Mathematics'], rating: 4.6, totalSessions: 156, bio: 'JEE Advanced mentor. Specialises in problem-solving techniques and shortcuts.', availability: ['Wed', 'Fri', 'Sat', 'Sun'], responseRate: 91 },
-  { id: 'm5', name: 'Dr. Kavya Nair', expertise: ['Biology', 'Chemistry'], rating: 4.9, totalSessions: 74, bio: 'AIIMS graduate who loves breaking down complex biology concepts visually.', availability: ['Mon', 'Tue', 'Thu'], responseRate: 97 },
-  { id: 'm6', name: 'Arjun Patel', expertise: ['Physics', 'Mathematics'], rating: 4.5, totalSessions: 112, bio: 'IIT Bombay graduate. Expert in mechanics and electromagnetism for JEE.', availability: ['Tue', 'Thu', 'Fri', 'Sat'], responseRate: 88 },
-];
 
 function getNextSevenDays(): Date[] {
   return Array.from({ length: 7 }, (_, i) => {
@@ -45,6 +40,7 @@ function getNextSevenDays(): Date[] {
 
 const TIME_SLOTS = ['10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '16:00', '16:30', '17:00'];
 const DURATIONS = [30, 60, 90];
+const SESSION_MODES = ['VIDEO', 'AUDIO', 'CHAT'];
 
 interface BookingModalProps {
   mentor: Mentor | null;
@@ -56,6 +52,7 @@ function BookingModal({ mentor, onClose }: BookingModalProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [duration, setDuration] = useState(60);
+  const [sessionMode, setSessionMode] = useState('VIDEO');
   const [notes, setNotes] = useState('');
   const days = getNextSevenDays();
 
@@ -70,6 +67,7 @@ function BookingModal({ mentor, onClose }: BookingModalProps) {
         studentId: user?.id,
         scheduledAt: scheduledAt.toISOString(),
         durationMinutes: duration,
+        sessionMode,
         notes,
       });
     },
@@ -84,19 +82,23 @@ function BookingModal({ mentor, onClose }: BookingModalProps) {
 
   if (!mentor) return null;
 
+  const specializationList = mentor.specializations
+    ? mentor.specializations.split(',').map((s) => s.trim()).filter(Boolean)
+    : [];
+
   return (
     <Modal isOpen={!!mentor} onClose={onClose} title="Book a Session" maxWidth="max-w-xl">
       <div className="space-y-5">
         <div className="flex items-center gap-3 p-4 glass rounded-xl">
-          <Avatar name={mentor.name} size="lg" imageUrl={mentor.avatarUrl} />
+          <Avatar name={mentor.fullName} size="lg" />
           <div>
-            <p className="font-semibold text-white">{mentor.name}</p>
+            <p className="font-semibold text-white">{mentor.fullName}</p>
             <div className="flex items-center gap-1 mt-0.5">
               <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span className="text-sm text-white/60">{mentor.rating} ({mentor.totalSessions} sessions)</span>
+              <span className="text-sm text-white/60">{mentor.averageRating?.toFixed(1)} ({mentor.totalSessions} sessions)</span>
             </div>
             <div className="flex flex-wrap gap-1.5 mt-1.5">
-              {mentor.expertise.map((e) => (
+              {specializationList.map((e) => (
                 <span key={e} className="badge bg-brand-600/20 text-brand-300 text-xs">{e}</span>
               ))}
             </div>
@@ -163,6 +165,24 @@ function BookingModal({ mentor, onClose }: BookingModalProps) {
         </div>
 
         <div>
+          <label className="block text-sm font-medium text-white/70 mb-2">Session Mode</label>
+          <div className="flex gap-2">
+            {SESSION_MODES.map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setSessionMode(mode)}
+                className={cn(
+                  'flex-1 py-2 rounded-xl border text-sm font-medium transition-all',
+                  sessionMode === mode ? 'bg-brand-600 border-brand-500 text-white' : 'glass border-white/10 text-white/60 hover:border-white/20'
+                )}
+              >
+                {mode.charAt(0) + mode.slice(1).toLowerCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
           <label className="block text-sm font-medium text-white/70 mb-2">Notes (optional)</label>
           <textarea
             value={notes}
@@ -197,6 +217,10 @@ interface MentorCardProps {
 }
 
 function MentorCard({ mentor, index, onBook }: MentorCardProps) {
+  const specializationList = mentor.specializations
+    ? mentor.specializations.split(',').map((s) => s.trim()).filter(Boolean)
+    : [];
+
   return (
     <motion.div
       className="card flex flex-col gap-4 glass-hover"
@@ -205,15 +229,15 @@ function MentorCard({ mentor, index, onBook }: MentorCardProps) {
       transition={{ delay: index * 0.06 }}
     >
       <div className="flex items-start gap-4">
-        <Avatar name={mentor.name} size="xl" imageUrl={mentor.avatarUrl} />
+        <Avatar name={mentor.fullName} size="xl" />
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-white">{mentor.name}</h3>
+          <h3 className="font-bold text-white">{mentor.fullName}</h3>
           <div className="flex items-center gap-1.5 mt-1">
-            <StarRating value={mentor.rating} size="sm" />
-            <span className="text-white/50 text-xs">{mentor.rating} ({mentor.totalSessions} sessions)</span>
+            <StarRating value={mentor.averageRating ?? 0} size="sm" />
+            <span className="text-white/50 text-xs">{mentor.averageRating?.toFixed(1)} ({mentor.totalSessions} sessions)</span>
           </div>
           <div className="flex flex-wrap gap-1.5 mt-2">
-            {mentor.expertise.map((e) => (
+            {specializationList.map((e) => (
               <span key={e} className="badge bg-brand-600/20 text-brand-300 text-xs">{e}</span>
             ))}
           </div>
@@ -226,12 +250,16 @@ function MentorCard({ mentor, index, onBook }: MentorCardProps) {
 
       <div className="border-t border-white/8 pt-3 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-white/40 text-xs">
-          <Calendar className="w-3.5 h-3.5" />
-          <span>{mentor.availability.join(', ')}</span>
+          <Clock className="w-3.5 h-3.5" />
+          <span>{mentor.yearsOfExperience} yrs exp</span>
         </div>
         <div className="flex items-center gap-1.5 text-white/40 text-xs">
-          <Clock className="w-3.5 h-3.5" />
-          <span>{mentor.responseRate}% response</span>
+          <Calendar className="w-3.5 h-3.5" />
+          {mentor.isAvailable ? (
+            <span className="text-emerald-400">Available</span>
+          ) : (
+            <span>Unavailable</span>
+          )}
         </div>
       </div>
 
@@ -256,25 +284,31 @@ export default function MentorsPage() {
       return res.data;
     },
     retry: false,
-    placeholderData: MOCK_MENTORS,
+    placeholderData: [],
   });
 
   const filtered = useMemo(() => {
-    let list = mentors ?? MOCK_MENTORS;
+    let list = mentors ?? [];
 
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(
-        (m) => m.name.toLowerCase().includes(q) || m.expertise.some((e) => e.toLowerCase().includes(q))
+        (m) =>
+          m.fullName.toLowerCase().includes(q) ||
+          (m.specializations ?? '').toLowerCase().includes(q)
       );
     }
 
     if (activeSubjects.size > 0) {
-      list = list.filter((m) => m.expertise.some((e) => activeSubjects.has(e)));
+      list = list.filter((m) => {
+        const specs = (m.specializations ?? '').split(',').map((s) => s.trim());
+        return specs.some((e) => activeSubjects.has(e));
+      });
     }
 
-    if (sort === 'Highest Rated') list = [...list].sort((a, b) => b.rating - a.rating);
+    if (sort === 'Highest Rated') list = [...list].sort((a, b) => (b.averageRating ?? 0) - (a.averageRating ?? 0));
     else if (sort === 'Most Sessions') list = [...list].sort((a, b) => b.totalSessions - a.totalSessions);
+    else if (sort === 'Available Now') list = [...list].filter((m) => m.isAvailable);
 
     return list;
   }, [mentors, search, activeSubjects, sort]);
@@ -374,7 +408,7 @@ export default function MentorsPage() {
         {filtered.length === 0 && (
           <div className="col-span-full text-center py-16 text-white/30">
             <Search className="w-10 h-10 mx-auto mb-3 opacity-40" />
-            <p className="text-lg">No mentors match your filters.</p>
+            <p className="text-lg">No mentors found.</p>
             <p className="text-sm mt-1">Try adjusting your search or filters.</p>
           </div>
         )}

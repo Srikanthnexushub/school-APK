@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Star, Clock, Users, MessageSquare, Check, Calendar } from 'lucide-react';
+import { Star, Clock, Users, Check, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
@@ -11,56 +11,36 @@ import { Avatar } from '../../components/ui/Avatar';
 import { StarRating } from '../../components/ui/StarRating';
 import { Modal } from '../../components/ui/Modal';
 
-interface MentorDetail {
+interface MentorProfileResponse {
   id: string;
-  name: string;
-  expertise: string[];
-  rating: number;
-  totalSessions: number;
+  userId: string;
+  fullName: string;
+  email: string;
   bio: string;
-  availability: string[];
-  avatarUrl?: string;
-  responseRate: number;
+  specializations: string;
+  yearsOfExperience: number;
+  hourlyRate: number;
+  isAvailable: boolean;
+  averageRating: number;
+  totalSessions: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
-interface Review {
+interface MentorSession {
   id: string;
-  studentName: string;
-  rating: number;
-  comment: string;
-  date: string;
+  mentorId: string;
+  mentorName: string;
+  studentId: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  sessionMode: string;
+  status: string;
+  meetingLink?: string;
+  notes?: string;
+  createdAt: string;
+  completedAt?: string;
 }
-
-interface PastSession {
-  id: string;
-  date: string;
-  subject: string;
-  duration: number;
-}
-
-const MOCK_MENTOR: MentorDetail = {
-  id: 'm1',
-  name: 'Dr. Priya Sharma',
-  expertise: ['Mathematics', 'Physics', 'JEE Advanced', 'Calculus'],
-  rating: 4.9,
-  totalSessions: 127,
-  bio: "I hold a PhD in Applied Mathematics from IIT Delhi and have been teaching for over 8 years. My passion is making complex topics like calculus, mechanics, and probability feel intuitive and approachable. I specialise in JEE Advanced and NEET preparation.\n\nI believe every student can excel with the right approach — and I tailor each session to the individual's current understanding and learning style.",
-  availability: ['Mon', 'Wed', 'Fri'],
-  responseRate: 98,
-};
-
-const MOCK_REVIEWS: Review[] = [
-  { id: 'r1', studentName: 'A. Kumar', rating: 5, comment: "Priya ma'am explained integration by parts in a way that finally made sense. Sessions are very organised and efficient.", date: '2026-02-15' },
-  { id: 'r2', studentName: 'R. Singh', rating: 5, comment: 'Best tutor for JEE Maths. Very patient, always available on WhatsApp between sessions too.', date: '2026-01-28' },
-  { id: 'r3', studentName: 'S. Mehta', rating: 4, comment: 'Great mentor. Covers a lot of ground in each session. Could slow down a bit on the harder problems.', date: '2025-12-10' },
-  { id: 'r4', studentName: 'K. Iyer', rating: 5, comment: "Got into IIT Bombay! Dr. Sharma's sessions on mechanics were the turning point. Highly recommended.", date: '2025-11-22' },
-];
-
-const MOCK_PAST_SESSIONS: PastSession[] = [
-  { id: 'ps1', date: '2026-02-10', subject: 'Differential Equations', duration: 60 },
-  { id: 'ps2', date: '2026-01-27', subject: 'Mechanics — Rotational Motion', duration: 90 },
-  { id: 'ps3', date: '2026-01-15', subject: 'Integration Techniques', duration: 60 },
-];
 
 function getNextSevenDays(): Date[] {
   return Array.from({ length: 7 }, (_, i) => {
@@ -72,6 +52,7 @@ function getNextSevenDays(): Date[] {
 
 const TIME_SLOTS = ['10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '16:00', '16:30', '17:00'];
 const DURATIONS = [30, 60, 90];
+const SESSION_MODES = ['VIDEO', 'AUDIO', 'CHAT'];
 
 export default function MentorProfilePage() {
   const { mentorId } = useParams<{ mentorId: string }>();
@@ -80,28 +61,33 @@ export default function MentorProfilePage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [duration, setDuration] = useState(60);
+  const [sessionMode, setSessionMode] = useState('VIDEO');
   const [notes, setNotes] = useState('');
   const days = getNextSevenDays();
 
-  const { data: mentor } = useQuery<MentorDetail>({
+  const { data: mentor, isLoading: mentorLoading } = useQuery<MentorProfileResponse>({
     queryKey: ['mentor', mentorId],
     queryFn: async () => {
       const res = await api.get(`/api/v1/mentors/${mentorId}`);
       return res.data;
     },
     retry: false,
-    placeholderData: MOCK_MENTOR,
   });
 
-  const { data: reviews } = useQuery<Review[]>({
-    queryKey: ['mentor-reviews', mentorId],
+  const { data: allSessions } = useQuery<MentorSession[]>({
+    queryKey: ['student-sessions', user?.id, mentorId],
     queryFn: async () => {
-      const res = await api.get(`/api/v1/mentors/${mentorId}/reviews`);
+      const res = await api.get(`/api/v1/mentor-sessions?studentId=${user?.id}`);
       return res.data;
     },
+    enabled: !!user?.id,
     retry: false,
-    placeholderData: MOCK_REVIEWS,
+    placeholderData: [],
   });
+
+  const pastSessions = (allSessions ?? []).filter(
+    (s) => s.mentorId === mentorId
+  );
 
   const bookMutation = useMutation({
     mutationFn: () => {
@@ -109,11 +95,12 @@ export default function MentorProfilePage() {
       const [h, min] = selectedTime.split(':').map(Number);
       const scheduledAt = new Date(selectedDate);
       scheduledAt.setHours(h, min, 0, 0);
-      return api.post('/api/v1/sessions', {
+      return api.post('/api/v1/mentor-sessions', {
         mentorId: mentor.id,
         studentId: user?.id,
         scheduledAt: scheduledAt.toISOString(),
         durationMinutes: duration,
+        sessionMode,
         notes,
       });
     },
@@ -126,7 +113,25 @@ export default function MentorProfilePage() {
     },
   });
 
-  const m = mentor ?? MOCK_MENTOR;
+  if (mentorLoading) {
+    return (
+      <div className="min-h-screen p-6 max-w-4xl mx-auto flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-white/20 border-t-white/70 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!mentor) {
+    return (
+      <div className="min-h-screen p-6 max-w-4xl mx-auto flex items-center justify-center">
+        <p className="text-white/40">Mentor not found.</p>
+      </div>
+    );
+  }
+
+  const specializationList = mentor.specializations
+    ? mentor.specializations.split(',').map((s) => s.trim()).filter(Boolean)
+    : [];
 
   return (
     <div className="min-h-screen p-6 max-w-4xl mx-auto space-y-6">
@@ -137,29 +142,36 @@ export default function MentorProfilePage() {
         className="card"
       >
         <div className="flex flex-col md:flex-row items-start gap-6">
-          <Avatar name={m.name} size="xl" imageUrl={m.avatarUrl} />
+          <Avatar name={mentor.fullName} size="xl" />
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold text-white mb-1">{m.name}</h1>
+            <h1 className="text-2xl font-bold text-white mb-1">{mentor.fullName}</h1>
             <div className="flex flex-wrap items-center gap-4 text-sm text-white/50 mb-3">
               <span className="flex items-center gap-1.5">
                 <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                <span className="text-white font-semibold">{m.rating}</span>
+                <span className="text-white font-semibold">{mentor.averageRating?.toFixed(1) ?? '—'}</span>
               </span>
               <span className="flex items-center gap-1.5">
                 <Users className="w-4 h-4" />
-                {m.totalSessions} sessions
-              </span>
-              <span className="flex items-center gap-1.5">
-                <MessageSquare className="w-4 h-4" />
-                {m.responseRate}% response rate
+                {mentor.totalSessions} sessions
               </span>
               <span className="flex items-center gap-1.5">
                 <Clock className="w-4 h-4" />
-                {m.availability.join(', ')}
+                {mentor.yearsOfExperience} yrs experience
               </span>
+              {mentor.hourlyRate > 0 && (
+                <span className="flex items-center gap-1.5">
+                  ₹{mentor.hourlyRate}/hr
+                </span>
+              )}
+              {mentor.isAvailable && (
+                <span className="flex items-center gap-1.5 text-emerald-400">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+                  Available
+                </span>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
-              {m.expertise.map((e) => (
+              {specializationList.map((e) => (
                 <span key={e} className="badge bg-brand-600/20 text-brand-300 border border-brand-600/30">{e}</span>
               ))}
             </div>
@@ -181,7 +193,7 @@ export default function MentorProfilePage() {
         className="card"
       >
         <h2 className="text-lg font-semibold text-white mb-3">About</h2>
-        <p className="text-white/60 leading-relaxed whitespace-pre-line text-sm">{m.bio}</p>
+        <p className="text-white/60 leading-relaxed whitespace-pre-line text-sm">{mentor.bio}</p>
       </motion.div>
 
       {/* Past sessions */}
@@ -192,9 +204,9 @@ export default function MentorProfilePage() {
         className="card"
       >
         <h2 className="text-lg font-semibold text-white mb-4">Session History</h2>
-        {MOCK_PAST_SESSIONS.length > 0 ? (
+        {pastSessions.length > 0 ? (
           <div className="space-y-3">
-            {MOCK_PAST_SESSIONS.map((session, i) => (
+            {pastSessions.map((session, i) => (
               <motion.div
                 key={session.id}
                 initial={{ opacity: 0, x: -12 }}
@@ -203,12 +215,16 @@ export default function MentorProfilePage() {
                 className="flex items-center justify-between p-4 glass rounded-xl"
               >
                 <div>
-                  <p className="text-white font-medium text-sm">{session.subject}</p>
+                  <p className="text-white font-medium text-sm">
+                    {session.sessionMode}{session.notes ? ` — ${session.notes}` : ''}
+                  </p>
                   <p className="text-white/40 text-xs mt-0.5">
-                    {new Date(session.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {new Date(session.scheduledAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {' · '}
+                    <span className="capitalize">{session.status.toLowerCase()}</span>
                   </p>
                 </div>
-                <span className="badge bg-white/8 text-white/50">{session.duration} min</span>
+                <span className="badge bg-white/8 text-white/50">{session.durationMinutes} min</span>
               </motion.div>
             ))}
           </div>
@@ -225,42 +241,18 @@ export default function MentorProfilePage() {
         className="card"
       >
         <h2 className="text-lg font-semibold text-white mb-1">Student Reviews</h2>
-        <p className="text-white/40 text-sm mb-5">{(reviews ?? MOCK_REVIEWS).length} reviews</p>
-        <div className="space-y-4">
-          {(reviews ?? MOCK_REVIEWS).map((review, i) => (
-            <motion.div
-              key={review.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25 + i * 0.07 }}
-              className="p-4 glass rounded-xl"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Avatar name={review.studentName} size="sm" />
-                  <span className="text-white/70 text-sm font-medium">{review.studentName}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <StarRating value={review.rating} size="sm" />
-                  <span className="text-white/30 text-xs">
-                    {new Date(review.date).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
-                  </span>
-                </div>
-              </div>
-              <p className="text-white/60 text-sm leading-relaxed">"{review.comment}"</p>
-            </motion.div>
-          ))}
-        </div>
+        <p className="text-white/40 text-sm mb-5">0 reviews</p>
+        <p className="text-white/30 text-sm">No reviews yet.</p>
       </motion.div>
 
       {/* Booking Modal */}
       <Modal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} title="Book a Session" maxWidth="max-w-xl">
         <div className="space-y-5">
           <div className="flex items-center gap-3 p-4 glass rounded-xl">
-            <Avatar name={m.name} size="md" />
+            <Avatar name={mentor.fullName} size="md" />
             <div>
-              <p className="font-semibold text-white">{m.name}</p>
-              <StarRating value={m.rating} size="sm" />
+              <p className="font-semibold text-white">{mentor.fullName}</p>
+              <StarRating value={mentor.averageRating ?? 0} size="sm" />
             </div>
           </div>
 
@@ -318,6 +310,24 @@ export default function MentorProfilePage() {
                   )}
                 >
                   {d} min
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-2">Session Mode</label>
+            <div className="flex gap-2">
+              {SESSION_MODES.map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setSessionMode(mode)}
+                  className={cn(
+                    'flex-1 py-2 rounded-xl border text-sm font-medium transition-all',
+                    sessionMode === mode ? 'bg-brand-600 border-brand-500 text-white' : 'glass border-white/10 text-white/60 hover:border-white/20'
+                  )}
+                >
+                  {mode.charAt(0) + mode.slice(1).toLowerCase()}
                 </button>
               ))}
             </div>

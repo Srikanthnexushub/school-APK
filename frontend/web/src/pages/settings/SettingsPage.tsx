@@ -34,11 +34,33 @@ const ACCENT_COLORS = [
   { name: 'rose', hex: '#f43f5e', label: 'Rose' },
 ];
 
-const MOCK_ACTIVE_SESSIONS = [
-  { id: 'as1', device: 'Chrome on macOS', location: 'Mumbai, IN', lastActive: 'Now', current: true },
-  { id: 'as2', device: 'Firefox on Windows', location: 'Delhi, IN', lastActive: '2 hours ago', current: false },
-  { id: 'as3', device: 'Mobile App (Android)', location: 'Bangalore, IN', lastActive: '1 day ago', current: false },
-];
+const LS_NOTIF_KEY = 'edutech:notif_prefs';
+const LS_ACCENT_KEY = 'edutech:accent_color';
+
+function loadNotifPrefs() {
+  try {
+    const raw = localStorage.getItem(LS_NOTIF_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {
+    // ignore
+  }
+  return {
+    emailNotifications: true,
+    pushNotifications: true,
+    weeklyReport: true,
+    newMentorAvailable: false,
+    examReminders: true,
+    aiRecommendations: true,
+  };
+}
+
+function loadAccentColor(): string {
+  try {
+    return localStorage.getItem(LS_ACCENT_KEY) ?? 'indigo';
+  } catch {
+    return 'indigo';
+  }
+}
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -70,7 +92,7 @@ function ProfileTab() {
 
   const saveMutation = useMutation({
     mutationFn: (data: ProfileForm) =>
-      api.put(`/api/v1/student-profiles/${user?.id}`, data),
+      api.patch(`/api/v1/students/${user?.id}`, { name: data.name, phone: data.phone }),
     onSuccess: () => toast.success('Profile updated successfully!'),
     onError: () => toast.error('Failed to save profile.'),
   });
@@ -193,22 +215,34 @@ function ProfileTab() {
   );
 }
 
-function NotificationsTab() {
-  const [prefs, setPrefs] = useState({
-    emailNotifications: true,
-    pushNotifications: true,
-    weeklyReport: true,
-    newMentorAvailable: false,
-    examReminders: true,
-    aiRecommendations: true,
-  });
+type NotifKey = 'emailNotifications' | 'pushNotifications' | 'weeklyReport' | 'newMentorAvailable' | 'examReminders' | 'aiRecommendations';
 
-  const togglePref = (key: keyof typeof prefs) => {
-    setPrefs((p) => ({ ...p, [key]: !p[key] }));
+interface NotifPrefs {
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+  weeklyReport: boolean;
+  newMentorAvailable: boolean;
+  examReminders: boolean;
+  aiRecommendations: boolean;
+}
+
+function NotificationsTab() {
+  const [prefs, setPrefs] = useState<NotifPrefs>(() => loadNotifPrefs());
+
+  const togglePref = (key: NotifKey) => {
+    setPrefs((p) => {
+      const next = { ...p, [key]: !p[key] };
+      try {
+        localStorage.setItem(LS_NOTIF_KEY, JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
     toast.success('Preference saved.');
   };
 
-  const notifItems: { key: keyof typeof prefs; label: string; description: string }[] = [
+  const notifItems: { key: NotifKey; label: string; description: string }[] = [
     { key: 'emailNotifications', label: 'Email Notifications', description: 'Receive updates and alerts via email' },
     { key: 'pushNotifications', label: 'Push Notifications', description: 'In-app and browser push notifications' },
     { key: 'weeklyReport', label: 'Weekly Progress Report', description: 'Summary of your study progress every Monday' },
@@ -242,7 +276,7 @@ function NotificationsTab() {
 
 function AppearanceTab() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [accent, setAccent] = useState('indigo');
+  const [accent, setAccent] = useState(() => loadAccentColor());
   const [fontSize, setFontSize] = useState<'normal' | 'large'>('normal');
 
   return (
@@ -273,7 +307,11 @@ function AppearanceTab() {
           {ACCENT_COLORS.map((c) => (
             <button
               key={c.name}
-              onClick={() => { setAccent(c.name); toast.success(`Accent changed to ${c.label}`); }}
+              onClick={() => {
+                setAccent(c.name);
+                try { localStorage.setItem(LS_ACCENT_KEY, c.name); } catch { /* ignore */ }
+                toast.success(`Accent changed to ${c.label}`);
+              }}
               title={c.label}
               className={cn(
                 'w-10 h-10 rounded-full transition-all border-2',
@@ -315,7 +353,6 @@ function SecurityTab() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [twoFAEnabled, setTwoFAEnabled] = useState(false);
-  const [activeSessions, setActiveSessions] = useState(MOCK_ACTIVE_SESSIONS);
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<PasswordForm>({
     resolver: zodResolver(passwordSchema),
@@ -333,11 +370,6 @@ function SecurityTab() {
     },
     onError: () => toast.error('Failed to change password. Check your current password.'),
   });
-
-  function revokeSession(id: string) {
-    setActiveSessions((s) => s.filter((sess) => sess.id !== id));
-    toast.success('Session revoked.');
-  }
 
   return (
     <div className="space-y-6">
@@ -429,35 +461,7 @@ function SecurityTab() {
       {/* Active Sessions */}
       <div className="card">
         <h3 className="text-base font-semibold text-white mb-4">Active Sessions</h3>
-        <div className="space-y-3">
-          {activeSessions.map((session, i) => (
-            <motion.div
-              key={session.id}
-              initial={{ opacity: 0, x: -12 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.06 }}
-              className="flex items-center justify-between p-4 glass rounded-xl"
-            >
-              <div className="flex items-center gap-3">
-                <Monitor className="w-4 h-4 text-white/40" />
-                <div>
-                  <p className="text-white text-sm font-medium">{session.device}</p>
-                  <p className="text-white/40 text-xs">{session.location} · {session.lastActive}</p>
-                </div>
-              </div>
-              {session.current ? (
-                <span className="badge bg-emerald-600/20 text-emerald-300 text-xs">Current</span>
-              ) : (
-                <button
-                  onClick={() => revokeSession(session.id)}
-                  className="text-red-400 hover:text-red-300 text-xs font-medium transition-colors"
-                >
-                  Revoke
-                </button>
-              )}
-            </motion.div>
-          ))}
-        </div>
+        <p className="text-white/30 text-sm">No active sessions found.</p>
       </div>
     </div>
   );

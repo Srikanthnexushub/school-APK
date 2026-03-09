@@ -1,11 +1,51 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, User, Send, Plus, Trash2, ChevronRight } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import api from '../../lib/api';
 import { toast } from 'sonner';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── API response types ───────────────────────────────────────────────────────
+
+interface ParentProfileResponse {
+  id: string;
+  userId: string;
+  name: string;
+  phone: string;
+  verified: boolean;
+  status: string;
+  createdAt: string;
+}
+
+interface StudentLinkResponse {
+  id: string;
+  parentId: string;
+  studentId: string;
+  studentName: string;
+  centerId: string;
+  status: string;
+  createdAt: string;
+}
+
+interface MessageResponse {
+  id: number;
+  role: string;
+  content: string;
+  sentAt: string;
+}
+
+interface ConversationResponse {
+  id: number;
+  parentId: string;
+  studentId: string;
+  title: string;
+  status: string;
+  messages: MessageResponse[];
+  createdAt: string;
+}
+
+// ─── Local UI types ───────────────────────────────────────────────────────────
 
 type Role = 'user' | 'assistant';
 
@@ -19,42 +59,12 @@ interface Message {
 }
 
 interface Conversation {
-  id: string;
+  id: string;           // local UUID for UI state keying
+  apiId: number | null; // server-side conversation ID
   preview: string;
   timestamp: Date;
   messages: Message[];
-}
-
-// ─── Mock AI responses ────────────────────────────────────────────────────────
-
-const mockResponses: Record<string, string> = {
-  default:
-    "I understand your concern about your child's academic progress. Based on recent data, Priya has been consistently improving her ERS score over the past two weeks, moving from 64 to 72. She shows particular strength in Physics and Mathematics, but needs more focused practice on Organic Chemistry and Electrochemistry. I recommend scheduling an extra mentoring session this week.",
-  performance:
-    "Priya's current overall performance is tracking well. Her ERS (Exam Readiness Score) stands at 72/100, placing her in the 'On Track' category for JEE 2026. Subject-wise breakdown: Physics 78%, Mathematics 74%, Chemistry 62%. The Chemistry score needs attention — particularly Organic Chemistry (Chapter 12-15). Her mock test scores have improved by 8% over the last month.",
-  weak:
-    "Priya's primary weak areas identified by our AI analysis are: 1) Electrochemistry — struggles with Nernst equation applications, 2) Organic Chemistry — specifically named reactions and mechanisms, 3) Integration techniques in Mathematics. I recommend targeting 45 minutes daily on these topics using our curated practice sets. Would you like me to create a focused study plan?",
-  exam:
-    "Upcoming exam schedule for Priya: JEE Main Mock Test #6 — March 15, 2026. Chemistry Unit Test — March 18, 2026. Physics Revision Test — March 22, 2026. The JEE Main registration deadline is April 1, 2026. Would you like a reminder set for these dates?",
-  fees:
-    "Current fee status for Priya Sharma: Monthly batch fee of ₹4,500 is due by March 15, 2026. Study material fee of ₹2,000 was paid on February 1, 2026. Total outstanding: ₹4,500. Payment can be made via UPI, net banking, or card through the parent portal. Shall I generate a payment link?",
-};
-
-function getMockResponse(message: string): string {
-  const lower = message.toLowerCase();
-  if (lower.includes('performance') || lower.includes('doing') || lower.includes('score')) {
-    return mockResponses.performance;
-  }
-  if (lower.includes('weak') || lower.includes('struggle') || lower.includes('difficult')) {
-    return mockResponses.weak;
-  }
-  if (lower.includes('exam') || lower.includes('test') || lower.includes('schedule')) {
-    return mockResponses.exam;
-  }
-  if (lower.includes('fee') || lower.includes('payment') || lower.includes('due')) {
-    return mockResponses.fees;
-  }
-  return mockResponses.default;
+  studentId: string | null;
 }
 
 // ─── Quick chips ──────────────────────────────────────────────────────────────
@@ -175,29 +185,61 @@ function ConvItem({
 
 // ─── Greeting message ─────────────────────────────────────────────────────────
 
+const GREETING_TEXT = "Hello! I'm your Parent Copilot — powered by NexusEd AI.\n\nI can help you with:\n• Your child's performance and progress\n• Fee and attendance queries\n• Study recommendations and weak areas\n• Exam schedules and upcoming tests\n• Booking mentor sessions\n\nHow can I help you today?";
+
 const greetingMessage = (id: string): Message => ({
   id,
   role: 'assistant',
-  content: "Hello! I'm your Parent Copilot — powered by NexusEd AI.\n\nI can help you with:\n• Your child's performance and progress\n• Fee and attendance queries\n• Study recommendations and weak areas\n• Exam schedules and upcoming tests\n• Booking mentor sessions\n\nHow can I help you today?",
-  displayedContent: "Hello! I'm your Parent Copilot — powered by NexusEd AI.\n\nI can help you with:\n• Your child's performance and progress\n• Fee and attendance queries\n• Study recommendations and weak areas\n• Exam schedules and upcoming tests\n• Booking mentor sessions\n\nHow can I help you today?",
+  content: GREETING_TEXT,
+  displayedContent: GREETING_TEXT,
   complete: true,
   timestamp: new Date(),
 });
 
-function newConv(): Conversation {
+function makeLocalConv(studentId: string | null): Conversation {
   const id = crypto.randomUUID();
   return {
     id,
+    apiId: null,
     preview: 'New conversation',
     timestamp: new Date(),
     messages: [greetingMessage(crypto.randomUUID())],
+    studentId,
   };
+}
+
+// ─── Map API messages to local UI messages ────────────────────────────────────
+
+function mapApiMessages(apiMessages: MessageResponse[]): Message[] {
+  return apiMessages.map((m) => ({
+    id: String(m.id),
+    role: (m.role === 'user' ? 'user' : 'assistant') as Role,
+    content: m.content,
+    displayedContent: m.content,
+    complete: true,
+    timestamp: new Date(m.sentAt),
+  }));
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function ParentCopilotPage() {
-  const [conversations, setConversations] = useState<Conversation[]>(() => [newConv()]);
+  // ─── Fetch parent profile + linked students ──────────────────────────────
+  const { data: profile } = useQuery<ParentProfileResponse>({
+    queryKey: ['parent-profile'],
+    queryFn: () => api.get('/api/v1/parents/me').then((r) => r.data),
+  });
+
+  const { data: linkedStudents = [] } = useQuery<StudentLinkResponse[]>({
+    queryKey: ['linked-students', profile?.id],
+    queryFn: () => api.get(`/api/v1/parents/${profile!.id}/students`).then((r) => r.data),
+    enabled: !!profile?.id,
+  });
+
+  const defaultStudentId = linkedStudents[0]?.studentId ?? null;
+
+  // ─── Conversation state ──────────────────────────────────────────────────
+  const [conversations, setConversations] = useState<Conversation[]>(() => [makeLocalConv(null)]);
   const [activeConvId, setActiveConvId] = useState<string>(() => conversations[0].id);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -212,11 +254,11 @@ export default function ParentCopilotPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeConv?.messages, isTyping]);
 
-  // Typewriter effect
+  // Typewriter effect for assistant messages
   const runTypewriter = useCallback((convId: string, msgId: string, fullText: string) => {
     let idx = 0;
     const interval = setInterval(() => {
-      idx += Math.floor(Math.random() * 3) + 1; // 1-3 chars per tick for natural feel
+      idx += Math.floor(Math.random() * 3) + 1;
       const displayed = fullText.slice(0, idx);
       const complete = idx >= fullText.length;
 
@@ -243,6 +285,8 @@ export default function ParentCopilotPage() {
     const trimmed = text.trim();
     if (!trimmed || isTyping) return;
 
+    const studentId = activeConv.studentId ?? defaultStudentId;
+
     const userMsg: Message = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -252,7 +296,7 @@ export default function ParentCopilotPage() {
       timestamp: new Date(),
     };
 
-    // Add user message + update preview
+    // Optimistically append user message + update preview
     setConversations((prev) =>
       prev.map((c) =>
         c.id !== activeConvId
@@ -267,35 +311,62 @@ export default function ParentCopilotPage() {
     setInput('');
     setIsTyping(true);
 
-    // Simulate API call
     try {
-      // In real app: POST /api/v1/copilot/conversations/{id}/messages
-      await new Promise((r) => setTimeout(r, 900 + Math.random() * 600));
-      const responseText = getMockResponse(trimmed);
+      let responseData: ConversationResponse;
 
+      if (activeConv.apiId === null) {
+        // First message — start a new conversation
+        const res = await api.post('/api/v1/copilot/conversations', {
+          studentId: studentId ?? '',
+          message: trimmed,
+        });
+        responseData = res.data;
+      } else {
+        // Subsequent message — continue existing conversation
+        const res = await api.post(
+          `/api/v1/copilot/conversations/${activeConv.apiId}/messages`,
+          { message: trimmed }
+        );
+        responseData = res.data;
+      }
+
+      // Find the latest assistant message in the response
+      const apiMsgs = responseData.messages ?? [];
+      const lastAssistantApiMsg = [...apiMsgs].reverse().find((m) => m.role !== 'user');
+      const responseText = lastAssistantApiMsg?.content ?? 'I received your message.';
+      const responseSentAt = lastAssistantApiMsg
+        ? new Date(lastAssistantApiMsg.sentAt)
+        : new Date();
+
+      const assistantMsgId = crypto.randomUUID();
       const assistantMsg: Message = {
-        id: crypto.randomUUID(),
+        id: assistantMsgId,
         role: 'assistant',
         content: responseText,
         displayedContent: '',
         complete: false,
-        timestamp: new Date(),
+        timestamp: responseSentAt,
       };
 
-      setIsTyping(false);
-      const msgId = assistantMsg.id;
-      const convId = activeConvId;
+      const apiConvId = responseData.id;
+      const localConvId = activeConvId;
 
+      setIsTyping(false);
       setConversations((prev) =>
         prev.map((c) =>
-          c.id !== convId
+          c.id !== localConvId
             ? c
-            : { ...c, messages: [...c.messages, assistantMsg] }
+            : {
+                ...c,
+                apiId: apiConvId,
+                studentId: responseData.studentId ?? c.studentId,
+                messages: [...c.messages, assistantMsg],
+              }
         )
       );
 
-      runTypewriter(convId, msgId, responseText);
-    } catch {
+      runTypewriter(localConvId, assistantMsgId, responseText);
+    } catch (err) {
       setIsTyping(false);
       toast.error('Failed to get response. Please try again.');
     }
@@ -309,15 +380,25 @@ export default function ParentCopilotPage() {
   }
 
   function startNewConv() {
-    const c = newConv();
+    const c = makeLocalConv(defaultStudentId);
     setConversations((prev) => [c, ...prev]);
     setActiveConvId(c.id);
   }
 
-  function deleteConv(id: string) {
+  async function deleteConv(id: string) {
+    const conv = conversations.find((c) => c.id === id);
+
+    // Attempt server-side deletion if it has a real API ID
+    if (conv?.apiId !== null && conv?.apiId !== undefined) {
+      try {
+        await api.delete(`/api/v1/copilot/conversations/${conv.apiId}`);
+      } catch {
+        // Non-blocking — still remove from local state
+      }
+    }
+
     if (conversations.length === 1) {
-      // Replace with fresh conversation
-      const fresh = newConv();
+      const fresh = makeLocalConv(defaultStudentId);
       setConversations([fresh]);
       setActiveConvId(fresh.id);
       return;
