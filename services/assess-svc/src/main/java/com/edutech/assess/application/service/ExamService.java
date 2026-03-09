@@ -117,6 +117,15 @@ public class ExamService implements CreateExamUseCase, PublishExamUseCase, ListP
         return new PageImpl<>(start < all.size() ? all.subList(start, end) : List.of(), pageable, all.size());
     }
 
+    @Transactional(readOnly = true)
+    public Page<ExamResponse> listByCenter(UUID centerId, Pageable pageable) {
+        List<ExamResponse> all = examRepository.findByCenterId(centerId).stream()
+                .map(this::toResponse).toList();
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        return new PageImpl<>(start < all.size() ? all.subList(start, end) : List.of(), pageable, all.size());
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<StudentExamResponse> listPublishedExams(UUID studentId) {

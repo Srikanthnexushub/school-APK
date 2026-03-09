@@ -58,7 +58,7 @@ public class ExamController {
     }
 
     @GetMapping
-    @Operation(summary = "List exams. If batchId is provided, lists exams for that batch (admin/teacher). Otherwise, lists published exams with the student's enrollment status.")
+    @Operation(summary = "List exams. Teachers/admins get ExamResponse for their center; students get StudentExamResponse with enrollment status.")
     public ResponseEntity<Page<?>> listExams(
             @RequestParam(required = false) UUID batchId,
             @RequestParam(defaultValue = "0") int page,
@@ -66,6 +66,14 @@ public class ExamController {
             @AuthenticationPrincipal AuthPrincipal principal) {
         if (batchId != null) {
             return ResponseEntity.ok(examService.listByBatch(batchId, principal, PageRequest.of(page, size)));
+        }
+        if (principal.isTeacher() || principal.isCenterAdmin() || principal.isSuperAdmin()) {
+            UUID centerId = principal.isSuperAdmin() ? null : principal.centerId();
+            if (centerId != null) {
+                return ResponseEntity.ok(examService.listByCenter(centerId, PageRequest.of(page, size)));
+            }
+            // SUPER_ADMIN with no centerId — fall through to student view
+            return ResponseEntity.ok(examService.listPublishedExams(principal.userId(), PageRequest.of(page, size)));
         }
         return ResponseEntity.ok(examService.listPublishedExams(principal.userId(), PageRequest.of(page, size)));
     }
