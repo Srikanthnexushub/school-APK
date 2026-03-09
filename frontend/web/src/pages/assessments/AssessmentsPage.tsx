@@ -220,7 +220,8 @@ export default function AssessmentsPage() {
     queryFn: async () => {
       try {
         const res = await api.get('/api/v1/exams');
-        return res.data;
+        const d = res.data;
+        return Array.isArray(d) ? d : (d.content ?? []);
       } catch (err: unknown) {
         const axiosErr = err as { response?: { status?: number } };
         if (axiosErr.response?.status === 404) return [];

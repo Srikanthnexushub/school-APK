@@ -761,14 +761,13 @@ export default function MentorPortalExamsPage() {
   const [createdExamId, setCreatedExamId] = useState<string | null>(null);
   const [showWizard, setShowWizard] = useState(false);
 
-  // Fetch centers owned by current user
+  // Fetch all centers (teachers work across centers, not just ones they own)
   const { data: centers = [], isLoading: centersLoading } = useQuery<CenterResponse[]>({
-    queryKey: ['teacher-centers', user?.id],
+    queryKey: ['teacher-centers'],
     queryFn: async () => {
       const res = await api.get('/api/v1/centers');
       const d = res.data;
-      const all: CenterResponse[] = Array.isArray(d) ? d : (d.content ?? []);
-      return all.filter(c => c.ownerId === user?.id);
+      return Array.isArray(d) ? d : (d.content ?? []);
     },
     enabled: !!user?.id,
     retry: false,
@@ -813,8 +812,7 @@ export default function MentorPortalExamsPage() {
           correctAnswer: q.correctAnswer,
           explanation: q.explanation || undefined,
           marks: q.marks,
-          difficulty: q.difficulty,
-          irtDifficulty: q.irtDifficulty,
+          difficulty: q.irtDifficulty,   // backend expects IRT b-param float
           discrimination: q.discrimination,
           guessingParam: q.guessingParam,
         });

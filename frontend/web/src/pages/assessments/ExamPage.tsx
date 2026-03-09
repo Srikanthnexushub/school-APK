@@ -193,7 +193,10 @@ export default function ExamPage() {
   // ── Load all questions ─────────────────────────────────────────────────────
   const { data: questions = [], isLoading: questionsLoading } = useQuery<Question[]>({
     queryKey: ['exam-questions', examId],
-    queryFn: () => api.get(`/api/v1/exams/${examId}/questions`).then(r => r.data),
+    queryFn: () => api.get(`/api/v1/exams/${examId}/questions`).then(r => {
+      const d = r.data;
+      return Array.isArray(d) ? d : (d.content ?? []);
+    }),
     enabled: !!examId && !isResultsPage,
     retry: 1,
   });
