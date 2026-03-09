@@ -87,6 +87,15 @@ public class MockTestService implements RecordMockTestUseCase, GetMockTestHistor
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<MockTestAttemptResponse> getMockHistoryByStudent(UUID studentId) {
+        return mockTestAttemptRepository.findByStudentId(studentId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     private BigDecimal calculateAccuracy(int correct, int attempted) {
         if (attempted == 0) {
             return BigDecimal.ZERO;

@@ -25,6 +25,25 @@ interface DoubtTicket {
   resolutionTimeMinutes?: number;
 }
 
+function mapDoubt(raw: Record<string, unknown>): DoubtTicket {
+  const createdAt = raw.createdAt as string | undefined;
+  const resolvedAt = raw.resolvedAt as string | undefined;
+  const resolutionTimeMinutes =
+    createdAt && resolvedAt
+      ? Math.round((new Date(resolvedAt).getTime() - new Date(createdAt).getTime()) / 60000)
+      : undefined;
+  return {
+    id: raw.id as string,
+    subject: raw.subjectArea as string,
+    questionText: raw.question as string,
+    status: raw.status === 'ESCALATED' ? 'IN_PROGRESS' : (raw.status as 'PENDING' | 'RESOLVED'),
+    answer: (raw.aiAnswer as string) ?? undefined,
+    resolvedAt,
+    createdAt,
+    resolutionTimeMinutes,
+  };
+}
+
 type FilterTab = 'ALL' | 'PENDING' | 'RESOLVED';
 
 const SUBJECTS = [
@@ -142,14 +161,20 @@ export default function DoubtsPage() {
   const [subject, setSubject] = useState(SUBJECTS[0]);
   const [questionText, setQuestionText] = useState('');
 
+  const SUBJECT_AREA_MAP: Record<string, string> = {
+    Mathematics: 'MATHEMATICS', Physics: 'PHYSICS', Chemistry: 'CHEMISTRY',
+    Biology: 'BIOLOGY', English: 'ENGLISH', History: 'GENERAL',
+    Geography: 'GENERAL', 'Computer Science': 'GENERAL',
+  };
+
   const doubtsQuery = useQuery<DoubtTicket[]>({
     queryKey: ['doubts'],
-    queryFn: () => api.get('/api/v1/doubts').then(r => r.data),
+    queryFn: () => api.get('/api/v1/doubts').then(r => (r.data as Record<string, unknown>[]).map(mapDoubt)),
     staleTime: 2 * 60 * 1000,
   });
 
   const submitMutation = useMutation({
-    mutationFn: (payload: { subject: string; questionText: string }) =>
+    mutationFn: (payload: { subjectArea: string; question: string }) =>
       api.post('/api/v1/doubts', payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['doubts'] });
@@ -162,7 +187,7 @@ export default function DoubtsPage() {
 
   function handleSubmit() {
     if (!questionText.trim()) { toast.error('Enter your question'); return; }
-    submitMutation.mutate({ subject, questionText: questionText.trim() });
+    submitMutation.mutate({ subjectArea: SUBJECT_AREA_MAP[subject] ?? 'GENERAL', question: questionText.trim() });
   }
 
   const all = doubtsQuery.data ?? [];

@@ -7,8 +7,8 @@ import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 public record SubmitDoubtRequest(
-        @NotNull UUID studentId,
-        @NotNull UUID enrollmentId,
+        UUID studentId,
+        UUID enrollmentId,
         @NotNull SubjectArea subjectArea,
         @NotBlank String question
 ) {}

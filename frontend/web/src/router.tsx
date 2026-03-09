@@ -75,25 +75,29 @@ export const router = createBrowserRouter([
   {
     path: '/admin',
     element: (
-      <ProtectedRoute allowedRoles={['ADMIN']}>
+      <ProtectedRoute allowedRoles={['CENTER_ADMIN', 'SUPER_ADMIN']}>
         <AppLayout />
       </ProtectedRoute>
     ),
     children: [
       { index: true, element: <AdminDashboardPage /> },
       { path: 'dashboard', element: <AdminDashboardPage /> },
+      { path: 'centers', element: <AdminDashboardPage /> },
+      { path: 'batches', element: <AdminDashboardPage /> },
+      { path: 'assessments', element: <AdminDashboardPage /> },
     ],
   },
   {
     path: '/mentor-portal',
     element: (
-      <ProtectedRoute allowedRoles={['MENTOR']}>
+      <ProtectedRoute allowedRoles={['TEACHER']}>
         <AppLayout />
       </ProtectedRoute>
     ),
     children: [
       { index: true, element: <MentorPortalDashboardPage /> },
       { path: 'dashboard', element: <MentorPortalDashboardPage /> },
+      { path: 'sessions', element: <MentorPortalDashboardPage /> },
     ],
   },
 ]);

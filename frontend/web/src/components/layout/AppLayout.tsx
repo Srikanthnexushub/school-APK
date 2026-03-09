@@ -49,17 +49,19 @@ const mentorNav: NavItem[] = [
 ];
 
 function getNavItems(role?: string): NavItem[] {
-  if (role === 'ADMIN')  return adminNav;
+  if (role === 'CENTER_ADMIN' || role === 'SUPER_ADMIN') return adminNav;
   if (role === 'PARENT') return parentNav;
-  if (role === 'MENTOR') return mentorNav;
+  if (role === 'TEACHER') return mentorNav;
   return studentNav;
 }
 
 const roleBadgeColors: Record<string, string> = {
-  STUDENT: 'bg-brand-500/20 text-brand-400',
-  ADMIN:   'bg-red-500/20 text-red-400',
-  PARENT:  'bg-emerald-500/20 text-emerald-400',
-  MENTOR:  'bg-amber-500/20 text-amber-400',
+  STUDENT:     'bg-brand-500/20 text-brand-400',
+  CENTER_ADMIN:'bg-red-500/20 text-red-400',
+  SUPER_ADMIN: 'bg-red-500/20 text-red-400',
+  PARENT:      'bg-emerald-500/20 text-emerald-400',
+  TEACHER:     'bg-amber-500/20 text-amber-400',
+  GUEST:       'bg-white/10 text-white/40',
 };
 
 function RoleBadge({ role }: { role: string }) {

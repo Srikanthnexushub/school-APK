@@ -7,4 +7,6 @@ import java.util.UUID;
 public interface GetStudyPlanUseCase {
 
     StudyPlanResponse getStudyPlan(UUID studentId, UUID enrollmentId);
+
+    StudyPlanResponse getStudyPlanById(UUID planId, UUID studentId);
 }

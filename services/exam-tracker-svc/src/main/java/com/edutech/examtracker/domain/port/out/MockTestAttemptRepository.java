@@ -15,4 +15,6 @@ public interface MockTestAttemptRepository {
     List<MockTestAttempt> findByStudentIdAndEnrollmentId(UUID studentId, UUID enrollmentId);
 
     List<MockTestAttempt> findTopNByStudentId(UUID studentId, int n);
+
+    List<MockTestAttempt> findByStudentId(UUID studentId);
 }

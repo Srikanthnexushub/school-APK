@@ -19,4 +19,7 @@ interface SpringDataMockTestAttemptRepository extends JpaRepository<MockTestAtte
 
     @Query("SELECT a FROM MockTestAttempt a WHERE a.studentId = :studentId AND a.deletedAt IS NULL ORDER BY a.attemptDate DESC")
     List<MockTestAttempt> findTopByStudentId(UUID studentId, Pageable pageable);
+
+    @Query("SELECT a FROM MockTestAttempt a WHERE a.studentId = :studentId AND a.deletedAt IS NULL ORDER BY a.attemptDate DESC")
+    List<MockTestAttempt> findByStudentIdActive(UUID studentId);
 }

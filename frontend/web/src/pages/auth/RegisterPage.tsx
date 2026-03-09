@@ -35,7 +35,7 @@ const step1Schema = z
 
 type Step1Data = z.infer<typeof step1Schema>;
 
-type Role = 'STUDENT' | 'PARENT' | 'MENTOR';
+type Role = 'STUDENT' | 'PARENT' | 'TEACHER';
 
 const roleCards: { role: Role; label: string; description: string; Icon: React.ElementType }[] = [
   {
@@ -51,7 +51,7 @@ const roleCards: { role: Role; label: string; description: string; Icon: React.E
     Icon: Users,
   },
   {
-    role: 'MENTOR',
+    role: 'TEACHER',
     label: 'Mentor',
     description: 'Coach students, conduct sessions, and track their performance analytics.',
     Icon: Briefcase,

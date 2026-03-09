@@ -73,28 +73,49 @@ export default function MentorPortalDashboardPage() {
     Mon: true, Tue: false, Wed: true, Thu: true, Fri: true, Sat: false, Sun: false,
   });
 
-  const { data: stats } = useQuery<MentorStats>({
-    queryKey: ['mentor-stats', user?.id],
+  // Fetch mentor profile by listing all and finding by userId
+  const { data: mentorProfile } = useQuery<{ id: string; averageRating: number; totalSessions: number } | null>({
+    queryKey: ['mentor-profile', user?.id],
     queryFn: async () => {
-      const res = await api.get(`/api/v1/mentor-profiles/${user?.id}/stats`);
-      return res.data;
+      const res = await api.get('/api/v1/mentors');
+      const profiles: Array<{ id: string; userId: string; averageRating: number; totalSessions: number }> = res.data;
+      return profiles.find((p) => p.userId === user?.id) ?? null;
     },
     retry: false,
-    placeholderData: MOCK_STATS,
+    placeholderData: null,
   });
 
+  const profileId = mentorProfile?.id;
+
   const { data: upcomingSessions } = useQuery<UpcomingSession[]>({
-    queryKey: ['mentor-upcoming-sessions', user?.id],
+    queryKey: ['mentor-upcoming-sessions', profileId],
     queryFn: async () => {
-      const res = await api.get(`/api/v1/mentor-sessions?mentorId=${user?.id}`);
+      const res = await api.get(`/api/v1/mentor-sessions?mentorId=${profileId}`);
       return res.data;
     },
+    enabled: !!profileId,
     retry: false,
     placeholderData: MOCK_UPCOMING,
   });
 
-  const s = stats ?? MOCK_STATS;
   const sessions = upcomingSessions ?? MOCK_UPCOMING;
+
+  const stats: MentorStats = mentorProfile
+    ? {
+        sessionsThisWeek: sessions.filter((s) => {
+          const d = new Date(s.scheduledAt);
+          const now = new Date();
+          const startOfWeek = new Date(now);
+          startOfWeek.setDate(now.getDate() - now.getDay());
+          return d >= startOfWeek;
+        }).length,
+        avgRating: mentorProfile.averageRating ?? 0,
+        pendingBookings: sessions.filter((s) => s.status === 'PENDING').length,
+        totalStudentsHelped: mentorProfile.totalSessions ?? 0,
+      }
+    : MOCK_STATS;
+
+  const s = stats;
 
   function toggleDay(day: string) {
     setAvailability((prev) => {

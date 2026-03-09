@@ -52,9 +52,9 @@ export default function LoginPage() {
       setAuth(accessToken, { id: u.id, email: u.email, role: u.role, name });
 
       toast.success('Welcome back!');
-      if (u.role === 'ADMIN') navigate('/admin');
+      if (u.role === 'CENTER_ADMIN' || u.role === 'SUPER_ADMIN') navigate('/admin');
       else if (u.role === 'PARENT') navigate('/parent');
-      else if (u.role === 'MENTOR') navigate('/mentor-portal');
+      else if (u.role === 'TEACHER') navigate('/mentor-portal');
       else navigate('/dashboard');
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { detail?: string; title?: string } } };

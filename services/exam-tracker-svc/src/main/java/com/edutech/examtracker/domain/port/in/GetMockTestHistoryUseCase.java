@@ -8,4 +8,6 @@ import java.util.UUID;
 public interface GetMockTestHistoryUseCase {
 
     List<MockTestAttemptResponse> getMockHistory(UUID studentId, UUID enrollmentId);
+
+    List<MockTestAttemptResponse> getMockHistoryByStudent(UUID studentId);
 }

@@ -31,6 +31,34 @@ interface StudyPlan {
   daysUntilExam?: number;
 }
 
+// ─── Response Mapper ─────────────────────────────────────────────────────────
+
+function mapPlan(raw: Record<string, unknown>): StudyPlan {
+  const rawItems = (raw.items as Record<string, unknown>[] | undefined) ?? [];
+  const targetExamDate = raw.targetExamDate as string | undefined;
+  const daysUntilExam = targetExamDate
+    ? Math.max(0, Math.ceil((new Date(targetExamDate).getTime() - Date.now()) / 86400000))
+    : undefined;
+  return {
+    id: raw.id as string,
+    targetExam: raw.title as string,
+    status: (raw.active as boolean) ? 'ACTIVE' : 'COMPLETED',
+    createdAt: raw.createdAt as string | undefined,
+    daysUntilExam,
+    items: rawItems.map((item) => ({
+      id: item.id as string,
+      subject: item.subjectArea as string,
+      topic: item.topic as string,
+      priority: item.priorityLevel as 'HIGH' | 'MEDIUM' | 'LOW',
+      completed: item.quality !== null && item.quality !== undefined,
+    })),
+    weakSubjects: rawItems
+      .filter((i) => i.priorityLevel === 'HIGH' && (i.quality === null || i.quality === undefined))
+      .map((i) => i.subjectArea as string)
+      .filter((v, idx, arr) => arr.indexOf(v) === idx),
+  };
+}
+
 // ─── AI Suggestions Side Panel ───────────────────────────────────────────────
 
 function AiSuggestionsPanel({ weakSubjects }: { weakSubjects: string[] }) {
@@ -153,19 +181,19 @@ function SubjectGroup({
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function StudyPlanDetailPage() {
-  const { planId } = useParams<{ planId: string }>();
+  const { id: planId } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
 
   const planQuery = useQuery<StudyPlan>({
     queryKey: ['study-plan', planId],
-    queryFn: () => api.get(`/api/v1/study-plans/${planId}`).then(r => r.data),
+    queryFn: () => api.get(`/api/v1/study-plans/${planId}`).then(r => mapPlan(r.data as Record<string, unknown>)),
     enabled: !!planId,
     staleTime: 3 * 60 * 1000,
   });
 
   const toggleMutation = useMutation({
     mutationFn: ({ itemId, completed }: { itemId: string; completed: boolean }) =>
-      api.patch(`/api/v1/study-plans/${planId}/items/${itemId}`, { completed }),
+      api.put(`/api/v1/study-plans/items/${itemId}/review?quality=${completed ? 5 : 0}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['study-plan', planId] });
       queryClient.invalidateQueries({ queryKey: ['study-plans'] });

@@ -37,4 +37,9 @@ public class MockTestAttemptPersistenceAdapter implements MockTestAttemptReposit
     public List<MockTestAttempt> findTopNByStudentId(UUID studentId, int n) {
         return jpa.findTopByStudentId(studentId, PageRequest.of(0, n));
     }
+
+    @Override
+    public List<MockTestAttempt> findByStudentId(UUID studentId) {
+        return jpa.findByStudentIdActive(studentId);
+    }
 }

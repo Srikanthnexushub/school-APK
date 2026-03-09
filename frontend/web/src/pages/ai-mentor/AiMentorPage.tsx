@@ -53,6 +53,51 @@ interface Recommendation {
   url?: string;
 }
 
+// ─── Response Mappers ────────────────────────────────────────────────────────
+
+function mapPlan(raw: Record<string, unknown>): StudyPlan {
+  const rawItems = (raw.items as Record<string, unknown>[] | undefined) ?? [];
+  return {
+    id: raw.id as string,
+    targetExam: raw.title as string,
+    status: (raw.active as boolean) ? 'ACTIVE' : 'COMPLETED',
+    createdAt: raw.createdAt as string | undefined,
+    items: rawItems.map((item) => ({
+      id: item.id as string,
+      subject: item.subjectArea as string,
+      topic: item.topic as string,
+      priority: item.priorityLevel as 'HIGH' | 'MEDIUM' | 'LOW',
+      completed: item.quality !== null && item.quality !== undefined,
+    })),
+    subjectAreas: [...new Set(rawItems.map((i) => i.subjectArea as string))],
+  };
+}
+
+function mapDoubt(raw: Record<string, unknown>): DoubtTicket {
+  return {
+    id: raw.id as string,
+    subject: raw.subjectArea as string,
+    questionText: raw.question as string,
+    status: raw.status === 'ESCALATED' ? 'IN_PROGRESS' : (raw.status as 'PENDING' | 'RESOLVED'),
+    answer: (raw.aiAnswer as string) ?? undefined,
+    resolvedAt: (raw.resolvedAt as string) ?? undefined,
+    createdAt: raw.createdAt as string | undefined,
+  };
+}
+
+function mapRec(raw: Record<string, unknown>): Recommendation {
+  const priority = raw.priorityLevel as string;
+  const type: Recommendation['type'] =
+    priority === 'HIGH' ? 'PRACTICE' : priority === 'MEDIUM' ? 'ARTICLE' : 'VIDEO';
+  return {
+    id: raw.id as string,
+    subject: raw.subjectArea as string,
+    title: raw.topic as string,
+    contentPreview: raw.recommendationText as string,
+    type,
+  };
+}
+
 const SUBJECTS = [
   'Mathematics', 'Physics', 'Chemistry', 'Biology',
   'English', 'History', 'Geography', 'Computer Science',
@@ -88,7 +133,7 @@ function StudyPlansTab() {
 
   const plansQuery = useQuery<StudyPlan[]>({
     queryKey: ['study-plans'],
-    queryFn: () => api.get('/api/v1/study-plans').then((r) => r.data),
+    queryFn: () => api.get('/api/v1/study-plans').then((r) => (r.data as Record<string, unknown>[]).map(mapPlan)),
     staleTime: 3 * 60 * 1000,
   });
 
@@ -246,7 +291,7 @@ function StudyPlansTab() {
                 )}
 
                 <a
-                  href={`/ai-mentor/plans/${plan.id}`}
+                  href={`/ai-mentor/study-plans/${plan.id}`}
                   className="flex items-center gap-1 text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
                 >
                   Open Plan <ChevronRight className="w-3 h-3" />
@@ -337,12 +382,12 @@ function DoubtResolverTab() {
 
   const doubtsQuery = useQuery<DoubtTicket[]>({
     queryKey: ['doubts'],
-    queryFn: () => api.get('/api/v1/doubts').then((r) => r.data),
+    queryFn: () => api.get('/api/v1/doubts').then((r) => (r.data as Record<string, unknown>[]).map(mapDoubt)),
     staleTime: 2 * 60 * 1000,
   });
 
   const submitMutation = useMutation({
-    mutationFn: (payload: { subject: string; questionText: string }) =>
+    mutationFn: (payload: { subjectArea: string; question: string }) =>
       api.post('/api/v1/doubts', payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['doubts'] });
@@ -360,7 +405,7 @@ function DoubtResolverTab() {
       toast.error('Enter your question');
       return;
     }
-    submitMutation.mutate({ subject: newSubject, questionText: newQuestion.trim() });
+    submitMutation.mutate({ subjectArea: SUBJECT_AREA_MAP[newSubject] ?? 'GENERAL', question: newQuestion.trim() });
   }
 
   function statusDot(status: string) {
@@ -554,7 +599,7 @@ function RecommendationsTab() {
   const recsQuery = useQuery<Recommendation[]>({
     queryKey: ['recommendations'],
     queryFn: () =>
-      api.get('/api/v1/recommendations').then((r) => r.data),
+      api.get('/api/v1/recommendations').then((r) => (r.data as Record<string, unknown>[]).map(mapRec)),
     staleTime: 5 * 60 * 1000,
   });
 

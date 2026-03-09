@@ -77,6 +77,16 @@ public class StudyPlanController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/{planId}")
+    @Operation(summary = "Get a study plan by its ID")
+    public ResponseEntity<StudyPlanResponse> getStudyPlanById(
+            @PathVariable UUID planId,
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestHeader("X-User-Role") String userRole) {
+        StudyPlanResponse response = getStudyPlanUseCase.getStudyPlanById(planId, userId);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/by-enrollment")
     @Operation(summary = "Get study plan for a specific student enrollment")
     public ResponseEntity<StudyPlanResponse> getStudyPlan(

@@ -4,7 +4,7 @@ import { persist } from 'zustand/middleware';
 interface User {
   id: string;
   email: string;
-  role: 'STUDENT' | 'ADMIN' | 'MENTOR' | 'PARENT';
+  role: 'STUDENT' | 'CENTER_ADMIN' | 'SUPER_ADMIN' | 'TEACHER' | 'PARENT' | 'GUEST';
   name: string;
   avatarUrl?: string;
 }

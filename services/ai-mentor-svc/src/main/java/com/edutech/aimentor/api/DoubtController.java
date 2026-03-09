@@ -55,7 +55,13 @@ public class DoubtController {
             @Valid @RequestBody SubmitDoubtRequest request,
             @RequestHeader("X-User-Id") UUID userId,
             @RequestHeader("X-User-Role") String userRole) {
-        DoubtTicketResponse response = submitDoubtUseCase.submitDoubt(request);
+        SubmitDoubtRequest secured = new SubmitDoubtRequest(
+                userId,
+                request.enrollmentId(),
+                request.subjectArea(),
+                request.question()
+        );
+        DoubtTicketResponse response = submitDoubtUseCase.submitDoubt(secured);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

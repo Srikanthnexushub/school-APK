@@ -42,8 +42,10 @@ public class MockTestController {
     @GetMapping("/students/{studentId}/mock-tests")
     public ResponseEntity<List<MockTestAttemptResponse>> getMockTests(
             @PathVariable UUID studentId,
-            @RequestParam UUID enrollmentId) {
-        List<MockTestAttemptResponse> history = getMockTestHistoryUseCase.getMockHistory(studentId, enrollmentId);
+            @RequestParam(required = false) UUID enrollmentId) {
+        List<MockTestAttemptResponse> history = enrollmentId != null
+                ? getMockTestHistoryUseCase.getMockHistory(studentId, enrollmentId)
+                : getMockTestHistoryUseCase.getMockHistoryByStudent(studentId);
         return ResponseEntity.ok(history);
     }
 }

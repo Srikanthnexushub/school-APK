@@ -95,6 +95,14 @@ public class StudyPlanService implements CreateStudyPlanUseCase, GetStudyPlanUse
 
     @Override
     @Transactional(readOnly = true)
+    public StudyPlanResponse getStudyPlanById(UUID planId, UUID studentId) {
+        StudyPlan studyPlan = studyPlanRepository.findById(planId)
+                .orElseThrow(() -> new StudyPlanNotFoundException(planId));
+        return toResponse(studyPlan);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<StudyPlanResponse> listStudyPlans(UUID studentId) {
         return studyPlanRepository.findAllByStudentId(studentId).stream()
                 .map(this::toResponse)
