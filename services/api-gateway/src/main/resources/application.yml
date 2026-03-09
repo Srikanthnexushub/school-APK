@@ -58,16 +58,21 @@ spring:
           uri: ${AI_GATEWAY_SVC_URI}
           predicates:
             - Path=/api/v1/ai/**
+        - id: notification-svc
+          uri: ${NOTIFICATION_SVC_URI}
+          predicates:
+            - Path=/api/v1/notifications/**
 
 server:
   port: ${API_GATEWAY_PORT}
   shutdown: graceful
 
-# JWT (RS256 — public key for validation only)
+# JWT (RS256 — JWKS fetched from auth-svc at startup, refreshed on TTL)
 jwt:
   public-key-path: ${JWT_PUBLIC_KEY_PATH}
   issuer: ${JWT_ISSUER}
   jwks-uri: ${JWT_JWKS_URI}
+  jwks-cache-ttl-seconds: ${JWT_JWKS_CACHE_TTL_SECONDS}
 
 # Downstream service URIs (used in routes above)
 services:
@@ -77,6 +82,7 @@ services:
   assess-svc-uri: ${ASSESS_SVC_URI}
   psych-svc-uri: ${PSYCH_SVC_URI}
   ai-gateway-svc-uri: ${AI_GATEWAY_SVC_URI}
+  notification-svc-uri: ${NOTIFICATION_SVC_URI}
 
 resilience4j:
   circuitbreaker:
@@ -123,3 +129,5 @@ springdoc:
         url: ${ASSESS_SVC_URI}/api-docs
       - name: psych-svc
         url: ${PSYCH_SVC_URI}/api-docs
+      - name: notification-svc
+        url: ${NOTIFICATION_SVC_URI}/api-docs

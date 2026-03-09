@@ -13,6 +13,8 @@ import com.edutech.mentorsvc.domain.model.SessionMode;
 import com.edutech.mentorsvc.domain.port.in.BookMentorSessionUseCase;
 import com.edutech.mentorsvc.domain.port.in.CompleteSessionUseCase;
 import com.edutech.mentorsvc.domain.port.in.GetMentorSessionUseCase;
+import com.edutech.mentorsvc.domain.port.in.UpdateSessionStatusUseCase;
+import com.edutech.mentorsvc.domain.model.SessionStatus;
 import com.edutech.mentorsvc.domain.port.out.MentorEventPublisher;
 import com.edutech.mentorsvc.domain.port.out.MentorProfileRepository;
 import com.edutech.mentorsvc.domain.port.out.MentorSessionRepository;
@@ -28,7 +30,7 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class MentorSessionService implements BookMentorSessionUseCase, GetMentorSessionUseCase,
-        CompleteSessionUseCase {
+        CompleteSessionUseCase, UpdateSessionStatusUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(MentorSessionService.class);
 
@@ -141,6 +143,22 @@ public class MentorSessionService implements BookMentorSessionUseCase, GetMentor
                     saved.getId(), ex.getMessage(), ex);
         }
 
+        return toResponse(saved);
+    }
+
+    @Override
+    public MentorSessionResponse updateStatus(UUID sessionId, SessionStatus newStatus) {
+        MentorSession session = mentorSessionRepository.findById(sessionId)
+                .filter(s -> s.getDeletedAt() == null)
+                .orElseThrow(() -> new MentorSessionNotFoundException(sessionId));
+        switch (newStatus) {
+            case IN_PROGRESS -> session.markInProgress();
+            case COMPLETED -> session.markCompleted();
+            case CANCELLED -> session.markCancelled();
+            case NO_SHOW -> session.markNoShow();
+            default -> throw new IllegalArgumentException("Invalid status transition: " + newStatus);
+        }
+        MentorSession saved = mentorSessionRepository.save(session);
         return toResponse(saved);
     }
 

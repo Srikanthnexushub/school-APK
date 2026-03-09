@@ -40,7 +40,7 @@ class JwtTokenValidatorTest {
         Files.writeString(tempFile, pem);
         tempFile.toFile().deleteOnExit();
 
-        JwtProperties props = new JwtProperties(tempFile.toString(), ISSUER, null);
+        JwtProperties props = new JwtProperties(tempFile.toString(), ISSUER, null, 0L);
         validator = new JwtTokenValidator(props);
     }
 

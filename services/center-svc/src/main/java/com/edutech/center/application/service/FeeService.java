@@ -12,6 +12,9 @@ import com.edutech.center.domain.port.out.CenterRepository;
 import com.edutech.center.domain.port.out.FeeStructureRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,6 +60,18 @@ public class FeeService implements CreateFeeStructureUseCase {
             throw new CenterAccessDeniedException();
         }
         return feeStructureRepository.findByCenterId(centerId).stream().map(this::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<FeeStructureResponse> listFeeStructures(UUID centerId, AuthPrincipal principal, Pageable pageable) {
+        if (!principal.belongsToCenter(centerId)) {
+            throw new CenterAccessDeniedException();
+        }
+        List<FeeStructureResponse> all = feeStructureRepository.findByCenterId(centerId).stream()
+                .map(this::toResponse).toList();
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        return new PageImpl<>(start < all.size() ? all.subList(start, end) : List.of(), pageable, all.size());
     }
 
     private FeeStructureResponse toResponse(FeeStructure f) {

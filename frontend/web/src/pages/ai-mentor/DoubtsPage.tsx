@@ -169,7 +169,7 @@ export default function DoubtsPage() {
 
   const doubtsQuery = useQuery<DoubtTicket[]>({
     queryKey: ['doubts'],
-    queryFn: () => api.get('/api/v1/doubts').then(r => (r.data as Record<string, unknown>[]).map(mapDoubt)),
+    queryFn: () => api.get('/api/v1/doubts').then(r => { const d = r.data; const arr: Record<string, unknown>[] = Array.isArray(d) ? d : (d.content ?? []); return arr.map(mapDoubt); }),
     staleTime: 2 * 60 * 1000,
   });
 

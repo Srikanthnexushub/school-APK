@@ -12,6 +12,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -70,10 +72,17 @@ public class StudyPlanController {
 
     @GetMapping
     @Operation(summary = "List all study plans for the authenticated student")
-    public ResponseEntity<List<StudyPlanResponse>> listStudyPlans(
+    public ResponseEntity<Page<StudyPlanResponse>> listStudyPlans(
             @RequestHeader("X-User-Id") UUID userId,
-            @RequestHeader("X-User-Role") String userRole) {
-        List<StudyPlanResponse> response = listStudyPlansUseCase.listStudyPlans(userId);
+            @RequestHeader("X-User-Role") String userRole,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        PageRequest pageRequest = PageRequest.of(page, size);
+        List<StudyPlanResponse> all = listStudyPlansUseCase.listStudyPlans(userId);
+        int start = (int) pageRequest.getOffset();
+        int end = Math.min(start + pageRequest.getPageSize(), all.size());
+        Page<StudyPlanResponse> response = new org.springframework.data.domain.PageImpl<>(
+                start < all.size() ? all.subList(start, end) : List.of(), pageRequest, all.size());
         return ResponseEntity.ok(response);
     }
 

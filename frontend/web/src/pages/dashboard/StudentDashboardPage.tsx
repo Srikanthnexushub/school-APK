@@ -152,7 +152,7 @@ export default function StudentDashboardPage() {
     queryFn: () =>
       api
         .get(`/api/v1/exam-tracker/students/${studentId}/enrollments`)
-        .then((r) => r.data),
+        .then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }),
     enabled: !!studentId,
     staleTime: 5 * 60 * 1000,
   });

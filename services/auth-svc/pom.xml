@@ -133,6 +133,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Structured JSON logging -->
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- BouncyCastle — required by Spring Security Argon2PasswordEncoder at runtime -->
         <dependency>
             <groupId>org.bouncycastle</groupId>

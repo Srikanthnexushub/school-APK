@@ -20,6 +20,9 @@ import com.edutech.assess.domain.port.out.ExamEnrollmentRepository;
 import com.edutech.assess.domain.port.out.ExamRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -105,6 +108,15 @@ public class ExamService implements CreateExamUseCase, PublishExamUseCase, ListP
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public Page<ExamResponse> listByBatch(UUID batchId, AuthPrincipal principal, Pageable pageable) {
+        List<ExamResponse> all = examRepository.findByBatchId(batchId).stream()
+                .map(this::toResponse).toList();
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        return new PageImpl<>(start < all.size() ? all.subList(start, end) : List.of(), pageable, all.size());
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<StudentExamResponse> listPublishedExams(UUID studentId) {
@@ -117,6 +129,21 @@ public class ExamService implements CreateExamUseCase, PublishExamUseCase, ListP
         return published.stream()
                 .map(exam -> toStudentResponse(exam, enrollmentByExamId.get(exam.getId())))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<StudentExamResponse> listPublishedExams(UUID studentId, Pageable pageable) {
+        Map<UUID, ExamEnrollment> enrollmentByExamId = enrollmentRepository.findByStudentId(studentId)
+                .stream()
+                .filter(e -> e.getStatus() == EnrollmentStatus.ENROLLED)
+                .collect(Collectors.toMap(ExamEnrollment::getExamId, Function.identity(),
+                        (existing, replacement) -> existing));
+        List<StudentExamResponse> all = examRepository.findAllPublished().stream()
+                .map(exam -> toStudentResponse(exam, enrollmentByExamId.get(exam.getId())))
+                .toList();
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        return new PageImpl<>(start < all.size() ? all.subList(start, end) : List.of(), pageable, all.size());
     }
 
     private ExamResponse toResponse(Exam e) {

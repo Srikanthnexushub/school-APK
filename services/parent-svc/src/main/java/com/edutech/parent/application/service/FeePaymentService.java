@@ -14,6 +14,10 @@ import com.edutech.parent.domain.port.out.FeePaymentRepository;
 import com.edutech.parent.domain.port.out.ParentEventPublisher;
 import com.edutech.parent.domain.port.out.ParentProfileRepository;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,19 +28,18 @@ import java.util.UUID;
 @Transactional
 public class FeePaymentService implements RecordFeePaymentUseCase {
 
+    private static final Logger log = LoggerFactory.getLogger(FeePaymentService.class);
+
     private final FeePaymentRepository paymentRepository;
     private final ParentProfileRepository profileRepository;
     private final ParentEventPublisher eventPublisher;
-    private final Logger log;
 
     public FeePaymentService(FeePaymentRepository paymentRepository,
                               ParentProfileRepository profileRepository,
-                              ParentEventPublisher eventPublisher,
-                              Logger log) {
+                              ParentEventPublisher eventPublisher) {
         this.paymentRepository = paymentRepository;
         this.profileRepository = profileRepository;
         this.eventPublisher = eventPublisher;
-        this.log = log;
     }
 
     @Override
@@ -82,6 +85,20 @@ public class FeePaymentService implements RecordFeePaymentUseCase {
         return paymentRepository.findByParentId(parentProfileId).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<FeePaymentResponse> listPayments(UUID parentProfileId, AuthPrincipal principal, Pageable pageable) {
+        ParentProfile parent = profileRepository.findById(parentProfileId)
+                .orElseThrow(() -> new ParentProfileNotFoundException(parentProfileId));
+        if (!principal.ownsProfile(parent.getUserId())) {
+            throw new ParentAccessDeniedException();
+        }
+        List<FeePaymentResponse> all = paymentRepository.findByParentId(parentProfileId).stream()
+                .map(this::toResponse).toList();
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        return new PageImpl<>(start < all.size() ? all.subList(start, end) : List.of(), pageable, all.size());
     }
 
     private FeePaymentResponse toResponse(FeePayment p) {

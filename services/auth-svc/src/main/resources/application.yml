@@ -74,6 +74,10 @@ jwt:
   refresh-token-expiry-seconds: ${JWT_REFRESH_TOKEN_EXPIRY_SECONDS}
   issuer: ${JWT_ISSUER}
 
+# Trusted proxy CIDRs — only these source IPs may set X-Forwarded-For
+security:
+  trusted-proxy-cidrs: ${TRUSTED_PROXY_CIDRS}
+
 # Argon2id — all params externalized, no defaults (security-critical)
 argon2:
   memory-cost: ${ARGON2_MEMORY_COST}

@@ -31,5 +31,4 @@ public class SessionHistoryPersistenceAdapter implements SessionHistoryRepositor
     public List<SessionHistory> findByProfileId(UUID profileId) {
         return springData.findByProfileIdAndDeletedAtIsNull(profileId);
     }
-
 }

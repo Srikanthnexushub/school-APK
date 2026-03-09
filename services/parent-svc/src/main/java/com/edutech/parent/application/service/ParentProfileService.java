@@ -13,6 +13,7 @@ import com.edutech.parent.domain.port.in.UpdateParentProfileUseCase;
 import com.edutech.parent.domain.port.out.ParentEventPublisher;
 import com.edutech.parent.domain.port.out.ParentProfileRepository;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,16 +23,15 @@ import java.util.UUID;
 @Transactional
 public class ParentProfileService implements CreateParentProfileUseCase, UpdateParentProfileUseCase {
 
+    private static final Logger log = LoggerFactory.getLogger(ParentProfileService.class);
+
     private final ParentProfileRepository profileRepository;
     private final ParentEventPublisher eventPublisher;
-    private final Logger log;
 
     public ParentProfileService(ParentProfileRepository profileRepository,
-                                 ParentEventPublisher eventPublisher,
-                                 Logger log) {
+                                 ParentEventPublisher eventPublisher) {
         this.profileRepository = profileRepository;
         this.eventPublisher = eventPublisher;
-        this.log = log;
     }
 
     @Override

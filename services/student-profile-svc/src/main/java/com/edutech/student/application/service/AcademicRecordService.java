@@ -10,6 +10,10 @@ import com.edutech.student.domain.port.out.AcademicRecordRepository;
 import com.edutech.student.domain.port.out.StudentEventPublisher;
 import com.edutech.student.domain.port.out.StudentProfileRepository;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,19 +26,18 @@ import java.util.UUID;
 @Transactional
 public class AcademicRecordService implements AddAcademicRecordUseCase {
 
+    private static final Logger log = LoggerFactory.getLogger(AcademicRecordService.class);
+
     private final StudentProfileRepository profileRepository;
     private final AcademicRecordRepository academicRecordRepository;
     private final StudentEventPublisher eventPublisher;
-    private final Logger log;
 
     public AcademicRecordService(StudentProfileRepository profileRepository,
                                   AcademicRecordRepository academicRecordRepository,
-                                  StudentEventPublisher eventPublisher,
-                                  Logger log) {
+                                  StudentEventPublisher eventPublisher) {
         this.profileRepository = profileRepository;
         this.academicRecordRepository = academicRecordRepository;
         this.eventPublisher = eventPublisher;
-        this.log = log;
     }
 
     @Override
@@ -74,6 +77,17 @@ public class AcademicRecordService implements AddAcademicRecordUseCase {
         return academicRecordRepository.findByStudentId(studentId).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AcademicRecordResponse> getRecordsByStudentId(UUID studentId, Pageable pageable) {
+        profileRepository.findById(studentId)
+                .orElseThrow(() -> new StudentNotFoundException(studentId));
+        List<AcademicRecordResponse> all = academicRecordRepository.findByStudentId(studentId).stream()
+                .map(this::toResponse).toList();
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        return new PageImpl<>(start < all.size() ? all.subList(start, end) : List.of(), pageable, all.size());
     }
 
     private AcademicRecordResponse toResponse(AcademicRecord r) {

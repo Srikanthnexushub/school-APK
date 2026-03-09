@@ -42,4 +42,21 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: ${ACTUATOR_ENDPOINTS:health,info,prometheus,metrics}
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: ${APP_ENVIRONMENT:local}
+  tracing:
+    sampling:
+      probability: ${OTEL_SAMPLING_PROBABILITY:1.0}
+
+otel:
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}
+
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.edutech: ${LOG_LEVEL_APP:INFO}

@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,10 +18,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -45,8 +47,10 @@ public class ContentController {
 
     @GetMapping
     @Operation(summary = "List content items for a center")
-    public List<ContentItemResponse> listContent(@PathVariable UUID centerId,
-                                                 @AuthenticationPrincipal AuthPrincipal principal) {
-        return contentService.listContent(centerId, principal);
+    public Page<ContentItemResponse> listContent(@PathVariable UUID centerId,
+                                                 @AuthenticationPrincipal AuthPrincipal principal,
+                                                 @RequestParam(defaultValue = "0") int page,
+                                                 @RequestParam(defaultValue = "50") int size) {
+        return contentService.listContent(centerId, principal, PageRequest.of(page, size));
     }
 }

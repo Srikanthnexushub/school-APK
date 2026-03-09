@@ -120,7 +120,8 @@ function BatchHealthSection({ userId }: { userId: string | undefined }) {
     queryKey: ['centers'],
     queryFn: async () => {
       const res = await api.get('/api/v1/centers');
-      return res.data;
+      const d = res.data;
+      return Array.isArray(d) ? d : (d.content ?? []);
     },
     retry: false,
   });
@@ -133,7 +134,7 @@ function BatchHealthSection({ userId }: { userId: string | undefined }) {
     queryKey: ['batches-for-centers', myCenters.map((c) => c.id).join(',')],
     queryFn: async () => {
       const results = await Promise.all(
-        myCenters.map((c) => api.get(`/api/v1/centers/${c.id}/batches`).then((r) => r.data as BatchResponse[]))
+        myCenters.map((c) => api.get(`/api/v1/centers/${c.id}/batches`).then((r) => { const d = r.data; return (Array.isArray(d) ? d : (d.content ?? [])) as BatchResponse[]; }))
       );
       return results.flat();
     },
@@ -482,7 +483,8 @@ function GradeAssistSection({ userId }: { userId: string | undefined }) {
     queryKey: ['published-exams'],
     queryFn: async () => {
       const res = await api.get('/api/v1/exams');
-      const all: ExamResponse[] = res.data;
+      const rd = res.data;
+      const all: ExamResponse[] = Array.isArray(rd) ? rd : (rd.content ?? []);
       return all.filter((e) => e.status === 'PUBLISHED').slice(0, 3);
     },
     retry: false,
@@ -784,7 +786,8 @@ export default function MentorPortalInsightsPage() {
     queryKey: ['centers-overview'],
     queryFn: async () => {
       const res = await api.get('/api/v1/centers');
-      return res.data;
+      const d = res.data;
+      return Array.isArray(d) ? d : (d.content ?? []);
     },
     retry: false,
   });
@@ -795,7 +798,7 @@ export default function MentorPortalInsightsPage() {
     queryKey: ['overview-batches', myCenters.map((c) => c.id).join(',')],
     queryFn: async () => {
       const results = await Promise.all(
-        myCenters.map((c) => api.get(`/api/v1/centers/${c.id}/batches`).then((r) => r.data as BatchResponse[]))
+        myCenters.map((c) => api.get(`/api/v1/centers/${c.id}/batches`).then((r) => { const d = r.data; return (Array.isArray(d) ? d : (d.content ?? [])) as BatchResponse[]; }))
       );
       return results.flat();
     },
@@ -807,7 +810,8 @@ export default function MentorPortalInsightsPage() {
     queryKey: ['published-exams-overview'],
     queryFn: async () => {
       const res = await api.get('/api/v1/exams');
-      const all: ExamResponse[] = res.data;
+      const rd = res.data;
+      const all: ExamResponse[] = Array.isArray(rd) ? rd : (rd.content ?? []);
       return all.filter((e) => e.status === 'PUBLISHED').slice(0, 3);
     },
     retry: false,

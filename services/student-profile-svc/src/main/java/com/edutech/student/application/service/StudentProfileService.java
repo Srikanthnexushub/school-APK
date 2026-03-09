@@ -13,6 +13,7 @@ import com.edutech.student.domain.port.in.UpdateStudentProfileUseCase;
 import com.edutech.student.domain.port.out.StudentEventPublisher;
 import com.edutech.student.domain.port.out.StudentProfileRepository;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,16 +26,15 @@ public class StudentProfileService implements CreateStudentProfileUseCase,
         GetStudentProfileUseCase,
         UpdateStudentProfileUseCase {
 
+    private static final Logger log = LoggerFactory.getLogger(StudentProfileService.class);
+
     private final StudentProfileRepository profileRepository;
     private final StudentEventPublisher eventPublisher;
-    private final Logger log;
 
     public StudentProfileService(StudentProfileRepository profileRepository,
-                                  StudentEventPublisher eventPublisher,
-                                  Logger log) {
+                                  StudentEventPublisher eventPublisher) {
         this.profileRepository = profileRepository;
         this.eventPublisher = eventPublisher;
-        this.log = log;
     }
 
     @Override

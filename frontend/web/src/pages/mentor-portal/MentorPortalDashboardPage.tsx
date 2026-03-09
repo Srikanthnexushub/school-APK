@@ -78,7 +78,8 @@ export default function MentorPortalDashboardPage() {
     queryKey: ['mentor-profile', user?.id],
     queryFn: async () => {
       const res = await api.get('/api/v1/mentors');
-      const profiles: Array<{ id: string; userId: string; averageRating: number; totalSessions: number }> = res.data;
+      const raw = res.data;
+      const profiles: Array<{ id: string; userId: string; averageRating: number; totalSessions: number }> = Array.isArray(raw) ? raw : (raw.content ?? []);
       return profiles.find((p) => p.userId === user?.id) ?? null;
     },
     retry: false,
@@ -91,7 +92,8 @@ export default function MentorPortalDashboardPage() {
     queryKey: ['mentor-upcoming-sessions', profileId],
     queryFn: async () => {
       const res = await api.get(`/api/v1/mentor-sessions?mentorId=${profileId}`);
-      return res.data;
+      const d = res.data;
+      return Array.isArray(d) ? d : (d.content ?? []);
     },
     enabled: !!profileId,
     retry: false,

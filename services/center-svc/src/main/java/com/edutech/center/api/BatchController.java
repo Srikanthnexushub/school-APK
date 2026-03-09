@@ -11,6 +11,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -49,10 +51,12 @@ public class BatchController {
 
     @GetMapping
     @Operation(summary = "List batches for a center")
-    public List<BatchResponse> listBatches(@PathVariable UUID centerId,
+    public Page<BatchResponse> listBatches(@PathVariable UUID centerId,
                                            @RequestParam(required = false) BatchStatus status,
-                                           @AuthenticationPrincipal AuthPrincipal principal) {
-        return batchService.listBatches(centerId, status, principal);
+                                           @AuthenticationPrincipal AuthPrincipal principal,
+                                           @RequestParam(defaultValue = "0") int page,
+                                           @RequestParam(defaultValue = "50") int size) {
+        return batchService.listBatches(centerId, status, principal, PageRequest.of(page, size));
     }
 
     @GetMapping("/{batchId}")
@@ -71,4 +75,42 @@ public class BatchController {
                                      @AuthenticationPrincipal AuthPrincipal principal) {
         return batchService.updateBatch(batchId, request, principal);
     }
+
+    @GetMapping("/{batchId}/health")
+    @Operation(summary = "Get health summary for a single batch")
+    public BatchHealthSummary getBatchHealth(@PathVariable UUID centerId,
+                                             @PathVariable UUID batchId,
+                                             @AuthenticationPrincipal AuthPrincipal principal) {
+        BatchResponse batch = batchService.getBatch(centerId, batchId, principal);
+        return toBatchHealthSummary(batch);
+    }
+
+    @GetMapping("/health-summary")
+    @Operation(summary = "Get health summary for all batches in a center")
+    public List<BatchHealthSummary> getCenterBatchHealthSummary(@PathVariable UUID centerId,
+                                                                 @AuthenticationPrincipal AuthPrincipal principal) {
+        return batchService.listBatches(centerId, null, principal)
+                .stream()
+                .map(this::toBatchHealthSummary)
+                .toList();
+    }
+
+    private BatchHealthSummary toBatchHealthSummary(BatchResponse batch) {
+        double fillRate = batch.maxStudents() > 0
+                ? (double) batch.enrolledCount() / batch.maxStudents() * 100
+                : 0;
+        String status = fillRate < 50 ? "CRITICAL" : fillRate < 80 ? "WARNING" : "HEALTHY";
+        return new BatchHealthSummary(batch.id(), batch.name(), batch.subject(),
+                batch.enrolledCount(), batch.maxStudents(), fillRate, status);
+    }
+
+    record BatchHealthSummary(
+            UUID batchId,
+            String name,
+            String subject,
+            int enrolledCount,
+            int maxStudents,
+            double fillRate,
+            String healthStatus
+    ) {}
 }

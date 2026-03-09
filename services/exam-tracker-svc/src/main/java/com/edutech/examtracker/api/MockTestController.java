@@ -5,6 +5,8 @@ import com.edutech.examtracker.application.dto.RecordMockTestRequest;
 import com.edutech.examtracker.domain.port.in.GetMockTestHistoryUseCase;
 import com.edutech.examtracker.domain.port.in.RecordMockTestUseCase;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,12 +42,23 @@ public class MockTestController {
     }
 
     @GetMapping("/students/{studentId}/mock-tests")
-    public ResponseEntity<List<MockTestAttemptResponse>> getMockTests(
+    public ResponseEntity<Page<MockTestAttemptResponse>> getMockTests(
             @PathVariable UUID studentId,
-            @RequestParam(required = false) UUID enrollmentId) {
-        List<MockTestAttemptResponse> history = enrollmentId != null
-                ? getMockTestHistoryUseCase.getMockHistory(studentId, enrollmentId)
-                : getMockTestHistoryUseCase.getMockHistoryByStudent(studentId);
-        return ResponseEntity.ok(history);
+            @RequestParam(required = false) UUID enrollmentId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        PageRequest pageRequest = PageRequest.of(page, size);
+        if (enrollmentId != null) {
+            List<MockTestAttemptResponse> all = getMockTestHistoryUseCase.getMockHistory(studentId, enrollmentId);
+            int start = (int) pageRequest.getOffset();
+            int end = Math.min(start + pageRequest.getPageSize(), all.size());
+            List<MockTestAttemptResponse> content = start >= all.size() ? List.of() : all.subList(start, end);
+            return ResponseEntity.ok(new org.springframework.data.domain.PageImpl<>(content, pageRequest, all.size()));
+        }
+        List<MockTestAttemptResponse> allByStudent = getMockTestHistoryUseCase.getMockHistoryByStudent(studentId);
+        int start2 = (int) pageRequest.getOffset();
+        int end2 = Math.min(start2 + pageRequest.getPageSize(), allByStudent.size());
+        List<MockTestAttemptResponse> content2 = start2 >= allByStudent.size() ? List.of() : allByStudent.subList(start2, end2);
+        return ResponseEntity.ok(new org.springframework.data.domain.PageImpl<>(content2, pageRequest, allByStudent.size()));
     }
 }

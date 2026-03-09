@@ -281,7 +281,8 @@ export default function MentorsPage() {
     queryKey: ['mentors'],
     queryFn: async () => {
       const res = await api.get('/api/v1/mentors');
-      return res.data;
+      const d = res.data;
+      return Array.isArray(d) ? d : (d.content ?? []);
     },
     retry: false,
     placeholderData: [],

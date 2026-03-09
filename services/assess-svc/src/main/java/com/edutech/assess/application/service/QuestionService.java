@@ -17,6 +17,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -75,6 +78,21 @@ public class QuestionService implements AddQuestionUseCase {
         return questionRepository.findByExamId(examId).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<QuestionResponse> listQuestions(UUID examId, AuthPrincipal principal, Pageable pageable) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new ExamNotFoundException(examId));
+        boolean isEnrolledStudent = principal.isStudent() && exam.getStatus() == ExamStatus.PUBLISHED;
+        if (!principal.belongsToCenter(exam.getCenterId()) && !isEnrolledStudent) {
+            throw new AssessAccessDeniedException();
+        }
+        List<QuestionResponse> all = questionRepository.findByExamId(examId).stream()
+                .map(this::toResponse).toList();
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        return new PageImpl<>(start < all.size() ? all.subList(start, end) : List.of(), pageable, all.size());
     }
 
     private String serializeOptions(List<String> options) {

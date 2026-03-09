@@ -19,6 +19,9 @@ import com.edutech.center.domain.port.out.CenterEventPublisher;
 import com.edutech.center.domain.port.out.CenterRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -107,6 +110,20 @@ public class BatchService implements CreateBatchUseCase, UpdateBatchUseCase {
             ? batchRepository.findByCenterIdAndStatus(centerId, status)
             : batchRepository.findByCenterId(centerId);
         return batches.stream().map(this::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<BatchResponse> listBatches(UUID centerId, BatchStatus status, AuthPrincipal principal, Pageable pageable) {
+        if (!principal.belongsToCenter(centerId)) {
+            throw new CenterAccessDeniedException();
+        }
+        List<BatchResponse> all = (status != null
+            ? batchRepository.findByCenterIdAndStatus(centerId, status)
+            : batchRepository.findByCenterId(centerId))
+            .stream().map(this::toResponse).toList();
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        return new PageImpl<>(start < all.size() ? all.subList(start, end) : List.of(), pageable, all.size());
     }
 
     @Transactional(readOnly = true)

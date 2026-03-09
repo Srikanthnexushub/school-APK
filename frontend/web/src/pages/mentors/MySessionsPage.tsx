@@ -210,7 +210,8 @@ export default function MySessionsPage() {
     queryKey: ['my-sessions', user?.id],
     queryFn: async () => {
       const res = await api.get(`/api/v1/mentor-sessions?studentId=${user?.id}`);
-      return res.data;
+      const d = res.data;
+      return Array.isArray(d) ? d : (d.content ?? []);
     },
     enabled: !!user?.id,
     retry: false,

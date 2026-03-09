@@ -341,7 +341,8 @@ export default function ExamTrackerPage() {
         const res = await api.get(
           `/api/v1/exam-tracker/students/${studentId}/enrollments`
         );
-        return res.data;
+        const d = res.data;
+        return Array.isArray(d) ? d : (d.content ?? []);
       } catch {
         return [];
       }
@@ -357,7 +358,8 @@ export default function ExamTrackerPage() {
         const res = await api.get(
           `/api/v1/exam-tracker/students/${studentId}/mock-tests`
         );
-        return res.data;
+        const d = res.data;
+        return Array.isArray(d) ? d : (d.content ?? []);
       } catch {
         return [];
       }

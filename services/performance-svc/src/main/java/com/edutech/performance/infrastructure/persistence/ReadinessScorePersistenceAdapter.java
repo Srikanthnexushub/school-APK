@@ -4,6 +4,7 @@ import com.edutech.performance.domain.model.ReadinessScore;
 import com.edutech.performance.domain.port.out.ReadinessScoreRepository;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,5 +36,10 @@ public class ReadinessScorePersistenceAdapter implements ReadinessScoreRepositor
     @Override
     public Optional<ReadinessScore> findLatestByStudentId(UUID studentId) {
         return springData.findLatestByStudentId(studentId);
+    }
+
+    @Override
+    public List<ReadinessScore> findByStudentIdAndComputedAtAfterOrderByComputedAtAsc(UUID studentId, Instant since) {
+        return springData.findByStudentIdAndComputedAtAfterOrderByComputedAtAsc(studentId, since);
     }
 }

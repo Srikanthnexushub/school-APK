@@ -16,6 +16,9 @@ import com.edutech.center.domain.port.out.CenterEventPublisher;
 import com.edutech.center.domain.port.out.CenterRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -85,6 +88,16 @@ public class CenterService implements CreateCenterUseCase, UpdateCenterUseCase {
             ? centerRepository.findAll()
             : centerRepository.findByOwnerId(principal.userId());
         return centers.stream().map(this::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CenterResponse> listCenters(AuthPrincipal principal, Pageable pageable) {
+        List<CenterResponse> all = principal.isSuperAdmin()
+            ? centerRepository.findAll().stream().map(this::toResponse).toList()
+            : centerRepository.findByOwnerId(principal.userId()).stream().map(this::toResponse).toList();
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        return new PageImpl<>(start < all.size() ? all.subList(start, end) : List.of(), pageable, all.size());
     }
 
     @Transactional(readOnly = true)

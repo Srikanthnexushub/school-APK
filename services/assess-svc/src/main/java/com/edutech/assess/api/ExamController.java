@@ -11,6 +11,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,7 +26,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -58,13 +59,15 @@ public class ExamController {
 
     @GetMapping
     @Operation(summary = "List exams. If batchId is provided, lists exams for that batch (admin/teacher). Otherwise, lists published exams with the student's enrollment status.")
-    public ResponseEntity<?> listExams(
+    public ResponseEntity<Page<?>> listExams(
             @RequestParam(required = false) UUID batchId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
             @AuthenticationPrincipal AuthPrincipal principal) {
         if (batchId != null) {
-            return ResponseEntity.ok(examService.listByBatch(batchId, principal));
+            return ResponseEntity.ok(examService.listByBatch(batchId, principal, PageRequest.of(page, size)));
         }
-        return ResponseEntity.ok(listPublishedExamsUseCase.listPublishedExams(principal.userId()));
+        return ResponseEntity.ok(examService.listPublishedExams(principal.userId(), PageRequest.of(page, size)));
     }
 
     @PutMapping("/{examId}/publish")

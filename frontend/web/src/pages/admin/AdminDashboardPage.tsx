@@ -443,7 +443,7 @@ export default function AdminDashboardPage() {
     isLoading: centersLoading,
   } = useQuery<CenterResponse[]>({
     queryKey: ['centers'],
-    queryFn: () => api.get<CenterResponse[]>('/api/v1/centers').then((r) => r.data),
+    queryFn: () => api.get('/api/v1/centers').then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }),
   });
 
   // ── Fetch batches for every center (parallel) ──────────────────────────────
@@ -451,7 +451,7 @@ export default function AdminDashboardPage() {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useQuery<BatchResponse[]>({
       queryKey: ['batches', c.id],
-      queryFn: () => api.get<BatchResponse[]>(`/api/v1/centers/${c.id}/batches`).then((r) => r.data),
+      queryFn: () => api.get(`/api/v1/centers/${c.id}/batches`).then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }),
       enabled: !!c.id,
     })
   );
@@ -461,7 +461,7 @@ export default function AdminDashboardPage() {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useQuery<TeacherResponse[]>({
       queryKey: ['teachers', c.id],
-      queryFn: () => api.get<TeacherResponse[]>(`/api/v1/centers/${c.id}/teachers`).then((r) => r.data),
+      queryFn: () => api.get(`/api/v1/centers/${c.id}/teachers`).then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }),
       enabled: !!c.id,
     })
   );

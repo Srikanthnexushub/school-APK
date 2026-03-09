@@ -18,6 +18,9 @@ import com.edutech.parent.domain.port.in.RevokeStudentLinkUseCase;
 import com.edutech.parent.domain.port.out.ParentEventPublisher;
 import com.edutech.parent.domain.port.out.ParentProfileRepository;
 import com.edutech.parent.domain.port.out.StudentLinkRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -84,6 +87,20 @@ public class StudentLinkService implements LinkStudentUseCase, RevokeStudentLink
                 .filter(l -> l.getStatus() != LinkStatus.REVOKED)
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<StudentLinkResponse> listLinkedStudents(UUID parentProfileId, AuthPrincipal principal, Pageable pageable) {
+        ParentProfile parent = profileRepository.findById(parentProfileId)
+                .orElseThrow(() -> new ParentProfileNotFoundException(parentProfileId));
+        if (!principal.ownsProfile(parent.getUserId())) {
+            throw new ParentAccessDeniedException();
+        }
+        List<StudentLinkResponse> all = linkRepository.findActiveByParentId(parentProfileId).stream()
+                .map(this::toResponse).toList();
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        return new PageImpl<>(start < all.size() ? all.subList(start, end) : List.of(), pageable, all.size());
     }
 
     private StudentLinkResponse toResponse(StudentLink l) {

@@ -27,6 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 @Service
 public class SessionService implements StartSessionUseCase, CompleteSessionUseCase {
@@ -131,6 +134,14 @@ public class SessionService implements StartSessionUseCase, CompleteSessionUseCa
         return sessionHistoryRepository.findByProfileId(profileId).stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<SessionResponse> listSessions(UUID profileId, AuthPrincipal principal, Pageable pageable) {
+        List<SessionResponse> all = listSessions(profileId, principal);
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        return new PageImpl<>(start < all.size() ? all.subList(start, end) : List.of(), pageable, all.size());
     }
 
     private SessionResponse toResponse(SessionHistory s) {

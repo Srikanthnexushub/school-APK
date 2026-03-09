@@ -14,6 +14,7 @@ import com.edutech.auth.domain.port.in.LogoutUseCase;
 import com.edutech.auth.domain.port.in.RefreshTokenUseCase;
 import com.edutech.auth.domain.port.in.RegisterUserUseCase;
 import com.edutech.auth.domain.port.out.UserRepository;
+import com.edutech.auth.infrastructure.security.TrustedProxyValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,19 +40,22 @@ public class AuthController {
     private final LogoutUseCase logoutUseCase;
     private final UserRepository userRepository;
     private final AuthMapper authMapper;
+    private final TrustedProxyValidator trustedProxyValidator;
 
     public AuthController(RegisterUserUseCase registerUserUseCase,
                           AuthenticateUserUseCase authenticateUserUseCase,
                           RefreshTokenUseCase refreshTokenUseCase,
                           LogoutUseCase logoutUseCase,
                           UserRepository userRepository,
-                          AuthMapper authMapper) {
+                          AuthMapper authMapper,
+                          TrustedProxyValidator trustedProxyValidator) {
         this.registerUserUseCase = registerUserUseCase;
         this.authenticateUserUseCase = authenticateUserUseCase;
         this.refreshTokenUseCase = refreshTokenUseCase;
         this.logoutUseCase = logoutUseCase;
         this.userRepository = userRepository;
         this.authMapper = authMapper;
+        this.trustedProxyValidator = trustedProxyValidator;
     }
 
     @PostMapping("/register")
@@ -113,10 +117,14 @@ public class AuthController {
     }
 
     private String getClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
-            return xForwardedFor.split(",")[0].trim();
+        String remoteAddr = request.getRemoteAddr();
+        if (trustedProxyValidator.isTrustedProxy(remoteAddr)) {
+            String xForwardedFor = request.getHeader("X-Forwarded-For");
+            if (xForwardedFor != null && !xForwardedFor.isBlank()) {
+                // Take the first IP (client's real IP) from the chain
+                return xForwardedFor.split(",")[0].trim();
+            }
         }
-        return request.getRemoteAddr();
+        return remoteAddr;
     }
 }

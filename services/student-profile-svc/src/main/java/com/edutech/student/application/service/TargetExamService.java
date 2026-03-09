@@ -10,6 +10,7 @@ import com.edutech.student.domain.port.out.StudentEventPublisher;
 import com.edutech.student.domain.port.out.StudentProfileRepository;
 import com.edutech.student.domain.port.out.TargetExamRepository;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,19 +22,18 @@ import java.util.UUID;
 @Transactional
 public class TargetExamService implements SetTargetExamUseCase {
 
+    private static final Logger log = LoggerFactory.getLogger(TargetExamService.class);
+
     private final StudentProfileRepository profileRepository;
     private final TargetExamRepository targetExamRepository;
     private final StudentEventPublisher eventPublisher;
-    private final Logger log;
 
     public TargetExamService(StudentProfileRepository profileRepository,
                               TargetExamRepository targetExamRepository,
-                              StudentEventPublisher eventPublisher,
-                              Logger log) {
+                              StudentEventPublisher eventPublisher) {
         this.profileRepository = profileRepository;
         this.targetExamRepository = targetExamRepository;
         this.eventPublisher = eventPublisher;
-        this.log = log;
     }
 
     @Override

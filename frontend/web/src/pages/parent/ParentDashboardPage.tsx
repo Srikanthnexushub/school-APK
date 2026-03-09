@@ -263,7 +263,7 @@ export default function ParentDashboardPage() {
   const { data: mentorSessions = [] } = useQuery<MentorSessionResponse[]>({
     queryKey: ['mentor-sessions', resolvedStudentId],
     queryFn: () =>
-      api.get(`/api/v1/mentor-sessions?studentId=${resolvedStudentId}`).then((r) => r.data),
+      api.get(`/api/v1/mentor-sessions?studentId=${resolvedStudentId}`).then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }),
     enabled: !!resolvedStudentId,
   });
 

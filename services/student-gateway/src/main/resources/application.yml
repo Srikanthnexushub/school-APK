@@ -71,11 +71,12 @@ server:
   port: ${STUDENT_GATEWAY_PORT}
   shutdown: graceful
 
-# JWT (RS256 — public key for validation only, same auth-svc key)
+# JWT (RS256 — JWKS fetched from auth-svc at startup, refreshed on TTL)
 jwt:
   public-key-path: ${JWT_PUBLIC_KEY_PATH}
   issuer: ${JWT_ISSUER}
   jwks-uri: ${JWT_JWKS_URI}
+  jwks-cache-ttl-seconds: ${JWT_JWKS_CACHE_TTL_SECONDS}
 
 resilience4j:
   circuitbreaker:

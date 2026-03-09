@@ -17,6 +17,9 @@ import com.edutech.assess.domain.port.out.ExamEnrollmentRepository;
 import com.edutech.assess.domain.port.out.ExamRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,6 +75,20 @@ public class EnrollmentService implements EnrollStudentUseCase {
         return enrollmentRepository.findByExamId(examId).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<EnrollmentResponse> listEnrollments(UUID examId, AuthPrincipal principal, Pageable pageable) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new ExamNotFoundException(examId));
+        if (!principal.belongsToCenter(exam.getCenterId())) {
+            throw new AssessAccessDeniedException();
+        }
+        List<EnrollmentResponse> all = enrollmentRepository.findByExamId(examId).stream()
+                .map(this::toResponse).toList();
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        return new PageImpl<>(start < all.size() ? all.subList(start, end) : List.of(), pageable, all.size());
     }
 
     private EnrollmentResponse toResponse(ExamEnrollment e) {
