@@ -447,11 +447,11 @@ export default function AppLayout() {
             {/* Search bar — opens command palette */}
             <button
               onClick={() => setCommandOpen(true)}
-              className="hidden sm:flex items-center gap-2 bg-surface-100/50 border border-white/5 rounded-xl px-3 py-1.5 w-56 text-left hover:border-white/10 transition-colors"
+              className="hidden sm:flex items-center gap-2 bg-surface-100/50 border border-white/10 rounded-xl px-3 py-1.5 w-56 text-left hover:border-white/20 transition-colors"
             >
-              <Search className="w-3.5 h-3.5 text-white/30 flex-shrink-0" />
-              <span className="text-sm text-white/20 flex-1">Search...</span>
-              <kbd className="text-[10px] text-white/20 font-mono bg-white/5 px-1.5 py-0.5 rounded border border-white/5 hidden md:block">
+              <Search className="w-3.5 h-3.5 text-white/50 flex-shrink-0" />
+              <span className="text-sm text-white/50 flex-1">Search...</span>
+              <kbd className="text-[10px] text-white/40 font-mono bg-white/10 px-1.5 py-0.5 rounded border border-white/10 hidden md:block">
                 ⌘K
               </kbd>
             </button>
@@ -488,11 +488,11 @@ export default function AppLayout() {
             <Outlet />
           </div>
           <footer className="flex-shrink-0 border-t border-white/5 px-6 py-3 flex items-center justify-between gap-4">
-            <span className="text-xs text-white/20 font-medium">NexusEd</span>
-            <span className="text-xs text-white/20 text-center">
+            <span className="text-xs text-white/50 font-medium">NexusEd</span>
+            <span className="text-xs text-white/40 text-center">
               © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
             </span>
-            <span className="text-xs text-white/10 hidden sm:block">v1.0.0</span>
+            <span className="text-xs text-white/30 hidden sm:block">v1.0.0</span>
           </footer>
         </main>
       </div>

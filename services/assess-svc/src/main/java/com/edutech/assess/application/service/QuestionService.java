@@ -7,6 +7,7 @@ import com.edutech.assess.application.dto.QuestionResponse;
 import com.edutech.assess.application.exception.AssessAccessDeniedException;
 import com.edutech.assess.application.exception.ExamNotFoundException;
 import com.edutech.assess.domain.model.Exam;
+import com.edutech.assess.domain.model.ExamStatus;
 import com.edutech.assess.domain.model.Question;
 import com.edutech.assess.domain.port.in.AddQuestionUseCase;
 import com.edutech.assess.domain.port.out.ExamRepository;
@@ -67,7 +68,8 @@ public class QuestionService implements AddQuestionUseCase {
     public List<QuestionResponse> listQuestions(UUID examId, AuthPrincipal principal) {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ExamNotFoundException(examId));
-        if (!principal.belongsToCenter(exam.getCenterId())) {
+        boolean isEnrolledStudent = principal.isStudent() && exam.getStatus() == ExamStatus.PUBLISHED;
+        if (!principal.belongsToCenter(exam.getCenterId()) && !isEnrolledStudent) {
             throw new AssessAccessDeniedException();
         }
         return questionRepository.findByExamId(examId).stream()

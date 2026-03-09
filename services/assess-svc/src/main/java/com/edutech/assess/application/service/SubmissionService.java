@@ -160,6 +160,12 @@ public class SubmissionService implements StartSubmissionUseCase, SubmitAnswersU
     }
 
     @Transactional(readOnly = true)
+    public List<SubmissionResponse> listSubmissions(UUID examId, AuthPrincipal principal) {
+        return submissionRepository.findByExamIdAndStudentId(examId, principal.userId())
+                .stream().map(this::toSubmissionResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
     public SubmissionResponse getSubmission(UUID submissionId, AuthPrincipal principal) {
         Submission sub = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new SubmissionNotFoundException(submissionId));

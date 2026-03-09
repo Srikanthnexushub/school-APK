@@ -75,7 +75,6 @@ public class Question {
                                    int correctAnswer, String explanation, double marks,
                                    double difficulty, double discrimination, double guessingParam) {
         Question q = new Question();
-        q.id = UUID.randomUUID();
         q.examId = examId;
         q.questionText = questionText;
         q.optionsJson = optionsJson;

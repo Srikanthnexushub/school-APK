@@ -46,7 +46,6 @@ public class SubmissionAnswer {
     public static SubmissionAnswer mark(UUID submissionId, UUID questionId, int selectedOption,
                                          boolean isCorrect, double marksAwarded) {
         SubmissionAnswer answer = new SubmissionAnswer();
-        answer.id = UUID.randomUUID();
         answer.submissionId = submissionId;
         answer.questionId = questionId;
         answer.selectedOption = selectedOption;

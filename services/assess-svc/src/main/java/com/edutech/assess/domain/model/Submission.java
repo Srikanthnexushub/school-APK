@@ -70,7 +70,6 @@ public class Submission {
 
     public static Submission create(UUID examId, UUID studentId, UUID enrollmentId, int attemptNumber) {
         Submission sub = new Submission();
-        sub.id = UUID.randomUUID();
         sub.examId = examId;
         sub.studentId = studentId;
         sub.enrollmentId = enrollmentId;

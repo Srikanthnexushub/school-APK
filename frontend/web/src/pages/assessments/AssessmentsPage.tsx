@@ -94,9 +94,9 @@ function ExamCard({ exam, onEnroll, isEnrolling }: { exam: Exam; onEnroll: (id: 
     if (exam.status === 'AVAILABLE') {
       onEnroll(exam.id);
     } else if (exam.status === 'ENROLLED' || exam.status === 'IN_PROGRESS') {
-      navigate(`/assessments/${exam.enrollmentId}/exam`);
+      navigate(`/assessments/${exam.id}/exam`);
     } else if (exam.status === 'COMPLETED') {
-      navigate(`/assessments/${exam.enrollmentId}/results`);
+      navigate(`/assessments/${exam.id}/results`);
     }
   }
 

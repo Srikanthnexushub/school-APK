@@ -21,6 +21,7 @@ import ParentDashboardPage from './pages/parent/ParentDashboardPage';
 import ParentCopilotPage from './pages/parent/ParentCopilotPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import MentorPortalDashboardPage from './pages/mentor-portal/MentorPortalDashboardPage';
+import MentorPortalSessionsPage from './pages/mentor-portal/MentorPortalSessionsPage';
 
 export const router = createBrowserRouter([
   {
@@ -49,7 +50,8 @@ export const router = createBrowserRouter([
       { path: 'ai-mentor/study-plans/:id', element: <StudyPlanDetailPage /> },
       { path: 'ai-mentor/doubts', element: <DoubtsPage /> },
       { path: 'assessments', element: <AssessmentsPage /> },
-      { path: 'assessments/:id/exam', element: <ExamPage /> },
+      { path: 'assessments/:examId/exam', element: <ExamPage /> },
+      { path: 'assessments/:examId/results', element: <ExamPage /> },
       { path: 'performance', element: <PerformancePage /> },
       { path: 'career', element: <CareerOraclePage /> },
       { path: 'psychometric', element: <PsychometricPage /> },
@@ -97,7 +99,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <MentorPortalDashboardPage /> },
       { path: 'dashboard', element: <MentorPortalDashboardPage /> },
-      { path: 'sessions', element: <MentorPortalDashboardPage /> },
+      { path: 'sessions', element: <MentorPortalSessionsPage /> },
     ],
   },
 ]);

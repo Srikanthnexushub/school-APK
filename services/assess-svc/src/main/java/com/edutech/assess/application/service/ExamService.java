@@ -11,6 +11,7 @@ import com.edutech.assess.domain.event.ExamPublishedEvent;
 import com.edutech.assess.domain.model.Exam;
 import com.edutech.assess.domain.model.ExamEnrollment;
 import com.edutech.assess.domain.model.EnrollmentStatus;
+import com.edutech.assess.domain.model.ExamStatus;
 import com.edutech.assess.domain.port.in.CreateExamUseCase;
 import com.edutech.assess.domain.port.in.ListPublishedExamsUseCase;
 import com.edutech.assess.domain.port.in.PublishExamUseCase;
@@ -90,7 +91,8 @@ public class ExamService implements CreateExamUseCase, PublishExamUseCase, ListP
     public ExamResponse getExam(UUID examId, AuthPrincipal principal) {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ExamNotFoundException(examId));
-        if (!principal.belongsToCenter(exam.getCenterId())) {
+        boolean isEnrolledStudent = principal.isStudent() && exam.getStatus() == ExamStatus.PUBLISHED;
+        if (!principal.belongsToCenter(exam.getCenterId()) && !isEnrolledStudent) {
             throw new AssessAccessDeniedException();
         }
         return toResponse(exam);

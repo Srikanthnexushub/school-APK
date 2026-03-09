@@ -46,7 +46,6 @@ public class ExamEnrollment {
 
     public static ExamEnrollment create(UUID examId, UUID studentId) {
         ExamEnrollment enrollment = new ExamEnrollment();
-        enrollment.id = UUID.randomUUID();
         enrollment.examId = examId;
         enrollment.studentId = studentId;
         enrollment.status = EnrollmentStatus.ENROLLED;

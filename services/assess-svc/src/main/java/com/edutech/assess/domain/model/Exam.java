@@ -79,7 +79,6 @@ public class Exam {
                                ExamMode mode, int durationMinutes, int maxAttempts,
                                Instant startAt, Instant endAt, double totalMarks, double passingMarks) {
         Exam exam = new Exam();
-        exam.id = UUID.randomUUID();
         exam.batchId = batchId;
         exam.centerId = centerId;
         exam.title = title;

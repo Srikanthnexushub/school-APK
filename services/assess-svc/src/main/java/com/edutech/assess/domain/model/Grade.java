@@ -60,7 +60,6 @@ public class Grade {
                                 UUID batchId, UUID centerId,
                                 double percentage, double passingPercentage) {
         Grade grade = new Grade();
-        grade.id = UUID.randomUUID();
         grade.submissionId = submissionId;
         grade.studentId = studentId;
         grade.examId = examId;
