@@ -40,21 +40,26 @@ public class AiGatewayHttpClient implements AiGatewayClient {
 
     @Override
     public String resolveDoubt(String question, SubjectArea subjectArea) {
-        Map<String, String> requestBody = Map.of(
-                "message", question,
-                "context", "Subject: " + subjectArea.name(),
-                "type", "DOUBT_RESOLUTION"
+        Map<String, Object> requestBody = Map.of(
+                "requesterId", "ai-mentor-doubt",
+                "systemPrompt", "You are an expert tutor. Answer the student's academic question clearly and concisely. Subject area: " + subjectArea.name(),
+                "userMessage", question,
+                "maxTokens", 1024,
+                "temperature", 0.5
         );
 
-        String answer = webClient.post()
-                .uri("/api/v1/ai/chat")
+        Map<?, ?> response = webClient.post()
+                .uri("/api/v1/ai/completions")
                 .bodyValue(requestBody)
                 .retrieve()
-                .bodyToMono(String.class)
-                .onErrorReturn(AI_UNAVAILABLE)
+                .bodyToMono(Map.class)
+                .onErrorReturn(Map.of())
                 .block(Duration.ofSeconds(timeoutSeconds));
 
-        if (AI_UNAVAILABLE.equals(answer) || answer == null) {
+        String answer = (response != null && response.containsKey("content"))
+                ? (String) response.get("content") : null;
+
+        if (answer == null || answer.isBlank()) {
             log.warn("AI gateway returned unavailable for subjectArea={}", subjectArea);
             throw new RuntimeException("AI gateway is unavailable or returned no response");
         }

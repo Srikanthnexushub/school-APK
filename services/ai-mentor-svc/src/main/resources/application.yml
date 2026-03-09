@@ -39,6 +39,9 @@ ai-gateway:
   base-uri: ${AI_GATEWAY_SVC_URI}
   timeout-seconds: 30
 
+service:
+  api-key: ${SERVICE_API_KEY}
+
 management:
   endpoints:
     web:

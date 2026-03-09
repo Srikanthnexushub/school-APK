@@ -122,22 +122,32 @@ public class CopilotService {
     // -------------------------------------------------------------------------
 
     private String callAiGateway(String message, List<Map<String, String>> history) {
+        String historyText = history.stream()
+                .map(m -> m.get("role") + ": " + m.get("content"))
+                .collect(Collectors.joining("\n"));
+        String systemPrompt = "You are the NexusEd Parent Copilot. Help parents understand their child's academic progress, fees, attendance, weak areas, and exam schedules. Be concise and supportive.\n\nConversation history:\n" + historyText;
         Map<String, Object> requestBody = Map.of(
-                "message", message,
-                "type", COPILOT_TYPE,
-                "history", history
+                "requesterId", "parent-copilot",
+                "systemPrompt", systemPrompt,
+                "userMessage", message,
+                "maxTokens", 512,
+                "temperature", 0.7
         );
         try {
-            String response = aiGatewayWebClient.post()
-                    .uri("/api/v1/llm/complete")
+            Map<?, ?> response = aiGatewayWebClient.post()
+                    .uri("/api/v1/ai/completions")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(requestBody)
                     .retrieve()
-                    .bodyToMono(String.class)
-                    .onErrorReturn(AI_UNAVAILABLE_REPLY)
+                    .bodyToMono(Map.class)
+                    .onErrorReturn(Map.of())
                     .block(Duration.ofSeconds(timeoutSeconds));
 
-            return (response != null && !response.isBlank()) ? response : AI_UNAVAILABLE_REPLY;
+            if (response != null && response.containsKey("content")) {
+                String content = (String) response.get("content");
+                return (content != null && !content.isBlank()) ? content : AI_UNAVAILABLE_REPLY;
+            }
+            return AI_UNAVAILABLE_REPLY;
         } catch (Exception e) {
             log.warn("AI gateway call failed for Parent Copilot: {}", e.getMessage());
             return AI_UNAVAILABLE_REPLY;

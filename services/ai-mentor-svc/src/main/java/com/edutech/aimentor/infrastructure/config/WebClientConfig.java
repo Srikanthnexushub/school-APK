@@ -20,12 +20,15 @@ public class WebClientConfig {
 
     private final String aiGatewayBaseUri;
     private final int timeoutSeconds;
+    private final String serviceApiKey;
 
     public WebClientConfig(
             @Value("${ai-gateway.base-uri}") String aiGatewayBaseUri,
-            @Value("${ai-gateway.timeout-seconds}") int timeoutSeconds) {
+            @Value("${ai-gateway.timeout-seconds}") int timeoutSeconds,
+            @Value("${service.api-key}") String serviceApiKey) {
         this.aiGatewayBaseUri = aiGatewayBaseUri;
         this.timeoutSeconds = timeoutSeconds;
+        this.serviceApiKey = serviceApiKey;
     }
 
     @Bean
@@ -38,6 +41,7 @@ public class WebClientConfig {
 
         return WebClient.builder()
                 .baseUrl(aiGatewayBaseUri)
+                .defaultHeader("X-Service-Key", serviceApiKey)
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build();
     }

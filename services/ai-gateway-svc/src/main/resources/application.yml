@@ -34,6 +34,10 @@ jwt:
   public-key-path: ${JWT_PUBLIC_KEY_PATH}
   issuer: ${JWT_ISSUER}
 
+# Internal service-to-service API key (used by parent-svc, ai-mentor-svc, etc.)
+service:
+  api-key: ${SERVICE_API_KEY}
+
 kafka:
   topics:
     ai-gateway-events: ${KAFKA_TOPIC_AI_GATEWAY_EVENTS}
