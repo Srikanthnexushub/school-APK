@@ -12,12 +12,14 @@ const gradients = [
 ];
 
 function getGradient(name: string): string {
-  const hash = name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const safe = name || '?';
+  const hash = safe.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
   return gradients[hash % gradients.length];
 }
 
 function getInitials(name: string): string {
-  return name
+  const safe = name || '?';
+  return safe
     .split(' ')
     .map((w) => w[0])
     .slice(0, 2)
