@@ -46,6 +46,7 @@ const parentNav: NavItem[] = [
 const mentorNav: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', to: '/mentor-portal' },
   { icon: Calendar,        label: 'Sessions',  to: '/mentor-portal/sessions' },
+  { icon: Brain,           label: 'AI Insights', to: '/mentor-portal/insights' },
 ];
 
 function getNavItems(role?: string): NavItem[] {
