@@ -226,7 +226,7 @@ export default function ParentDashboardPage() {
   // 2. Fetch linked students
   const { data: linkedStudents = [], isLoading: studentsLoading } = useQuery<StudentLinkResponse[]>({
     queryKey: ['linked-students', profile?.id],
-    queryFn: () => api.get(`/api/v1/parents/${profile!.id}/students`).then((r) => r.data),
+    queryFn: () => api.get(`/api/v1/parents/${profile!.id}/students`).then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }),
     enabled: !!profile?.id,
     select: (data) => data.filter((s) => s.status === 'ACTIVE' || s.status === 'active' || true),
   });
@@ -247,7 +247,7 @@ export default function ParentDashboardPage() {
   const { data: weakAreas = [] } = useQuery<WeakAreaSummary[]>({
     queryKey: ['weak-areas', resolvedStudentId],
     queryFn: () =>
-      api.get(`/api/v1/performance/weak-areas/${resolvedStudentId}`).then((r) => r.data),
+      api.get(`/api/v1/performance/weak-areas/${resolvedStudentId}`).then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }),
     enabled: !!resolvedStudentId,
   });
 
@@ -255,7 +255,7 @@ export default function ParentDashboardPage() {
   const { data: feePayments = [], isLoading: feesLoading } = useQuery<FeePaymentResponse[]>({
     queryKey: ['fee-payments', profile?.id],
     queryFn: () =>
-      api.get(`/api/v1/parents/${profile!.id}/payments`).then((r) => r.data),
+      api.get(`/api/v1/parents/${profile!.id}/payments`).then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }),
     enabled: !!profile?.id,
   });
 

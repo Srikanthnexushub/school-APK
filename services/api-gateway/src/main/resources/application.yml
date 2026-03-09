@@ -38,6 +38,10 @@ spring:
           uri: ${PARENT_SVC_URI}
           predicates:
             - Path=/api/v1/parents/**
+        - id: parent-svc-copilot
+          uri: ${PARENT_SVC_URI}
+          predicates:
+            - Path=/api/v1/copilot/**
         - id: center-svc
           uri: ${CENTER_SVC_URI}
           predicates:
