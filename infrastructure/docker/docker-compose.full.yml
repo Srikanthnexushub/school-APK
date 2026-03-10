@@ -29,9 +29,14 @@ x-java-env-overrides: &java-env-overrides
   # JWT key paths inside container (mounted at /keys)
   JWT_PUBLIC_KEY_PATH: /keys/jwt-public.pem
   JWT_PRIVATE_KEY_PATH: /keys/jwt-private.pem
-  # OTEL endpoint (no collector in local full-compose — fail gracefully)
-  OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4318
+  # OTEL → Jaeger all-in-one (included in this compose)
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
   APP_ENVIRONMENT: local
+  # Proxy header trust — Docker bridge networks (172.16/12, 10.0/8)
+  TRUSTED_PROXY_CIDRS: 172.16.0.0/12,10.0.0.0/8
+  # Mail → Mailhog (included in this compose)
+  MAIL_HOST: mailhog
+  MAIL_PORT: 1025
 
 services:
 
@@ -170,8 +175,21 @@ services:
     container_name: edutech-mailhog
     restart: unless-stopped
     ports:
-      - "1025:1025"   # SMTP
-      - "8025:8025"   # Web UI
+      - "${MAILHOG_SMTP_PORT:-1025}:1025"
+      - "${MAILHOG_UI_PORT:-8025}:8025"
+    networks:
+      - edutech-network
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: edutech-jaeger
+    restart: unless-stopped
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "${JAEGER_UI_PORT:-16686}:16686"
+      - "${JAEGER_OTLP_GRPC_PORT:-4317}:4317"
+      - "${JAEGER_OTLP_HTTP_PORT:-4318}:4318"
     networks:
       - edutech-network
 
@@ -197,8 +215,6 @@ services:
       <<: *java-env-overrides
       SERVER_PORT: ${AUTH_SVC_PORT}
       AUTH_SVC_PORT: ${AUTH_SVC_PORT}
-      MAIL_HOST: mailhog
-      MAIL_PORT: 1025
     ports:
       - "${AUTH_SVC_PORT}:${AUTH_SVC_PORT}"
     healthcheck:
@@ -393,8 +409,6 @@ services:
       <<: *java-env-overrides
       SERVER_PORT: ${NOTIFICATION_SVC_PORT}
       NOTIFICATION_SVC_PORT: ${NOTIFICATION_SVC_PORT}
-      MAIL_HOST: mailhog
-      MAIL_PORT: 1025
     ports:
       - "${NOTIFICATION_SVC_PORT}:${NOTIFICATION_SVC_PORT}"
     healthcheck:
@@ -481,6 +495,8 @@ services:
       SERVER_PORT: ${PERFORMANCE_SVC_PORT}
       PERFORMANCE_SVC_PORT: ${PERFORMANCE_SVC_PORT}
       PERFORMANCE_SVC_GRPC_PORT: ${PERFORMANCE_SVC_GRPC_PORT}
+      PERFORMANCE_SVC_STUDENT_EVENTS_GROUP_ID: ${PERFORMANCE_SVC_STUDENT_EVENTS_GROUP_ID:-performance-svc-student-events}
+      PERFORMANCE_SVC_EXAM_EVENTS_GROUP_ID: ${PERFORMANCE_SVC_EXAM_EVENTS_GROUP_ID:-performance-svc-exam-events}
     ports:
       - "${PERFORMANCE_SVC_PORT}:${PERFORMANCE_SVC_PORT}"
       - "${PERFORMANCE_SVC_GRPC_PORT}:${PERFORMANCE_SVC_GRPC_PORT}"
