@@ -26,7 +26,7 @@ interface BatchResponse {
   status: string;
 }
 
-type ExamMode   = 'ONLINE' | 'OFFLINE' | 'HYBRID';
+type ExamMode   = 'STANDARD' | 'CAT';
 type ExamStatus = 'DRAFT' | 'PUBLISHED' | 'COMPLETED' | 'CANCELLED';
 
 interface ExamResponse {
@@ -37,9 +37,11 @@ interface ExamResponse {
   centerId: string;
   mode: ExamMode;
   durationMinutes: number;
+  maxAttempts: number;
   totalMarks: number;
   passingMarks: number;
-  scheduledAt: string;
+  startAt: string;
+  endAt: string;
   status: ExamStatus;
   createdAt: string;
 }
@@ -51,9 +53,11 @@ interface CreateExamRequest {
   centerId: string;
   mode: ExamMode;
   durationMinutes: number;
+  maxAttempts: number;
   totalMarks: number;
   passingMarks: number;
-  scheduledAt: string;
+  startAt: string;
+  endAt: string;
 }
 
 interface QuestionResponse {
@@ -68,8 +72,12 @@ interface QuestionResponse {
 interface CreateQuestionRequest {
   questionText: string;
   options: string[];
-  correctAnswer: string;
+  correctAnswer: number;
+  explanation: string;
   marks: number;
+  difficulty: number;
+  discrimination: number;
+  guessingParam: number;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -103,9 +111,8 @@ const examStatusIcons: Record<ExamStatus, React.ElementType> = {
 };
 
 const examModeColors: Record<ExamMode, string> = {
-  ONLINE:  'bg-cyan-500/15 text-cyan-400',
-  OFFLINE: 'bg-violet-500/15 text-violet-400',
-  HYBRID:  'bg-orange-500/15 text-orange-400',
+  STANDARD: 'bg-cyan-500/15 text-cyan-400',
+  CAT:      'bg-violet-500/15 text-violet-400',
 };
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
@@ -122,14 +129,16 @@ interface CreateExamFormState {
   batchId: string;
   mode: ExamMode;
   durationMinutes: string;
+  maxAttempts: string;
   totalMarks: string;
   passingMarks: string;
-  scheduledAt: string;
+  startAt: string;
+  endAt: string;
 }
 
 const emptyExamForm: CreateExamFormState = {
-  title: '', description: '', batchId: '', mode: 'ONLINE',
-  durationMinutes: '', totalMarks: '', passingMarks: '', scheduledAt: '',
+  title: '', description: '', batchId: '', mode: 'STANDARD',
+  durationMinutes: '', maxAttempts: '1', totalMarks: '', passingMarks: '', startAt: '', endAt: '',
 };
 
 interface CreateExamFormProps {
@@ -148,7 +157,10 @@ function CreateExamForm({ centerId, batches, onSubmit, onCancel, isSubmitting }:
     const e: Partial<Record<keyof CreateExamFormState, string>> = {};
     if (!form.title.trim())          e.title          = 'Title is required';
     if (!form.batchId)               e.batchId        = 'Batch is required';
-    if (!form.scheduledAt)           e.scheduledAt    = 'Scheduled date/time is required';
+    if (!form.startAt)               e.startAt        = 'Start date/time is required';
+    if (!form.endAt)                 e.endAt          = 'End date/time is required';
+    if (form.startAt && form.endAt && new Date(form.endAt) <= new Date(form.startAt))
+      e.endAt = 'End must be after start';
     if (!form.durationMinutes || isNaN(Number(form.durationMinutes)) || Number(form.durationMinutes) < 1)
       e.durationMinutes = 'Duration must be a positive number';
     if (!form.totalMarks || isNaN(Number(form.totalMarks)) || Number(form.totalMarks) < 1)
@@ -171,9 +183,11 @@ function CreateExamForm({ centerId, batches, onSubmit, onCancel, isSubmitting }:
       centerId,
       mode:            form.mode,
       durationMinutes: Number(form.durationMinutes),
+      maxAttempts:     Number(form.maxAttempts) || 1,
       totalMarks:      Number(form.totalMarks),
       passingMarks:    Number(form.passingMarks),
-      scheduledAt:     form.scheduledAt,
+      startAt:         new Date(form.startAt).toISOString(),
+      endAt:           new Date(form.endAt).toISOString(),
     });
   }
 
@@ -218,9 +232,8 @@ function CreateExamForm({ centerId, batches, onSubmit, onCancel, isSubmitting }:
               onChange={(e) => setField('mode', e.target.value as ExamMode)}
               className="input w-full"
             >
-              <option value="ONLINE">Online</option>
-              <option value="OFFLINE">Offline</option>
-              <option value="HYBRID">Hybrid</option>
+              <option value="STANDARD">Standard</option>
+              <option value="CAT">CAT (Adaptive)</option>
             </select>
           </div>
         </div>
@@ -237,38 +250,50 @@ function CreateExamForm({ centerId, batches, onSubmit, onCancel, isSubmitting }:
           />
         </div>
 
-        {/* Batch + Scheduled At */}
+        {/* Batch */}
+        <div>
+          <label className="block text-xs font-medium text-white/60 mb-1.5">Batch</label>
+          <select
+            value={form.batchId}
+            onChange={(e) => setField('batchId', e.target.value)}
+            className="input w-full"
+          >
+            <option value="">— Select batch —</option>
+            {batches.map((b) => (
+              <option key={b.id} value={b.id}>{b.name} ({b.subject})</option>
+            ))}
+          </select>
+          {errors.batchId && <p className="text-xs text-red-400 mt-1">{errors.batchId}</p>}
+        </div>
+
+        {/* Start + End */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-white/60 mb-1.5">Batch</label>
-            <select
-              value={form.batchId}
-              onChange={(e) => setField('batchId', e.target.value)}
-              className="input w-full"
-            >
-              <option value="">— Select batch —</option>
-              {batches.map((b) => (
-                <option key={b.id} value={b.id}>{b.name} ({b.subject})</option>
-              ))}
-            </select>
-            {errors.batchId && <p className="text-xs text-red-400 mt-1">{errors.batchId}</p>}
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-white/60 mb-1.5">Scheduled At</label>
+            <label className="block text-xs font-medium text-white/60 mb-1.5">Start Date & Time</label>
             <input
               type="datetime-local"
-              value={form.scheduledAt}
-              onChange={(e) => setField('scheduledAt', e.target.value)}
+              value={form.startAt}
+              onChange={(e) => setField('startAt', e.target.value)}
               className="input w-full"
             />
-            {errors.scheduledAt && <p className="text-xs text-red-400 mt-1">{errors.scheduledAt}</p>}
+            {errors.startAt && <p className="text-xs text-red-400 mt-1">{errors.startAt}</p>}
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-white/60 mb-1.5">End Date & Time</label>
+            <input
+              type="datetime-local"
+              value={form.endAt}
+              onChange={(e) => setField('endAt', e.target.value)}
+              className="input w-full"
+            />
+            {errors.endAt && <p className="text-xs text-red-400 mt-1">{errors.endAt}</p>}
           </div>
         </div>
 
-        {/* Duration + Marks */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Duration + Attempts + Marks */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
-            <label className="block text-xs font-medium text-white/60 mb-1.5">Duration (minutes)</label>
+            <label className="block text-xs font-medium text-white/60 mb-1.5">Duration (min)</label>
             <input
               type="number"
               min={1}
@@ -278,6 +303,17 @@ function CreateExamForm({ centerId, batches, onSubmit, onCancel, isSubmitting }:
               className="input w-full"
             />
             {errors.durationMinutes && <p className="text-xs text-red-400 mt-1">{errors.durationMinutes}</p>}
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-white/60 mb-1.5">Max Attempts</label>
+            <input
+              type="number"
+              min={1}
+              value={form.maxAttempts}
+              onChange={(e) => setField('maxAttempts', e.target.value)}
+              placeholder="1"
+              className="input w-full"
+            />
           </div>
           <div>
             <label className="block text-xs font-medium text-white/60 mb-1.5">Total Marks</label>
@@ -364,7 +400,7 @@ function AddQuestionForm({ examId, onSubmit, onCancel, isSubmitting }: AddQuesti
     if (!form.option1.trim())      e.option1      = 'Option B is required';
     if (!form.option2.trim())      e.option2      = 'Option C is required';
     if (!form.option3.trim())      e.option3      = 'Option D is required';
-    if (!form.correctAnswer)       e.correctAnswer = 'Select the correct answer';
+    if (form.correctAnswer === '')  e.correctAnswer = 'Select the correct answer';
     if (!form.marks || isNaN(Number(form.marks)) || Number(form.marks) < 1)
       e.marks = 'Marks must be a positive number';
     setErrors(e);
@@ -375,10 +411,14 @@ function AddQuestionForm({ examId, onSubmit, onCancel, isSubmitting }: AddQuesti
     ev.preventDefault();
     if (!validate()) return;
     onSubmit(examId, {
-      questionText:  form.questionText.trim(),
-      options:       options.map((o) => o.trim()),
-      correctAnswer: form.correctAnswer,
-      marks:         Number(form.marks),
+      questionText:   form.questionText.trim(),
+      options:        options.map((o) => o.trim()),
+      correctAnswer:  Number(form.correctAnswer),
+      explanation:    '',
+      marks:          Number(form.marks),
+      difficulty:     0.5,
+      discrimination: 1.0,
+      guessingParam:  0.25,
     });
   }
 
@@ -429,7 +469,7 @@ function AddQuestionForm({ examId, onSubmit, onCancel, isSubmitting }: AddQuesti
             >
               <option value="">— Select —</option>
               {filledOptions.map((opt, i) => (
-                <option key={i} value={opt}>{String.fromCharCode(65 + i)}: {opt}</option>
+                <option key={i} value={i}>{String.fromCharCode(65 + i)}: {opt}</option>
               ))}
             </select>
             {errors.correctAnswer && <p className="text-xs text-red-400 mt-1">{errors.correctAnswer}</p>}
@@ -534,7 +574,7 @@ function ExamCard({
         <span>Pass: <span className="text-white/60 font-medium">{exam.passingMarks}</span></span>
         {batchName && <span>Batch: <span className="text-white/60">{batchName}</span></span>}
         <span className="flex items-center gap-1">
-          <BookOpen className="w-3 h-3" /> Scheduled: {formatDateTime(exam.scheduledAt)}
+          <BookOpen className="w-3 h-3" /> Starts: {formatDateTime(exam.startAt)}
         </span>
       </div>
 
@@ -668,9 +708,9 @@ export default function AdminAssessmentsPage() {
     isLoading: examsLoading,
     error: examsError,
   } = useQuery<ExamResponse[]>({
-    queryKey: ['exams'],
+    queryKey: ['exams', centerId],
     queryFn: () =>
-      api.get('/api/v1/exams').then((r) => {
+      api.get(`/api/v1/exams?centerId=${centerId}`).then((r) => {
         const d = r.data;
         return Array.isArray(d) ? d : (d.content ?? []);
       }),

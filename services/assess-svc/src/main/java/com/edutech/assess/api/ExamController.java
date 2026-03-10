@@ -61,6 +61,7 @@ public class ExamController {
     @Operation(summary = "List exams. Teachers/admins get ExamResponse for their center; students get StudentExamResponse with enrollment status.")
     public ResponseEntity<Page<?>> listExams(
             @RequestParam(required = false) UUID batchId,
+            @RequestParam(required = false) UUID centerId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
             @AuthenticationPrincipal AuthPrincipal principal) {
@@ -68,12 +69,10 @@ public class ExamController {
             return ResponseEntity.ok(examService.listByBatch(batchId, principal, PageRequest.of(page, size)));
         }
         if (principal.isTeacher() || principal.isCenterAdmin() || principal.isSuperAdmin()) {
-            UUID centerId = principal.isSuperAdmin() ? null : principal.centerId();
-            if (centerId != null) {
-                return ResponseEntity.ok(examService.listByCenter(centerId, PageRequest.of(page, size)));
+            UUID effectiveCenterId = centerId != null ? centerId : principal.centerId();
+            if (effectiveCenterId != null) {
+                return ResponseEntity.ok(examService.listByCenter(effectiveCenterId, PageRequest.of(page, size)));
             }
-            // SUPER_ADMIN with no centerId — fall through to student view
-            return ResponseEntity.ok(examService.listPublishedExams(principal.userId(), PageRequest.of(page, size)));
         }
         return ResponseEntity.ok(examService.listPublishedExams(principal.userId(), PageRequest.of(page, size)));
     }
