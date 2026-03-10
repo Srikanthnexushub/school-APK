@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -60,6 +60,20 @@ const RIASEC_CAREERS: Record<string, string[]> = {
   'E-S-C': ['Business Manager', 'HR Specialist', 'Entrepreneur'],
 };
 
+const ASSESSMENT_QUESTIONS = [
+  { id: 0, trait: 'openness',          text: 'I enjoy exploring new ideas and learning about different subjects.' },
+  { id: 1, trait: 'openness',          text: 'I often think about abstract concepts and creative possibilities.' },
+  { id: 2, trait: 'conscientiousness', text: 'I complete my study tasks on time and stick to a plan.' },
+  { id: 3, trait: 'conscientiousness', text: 'I keep my notes and study space well organised.' },
+  { id: 4, trait: 'extraversion',      text: 'I feel energised after studying or working in groups.' },
+  { id: 5, trait: 'extraversion',      text: 'I enjoy participating in class discussions and presentations.' },
+  { id: 6, trait: 'agreeableness',     text: 'I enjoy helping classmates understand difficult topics.' },
+  { id: 7, trait: 'agreeableness',     text: 'I try to be considerate and empathetic in group settings.' },
+  { id: 8, trait: 'neuroticism',       text: 'I often feel anxious or stressed about upcoming exams.' },
+  { id: 9, trait: 'neuroticism',       text: 'Small setbacks during study sessions can disrupt my focus.' },
+];
+
+
 const LEARNING_TABS = [
   { key: 'visual', label: 'Visual', icon: <Eye className="w-4 h-4" />, tips: ['Use diagrams and charts', 'Colour-code notes', 'Watch video lectures', 'Mind mapping'] },
   { key: 'auditory', label: 'Auditory', icon: <Ear className="w-4 h-4" />, tips: ['Listen to recorded lectures', 'Discuss topics aloud', 'Use mnemonics', 'Group study'] },
@@ -80,7 +94,7 @@ function getTraitBgClass(score: number): string {
 }
 
 function TraitCard({ trait, index }: { trait: BigFiveTrait; index: number }) {
-  const meta = BIG_FIVE_META[trait.key];
+  const meta = BIG_FIVE_META[trait.name];
   const colorClass = getTraitColor(trait.score);
   const bgClass = getTraitBgClass(trait.score);
 
@@ -117,6 +131,69 @@ export default function PsychometricPage() {
   const user = useAuthStore((s) => s.user);
   const [activeTab, setActiveTab] = useState('visual');
   const [showAssessModal, setShowAssessModal] = useState(false);
+  const [assessStep, setAssessStep] = useState<'info' | 'quiz' | 'submitting'>('info');
+  const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
+
+  const openModal = () => {
+    setAssessStep('info');
+    setQuizAnswers({});
+    setShowAssessModal(true);
+  };
+
+  const handleStartQuiz = () => setAssessStep('quiz');
+
+  const handleSubmitAssessment = async () => {
+    if (!profile?.id) return;
+    const allAnswered = ASSESSMENT_QUESTIONS.every((q) => quizAnswers[q.id] !== undefined);
+    if (!allAnswered) { toast.error('Please answer all questions before submitting.'); return; }
+
+    setAssessStep('submitting');
+    try {
+      const sessRes = await api.post(`/api/v1/psych/profiles/${profile.id}/sessions`, {
+        sessionType: 'INITIAL',
+        scheduledAt: new Date().toISOString(),
+      });
+      const sessionId = sessRes.data.id;
+
+      const traitAvg = (traitKey: string) => {
+        const qs = ASSESSMENT_QUESTIONS.filter((q) => q.trait === traitKey);
+        const sum = qs.reduce((acc, q) => acc + (quizAnswers[q.id] ?? 3), 0);
+        return parseFloat((sum / qs.length / 5.0).toFixed(4));
+      };
+      const openness = traitAvg('openness');
+      const conscientiousness = traitAvg('conscientiousness');
+      const extraversion = traitAvg('extraversion');
+      const agreeableness = traitAvg('agreeableness');
+      const neuroticism = traitAvg('neuroticism');
+
+      const riasecScores: Record<string, number> = {
+        R: conscientiousness * 0.5 + (1 - openness) * 0.5,
+        I: openness * 0.7 + conscientiousness * 0.3,
+        A: openness * 0.8 + extraversion * 0.2,
+        S: agreeableness * 0.6 + extraversion * 0.4,
+        E: extraversion * 0.5 + (1 - neuroticism) * 0.5,
+        C: conscientiousness * 0.7 + (1 - openness) * 0.3,
+      };
+      const riasecCode = Object.entries(riasecScores)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([k]) => k)
+        .join('-');
+
+      await api.post(`/api/v1/psych/profiles/${profile.id}/sessions/${sessionId}/complete`, {
+        openness, conscientiousness, extraversion, agreeableness, neuroticism,
+        riasecCode,
+        notes: 'Self-assessment completed via student portal',
+      });
+
+      toast.success('Assessment complete! Your personality profile has been updated.');
+      setShowAssessModal(false);
+      refetch();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Submission failed. Please try again.');
+      setAssessStep('quiz');
+    }
+  };
 
   const { data: profile, isLoading, isError, refetch } = useQuery<PsychProfile | null>({
     queryKey: ['psych-profile', user?.id],
@@ -125,7 +202,47 @@ export default function PsychometricPage() {
         const res = await api.get(`/api/v1/psych/profiles`, { params: { studentId: user?.id } });
         const d = res.data;
         const list = Array.isArray(d) ? d : (d?.content ?? []);
-        return list[0] ?? null;
+        const raw = list[0];
+        if (!raw) return null;
+
+        // Transform flat backend fields → frontend PsychProfile shape
+        const BENCHMARKS: Record<string, number> = { Openness: 72, Conscientiousness: 78, Extraversion: 65, Agreeableness: 74, Neuroticism: 40 };
+        const bigFive: BigFiveTrait[] = [
+          { name: 'Openness',          score: Math.round((raw.openness          ?? 0) * 100), benchmark: BENCHMARKS.Openness,          key: 'openness' },
+          { name: 'Conscientiousness', score: Math.round((raw.conscientiousness ?? 0) * 100), benchmark: BENCHMARKS.Conscientiousness, key: 'conscientiousness' },
+          { name: 'Extraversion',      score: Math.round((raw.extraversion      ?? 0) * 100), benchmark: BENCHMARKS.Extraversion,      key: 'extraversion' },
+          { name: 'Agreeableness',     score: Math.round((raw.agreeableness     ?? 0) * 100), benchmark: BENCHMARKS.Agreeableness,     key: 'agreeableness' },
+          { name: 'Neuroticism',       score: Math.round((raw.neuroticism       ?? 0) * 100), benchmark: BENCHMARKS.Neuroticism,       key: 'neuroticism' },
+        ].filter(t => t.score > 0);
+
+        // Derive learning style scores from Big Five (approximate heuristic)
+        const o = raw.openness ?? 0, c = raw.conscientiousness ?? 0, e = raw.extraversion ?? 0;
+        const learningStyleScores = {
+          visual:     Math.round((o * 0.6 + c * 0.4) * 100),
+          auditory:   Math.round((e * 0.5 + o * 0.5) * 100),
+          kinesthetic:Math.round((e * 0.4 + c * 0.6) * 100),
+          reading:    Math.round((c * 0.7 + o * 0.3) * 100),
+        };
+
+        // Fetch session histories
+        let sessionHistories: { id: string; completedAt: string; completenessPercent: number }[] = [];
+        try {
+          const sessRes = await api.get(`/api/v1/psych/profiles/${raw.id}/sessions`);
+          const sessions = Array.isArray(sessRes.data) ? sessRes.data : (sessRes.data?.content ?? []);
+          sessionHistories = sessions
+            .filter((s: any) => s.status === 'COMPLETED')
+            .map((s: any) => ({ id: s.id, completedAt: s.completedAt ?? s.createdAt, completenessPercent: 100 }));
+        } catch { /* ignore */ }
+
+        return {
+          id: raw.id,
+          studentId: raw.studentId,
+          bigFive,
+          riasecCode: raw.riasecCode ?? '',
+          learningStyleScores,
+          sessionHistories,
+          generatedAt: raw.updatedAt ?? raw.createdAt,
+        };
       } catch (err: any) {
         if (err?.response?.status === 404) return null;
         throw err;
@@ -221,42 +338,24 @@ export default function PsychometricPage() {
             </p>
           </div>
           <button
-            onClick={() => setShowAssessModal(true)}
+            onClick={openModal}
             className="btn-primary flex items-center gap-2 mx-auto"
           >
             <RefreshCw className="w-4 h-4" /> Take Assessment Now
           </button>
         </motion.div>
 
-        {/* Assessment Modal */}
-        <Modal isOpen={showAssessModal} onClose={() => setShowAssessModal(false)} title="Discover Your Learning DNA">
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-brand-600 to-violet-600 flex items-center justify-center">
-              <Brain className="w-8 h-8 text-white" />
-            </div>
-            <h3 className="text-xl font-bold text-white">Psychometric Assessment</h3>
-            <p className="text-white/50 text-sm leading-relaxed">
-              A science-backed 10-minute assessment covering personality traits, learning styles, and career interests. Your results personalise your entire NexusEd experience.
-            </p>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              {[{ value: '10 min', label: 'Duration' }, { value: '50+', label: 'Questions' }, { value: 'Big Five', label: 'Framework' }].map((stat) => (
-                <div key={stat.label} className="glass rounded-xl p-3">
-                  <p className="text-white font-bold">{stat.value}</p>
-                  <p className="text-white/40 text-xs">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-            <button
-              className="btn-primary w-full py-3"
-              onClick={() => {
-                toast.success('Assessment started! Redirecting…');
-                setShowAssessModal(false);
-              }}
-            >
-              Start 10-Minute Assessment
-            </button>
-          </div>
-        </Modal>
+        {/* Assessment Modal — no profile */}
+        <AssessmentModal
+          isOpen={showAssessModal}
+          onClose={() => setShowAssessModal(false)}
+          hasProfile={false}
+          assessStep={assessStep}
+          quizAnswers={quizAnswers}
+          setQuizAnswers={setQuizAnswers}
+          onStartQuiz={handleStartQuiz}
+          onSubmit={handleSubmitAssessment}
+        />
       </div>
     );
   }
@@ -289,7 +388,7 @@ export default function PsychometricPage() {
             )}
           </div>
           <button
-            onClick={() => setShowAssessModal(true)}
+            onClick={openModal}
             className="btn-primary flex items-center gap-2 flex-shrink-0"
           >
             <RefreshCw className="w-4 h-4" /> Retake Assessment
@@ -467,7 +566,7 @@ export default function PsychometricPage() {
             <h2 className="text-lg font-semibold text-white">Assessment History</h2>
             <p className="text-white/40 text-sm">Past psychometric sessions</p>
           </div>
-          <button onClick={() => setShowAssessModal(true)} className="btn-primary text-sm">
+          <button onClick={openModal} className="btn-primary text-sm">
             Take New Assessment
           </button>
         </div>
@@ -501,7 +600,7 @@ export default function PsychometricPage() {
                     <p className="text-white/30 text-xs">Completeness</p>
                   </div>
                   <button
-                    onClick={() => setShowAssessModal(true)}
+                    onClick={openModal}
                     className="text-brand-400 hover:text-brand-300 text-xs font-medium transition-colors"
                   >
                     Retake
@@ -513,35 +612,122 @@ export default function PsychometricPage() {
         )}
       </motion.div>
 
-      {/* Assessment Modal */}
-      <Modal isOpen={showAssessModal} onClose={() => setShowAssessModal(false)} title="Discover Your Learning DNA">
+      {/* Assessment Modal — has profile */}
+      <AssessmentModal
+        isOpen={showAssessModal}
+        onClose={() => setShowAssessModal(false)}
+        hasProfile={true}
+        assessStep={assessStep}
+        quizAnswers={quizAnswers}
+        setQuizAnswers={setQuizAnswers}
+        onStartQuiz={handleStartQuiz}
+        onSubmit={handleSubmitAssessment}
+      />
+    </div>
+  );
+}
+
+// ─── Shared Assessment Modal ────────────────────────────────────────────────
+interface AssessmentModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  hasProfile: boolean;
+  assessStep: 'info' | 'quiz' | 'submitting';
+  quizAnswers: Record<number, number>;
+  setQuizAnswers: React.Dispatch<React.SetStateAction<Record<number, number>>>;
+  onStartQuiz: () => void;
+  onSubmit: () => void;
+}
+
+function AssessmentModal({ isOpen, onClose, hasProfile, assessStep, quizAnswers, setQuizAnswers, onStartQuiz, onSubmit }: AssessmentModalProps) {
+  const answeredCount = Object.keys(quizAnswers).length;
+  const allAnswered = answeredCount === ASSESSMENT_QUESTIONS.length;
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Discover Your Learning DNA">
+      {!hasProfile ? (
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 mx-auto rounded-full bg-amber-600/20 flex items-center justify-center">
+            <Brain className="w-8 h-8 text-amber-400" />
+          </div>
+          <h3 className="text-xl font-bold text-white">Profile Not Set Up</h3>
+          <p className="text-white/50 text-sm leading-relaxed">
+            Your psychometric profile hasn't been activated yet. Please contact your center administrator or counselor to get started.
+          </p>
+          <button className="btn-primary w-full" onClick={onClose}>Got It</button>
+        </div>
+      ) : assessStep === 'info' ? (
         <div className="text-center space-y-4">
           <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-brand-600 to-violet-600 flex items-center justify-center">
             <Brain className="w-8 h-8 text-white" />
           </div>
-          <h3 className="text-xl font-bold text-white">Psychometric Assessment</h3>
+          <h3 className="text-xl font-bold text-white">Big Five Assessment</h3>
           <p className="text-white/50 text-sm leading-relaxed">
-            A science-backed 10-minute assessment covering personality traits, learning styles, and career interests. Your results personalise your entire NexusEd experience.
+            10 science-backed questions measuring your personality across five dimensions. Takes about 5 minutes. Results update your profile and learning recommendations.
           </p>
           <div className="grid grid-cols-3 gap-3 text-center">
-            {[{ value: '10 min', label: 'Duration' }, { value: '50+', label: 'Questions' }, { value: 'Big Five', label: 'Framework' }].map((stat) => (
+            {[{ value: '5 min', label: 'Duration' }, { value: '10', label: 'Questions' }, { value: 'Big Five', label: 'Framework' }].map((stat) => (
               <div key={stat.label} className="glass rounded-xl p-3">
                 <p className="text-white font-bold">{stat.value}</p>
                 <p className="text-white/40 text-xs">{stat.label}</p>
               </div>
             ))}
           </div>
-          <button
-            className="btn-primary w-full py-3"
-            onClick={() => {
-              toast.success('Assessment started! Redirecting…');
-              setShowAssessModal(false);
-            }}
-          >
-            Start 10-Minute Assessment
+          <button className="btn-primary w-full py-3" onClick={onStartQuiz}>
+            Start Assessment
           </button>
         </div>
-      </Modal>
-    </div>
+      ) : assessStep === 'submitting' ? (
+        <div className="text-center py-12 space-y-4">
+          <div className="w-10 h-10 border-2 border-brand-400/30 border-t-brand-400 rounded-full animate-spin mx-auto" />
+          <p className="text-white/60 text-sm">Calculating your personality profile…</p>
+        </div>
+      ) : (
+        <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-1">
+          <div className="flex items-center justify-between sticky top-0 bg-surface-800 pb-2 border-b border-white/5">
+            <p className="text-white/60 text-sm">{answeredCount} / {ASSESSMENT_QUESTIONS.length} answered</p>
+            <div className="h-1.5 w-32 bg-white/10 rounded-full overflow-hidden">
+              <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${(answeredCount / ASSESSMENT_QUESTIONS.length) * 100}%` }} />
+            </div>
+          </div>
+
+          {ASSESSMENT_QUESTIONS.map((q) => (
+            <div key={q.id} className="space-y-3">
+              <p className="text-white text-sm font-medium leading-relaxed">
+                <span className="text-white/30 mr-2">{q.id + 1}.</span>{q.text}
+              </p>
+              <div className="grid grid-cols-5 gap-1.5">
+                {[1, 2, 3, 4, 5].map((val) => (
+                  <button
+                    key={val}
+                    onClick={() => setQuizAnswers((prev) => ({ ...prev, [q.id]: val }))}
+                    className={cn(
+                      'py-2 rounded-lg text-xs font-medium transition-all border',
+                      quizAnswers[q.id] === val
+                        ? 'bg-brand-600 border-brand-500 text-white'
+                        : 'glass border-white/10 text-white/50 hover:border-brand-500/50 hover:text-white/80'
+                    )}
+                  >
+                    {val}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-between text-white/20 text-xs px-0.5">
+                <span>Strongly Disagree</span>
+                <span>Strongly Agree</span>
+              </div>
+            </div>
+          ))}
+
+          <button
+            className={cn('btn-primary w-full py-3 mt-4', !allAnswered && 'opacity-50 cursor-not-allowed')}
+            onClick={onSubmit}
+            disabled={!allAnswered}
+          >
+            {allAnswered ? 'Submit Assessment' : `Answer all questions (${ASSESSMENT_QUESTIONS.length - answeredCount} remaining)`}
+          </button>
+        </div>
+      )}
+    </Modal>
   );
 }
