@@ -65,7 +65,7 @@ interface QuestionResponse {
   examId: string;
   questionText: string;
   options: string[];
-  correctAnswer: string;
+  correctAnswer: number;
   marks: number;
 }
 
@@ -637,7 +637,7 @@ function ExamCard({
                             key={i}
                             className={cn(
                               'text-xs px-2 py-0.5 rounded',
-                              opt === q.correctAnswer
+                              i === q.correctAnswer
                                 ? 'bg-emerald-500/15 text-emerald-400'
                                 : 'text-white/30'
                             )}

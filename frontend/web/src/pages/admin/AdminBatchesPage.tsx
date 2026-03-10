@@ -29,7 +29,7 @@ interface BatchResponse {
   enrolledCount: number;
   startDate: string;
   endDate: string;
-  status: 'ACTIVE' | 'INACTIVE' | 'COMPLETED';
+  status: 'ACTIVE' | 'INACTIVE' | 'COMPLETED' | 'UPCOMING';
   createdAt: string;
 }
 
@@ -70,12 +70,14 @@ const batchStatusColors: Record<BatchResponse['status'], string> = {
   ACTIVE:    'bg-emerald-500/15 text-emerald-400',
   INACTIVE:  'bg-white/5 text-white/30',
   COMPLETED: 'bg-sky-500/15 text-sky-400',
+  UPCOMING:  'bg-amber-500/15 text-amber-400',
 };
 
 const batchStatusIcons: Record<BatchResponse['status'], React.ElementType> = {
   ACTIVE:    CheckCircle2,
   INACTIVE:  X,
   COMPLETED: Clock,
+  UPCOMING:  Clock,
 };
 
 const healthColors: Record<BatchHealthSummary['healthStatus'], string> = {
