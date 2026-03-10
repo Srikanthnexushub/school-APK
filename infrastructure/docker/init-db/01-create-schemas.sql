@@ -102,3 +102,12 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE SCHEMA IF NOT EXISTS mentor_schema AUTHORIZATION mentor_user;
 GRANT ALL ON SCHEMA mentor_schema TO mentor_user;
 \connect postgres
+
+-- notification-svc
+CREATE USER notification_user WITH PASSWORD 'notification_pass_dev';
+CREATE DATABASE notification_db OWNER notification_user;
+\connect notification_db
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE SCHEMA IF NOT EXISTS notification_schema AUTHORIZATION notification_user;
+GRANT ALL ON SCHEMA notification_schema TO notification_user;
+\connect postgres

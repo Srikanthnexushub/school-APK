@@ -137,6 +137,9 @@ management:
     web:
       exposure:
         include: ${ACTUATOR_ENDPOINTS}
+  health:
+    mail:
+      enabled: false   # no local SMTP in dev — mail health always fails
   metrics:
     tags:
       application: ${AUTH_SVC_NAME}

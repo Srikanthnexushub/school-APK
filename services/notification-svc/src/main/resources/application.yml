@@ -50,6 +50,9 @@ management:
     web:
       exposure:
         include: ${ACTUATOR_ENDPOINTS:health,info,prometheus,metrics}
+  health:
+    mail:
+      enabled: false   # no local SMTP in dev
   metrics:
     tags:
       application: ${NOTIFICATION_SVC_NAME}

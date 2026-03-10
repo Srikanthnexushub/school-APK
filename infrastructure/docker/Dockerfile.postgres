@@ -1,0 +1,11 @@
+# =============================================================================
+# EduTech AI Platform — PostgreSQL with TimescaleDB + pgvector
+# =============================================================================
+# timescale/timescaledb-ha was removed from Docker Hub.
+# This image extends timescale/timescaledb:latest-pg16 (standard, available)
+# and adds pgvector (needed by assess-svc V8 migration).
+# =============================================================================
+FROM timescale/timescaledb:latest-pg16
+
+# Install pgvector — timescale image is Alpine-based
+RUN apk add --no-cache postgresql-pgvector
