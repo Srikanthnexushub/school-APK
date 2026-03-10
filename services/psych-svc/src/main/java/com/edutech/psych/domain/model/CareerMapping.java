@@ -15,7 +15,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "career_mapping", schema = "psych_schema")
+@Table(name = "career_mappings", schema = "psych_schema")
 public class CareerMapping {
 
     @Id

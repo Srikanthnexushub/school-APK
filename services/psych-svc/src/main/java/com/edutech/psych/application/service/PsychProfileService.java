@@ -70,6 +70,16 @@ public class PsychProfileService implements CreatePsychProfileUseCase {
     }
 
     @Transactional(readOnly = true)
+    public List<PsychProfileResponse> listByStudentId(UUID studentId, AuthPrincipal principal) {
+        if (!principal.isSuperAdmin() && !principal.userId().equals(studentId)) {
+            throw new PsychAccessDeniedException();
+        }
+        return profileRepository.findByStudentId(studentId).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<PsychProfileResponse> listByCenterId(UUID centerId, AuthPrincipal principal) {
         if (!principal.belongsToCenter(centerId)) {
             throw new PsychAccessDeniedException();

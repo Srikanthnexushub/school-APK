@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import OtpPage from './pages/auth/OtpPage';
@@ -63,6 +63,8 @@ export const router = createBrowserRouter([
       { path: 'mentors/:id', element: <MentorProfilePage /> },
       { path: 'exam-tracker', element: <ExamTrackerPage /> },
       { path: 'settings', element: <SettingsPage /> },
+      { path: 'study-plan', element: <Navigate to="/ai-mentor" replace /> },
+      { path: 'doubts', element: <Navigate to="/ai-mentor" replace /> },
     ],
   },
   {

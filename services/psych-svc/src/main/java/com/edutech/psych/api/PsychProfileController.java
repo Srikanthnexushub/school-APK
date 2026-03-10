@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -52,10 +53,16 @@ public class PsychProfileController {
     }
 
     @GetMapping
-    public ResponseEntity<List<PsychProfileResponse>> listByCenterId(
-            @RequestParam UUID centerId,
+    public ResponseEntity<List<PsychProfileResponse>> listProfiles(
+            @RequestParam Optional<UUID> centerId,
+            @RequestParam Optional<UUID> studentId,
             @AuthenticationPrincipal AuthPrincipal principal) {
-        List<PsychProfileResponse> responses = psychProfileService.listByCenterId(centerId, principal);
-        return ResponseEntity.ok(responses);
+        if (studentId.isPresent()) {
+            return ResponseEntity.ok(psychProfileService.listByStudentId(studentId.get(), principal));
+        }
+        if (centerId.isPresent()) {
+            return ResponseEntity.ok(psychProfileService.listByCenterId(centerId.get(), principal));
+        }
+        return ResponseEntity.badRequest().build();
     }
 }

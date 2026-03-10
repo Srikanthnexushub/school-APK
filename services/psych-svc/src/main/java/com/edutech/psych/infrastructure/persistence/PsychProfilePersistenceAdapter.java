@@ -37,4 +37,9 @@ public class PsychProfilePersistenceAdapter implements PsychProfileRepository {
         return springData.findByCenterIdAndDeletedAtIsNull(centerId);
     }
 
+    @Override
+    public List<PsychProfile> findByStudentId(UUID studentId) {
+        return springData.findByStudentIdAndDeletedAtIsNull(studentId);
+    }
+
 }

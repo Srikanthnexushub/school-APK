@@ -15,7 +15,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "session_history", schema = "psych_schema")
+@Table(name = "session_histories", schema = "psych_schema")
 public class SessionHistory {
 
     @Id

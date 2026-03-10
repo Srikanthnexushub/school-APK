@@ -14,5 +14,7 @@ public interface PsychProfileRepository {
 
     List<PsychProfile> findByCenterId(UUID centerId);
 
+    List<PsychProfile> findByStudentId(UUID studentId);
+
     PsychProfile save(PsychProfile profile);
 }

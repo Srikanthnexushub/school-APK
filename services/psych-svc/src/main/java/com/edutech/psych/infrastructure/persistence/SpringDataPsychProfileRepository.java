@@ -14,4 +14,6 @@ interface SpringDataPsychProfileRepository extends JpaRepository<PsychProfile, U
     Optional<PsychProfile> findByStudentIdAndCenterIdAndDeletedAtIsNull(UUID studentId, UUID centerId);
 
     List<PsychProfile> findByCenterIdAndDeletedAtIsNull(UUID centerId);
+
+    List<PsychProfile> findByStudentIdAndDeletedAtIsNull(UUID studentId);
 }

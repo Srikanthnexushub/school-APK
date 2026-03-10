@@ -7,14 +7,21 @@ import com.edutech.aigateway.domain.model.LlmProvider;
 import com.edutech.aigateway.domain.port.out.LlmClient;
 import com.edutech.aigateway.infrastructure.config.OpenRouterProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.netty.channel.ChannelOption;
+import io.netty.handler.timeout.ReadTimeoutHandler;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import reactor.netty.http.client.HttpClient;
+import reactor.util.retry.Retry;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Component("openRouterLlmClient")
 public class OpenRouterWebClientAdapter implements LlmClient {
@@ -24,8 +31,13 @@ public class OpenRouterWebClientAdapter implements LlmClient {
 
     public OpenRouterWebClientAdapter(WebClient.Builder builder, OpenRouterProperties props) {
         this.props = props;
+        HttpClient httpClient = HttpClient.create()
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, props.connectTimeoutMs())
+                .doOnConnected(conn -> conn.addHandlerLast(
+                        new ReadTimeoutHandler(props.readTimeoutMs(), TimeUnit.MILLISECONDS)));
         this.webClient = builder
                 .baseUrl(props.baseUrl())
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + props.apiKey())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
@@ -136,6 +148,8 @@ public class OpenRouterWebClientAdapter implements LlmClient {
                                                 clientResponse.statusCode().value() + "]: " + errorBody)))
                 )
                 .bodyToMono(OpenRouterResponse.class)
+                .retryWhen(Retry.backoff(2, Duration.ofSeconds(1))
+                        .filter(ex -> !(ex instanceof AiProviderException)))
                 .map(response -> {
                     long latencyMs = System.currentTimeMillis() - startMs;
                     String content = (response.choices() != null && !response.choices().isEmpty())
