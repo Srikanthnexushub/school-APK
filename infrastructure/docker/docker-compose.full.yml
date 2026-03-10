@@ -1,0 +1,717 @@
+# =============================================================================
+# EduTech AI Platform — Full-Stack Docker Compose
+# Runs ALL services: infra + 15 Java services + Python AI + React frontend
+# =============================================================================
+# Prerequisites:
+#   1. Copy .env.example to .env (repo root) and set secrets
+#   2. Generate RSA keys:  mkdir -p keys && openssl genrsa -out keys/jwt-private.pem 2048
+#                          openssl rsa -in keys/jwt-private.pem -pubout -out keys/jwt-public.pem
+# Usage:
+#   docker compose -f infrastructure/docker/docker-compose.full.yml --env-file .env up -d --build
+#   docker compose -f infrastructure/docker/docker-compose.full.yml --env-file .env down -v
+# =============================================================================
+
+x-java-common: &java-common
+  env_file: ../../.env
+  networks:
+    - edutech-network
+  restart: unless-stopped
+  volumes:
+    - ../../keys:/keys:ro
+
+x-java-env-overrides: &java-env-overrides
+  # Override localhost refs — inside Docker, use container names
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: 5432
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+  # JWT key paths inside container (mounted at /keys)
+  JWT_PUBLIC_KEY_PATH: /keys/jwt-public.pem
+  JWT_PRIVATE_KEY_PATH: /keys/jwt-private.pem
+  # OTEL endpoint (no collector in local full-compose — fail gracefully)
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4318
+  APP_ENVIRONMENT: local
+
+services:
+
+  # ===========================================================================
+  # WAVE 1 — Infrastructure
+  # ===========================================================================
+
+  postgres:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    image: edutech-postgres:local
+    container_name: edutech-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_ROOT_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_ROOT_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_ROOT_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - edutech-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: edutech-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --appendonly yes
+      --appendfsync everysec
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - edutech-network
+
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: edutech-kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: ${KAFKA_NODE_ID}
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,INTERNAL://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:${KAFKA_EXTERNAL_PORT},INTERNAL://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: ${KAFKA_NODE_ID}@localhost:9093
+      CLUSTER_ID: sBhN79PnQiyZj7rDgLXtGA
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: ${KAFKA_AUTO_CREATE_TOPICS}
+      KAFKA_NUM_PARTITIONS: ${KAFKA_DEFAULT_PARTITIONS}
+      KAFKA_DEFAULT_REPLICATION_FACTOR: ${KAFKA_DEFAULT_REPLICATION_FACTOR}
+      KAFKA_LOG_RETENTION_HOURS: ${KAFKA_LOG_RETENTION_HOURS}
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    ports:
+      - "${KAFKA_EXTERNAL_PORT}:9092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - edutech-network
+
+  # ===========================================================================
+  # WAVE 1b — Dev Tools (infra UI)
+  # ===========================================================================
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: edutech-kafka-ui
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_CLUSTERS_0_NAME: ${KAFKA_UI_CLUSTER_NAME}
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+    ports:
+      - "${KAFKA_UI_PORT}:8080"
+    networks:
+      - edutech-network
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: edutech-pgadmin
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    ports:
+      - "${PGADMIN_PORT}:80"
+    networks:
+      - edutech-network
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: edutech-redis-commander
+    restart: unless-stopped
+    depends_on:
+      - redis
+    environment:
+      REDIS_HOSTS: local:redis:6379:0:${REDIS_PASSWORD}
+    ports:
+      - "${REDIS_COMMANDER_PORT}:8081"
+    networks:
+      - edutech-network
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: edutech-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    networks:
+      - edutech-network
+
+  # ===========================================================================
+  # WAVE 2 — Auth Service (other services depend on it for JWT validation)
+  # ===========================================================================
+
+  auth-svc:
+    <<: *java-common
+    build:
+      context: ../..
+      dockerfile: services/auth-svc/Dockerfile
+    image: edutech/auth-svc:local
+    container_name: edutech-auth-svc
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *java-env-overrides
+      SERVER_PORT: ${AUTH_SVC_PORT}
+      AUTH_SVC_PORT: ${AUTH_SVC_PORT}
+      MAIL_HOST: mailhog
+      MAIL_PORT: 1025
+    ports:
+      - "${AUTH_SVC_PORT}:${AUTH_SVC_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${AUTH_SVC_PORT}/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  # ===========================================================================
+  # WAVE 3 — Core Business Services
+  # ===========================================================================
+
+  parent-svc:
+    <<: *java-common
+    build:
+      context: ../..
+      dockerfile: services/parent-svc/Dockerfile
+    image: edutech/parent-svc:local
+    container_name: edutech-parent-svc
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *java-env-overrides
+      SERVER_PORT: ${PARENT_SVC_PORT}
+      PARENT_SVC_PORT: ${PARENT_SVC_PORT}
+      AI_GATEWAY_BASE_URL: http://ai-gateway-svc:${AI_GATEWAY_SVC_PORT}
+    ports:
+      - "${PARENT_SVC_PORT}:${PARENT_SVC_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${PARENT_SVC_PORT}/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  center-svc:
+    <<: *java-common
+    build:
+      context: ../..
+      dockerfile: services/center-svc/Dockerfile
+    image: edutech/center-svc:local
+    container_name: edutech-center-svc
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *java-env-overrides
+      SERVER_PORT: ${CENTER_SVC_PORT}
+      CENTER_SVC_PORT: ${CENTER_SVC_PORT}
+    ports:
+      - "${CENTER_SVC_PORT}:${CENTER_SVC_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${CENTER_SVC_PORT}/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  assess-svc:
+    <<: *java-common
+    build:
+      context: ../..
+      dockerfile: services/assess-svc/Dockerfile
+    image: edutech/assess-svc:local
+    container_name: edutech-assess-svc
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *java-env-overrides
+      SERVER_PORT: ${ASSESS_SVC_PORT}
+      ASSESS_SVC_PORT: ${ASSESS_SVC_PORT}
+      ASSESS_SVC_GRPC_PORT: ${ASSESS_SVC_GRPC_PORT}
+    ports:
+      - "${ASSESS_SVC_PORT}:${ASSESS_SVC_PORT}"
+      - "${ASSESS_SVC_GRPC_PORT}:${ASSESS_SVC_GRPC_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${ASSESS_SVC_PORT}/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  python-ai-svc:
+    env_file: ../../.env
+    build:
+      context: ../../python-ai-svc
+      dockerfile: Dockerfile
+    image: edutech/python-ai-svc:local
+    container_name: edutech-python-ai-svc
+    restart: unless-stopped
+    environment:
+      PYTHON_AI_SVC_PORT: ${PYTHON_AI_SVC_PORT}
+      LOG_LEVEL: ${LOG_LEVEL_APP:-INFO}
+    ports:
+      - "${PYTHON_AI_SVC_PORT}:${PYTHON_AI_SVC_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:${PYTHON_AI_SVC_PORT}/health')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - edutech-network
+
+  psych-svc:
+    <<: *java-common
+    build:
+      context: ../..
+      dockerfile: services/psych-svc/Dockerfile
+    image: edutech/psych-svc:local
+    container_name: edutech-psych-svc
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      python-ai-svc:
+        condition: service_healthy
+    environment:
+      <<: *java-env-overrides
+      SERVER_PORT: ${PSYCH_SVC_PORT}
+      PSYCH_SVC_PORT: ${PSYCH_SVC_PORT}
+      PSYCH_AI_SVC_BASE_URL: http://python-ai-svc:${PYTHON_AI_SVC_PORT}
+      PYTHON_AI_SVC_BASE_URL: http://python-ai-svc:${PYTHON_AI_SVC_PORT}
+    ports:
+      - "${PSYCH_SVC_PORT}:${PSYCH_SVC_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${PSYCH_SVC_PORT}/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  ai-gateway-svc:
+    <<: *java-common
+    build:
+      context: ../..
+      dockerfile: services/ai-gateway-svc/Dockerfile
+    image: edutech/ai-gateway-svc:local
+    container_name: edutech-ai-gateway-svc
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *java-env-overrides
+      SERVER_PORT: ${AI_GATEWAY_SVC_PORT}
+      AI_GATEWAY_SVC_PORT: ${AI_GATEWAY_SVC_PORT}
+      PSYCH_AI_SVC_BASE_URL: http://python-ai-svc:${PYTHON_AI_SVC_PORT}
+    ports:
+      - "${AI_GATEWAY_SVC_PORT}:${AI_GATEWAY_SVC_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${AI_GATEWAY_SVC_PORT}/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  notification-svc:
+    <<: *java-common
+    build:
+      context: ../..
+      dockerfile: services/notification-svc/Dockerfile
+    image: edutech/notification-svc:local
+    container_name: edutech-notification-svc
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *java-env-overrides
+      SERVER_PORT: ${NOTIFICATION_SVC_PORT}
+      NOTIFICATION_SVC_PORT: ${NOTIFICATION_SVC_PORT}
+      MAIL_HOST: mailhog
+      MAIL_PORT: 1025
+    ports:
+      - "${NOTIFICATION_SVC_PORT}:${NOTIFICATION_SVC_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${NOTIFICATION_SVC_PORT}/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  # ===========================================================================
+  # WAVE 4 — Student Services
+  # ===========================================================================
+
+  student-profile-svc:
+    <<: *java-common
+    build:
+      context: ../..
+      dockerfile: services/student-profile-svc/Dockerfile
+    image: edutech/student-profile-svc:local
+    container_name: edutech-student-profile-svc
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *java-env-overrides
+      SERVER_PORT: ${STUDENT_PROFILE_SVC_PORT}
+      STUDENT_PROFILE_SVC_PORT: ${STUDENT_PROFILE_SVC_PORT}
+    ports:
+      - "${STUDENT_PROFILE_SVC_PORT}:${STUDENT_PROFILE_SVC_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${STUDENT_PROFILE_SVC_PORT}/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  exam-tracker-svc:
+    <<: *java-common
+    build:
+      context: ../..
+      dockerfile: services/exam-tracker-svc/Dockerfile
+    image: edutech/exam-tracker-svc:local
+    container_name: edutech-exam-tracker-svc
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *java-env-overrides
+      SERVER_PORT: ${EXAM_TRACKER_SVC_PORT}
+      EXAM_TRACKER_SVC_PORT: ${EXAM_TRACKER_SVC_PORT}
+    ports:
+      - "${EXAM_TRACKER_SVC_PORT}:${EXAM_TRACKER_SVC_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${EXAM_TRACKER_SVC_PORT}/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  performance-svc:
+    <<: *java-common
+    build:
+      context: ../..
+      dockerfile: services/performance-svc/Dockerfile
+    image: edutech/performance-svc:local
+    container_name: edutech-performance-svc
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *java-env-overrides
+      SERVER_PORT: ${PERFORMANCE_SVC_PORT}
+      PERFORMANCE_SVC_PORT: ${PERFORMANCE_SVC_PORT}
+      PERFORMANCE_SVC_GRPC_PORT: ${PERFORMANCE_SVC_GRPC_PORT}
+    ports:
+      - "${PERFORMANCE_SVC_PORT}:${PERFORMANCE_SVC_PORT}"
+      - "${PERFORMANCE_SVC_GRPC_PORT}:${PERFORMANCE_SVC_GRPC_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${PERFORMANCE_SVC_PORT}/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  ai-mentor-svc:
+    <<: *java-common
+    build:
+      context: ../..
+      dockerfile: services/ai-mentor-svc/Dockerfile
+    image: edutech/ai-mentor-svc:local
+    container_name: edutech-ai-mentor-svc
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *java-env-overrides
+      SERVER_PORT: ${AI_MENTOR_SVC_PORT}
+      AI_MENTOR_SVC_PORT: ${AI_MENTOR_SVC_PORT}
+      AI_MENTOR_SVC_GRPC_PORT: ${AI_MENTOR_SVC_GRPC_PORT}
+      AI_GATEWAY_BASE_URL: http://ai-gateway-svc:${AI_GATEWAY_SVC_PORT}
+    ports:
+      - "${AI_MENTOR_SVC_PORT}:${AI_MENTOR_SVC_PORT}"
+      - "${AI_MENTOR_SVC_GRPC_PORT}:${AI_MENTOR_SVC_GRPC_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${AI_MENTOR_SVC_PORT}/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  career-oracle-svc:
+    <<: *java-common
+    build:
+      context: ../..
+      dockerfile: services/career-oracle-svc/Dockerfile
+    image: edutech/career-oracle-svc:local
+    container_name: edutech-career-oracle-svc
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *java-env-overrides
+      SERVER_PORT: ${CAREER_ORACLE_SVC_PORT}
+      CAREER_ORACLE_SVC_PORT: ${CAREER_ORACLE_SVC_PORT}
+      CAREER_ORACLE_SVC_GRPC_PORT: ${CAREER_ORACLE_SVC_GRPC_PORT}
+      AI_GATEWAY_BASE_URL: http://ai-gateway-svc:${AI_GATEWAY_SVC_PORT}
+    ports:
+      - "${CAREER_ORACLE_SVC_PORT}:${CAREER_ORACLE_SVC_PORT}"
+      - "${CAREER_ORACLE_SVC_GRPC_PORT}:${CAREER_ORACLE_SVC_GRPC_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${CAREER_ORACLE_SVC_PORT}/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  mentor-svc:
+    <<: *java-common
+    build:
+      context: ../..
+      dockerfile: services/mentor-svc/Dockerfile
+    image: edutech/mentor-svc:local
+    container_name: edutech-mentor-svc
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      <<: *java-env-overrides
+      SERVER_PORT: ${MENTOR_SVC_PORT}
+      MENTOR_SVC_PORT: ${MENTOR_SVC_PORT}
+      MENTOR_SVC_GRPC_PORT: ${MENTOR_SVC_GRPC_PORT}
+    ports:
+      - "${MENTOR_SVC_PORT}:${MENTOR_SVC_PORT}"
+      - "${MENTOR_SVC_GRPC_PORT}:${MENTOR_SVC_GRPC_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${MENTOR_SVC_PORT}/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  # ===========================================================================
+  # WAVE 5 — API Gateways (depend on all downstream services)
+  # ===========================================================================
+
+  api-gateway:
+    <<: *java-common
+    build:
+      context: ../..
+      dockerfile: services/api-gateway/Dockerfile
+    image: edutech/api-gateway:local
+    container_name: edutech-api-gateway
+    depends_on:
+      auth-svc:
+        condition: service_started
+      parent-svc:
+        condition: service_started
+      center-svc:
+        condition: service_started
+      assess-svc:
+        condition: service_started
+      psych-svc:
+        condition: service_started
+      ai-gateway-svc:
+        condition: service_started
+      notification-svc:
+        condition: service_started
+    environment:
+      <<: *java-env-overrides
+      SERVER_PORT: ${API_GATEWAY_PORT}
+      API_GATEWAY_PORT: ${API_GATEWAY_PORT}
+      AUTH_SVC_URI: http://auth-svc:${AUTH_SVC_PORT}
+      PARENT_SVC_URI: http://parent-svc:${PARENT_SVC_PORT}
+      CENTER_SVC_URI: http://center-svc:${CENTER_SVC_PORT}
+      ASSESS_SVC_URI: http://assess-svc:${ASSESS_SVC_PORT}
+      PSYCH_SVC_URI: http://psych-svc:${PSYCH_SVC_PORT}
+      AI_GATEWAY_SVC_URI: http://ai-gateway-svc:${AI_GATEWAY_SVC_PORT}
+      NOTIFICATION_SVC_URI: http://notification-svc:${NOTIFICATION_SVC_PORT}
+      JWT_JWKS_URI: http://auth-svc:${AUTH_SVC_PORT}/api/v1/auth/jwks
+    ports:
+      - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${API_GATEWAY_PORT}/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  student-gateway:
+    <<: *java-common
+    build:
+      context: ../..
+      dockerfile: services/student-gateway/Dockerfile
+    image: edutech/student-gateway:local
+    container_name: edutech-student-gateway
+    depends_on:
+      auth-svc:
+        condition: service_started
+      student-profile-svc:
+        condition: service_started
+      exam-tracker-svc:
+        condition: service_started
+      performance-svc:
+        condition: service_started
+      ai-mentor-svc:
+        condition: service_started
+      career-oracle-svc:
+        condition: service_started
+      mentor-svc:
+        condition: service_started
+    environment:
+      <<: *java-env-overrides
+      SERVER_PORT: ${STUDENT_GATEWAY_PORT}
+      STUDENT_GATEWAY_PORT: ${STUDENT_GATEWAY_PORT}
+      STUDENT_PROFILE_SVC_URI: http://student-profile-svc:${STUDENT_PROFILE_SVC_PORT}
+      EXAM_TRACKER_SVC_URI: http://exam-tracker-svc:${EXAM_TRACKER_SVC_PORT}
+      PERFORMANCE_SVC_URI: http://performance-svc:${PERFORMANCE_SVC_PORT}
+      AI_MENTOR_SVC_URI: http://ai-mentor-svc:${AI_MENTOR_SVC_PORT}
+      CAREER_ORACLE_SVC_URI: http://career-oracle-svc:${CAREER_ORACLE_SVC_PORT}
+      MENTOR_SVC_URI: http://mentor-svc:${MENTOR_SVC_PORT}
+      NOTIFICATION_SVC_URI: http://notification-svc:${NOTIFICATION_SVC_PORT}
+      JWT_JWKS_URI: http://auth-svc:${AUTH_SVC_PORT}/api/v1/auth/jwks
+    ports:
+      - "${STUDENT_GATEWAY_PORT}:${STUDENT_GATEWAY_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${STUDENT_GATEWAY_PORT}/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  # ===========================================================================
+  # WAVE 6 — Frontend (nginx SPA + API proxy)
+  # ===========================================================================
+
+  frontend:
+    build:
+      context: ../../frontend/web
+      dockerfile: Dockerfile
+    image: edutech/frontend:local
+    container_name: edutech-frontend
+    restart: unless-stopped
+    depends_on:
+      api-gateway:
+        condition: service_started
+      student-gateway:
+        condition: service_started
+    ports:
+      - "3000:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - edutech-network
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres-data:
+    name: edutech-postgres-data
+  redis-data:
+    name: edutech-redis-data
+  kafka-data:
+    name: edutech-kafka-data
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  edutech-network:
+    name: edutech-network
+    driver: bridge

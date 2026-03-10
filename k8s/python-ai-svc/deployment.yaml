@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-ai-svc
+  namespace: edutech
+  labels:
+    app: python-ai-svc
+    app.kubernetes.io/name: python-ai-svc
+    app.kubernetes.io/part-of: edutech-platform
+    app.kubernetes.io/component: ai-sidecar
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: python-ai-svc
+  template:
+    metadata:
+      labels:
+        app: python-ai-svc
+        app.kubernetes.io/name: python-ai-svc
+        app.kubernetes.io/part-of: edutech-platform
+      annotations:
+        prometheus.io/scrape: "false"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+        - name: python-ai-svc
+          image: "$(DOCKER_REGISTRY)/$(DOCKER_IMAGE_PREFIX)/python-ai-svc:$(IMAGE_TAG)"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8095
+              name: http
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: edutech-secrets
+          env:
+            - name: PYTHON_AI_SVC_PORT
+              value: "8095"
+            - name: LOG_LEVEL
+              value: "INFO"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8095
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8095
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+            timeoutSeconds: 5
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+      imagePullSecrets:
+        - name: registry-credentials
