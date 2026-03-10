@@ -75,6 +75,10 @@ firebase:
 ai-gateway:
   base-url: ${AI_GATEWAY_BASE_URL}
 
+# Psych Svc (internal service call to fetch student psychometric data for Copilot context)
+psych-svc:
+  base-url: ${PSYCH_SVC_URI}
+
 service:
   api-key: ${SERVICE_API_KEY}
 

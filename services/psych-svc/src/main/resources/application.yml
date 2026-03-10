@@ -65,6 +65,9 @@ jwt:
   public-key-path: ${JWT_PUBLIC_KEY_PATH}
   issuer: ${JWT_ISSUER}
 
+service:
+  api-key: ${SERVICE_API_KEY}
+
 # Python AI sidecar (career prediction, trait embedding)
 psych-ai-svc:
   base-url: ${PSYCH_AI_SVC_BASE_URL}

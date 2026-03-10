@@ -7,7 +7,9 @@ import com.edutech.parent.domain.model.CopilotConversation;
 import com.edutech.parent.domain.port.out.CopilotConversationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,14 +39,17 @@ public class CopilotService {
 
     private final CopilotConversationRepository conversationRepository;
     private final WebClient aiGatewayWebClient;
+    private final WebClient psychSvcWebClient;
     private final int timeoutSeconds;
 
     public CopilotService(
             CopilotConversationRepository conversationRepository,
-            WebClient aiGatewayWebClient,
+            @Qualifier("aiGatewayWebClient") WebClient aiGatewayWebClient,
+            @Qualifier("psychSvcWebClient") WebClient psychSvcWebClient,
             @Value("${ai-gateway.timeout-seconds:30}") int timeoutSeconds) {
         this.conversationRepository = conversationRepository;
         this.aiGatewayWebClient = aiGatewayWebClient;
+        this.psychSvcWebClient = psychSvcWebClient;
         this.timeoutSeconds = timeoutSeconds;
     }
 
@@ -61,7 +66,8 @@ public class CopilotService {
         CopilotConversation conversation = new CopilotConversation(parentId, studentId, title);
         conversation.addMessage("user", initialMessage);
 
-        String aiReply = callAiGateway(initialMessage, List.of());
+        String psychContext = studentId != null ? fetchStudentPsychContext(studentId) : null;
+        String aiReply = callAiGateway(initialMessage, List.of(), psychContext);
         conversation.addMessage("assistant", aiReply);
 
         CopilotConversation saved = conversationRepository.save(conversation);
@@ -89,7 +95,9 @@ public class CopilotService {
         List<Map<String, String>> history = buildHistory(conversation);
 
         conversation.addMessage("user", userMessage);
-        String aiReply = callAiGateway(userMessage, history);
+        String psychContext = conversation.getStudentId() != null
+                ? fetchStudentPsychContext(conversation.getStudentId()) : null;
+        String aiReply = callAiGateway(userMessage, history, psychContext);
         conversation.addMessage("assistant", aiReply);
 
         CopilotConversation saved = conversationRepository.save(conversation);
@@ -124,14 +132,27 @@ public class CopilotService {
     // Private helpers
     // -------------------------------------------------------------------------
 
-    private String callAiGateway(String message, List<Map<String, String>> history) {
+    private String callAiGateway(String message, List<Map<String, String>> history, String studentContext) {
         String historyText = history.stream()
                 .map(m -> m.get("role") + ": " + m.get("content"))
                 .collect(Collectors.joining("\n"));
-        String systemPrompt = "You are the NexusEd Parent Copilot. Help parents understand their child's academic progress, fees, attendance, weak areas, and exam schedules. Be concise and supportive.\n\nConversation history:\n" + historyText;
+
+        StringBuilder systemPrompt = new StringBuilder(
+                "You are the NexusEd Parent Copilot. Help parents understand their child's academic progress, " +
+                "psychometric profile, career recommendations, fees, attendance, weak areas, and exam schedules. " +
+                "Be concise, supportive, and always reference actual data when available.");
+
+        if (studentContext != null && !studentContext.isBlank()) {
+            systemPrompt.append("\n\n").append(studentContext);
+        }
+
+        if (!historyText.isBlank()) {
+            systemPrompt.append("\n\nConversation history:\n").append(historyText);
+        }
+
         Map<String, Object> requestBody = Map.of(
                 "requesterId", "parent-copilot",
-                "systemPrompt", systemPrompt,
+                "systemPrompt", systemPrompt.toString(),
                 "userMessage", message,
                 "maxTokens", 512,
                 "temperature", 0.7
@@ -161,6 +182,73 @@ public class CopilotService {
         return conversation.getMessages().stream()
                 .map(m -> Map.of("role", m.getRole(), "content", m.getContent()))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Calls psych-svc via X-Service-Key to fetch the student's psychometric profile
+     * and formats it as a plain-English context block for the AI system prompt.
+     */
+    private String fetchStudentPsychContext(String studentId) {
+        try {
+            List<Map<String, Object>> profiles = psychSvcWebClient.get()
+                    .uri("/api/v1/psych/profiles?studentId=" + studentId)
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<List<Map<String, Object>>>() {})
+                    .onErrorReturn(List.of())
+                    .block(Duration.ofSeconds(5));
+
+            if (profiles == null || profiles.isEmpty()) {
+                return null;
+            }
+
+            Map<String, Object> p = profiles.get(0);
+            double openness          = toDouble(p.get("openness"));
+            double conscientiousness = toDouble(p.get("conscientiousness"));
+            double extraversion      = toDouble(p.get("extraversion"));
+            double agreeableness     = toDouble(p.get("agreeableness"));
+            double neuroticism       = toDouble(p.get("neuroticism"));
+            String riasec            = p.get("riasecCode") != null ? p.get("riasecCode").toString() : "Not yet generated";
+            String status            = p.get("status") != null ? p.get("status").toString() : "UNKNOWN";
+
+            if (openness == 0 && conscientiousness == 0 && extraversion == 0) {
+                return "Student Psychometric Profile: Assessment not yet completed (profile status: " + status + ").";
+            }
+
+            String dominant = dominantLearningStyle(openness, conscientiousness, extraversion);
+            return String.format(
+                    "Student Psychometric Profile (Big Five Assessment — scores out of 100):\n" +
+                    "- Openness: %.0f/100 (intellectual curiosity, creativity)\n" +
+                    "- Conscientiousness: %.0f/100 (organisation, goal-directed behaviour)\n" +
+                    "- Extraversion: %.0f/100 (social energy, confidence in groups)\n" +
+                    "- Agreeableness: %.0f/100 (empathy, cooperative teamwork)\n" +
+                    "- Neuroticism: %.0f/100 (stress sensitivity — lower is more resilient)\n" +
+                    "RIASEC Career Code: %s\n" +
+                    "Dominant Learning Style: %s\n" +
+                    "Use this real data when answering questions about the child's personality, strengths, weaknesses, or career paths.",
+                    openness * 100, conscientiousness * 100, extraversion * 100,
+                    agreeableness * 100, neuroticism * 100, riasec, dominant);
+        } catch (Exception e) {
+            log.warn("Could not fetch psych context for student {}: {}", studentId, e.getMessage());
+            return null;
+        }
+    }
+
+    private double toDouble(Object val) {
+        if (val == null) return 0.0;
+        if (val instanceof Number n) return n.doubleValue();
+        try { return Double.parseDouble(val.toString()); } catch (NumberFormatException e) { return 0.0; }
+    }
+
+    private String dominantLearningStyle(double o, double c, double e) {
+        double visual      = o * 0.6 + c * 0.4;
+        double auditory    = e * 0.5 + o * 0.5;
+        double kinesthetic = e * 0.4 + c * 0.6;
+        double reading     = c * 0.7 + o * 0.3;
+        double max = Math.max(Math.max(visual, auditory), Math.max(kinesthetic, reading));
+        if (max == visual)      return String.format("Visual (%.0f%%)", visual * 100);
+        if (max == auditory)    return String.format("Auditory (%.0f%%)", auditory * 100);
+        if (max == kinesthetic) return String.format("Kinesthetic (%.0f%%)", kinesthetic * 100);
+        return String.format("Reading/Writing (%.0f%%)", reading * 100);
     }
 
     private void validateOwnership(CopilotConversation conversation, String parentId) {

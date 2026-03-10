@@ -21,14 +21,17 @@ import java.util.concurrent.TimeUnit;
 public class WebClientConfig {
 
     private final String aiGatewayBaseUrl;
+    private final String psychSvcBaseUrl;
     private final int timeoutSeconds;
     private final String serviceApiKey;
 
     public WebClientConfig(
             @Value("${ai-gateway.base-url}") String aiGatewayBaseUrl,
+            @Value("${psych-svc.base-url}") String psychSvcBaseUrl,
             @Value("${ai-gateway.timeout-seconds:30}") int timeoutSeconds,
             @Value("${service.api-key}") String serviceApiKey) {
         this.aiGatewayBaseUrl = aiGatewayBaseUrl;
+        this.psychSvcBaseUrl = psychSvcBaseUrl;
         this.timeoutSeconds = timeoutSeconds;
         this.serviceApiKey = serviceApiKey;
     }
@@ -43,6 +46,21 @@ public class WebClientConfig {
 
         return WebClient.builder()
                 .baseUrl(aiGatewayBaseUrl)
+                .defaultHeader("X-Service-Key", serviceApiKey)
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .build();
+    }
+
+    @Bean
+    public WebClient psychSvcWebClient() {
+        HttpClient httpClient = HttpClient.create()
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
+                .doOnConnected(conn -> conn
+                        .addHandlerLast(new ReadTimeoutHandler(5, TimeUnit.SECONDS))
+                        .addHandlerLast(new WriteTimeoutHandler(5, TimeUnit.SECONDS)));
+
+        return WebClient.builder()
+                .baseUrl(psychSvcBaseUrl)
                 .defaultHeader("X-Service-Key", serviceApiKey)
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build();
