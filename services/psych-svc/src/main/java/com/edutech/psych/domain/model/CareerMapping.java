@@ -70,7 +70,6 @@ public class CareerMapping {
 
     public static CareerMapping create(UUID profileId, UUID studentId, UUID centerId) {
         CareerMapping mapping = new CareerMapping();
-        mapping.id = UUID.randomUUID();
         mapping.profileId = profileId;
         mapping.studentId = studentId;
         mapping.centerId = centerId;

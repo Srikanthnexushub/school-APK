@@ -71,7 +71,6 @@ public class SessionHistory {
     public static SessionHistory create(UUID profileId, UUID studentId, UUID centerId,
                                         SessionType sessionType, Instant scheduledAt) {
         SessionHistory session = new SessionHistory();
-        session.id = UUID.randomUUID();
         session.profileId = profileId;
         session.studentId = studentId;
         session.centerId = centerId;

@@ -41,7 +41,6 @@ public class TraitDimension {
 
     public static TraitDimension create(String code, String name, String category, String description) {
         TraitDimension dimension = new TraitDimension();
-        dimension.id = UUID.randomUUID();
         dimension.code = code;
         dimension.name = name;
         dimension.category = category;

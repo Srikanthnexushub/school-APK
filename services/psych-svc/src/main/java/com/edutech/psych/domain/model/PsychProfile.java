@@ -75,7 +75,6 @@ public class PsychProfile {
 
     public static PsychProfile create(UUID studentId, UUID centerId, UUID batchId) {
         PsychProfile profile = new PsychProfile();
-        profile.id = UUID.randomUUID();
         profile.studentId = studentId;
         profile.centerId = centerId;
         profile.batchId = batchId;

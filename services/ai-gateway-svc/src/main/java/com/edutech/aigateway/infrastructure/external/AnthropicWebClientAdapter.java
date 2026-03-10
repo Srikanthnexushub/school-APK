@@ -86,9 +86,18 @@ public class AnthropicWebClientAdapter implements LlmClient {
                 reply = "You can book a 1-on-1 mentor session directly from the Mentors section. "
                       + "Sessions are typically 45–60 minutes and can be scheduled for evenings or weekends. "
                       + "I recommend booking at least 3 days in advance to secure your preferred time slot.";
+            } else if (user.contains("psychometric") || user.contains("personality") || user.contains("riasec")
+                    || user.contains("career") || user.contains("big five") || user.contains("trait")) {
+                reply = "Your child's psychometric assessment has been completed! "
+                      + "The results show a strong Big Five profile — high Openness (90) and Conscientiousness (90) indicate excellent intellectual curiosity and study discipline. "
+                      + "Extraversion is moderate (50) and Agreeableness is high (80), suggesting they thrive in collaborative settings. "
+                      + "Their RIASEC code is I-A-S (Investigative, Artistic, Social), which maps to careers such as: "
+                      + "Research Scientist, Data Analyst, Psychologist, or Educator. "
+                      + "Their dominant learning style is Visual (90%) — encourage diagrams, mind maps, and video-based revision. "
+                      + "You can view the full Personality DNA report in your child's Student Portal under 'Psychometric Analysis'.";
             } else {
                 reply = "I'm here to help you stay on top of your child's academic journey. "
-                      + "You can ask me about performance trends, exam schedules, fee status, weak areas, or how to book mentor sessions. "
+                      + "You can ask me about performance trends, exam schedules, fee status, weak areas, psychometric results, career recommendations, or how to book mentor sessions. "
                       + "What would you like to know?";
             }
         } else if (sys.contains("tutor") || sys.contains("doubt") || sys.contains("academic")) {
