@@ -43,6 +43,16 @@ interface BatchHealthSummary {
   healthStatus: 'CRITICAL' | 'WARNING' | 'HEALTHY';
 }
 
+interface TeacherResponse {
+  id: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  subjects?: string;
+  status?: string;
+}
+
 interface CreateBatchRequest {
   name: string;
   code: string;
@@ -160,12 +170,13 @@ const emptyForm: AddBatchFormState = {
 };
 
 interface AddBatchFormProps {
+  teachers: TeacherResponse[];
   onSubmit: (data: CreateBatchRequest) => void;
   onCancel: () => void;
   isSubmitting: boolean;
 }
 
-function AddBatchForm({ onSubmit, onCancel, isSubmitting }: AddBatchFormProps) {
+function AddBatchForm({ teachers, onSubmit, onCancel, isSubmitting }: AddBatchFormProps) {
   const [form, setForm] = useState<AddBatchFormState>(emptyForm);
   const [errors, setErrors] = useState<Partial<AddBatchFormState>>({});
 
@@ -174,7 +185,7 @@ function AddBatchForm({ onSubmit, onCancel, isSubmitting }: AddBatchFormProps) {
     if (!form.name.trim())      e.name       = 'Batch name is required';
     if (!form.code.trim())      e.code       = 'Batch code is required';
     if (!form.subject.trim())   e.subject    = 'Subject is required';
-    if (!form.teacherId.trim()) e.teacherId  = 'Teacher ID is required';
+    if (!form.teacherId.trim()) e.teacherId  = 'Teacher is required';
     if (!form.maxStudents || isNaN(Number(form.maxStudents)) || Number(form.maxStudents) < 1)
       e.maxStudents = 'Max students must be a positive number';
     if (!form.startDate)        e.startDate  = 'Start date is required';
@@ -243,8 +254,19 @@ function AddBatchForm({ onSubmit, onCancel, isSubmitting }: AddBatchFormProps) {
             {errors.subject && <p className="text-xs text-red-400 mt-1">{errors.subject}</p>}
           </div>
           <div>
-            <label className="block text-xs font-medium text-white/60 mb-1.5">Teacher ID</label>
-            <input {...field('teacherId')} placeholder="UUID of assigned teacher" className="input w-full" />
+            <label className="block text-xs font-medium text-white/60 mb-1.5">Teacher</label>
+            <select
+              value={form.teacherId}
+              onChange={(ev) => setForm((p) => ({ ...p, teacherId: ev.target.value }))}
+              className="input w-full"
+            >
+              <option value="">— Select teacher —</option>
+              {teachers.map((t) => (
+                <option key={t.id} value={t.userId}>
+                  {t.firstName} {t.lastName}{t.subjects ? ` (${t.subjects})` : ''}
+                </option>
+              ))}
+            </select>
             {errors.teacherId && <p className="text-xs text-red-400 mt-1">{errors.teacherId}</p>}
           </div>
         </div>
@@ -307,6 +329,17 @@ export default function AdminBatchesPage() {
 
   const centerId = centers[0]?.id ?? '';
 
+  // ── Fetch teachers ─────────────────────────────────────────────────────────
+  const { data: teachers = [] } = useQuery<TeacherResponse[]>({
+    queryKey: ['teachers', centerId],
+    queryFn: () =>
+      api.get(`/api/v1/centers/${centerId}/teachers`).then((r) => {
+        const d = r.data;
+        return Array.isArray(d) ? d : (d.content ?? []);
+      }),
+    enabled: !!centerId,
+  });
+
   // ── Fetch batches ──────────────────────────────────────────────────────────
   const {
     data: batches = [],
@@ -355,6 +388,8 @@ export default function AdminBatchesPage() {
     },
   });
 
+  const teacherMap = new Map(teachers.map((t) => [t.userId, `${t.firstName} ${t.lastName}`]));
+
   const isLoading = centersLoading || batchesLoading;
 
   return (
@@ -381,6 +416,7 @@ export default function AdminBatchesPage() {
       <AnimatePresence>
         {showForm && (
           <AddBatchForm
+            teachers={teachers}
             onSubmit={(data) => createBatch.mutate(data)}
             onCancel={() => setShowForm(false)}
             isSubmitting={createBatch.isPending}
@@ -516,8 +552,8 @@ export default function AdminBatchesPage() {
                       </td>
                       <td className="py-3 pr-4 text-white/70">{batch.subject}</td>
                       <td className="py-3 pr-4">
-                        <span className="text-xs text-white/40 font-mono truncate block max-w-[120px]" title={batch.teacherId}>
-                          {batch.teacherId ? `${batch.teacherId.substring(0, 8)}…` : '—'}
+                        <span className="text-xs text-white/60 truncate block max-w-[140px]" title={batch.teacherId}>
+                          {teacherMap.get(batch.teacherId) ?? (batch.teacherId ? `${batch.teacherId.substring(0, 8)}…` : '—')}
                         </span>
                       </td>
                       <td className="py-3 pr-4">
