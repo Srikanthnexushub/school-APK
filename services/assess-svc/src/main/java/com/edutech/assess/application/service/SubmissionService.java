@@ -136,6 +136,14 @@ public class SubmissionService implements StartSubmissionUseCase, SubmitAnswersU
         }
 
         Submission saved = submissionRepository.save(sub);
+
+        // Mark enrollment as completed so student sees "View Results" instead of "Continue"
+        enrollmentRepository.findByExamIdAndStudentId(examId, principal.userId())
+                .ifPresent(enrollment -> {
+                    enrollment.complete();
+                    enrollmentRepository.save(enrollment);
+                });
+
         double passingPct = exam.getTotalMarks() > 0
                 ? (exam.getPassingMarks() / exam.getTotalMarks()) * 100.0
                 : 0.0;

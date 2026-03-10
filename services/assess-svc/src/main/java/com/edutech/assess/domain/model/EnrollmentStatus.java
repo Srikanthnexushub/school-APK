@@ -3,5 +3,6 @@ package com.edutech.assess.domain.model;
 
 public enum EnrollmentStatus {
     ENROLLED,
-    WITHDRAWN
+    WITHDRAWN,
+    COMPLETED
 }

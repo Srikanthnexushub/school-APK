@@ -18,6 +18,7 @@ import com.edutech.assess.domain.port.in.PublishExamUseCase;
 import com.edutech.assess.domain.port.out.AssessEventPublisher;
 import com.edutech.assess.domain.port.out.ExamEnrollmentRepository;
 import com.edutech.assess.domain.port.out.ExamRepository;
+import com.edutech.assess.domain.port.out.QuestionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -42,13 +43,16 @@ public class ExamService implements CreateExamUseCase, PublishExamUseCase, ListP
     private final ExamRepository examRepository;
     private final ExamEnrollmentRepository enrollmentRepository;
     private final AssessEventPublisher eventPublisher;
+    private final QuestionRepository questionRepository;
 
     public ExamService(ExamRepository examRepository,
                        ExamEnrollmentRepository enrollmentRepository,
-                       AssessEventPublisher eventPublisher) {
+                       AssessEventPublisher eventPublisher,
+                       QuestionRepository questionRepository) {
         this.examRepository = examRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.eventPublisher = eventPublisher;
+        this.questionRepository = questionRepository;
     }
 
     @Override
@@ -132,11 +136,12 @@ public class ExamService implements CreateExamUseCase, PublishExamUseCase, ListP
         List<Exam> published = examRepository.findAllPublished();
         Map<UUID, ExamEnrollment> enrollmentByExamId = enrollmentRepository.findByStudentId(studentId)
                 .stream()
-                .filter(e -> e.getStatus() == EnrollmentStatus.ENROLLED)
+                .filter(e -> e.getStatus() == EnrollmentStatus.ENROLLED || e.getStatus() == EnrollmentStatus.COMPLETED)
                 .collect(Collectors.toMap(ExamEnrollment::getExamId, Function.identity(),
                         (existing, replacement) -> existing));
         return published.stream()
-                .map(exam -> toStudentResponse(exam, enrollmentByExamId.get(exam.getId())))
+                .map(exam -> toStudentResponse(exam, enrollmentByExamId.get(exam.getId()),
+                        questionRepository.countByExamId(exam.getId())))
                 .toList();
     }
 
@@ -144,11 +149,12 @@ public class ExamService implements CreateExamUseCase, PublishExamUseCase, ListP
     public Page<StudentExamResponse> listPublishedExams(UUID studentId, Pageable pageable) {
         Map<UUID, ExamEnrollment> enrollmentByExamId = enrollmentRepository.findByStudentId(studentId)
                 .stream()
-                .filter(e -> e.getStatus() == EnrollmentStatus.ENROLLED)
+                .filter(e -> e.getStatus() == EnrollmentStatus.ENROLLED || e.getStatus() == EnrollmentStatus.COMPLETED)
                 .collect(Collectors.toMap(ExamEnrollment::getExamId, Function.identity(),
                         (existing, replacement) -> existing));
         List<StudentExamResponse> all = examRepository.findAllPublished().stream()
-                .map(exam -> toStudentResponse(exam, enrollmentByExamId.get(exam.getId())))
+                .map(exam -> toStudentResponse(exam, enrollmentByExamId.get(exam.getId()),
+                        questionRepository.countByExamId(exam.getId())))
                 .toList();
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), all.size());
@@ -163,10 +169,13 @@ public class ExamService implements CreateExamUseCase, PublishExamUseCase, ListP
         );
     }
 
-    private StudentExamResponse toStudentResponse(Exam exam, ExamEnrollment enrollment) {
+    private StudentExamResponse toStudentResponse(Exam exam, ExamEnrollment enrollment, int questionCount) {
         String status;
         UUID enrollmentId = null;
-        if (enrollment != null) {
+        if (enrollment != null && enrollment.getStatus() == EnrollmentStatus.COMPLETED) {
+            status = "COMPLETED";
+            enrollmentId = enrollment.getId();
+        } else if (enrollment != null) {
             status = "ENROLLED";
             enrollmentId = enrollment.getId();
         } else if (exam.getStartAt() != null && exam.getStartAt().isAfter(Instant.now())) {
@@ -182,7 +191,7 @@ public class ExamService implements CreateExamUseCase, PublishExamUseCase, ListP
                 exam.getDescription(),
                 subject,
                 exam.getDurationMinutes() * 60,
-                0,
+                questionCount,
                 "MEDIUM",
                 status,
                 startDate,

@@ -62,6 +62,11 @@ public class ExamEnrollment {
         this.updatedAt = Instant.now();
     }
 
+    public void complete() {
+        this.status = EnrollmentStatus.COMPLETED;
+        this.updatedAt = Instant.now();
+    }
+
     public UUID getId() { return id; }
     public UUID getExamId() { return examId; }
     public UUID getStudentId() { return studentId; }

@@ -12,4 +12,5 @@ public interface QuestionRepository {
     Optional<Question> findById(UUID id);
     List<Question> findByExamId(UUID examId);
     List<Question> saveAll(List<Question> questions);
+    int countByExamId(UUID examId);
 }

@@ -37,4 +37,9 @@ class QuestionPersistenceAdapter implements QuestionRepository {
     public List<Question> saveAll(List<Question> questions) {
         return repository.saveAll(questions);
     }
+
+    @Override
+    public int countByExamId(UUID examId) {
+        return repository.countByExamId(examId);
+    }
 }

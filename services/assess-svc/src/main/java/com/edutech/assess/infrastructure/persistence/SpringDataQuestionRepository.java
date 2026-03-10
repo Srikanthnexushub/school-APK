@@ -17,4 +17,7 @@ interface SpringDataQuestionRepository extends JpaRepository<Question, UUID> {
 
     @Query("SELECT q FROM Question q WHERE q.examId = :examId AND q.deletedAt IS NULL ORDER BY q.createdAt ASC")
     List<Question> findByExamId(@Param("examId") UUID examId);
+
+    @Query("SELECT COUNT(q) FROM Question q WHERE q.examId = :examId AND q.deletedAt IS NULL")
+    int countByExamId(@Param("examId") UUID examId);
 }
