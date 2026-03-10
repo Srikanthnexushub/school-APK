@@ -58,6 +58,10 @@ openai:
 ollama:
   base-url: ${OLLAMA_BASE_URL}
 
+# Active LLM provider: ANTHROPIC | OPENROUTER (override via AI_DEFAULT_PROVIDER env var)
+ai:
+  default-provider: ${AI_DEFAULT_PROVIDER:ANTHROPIC}
+
 # OpenRouter — OpenAI-compatible multi-model gateway
 openrouter:
   api-key: ${OPENROUTER_API_KEY}

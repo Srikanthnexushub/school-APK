@@ -17,6 +17,7 @@ import com.edutech.aigateway.domain.port.out.RateLimitPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -31,15 +32,24 @@ public class LlmRoutingService implements RouteCompletionUseCase {
     private final LlmClient openRouterLlmClient;
     private final RateLimitPort rateLimitPort;
     private final AiGatewayEventPublisher eventPublisher;
+    private final LlmProvider defaultProvider;
 
     public LlmRoutingService(LlmClient llmClient,
                              @Qualifier("openRouterLlmClient") LlmClient openRouterLlmClient,
                              RateLimitPort rateLimitPort,
-                             AiGatewayEventPublisher eventPublisher) {
+                             AiGatewayEventPublisher eventPublisher,
+                             @Value("${ai.default-provider:ANTHROPIC}") String defaultProviderName) {
         this.llmClient = llmClient;
         this.openRouterLlmClient = openRouterLlmClient;
         this.rateLimitPort = rateLimitPort;
         this.eventPublisher = eventPublisher;
+        LlmProvider resolved;
+        try {
+            resolved = LlmProvider.valueOf(defaultProviderName.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            resolved = LlmProvider.ANTHROPIC;
+        }
+        this.defaultProvider = resolved;
     }
 
     @Override
@@ -85,11 +95,11 @@ public class LlmRoutingService implements RouteCompletionUseCase {
     }
 
     /**
-     * Resolves the active LLM provider.
-     * Defaults to ANTHROPIC; extend this method to support runtime provider selection
-     * (e.g., via configuration property or request header).
+     * Resolves the active LLM provider from the {@code ai.default-provider} config
+     * property (env var: {@code AI_DEFAULT_PROVIDER}).  Defaults to ANTHROPIC when
+     * not set.  Set to OPENROUTER to use the OpenRouter multi-model gateway.
      */
     private LlmProvider resolveProvider() {
-        return LlmProvider.ANTHROPIC;
+        return defaultProvider;
     }
 }
