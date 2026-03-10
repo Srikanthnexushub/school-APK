@@ -82,10 +82,13 @@ public class CopilotService {
                 .orElseThrow(() -> new ConversationNotFoundException(conversationId));
         validateOwnership(conversation, parentId);
 
-        conversation.addMessage("user", userMessage);
-
-        // Build history for context window (exclude the just-added user message from prior history)
+        // Build history from existing messages FIRST — triggers lazy load of the
+        // PersistentList before any transient CopilotMessage is added.  If we
+        // addMessage() before the collection is initialised, Hibernate auto-flushes
+        // before the lazy SELECT and cannot cascade-persist the transient child.
         List<Map<String, String>> history = buildHistory(conversation);
+
+        conversation.addMessage("user", userMessage);
         String aiReply = callAiGateway(userMessage, history);
         conversation.addMessage("assistant", aiReply);
 
