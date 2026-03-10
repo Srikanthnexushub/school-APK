@@ -1,36 +1,32 @@
 package com.edutech.aigateway.infrastructure.external;
 
-import com.edutech.aigateway.application.config.AnthropicProperties;
 import com.edutech.aigateway.application.exception.AiProviderException;
 import com.edutech.aigateway.domain.model.CompletionRequest;
 import com.edutech.aigateway.domain.model.CompletionResponse;
 import com.edutech.aigateway.domain.model.LlmProvider;
 import com.edutech.aigateway.domain.port.out.LlmClient;
+import com.edutech.aigateway.infrastructure.config.OpenRouterProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-@Primary
-@Component
-public class AnthropicWebClientAdapter implements LlmClient {
+@Component("openRouterLlmClient")
+public class OpenRouterWebClientAdapter implements LlmClient {
 
     private final WebClient webClient;
-    private final AnthropicProperties props;
+    private final OpenRouterProperties props;
 
-    public AnthropicWebClientAdapter(WebClient.Builder builder, AnthropicProperties props) {
+    public OpenRouterWebClientAdapter(WebClient.Builder builder, OpenRouterProperties props) {
         this.props = props;
         this.webClient = builder
                 .baseUrl(props.baseUrl())
-                .defaultHeader("x-api-key", props.apiKey())
-                .defaultHeader("anthropic-version", "2023-06-01")
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + props.apiKey())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
@@ -38,19 +34,19 @@ public class AnthropicWebClientAdapter implements LlmClient {
     @Override
     public Mono<CompletionResponse> complete(CompletionRequest request, LlmProvider provider) {
         return switch (provider) {
-            case ANTHROPIC -> isPlaceholderKey() ? executeLocalEcho(request) : executeAnthropic(request);
-            case OPENAI -> Mono.error(new AiProviderException("OpenAI completions not supported"));
+            case OPENROUTER -> isPlaceholderKey() ? executeLocalEcho(request) : executeOpenRouter(request);
+            case ANTHROPIC -> Mono.error(new AiProviderException("Anthropic completions not supported in OpenRouter adapter"));
+            case OPENAI -> Mono.error(new AiProviderException("OpenAI completions not supported in OpenRouter adapter"));
             case OLLAMA -> Mono.error(new AiProviderException("Ollama routing not implemented in this adapter"));
-            case OPENROUTER -> Mono.error(new AiProviderException("OpenRouter completions not supported in this adapter"));
         };
     }
 
-    /** Returns true when no real Anthropic key is configured (local dev placeholder). */
-    private boolean isPlaceholderKey() {
+    /** Returns true when no real OpenRouter key is configured (local dev placeholder). */
+    public boolean isPlaceholderKey() {
         String key = props.apiKey();
         return key == null || key.isBlank()
-                || key.startsWith("sk-ant-dev")
-                || key.equals("sk-ant-dev-placeholder");
+                || key.startsWith("or-dev")
+                || key.equals("or-dev-placeholder");
     }
 
     /**
@@ -58,7 +54,7 @@ public class AnthropicWebClientAdapter implements LlmClient {
      * Inspects systemPrompt keywords to return a contextually appropriate response
      * so the UI remains fully usable without an external API subscription.
      */
-    private Mono<CompletionResponse> executeLocalEcho(CompletionRequest request) {
+    public Mono<CompletionResponse> executeLocalEcho(CompletionRequest request) {
         String sys  = request.systemPrompt() != null ? request.systemPrompt().toLowerCase() : "";
         String user = request.userMessage()   != null ? request.userMessage().toLowerCase()  : "";
 
@@ -105,7 +101,7 @@ public class AnthropicWebClientAdapter implements LlmClient {
         CompletionResponse response = new CompletionResponse(
                 UUID.randomUUID().toString(),
                 reply,
-                LlmProvider.ANTHROPIC,
+                LlmProvider.OPENROUTER,
                 "local-echo",
                 0,
                 reply.split("\\s+").length,
@@ -114,41 +110,44 @@ public class AnthropicWebClientAdapter implements LlmClient {
         return Mono.just(response);
     }
 
-    private Mono<CompletionResponse> executeAnthropic(CompletionRequest request) {
-        List<AnthropicMessage> messages = new ArrayList<>();
+    private Mono<CompletionResponse> executeOpenRouter(CompletionRequest request) {
+        List<OpenRouterMessage> messages = new java.util.ArrayList<>();
         if (request.systemPrompt() != null && !request.systemPrompt().isBlank()) {
-            messages.add(new AnthropicMessage("user",
-                    "[System]: " + request.systemPrompt() + "\n\n" + request.userMessage()));
-        } else {
-            messages.add(new AnthropicMessage("user", request.userMessage()));
+            messages.add(new OpenRouterMessage("system", request.systemPrompt()));
         }
+        messages.add(new OpenRouterMessage("user", request.userMessage()));
 
-        AnthropicRequest body = new AnthropicRequest(props.model(), request.maxTokens(), messages);
+        OpenRouterRequest body = new OpenRouterRequest(
+                props.model(),
+                messages,
+                request.maxTokens(),
+                request.temperature()
+        );
         long startMs = System.currentTimeMillis();
 
         return webClient.post()
-                .uri("/v1/messages")
+                .uri("/api/v1/chat/completions")
                 .bodyValue(body)
                 .retrieve()
                 .onStatus(status -> status.isError(), clientResponse ->
                         clientResponse.bodyToMono(String.class)
                                 .flatMap(errorBody -> Mono.error(
-                                        new AiProviderException("Anthropic API error [" +
+                                        new AiProviderException("OpenRouter API error [" +
                                                 clientResponse.statusCode().value() + "]: " + errorBody)))
                 )
-                .bodyToMono(AnthropicResponse.class)
+                .bodyToMono(OpenRouterResponse.class)
                 .map(response -> {
                     long latencyMs = System.currentTimeMillis() - startMs;
-                    String content = (response.content() != null && !response.content().isEmpty())
-                            ? response.content().get(0).text()
+                    String content = (response.choices() != null && !response.choices().isEmpty())
+                            ? response.choices().get(0).message().content()
                             : "";
-                    int inputTokens = (response.usage() != null) ? response.usage().inputTokens() : 0;
-                    int outputTokens = (response.usage() != null) ? response.usage().outputTokens() : 0;
+                    int inputTokens = (response.usage() != null) ? response.usage().promptTokens() : 0;
+                    int outputTokens = (response.usage() != null) ? response.usage().completionTokens() : 0;
 
                     return new CompletionResponse(
                             UUID.randomUUID().toString(),
                             content,
-                            LlmProvider.ANTHROPIC,
+                            LlmProvider.OPENROUTER,
                             props.model(),
                             inputTokens,
                             outputTokens,
@@ -159,29 +158,30 @@ public class AnthropicWebClientAdapter implements LlmClient {
 
     // ── Private request/response records ───────────────────────────────────────
 
-    private record AnthropicRequest(
+    private record OpenRouterRequest(
             String model,
+            List<OpenRouterMessage> messages,
             @JsonProperty("max_tokens") int maxTokens,
-            List<AnthropicMessage> messages
+            double temperature
     ) {}
 
-    private record AnthropicMessage(
+    private record OpenRouterMessage(
             String role,
             String content
     ) {}
 
-    private record AnthropicResponse(
+    private record OpenRouterResponse(
             String id,
-            List<AnthropicContent> content,
-            AnthropicUsage usage
+            List<OpenRouterChoice> choices,
+            OpenRouterUsage usage
     ) {}
 
-    private record AnthropicContent(
-            String text
+    private record OpenRouterChoice(
+            OpenRouterMessage message
     ) {}
 
-    private record AnthropicUsage(
-            @JsonProperty("input_tokens") int inputTokens,
-            @JsonProperty("output_tokens") int outputTokens
+    private record OpenRouterUsage(
+            @JsonProperty("prompt_tokens") int promptTokens,
+            @JsonProperty("completion_tokens") int completionTokens
     ) {}
 }

@@ -11,9 +11,12 @@ interface User {
 
 interface AuthState {
   token: string | null;
+  refreshToken: string | null;
+  deviceId: string | null;
   user: User | null;
   isAuthenticated: boolean;
-  setAuth: (token: string, user: User) => void;
+  setAuth: (token: string, user: User, refreshToken: string, deviceId: string) => void;
+  setTokens: (token: string, refreshToken: string) => void;
   logout: () => void;
 }
 
@@ -21,10 +24,14 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       token: null,
+      refreshToken: null,
+      deviceId: null,
       user: null,
       isAuthenticated: false,
-      setAuth: (token, user) => set({ token, user, isAuthenticated: true }),
-      logout: () => set({ token: null, user: null, isAuthenticated: false }),
+      setAuth: (token, user, refreshToken, deviceId) =>
+        set({ token, refreshToken, deviceId, user, isAuthenticated: true }),
+      setTokens: (token, refreshToken) => set({ token, refreshToken }),
+      logout: () => set({ token: null, refreshToken: null, deviceId: null, user: null, isAuthenticated: false }),
     }),
     { name: 'edupath-auth' }
   )

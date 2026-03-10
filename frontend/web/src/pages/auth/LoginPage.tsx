@@ -32,24 +32,25 @@ export default function LoginPage() {
 
   async function onSubmit(data: FormData) {
     try {
+      const deviceId = crypto.randomUUID();
       const loginRes = await api.post('/api/v1/auth/login', {
         email: data.email,
         password: data.password,
         captchaToken: captchaToken!,
         deviceFingerprint: {
           userAgent: navigator.userAgent,
-          deviceId: crypto.randomUUID(),
+          deviceId,
           ipSubnet: '127.0.0',
         },
       });
-      const { accessToken } = loginRes.data;
+      const { accessToken, refreshToken } = loginRes.data;
 
       const meRes = await api.get('/api/v1/auth/me', {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       const u = meRes.data;
       const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;
-      setAuth(accessToken, { id: u.id, email: u.email, role: u.role, name });
+      setAuth(accessToken, { id: u.id, email: u.email, role: u.role, name }, refreshToken, deviceId);
 
       toast.success('Welcome back!');
       if (u.role === 'CENTER_ADMIN' || u.role === 'SUPER_ADMIN') navigate('/admin');

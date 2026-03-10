@@ -1,6 +1,6 @@
 # EduTech AI Platform — System Architecture
 
-> **Document status:** Living reference — reflects the platform as of 2026-03-07.
+> **Document status:** Living reference — reflects the platform as of 2026-03-10.
 > All service completion documents (COMPLETION.md) are the authoritative frozen record
 > for each service. This document provides cross-cutting architectural context.
 
@@ -37,7 +37,7 @@ The platform is delivered as a React Native Android APK (with iOS and web target
 
 - **Cloud-native:** Containerized on Kubernetes 1.30 with Helm 3 + ArgoCD GitOps; distroless Java 21 images with multi-stage Docker builds.
 - **Microservices:** Seven independently deployable services with strict bounded-context isolation. Zero shared databases.
-- **AI-powered:** All AI requests are routed through a dedicated reactive AI gateway service that integrates Anthropic Claude (primary LLM), OpenAI Embeddings, and a Python FastAPI ML sidecar for psychometric inference.
+- **AI-powered:** All AI requests are routed through a dedicated reactive AI gateway service that integrates Anthropic Claude (primary LLM), OpenRouter (multi-model fallback: OpenAI-compatible routing), OpenAI Embeddings, and a Python FastAPI ML sidecar for psychometric inference. All AI features degrade gracefully to a local-echo mode when no real API key is configured.
 - **Hexagonal architecture (Ports and Adapters):** Every service enforces the same four-layer package structure via ArchUnit rules that run on every build.
 - **Zero-trust security:** JWT RS256 asymmetric tokens validated at the edge; downstream services trust forwarded headers. Istio mTLS STRICT between all pods.
 

@@ -58,6 +58,14 @@ openai:
 ollama:
   base-url: ${OLLAMA_BASE_URL}
 
+# OpenRouter — OpenAI-compatible multi-model gateway
+openrouter:
+  api-key: ${OPENROUTER_API_KEY}
+  base-url: ${OPENROUTER_BASE_URL:https://openrouter.ai}
+  model: ${OPENROUTER_MODEL:openai/gpt-4o-mini}
+  connect-timeout-ms: ${OPENROUTER_CONNECT_TIMEOUT_MS:5000}
+  read-timeout-ms: ${OPENROUTER_READ_TIMEOUT_MS:30000}
+
 # Python FastAPI sidecars
 sidecars:
   psych-ai:

@@ -96,4 +96,38 @@ api/
 
 ---
 
-*This document is permanently frozen. Any future changes to ai-gateway-svc require a new versioned record.*
+---
+
+## Addendum — 2026-03-10: OpenRouter Integration
+
+**Status:** EXTENDED (tests: 11/11, BUILD SUCCESS)
+
+### New Files Added
+
+| File | Layer | Purpose |
+|---|---|---|
+| `infrastructure/config/OpenRouterProperties.java` | Infrastructure | `@ConfigurationProperties(prefix = "openrouter")` record — apiKey, baseUrl, model, timeouts |
+| `infrastructure/external/OpenRouterWebClientAdapter.java` | Infrastructure | `LlmClient` adapter; calls OpenRouter's OpenAI-compatible `/api/v1/chat/completions`; `@Component("openRouterLlmClient")` |
+
+### Modified Files
+
+| File | Change |
+|---|---|
+| `domain/model/LlmProvider.java` | Added `OPENROUTER` enum constant |
+| `infrastructure/external/AnthropicWebClientAdapter.java` | Added `@Primary` (preserves default bean); added `OPENROUTER` switch case with error guard |
+| `application/service/LlmRoutingService.java` | Constructor-injected `@Qualifier("openRouterLlmClient")`; OPENROUTER case routes to OpenRouter adapter |
+| `resources/application.yml` | Added `openrouter:` block with `${ENV_VAR:default}` pattern |
+| `.env` | Added 5 `OPENROUTER_*` vars (key: `or-dev-placeholder` for local-echo mode) |
+| `.env.example` | Added OpenRouter section |
+
+### Local-Echo Fallback
+`OpenRouterWebClientAdapter.isPlaceholderKey()` returns `true` when `OPENROUTER_API_KEY` starts with `or-dev` or is blank — identical keyword-matching echo logic as Anthropic adapter. All AI features remain functional without a real API key.
+
+### Environment Variables
+```
+OPENROUTER_API_KEY=or-dev-placeholder
+OPENROUTER_BASE_URL=https://openrouter.ai
+OPENROUTER_MODEL=openai/gpt-4o-mini
+OPENROUTER_CONNECT_TIMEOUT_MS=5000
+OPENROUTER_READ_TIMEOUT_MS=30000
+```

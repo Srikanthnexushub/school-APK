@@ -230,10 +230,15 @@ ANTHROPIC_API_KEY=sk-ant-dev-placeholder   # leave as-is for local dev; triggers
 ANTHROPIC_MODEL=claude-sonnet-4-6
 ANTHROPIC_BASE_URL=https://api.anthropic.com
 OPENAI_API_KEY=sk-dev-placeholder
+OPENROUTER_API_KEY=or-dev-placeholder      # leave as-is for local dev; triggers local echo mode
+OPENROUTER_BASE_URL=https://openrouter.ai
+OPENROUTER_MODEL=openai/gpt-4o-mini
+OPENROUTER_CONNECT_TIMEOUT_MS=5000
+OPENROUTER_READ_TIMEOUT_MS=30000
 OLLAMA_BASE_URL=http://localhost:11434
 ```
 
-> **Local AI without a real API key:** When `ANTHROPIC_API_KEY` starts with `sk-ant-dev` or is blank, `ai-gateway-svc` automatically activates **local-echo mode** — a rule-based fallback that returns contextually appropriate responses based on keywords in the system/user prompt. The Parent Copilot, Student AI Mentor, and all other AI features remain fully usable without an Anthropic subscription.
+> **Local AI without a real API key:** When `ANTHROPIC_API_KEY` starts with `sk-ant-dev` (or is blank), or `OPENROUTER_API_KEY` starts with `or-dev` (or is blank), `ai-gateway-svc` automatically activates **local-echo mode** — a rule-based fallback that returns contextually appropriate responses based on keywords in the system/user prompt. The Parent Copilot, Student AI Mentor, and all other AI features remain fully usable without any external API subscription.
 
 **hCaptcha** (use Google's official test keys for local dev):
 

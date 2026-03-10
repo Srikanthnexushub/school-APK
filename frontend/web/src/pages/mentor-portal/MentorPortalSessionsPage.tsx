@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Calendar, Video, CheckCircle2, XCircle, Clock, Filter,
-  AlertCircle, BookOpen,
+  AlertCircle, BookOpen, Loader2, RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
@@ -22,18 +22,6 @@ interface MentorSession {
   notes?: string;
 }
 
-const MOCK_SESSIONS: MentorSession[] = [
-  { id: 's1', studentName: 'Arjun Kapoor',  scheduledAt: new Date(Date.now() + 3600000).toISOString(),          subject: 'Mechanics',       durationMinutes: 60,  status: 'IN_PROGRESS' },
-  { id: 's2', studentName: 'Sneha Reddy',   scheduledAt: new Date(Date.now() + 86400000).toISOString(),          subject: 'Calculus',         durationMinutes: 60,  status: 'SCHEDULED' },
-  { id: 's3', studentName: 'Vikram Das',    scheduledAt: new Date(Date.now() + 86400000 * 2).toISOString(),      subject: 'Thermodynamics',   durationMinutes: 90,  status: 'SCHEDULED' },
-  { id: 's4', studentName: 'Priya Nath',    scheduledAt: new Date(Date.now() + 86400000 * 3).toISOString(),      subject: 'Electrostatics',   durationMinutes: 60,  status: 'PENDING' },
-  { id: 's5', studentName: 'Rohit Verma',   scheduledAt: new Date(Date.now() + 86400000 * 4).toISOString(),      subject: 'Optics',           durationMinutes: 60,  status: 'SCHEDULED' },
-  { id: 's6', studentName: 'Kavya Sharma',  scheduledAt: new Date(Date.now() - 86400000).toISOString(),          subject: 'Algebra',          durationMinutes: 60,  status: 'COMPLETED', notes: 'Good progress on quadratic equations.' },
-  { id: 's7', studentName: 'Rahul Menon',   scheduledAt: new Date(Date.now() - 86400000 * 2).toISOString(),      subject: 'Organic Chemistry', durationMinutes: 90, status: 'COMPLETED', notes: 'Covered IUPAC naming, alkyl halides.' },
-  { id: 's8', studentName: 'Divya Iyer',    scheduledAt: new Date(Date.now() - 86400000 * 3).toISOString(),      subject: 'Kinematics',       durationMinutes: 60,  status: 'COMPLETED' },
-  { id: 's9', studentName: 'Aditya Singh',  scheduledAt: new Date(Date.now() - 86400000 * 5).toISOString(),      subject: 'Wave Optics',      durationMinutes: 60,  status: 'CANCELLED' },
-];
-
 type FilterTab = 'ALL' | 'UPCOMING' | 'COMPLETED' | 'PENDING';
 
 const STATUS_BADGE: Record<MentorSession['status'], { variant: 'success' | 'info' | 'warning' | 'default' | 'danger'; label: string }> = {
@@ -46,9 +34,10 @@ const STATUS_BADGE: Record<MentorSession['status'], { variant: 'success' | 'info
 
 export default function MentorPortalSessionsPage() {
   const user = useAuthStore((s) => s.user);
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<FilterTab>('ALL');
 
-  const { data: mentorProfile } = useQuery<{ id: string } | null>({
+  const { data: mentorProfile, isLoading: profileLoading, isError: profileError, refetch: refetchProfile } = useQuery<{ id: string } | null>({
     queryKey: ['mentor-profile', user?.id],
     queryFn: async () => {
       const res = await api.get('/api/v1/mentors');
@@ -57,22 +46,47 @@ export default function MentorPortalSessionsPage() {
       return profiles.find((p) => p.userId === user?.id) ?? null;
     },
     retry: false,
-    placeholderData: null,
   });
 
-  const { data: apiSessions } = useQuery<MentorSession[]>({
-    queryKey: ['mentor-sessions-all', mentorProfile?.id],
+  const profileId = mentorProfile?.id;
+
+  const {
+    data: apiSessions,
+    isLoading: sessionsLoading,
+    isError: sessionsError,
+    refetch: refetchSessions,
+  } = useQuery<MentorSession[]>({
+    queryKey: ['mentor-sessions-all', profileId],
     queryFn: async () => {
-      const res = await api.get(`/api/v1/mentor-sessions?mentorId=${mentorProfile!.id}`);
+      const res = await api.get(`/api/v1/mentor-sessions?mentorId=${profileId}`);
       const d = res.data;
       return Array.isArray(d) ? d : (d.content ?? []);
     },
-    enabled: !!mentorProfile?.id,
+    enabled: !!profileId,
     retry: false,
-    placeholderData: MOCK_SESSIONS,
   });
 
-  const sessions = apiSessions ?? MOCK_SESSIONS;
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ sessionId, status }: { sessionId: string; status: string }) => {
+      await api.patch(`/api/v1/mentor-sessions/${sessionId}/status`, { status });
+    },
+    onSuccess: (_data, variables) => {
+      const label =
+        variables.status === 'CONFIRMED' ? 'accepted' :
+        variables.status === 'CANCELLED' ? 'declined' :
+        'completed';
+      toast.success(`Session ${label}!`);
+      queryClient.invalidateQueries({ queryKey: ['mentor-sessions-all', profileId] });
+    },
+    onError: () => {
+      toast.error('Failed to update session status. Please try again.');
+    },
+  });
+
+  const isLoading = profileLoading || (!!profileId && sessionsLoading);
+  const hasError = profileError || sessionsError;
+
+  const sessions: MentorSession[] = apiSessions ?? [];
 
   const filtered = sessions.filter((s) => {
     if (filter === 'UPCOMING')  return s.status === 'SCHEDULED' || s.status === 'IN_PROGRESS';
@@ -94,6 +108,51 @@ export default function MentorPortalSessionsPage() {
     { id: 'PENDING',   label: 'Pending'      },
     { id: 'COMPLETED', label: 'History'      },
   ];
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-4 text-white/50">
+          <Loader2 className="w-10 h-10 animate-spin" />
+          <p>Loading sessions…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (hasError) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <div className="glass rounded-2xl p-10 flex flex-col items-center gap-4 text-white/50">
+          <AlertCircle className="w-12 h-12 text-red-400 opacity-70" />
+          <p className="text-white/70 font-medium">Failed to load sessions</p>
+          <button
+            onClick={() => { refetchProfile(); refetchSessions(); }}
+            className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-sm font-medium transition-all"
+          >
+            <RefreshCw className="w-4 h-4" /> Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // No mentor profile configured
+  if (mentorProfile === null) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <div className="glass rounded-2xl p-10 flex flex-col items-center gap-4 text-white/50 max-w-md text-center">
+          <AlertCircle className="w-12 h-12 text-amber-400 opacity-70" />
+          <p className="text-white font-semibold text-lg">Profile Not Configured</p>
+          <p className="text-white/50 text-sm">
+            No mentor profile was found for your account. Please contact an administrator to set up your mentor profile.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -146,7 +205,7 @@ export default function MentorPortalSessionsPage() {
       {filtered.length === 0 ? (
         <div className="glass rounded-2xl p-12 flex flex-col items-center gap-4 text-white/40">
           <BookOpen className="w-14 h-14 opacity-30" />
-          <p>No sessions in this category</p>
+          <p>No sessions found</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -202,20 +261,32 @@ export default function MentorPortalSessionsPage() {
                   {session.status === 'PENDING' && (
                     <>
                       <button
-                        onClick={() => toast.success('Booking accepted!')}
-                        className="p-2 rounded-xl bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 transition-colors"
+                        onClick={() => updateStatusMutation.mutate({ sessionId: session.id, status: 'CONFIRMED' })}
+                        disabled={updateStatusMutation.isPending}
+                        className="p-2 rounded-xl bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 transition-colors disabled:opacity-50"
                         title="Accept"
                       >
                         <CheckCircle2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => toast.info('Booking declined.')}
-                        className="p-2 rounded-xl bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-colors"
+                        onClick={() => updateStatusMutation.mutate({ sessionId: session.id, status: 'CANCELLED' })}
+                        disabled={updateStatusMutation.isPending}
+                        className="p-2 rounded-xl bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-colors disabled:opacity-50"
                         title="Decline"
                       >
                         <XCircle className="w-4 h-4" />
                       </button>
                     </>
+                  )}
+                  {session.status === 'SCHEDULED' && !isPast && (
+                    <button
+                      onClick={() => updateStatusMutation.mutate({ sessionId: session.id, status: 'COMPLETED' })}
+                      disabled={updateStatusMutation.isPending}
+                      className="p-2 rounded-xl bg-brand-600/20 text-brand-400 hover:bg-brand-600/30 transition-colors disabled:opacity-50 text-xs"
+                      title="Mark Complete"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                    </button>
                   )}
                   {session.status === 'COMPLETED' && (
                     <span className="text-xs text-emerald-400/60 flex items-center gap-1">
@@ -227,9 +298,9 @@ export default function MentorPortalSessionsPage() {
                       <XCircle className="w-3.5 h-3.5" /> Cancelled
                     </span>
                   )}
-                  {session.status === 'SCHEDULED' && !isPast && (
+                  {session.status === 'SCHEDULED' && isPast && (
                     <span className="text-xs text-white/30 flex items-center gap-1">
-                      <AlertCircle className="w-3.5 h-3.5" /> Upcoming
+                      <AlertCircle className="w-3.5 h-3.5" /> Past
                     </span>
                   )}
                 </div>

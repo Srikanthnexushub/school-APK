@@ -20,6 +20,8 @@ import SettingsPage from './pages/settings/SettingsPage';
 import ParentDashboardPage from './pages/parent/ParentDashboardPage';
 import ParentCopilotPage from './pages/parent/ParentCopilotPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminBatchesPage from './pages/admin/AdminBatchesPage';
+import AdminAssessmentsPage from './pages/admin/AdminAssessmentsPage';
 import MentorPortalDashboardPage from './pages/mentor-portal/MentorPortalDashboardPage';
 import MentorPortalSessionsPage from './pages/mentor-portal/MentorPortalSessionsPage';
 import MentorPortalInsightsPage from './pages/mentor-portal/MentorPortalInsightsPage';
@@ -87,8 +89,8 @@ export const router = createBrowserRouter([
       { index: true, element: <AdminDashboardPage /> },
       { path: 'dashboard', element: <AdminDashboardPage /> },
       { path: 'centers', element: <AdminDashboardPage /> },
-      { path: 'batches', element: <AdminDashboardPage /> },
-      { path: 'assessments', element: <AdminDashboardPage /> },
+      { path: 'batches', element: <AdminBatchesPage /> },
+      { path: 'assessments', element: <AdminAssessmentsPage /> },
     ],
   },
   {

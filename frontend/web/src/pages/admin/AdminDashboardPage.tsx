@@ -9,7 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -105,12 +105,6 @@ function timeAgo(iso: string): string {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
-}
-
-function formatRevenue(amount: number): string {
-  if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
-  if (amount >= 1000) return `₹${(amount / 1000).toFixed(1)}K`;
-  return `₹${amount}`;
 }
 
 const PIE_COLORS = ['#6366f1', '#34d399', '#fbbf24', '#f472b6', '#60a5fa', '#fb923c'];
@@ -447,24 +441,22 @@ export default function AdminDashboardPage() {
   });
 
   // ── Fetch batches for every center (parallel) ──────────────────────────────
-  const batchQueries = rawCenters.map((c) =>
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useQuery<BatchResponse[]>({
+  const batchQueries = useQueries({
+    queries: rawCenters.map((c) => ({
       queryKey: ['batches', c.id],
-      queryFn: () => api.get(`/api/v1/centers/${c.id}/batches`).then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }),
+      queryFn: () => api.get(`/api/v1/centers/${c.id}/batches`).then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }) as Promise<BatchResponse[]>,
       enabled: !!c.id,
-    })
-  );
+    })),
+  });
 
   // ── Fetch teachers for every center (parallel) ─────────────────────────────
-  const teacherQueries = rawCenters.map((c) =>
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useQuery<TeacherResponse[]>({
+  const teacherQueries = useQueries({
+    queries: rawCenters.map((c) => ({
       queryKey: ['teachers', c.id],
-      queryFn: () => api.get(`/api/v1/centers/${c.id}/teachers`).then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }),
+      queryFn: () => api.get(`/api/v1/centers/${c.id}/teachers`).then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }) as Promise<TeacherResponse[]>,
       enabled: !!c.id,
-    })
-  );
+    })),
+  });
 
   // ── Aggregate data ─────────────────────────────────────────────────────────
   const allBatches: BatchResponse[] = useMemo(
@@ -481,7 +473,6 @@ export default function AdminDashboardPage() {
 
   const totalStudents = allBatches.reduce((s, b) => s + b.enrolledCount, 0);
   const totalBatches  = allBatches.length;
-  const monthlyRevenue = totalStudents * 4500;
 
   // Build center rows with aggregated batch data
   const centers: CenterRow[] = rawCenters.map((c, idx) => {
@@ -649,9 +640,9 @@ export default function AdminDashboardPage() {
             delay={0.15}
           />
           <KpiCard
-            label="Monthly Revenue"
-            value={formatRevenue(monthlyRevenue)}
-            sub={`${totalStudents} students × ₹4,500`}
+            label="Enrolled Students"
+            value={totalStudents.toLocaleString()}
+            sub="Revenue data not available"
             icon={TrendingUp}
             color="bg-amber-500/15 text-amber-400"
             delay={0.2}

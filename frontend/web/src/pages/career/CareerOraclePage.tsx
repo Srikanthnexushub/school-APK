@@ -8,7 +8,7 @@ import {
 import {
   Sparkles, Zap, Share2, ChevronDown, ChevronUp,
   Wrench, FlaskConical, Palette, Briefcase, Heart, BookOpen,
-  TrendingUp, ExternalLink,
+  TrendingUp, ExternalLink, Brain,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
@@ -76,26 +76,6 @@ const DOMAIN_COLORS = [
   '#f59e0b',
   '#ec4899',
 ];
-
-const MOCK_PROFILE: CareerProfile = {
-  id: 'mock-1',
-  studentId: 'student-1',
-  recommendations: [
-    { domain: 'Engineering', score: 87, description: 'Strong aptitude for logical problem-solving and technical domains.', requiredSkills: SKILLS_MAP.Engineering, salaryRange: SALARY_MAP.Engineering },
-    { domain: 'Sciences', score: 74, description: 'Natural curiosity and research orientation fit scientific careers.', requiredSkills: SKILLS_MAP.Sciences, salaryRange: SALARY_MAP.Sciences },
-    { domain: 'Business', score: 68, description: 'Leadership traits and strategic thinking align with business roles.', requiredSkills: SKILLS_MAP.Business, salaryRange: SALARY_MAP.Business },
-    { domain: 'Education', score: 55, description: 'Teaching ability and patience make education rewarding.', requiredSkills: SKILLS_MAP.Education, salaryRange: SALARY_MAP.Education },
-    { domain: 'Healthcare', score: 49, description: 'Care and attention to detail suit healthcare professions.', requiredSkills: SKILLS_MAP.Healthcare, salaryRange: SALARY_MAP.Healthcare },
-  ],
-  riasecCode: 'I-A-C',
-  generatedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-  insights: [
-    'Your personality is 78% aligned with Investigative (I) types — analytical and methodical.',
-    'Strong performance in Mathematics and Physics boosts Engineering and Sciences paths.',
-    'RIASEC code I-A-C matches careers in research, design, and systems engineering.',
-    'Your Openness score (Big Five) indicates comfort with novel, complex problem spaces.',
-  ],
-};
 
 function CircularProgress({ score, color, size = 72 }: { score: number; color: string; size?: number }) {
   const r = (size - 10) / 2;
@@ -211,39 +191,131 @@ export default function CareerOraclePage() {
   const [selectedCareer, setSelectedCareer] = useState<CareerRecommendation | null>(null);
   const [insightsExpanded, setInsightsExpanded] = useState(false);
 
-  const { data: profile, refetch } = useQuery<CareerProfile>({
+  const { data: profile, isLoading, isError, refetch } = useQuery<CareerProfile | null>({
     queryKey: ['career-profile', user?.id],
     queryFn: async () => {
-      const res = await api.get(`/api/v1/career-profiles/by-student/${user?.id}`);
-      return res.data;
+      try {
+        const res = await api.get(`/api/v1/career-profiles/by-student/${user?.id}`);
+        return res.data ?? null;
+      } catch (err: any) {
+        if (err?.response?.status === 404) return null;
+        throw err;
+      }
     },
+    enabled: !!user?.id,
     retry: false,
-    placeholderData: MOCK_PROFILE,
   });
 
   const generateMutation = useMutation({
     mutationFn: () =>
-      api.post('/api/v1/career-profiles', { studentId: user?.id }),
+      api.post(`/api/v1/career-recommendations/students/${user?.id}/generate`),
     onSuccess: () => {
       toast.success('Career DNA generated!');
       refetch();
     },
     onError: () => {
-      toast.error('Could not generate recommendations. Showing demo data.');
+      toast.error('Could not generate recommendations. Please try again later.');
     },
   });
 
-  const data = profile ?? MOCK_PROFILE;
-
-  const radarData = data.recommendations.map((r) => ({
+  const recommendations = profile?.recommendations ?? [];
+  const radarData = recommendations.map((r) => ({
     domain: r.domain,
     score: r.score,
     fullMark: 100,
   }));
 
   function handleShare() {
-    navigator.clipboard.writeText(`${window.location.origin}/career/shared/${data.id}`);
-    toast.success('Shareable link copied to clipboard!');
+    if (profile?.id) {
+      navigator.clipboard.writeText(`${window.location.origin}/career/shared/${profile.id}`);
+      toast.success('Shareable link copied to clipboard!');
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen p-6 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-2 border-brand-400/30 border-t-brand-400 rounded-full animate-spin" />
+          <p className="text-white/50 text-sm">Loading your career profile…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen p-6 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-white/50">Failed to load career profile. Please try again.</p>
+          <button onClick={() => refetch()} className="btn-primary">Retry</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen p-6 space-y-8">
+        {/* Hero */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative overflow-hidden glass rounded-3xl p-8 border border-white/5"
+        >
+          <div className="absolute top-0 left-0 w-80 h-80 bg-brand-600/15 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute bottom-0 right-0 w-64 h-64 bg-violet-600/15 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
+          <div className="relative z-10 flex items-center gap-2 mb-3">
+            <Sparkles className="w-5 h-5 text-brand-400" />
+            <span className="text-brand-400 text-sm font-medium uppercase tracking-wider">AI Career Analysis</span>
+          </div>
+          <h1 className="relative z-10 text-4xl font-bold text-white mb-2">
+            Your <span className="gradient-text">Career DNA</span>
+          </h1>
+          <p className="relative z-10 text-white/50 max-w-lg">
+            Powered by AI, your personality profile, and academic performance.
+          </p>
+        </motion.div>
+
+        {/* Empty state */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="card text-center py-16 space-y-6"
+        >
+          <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-brand-600/30 to-violet-600/30 flex items-center justify-center">
+            <Brain className="w-10 h-10 text-brand-400" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-2">No Career Profile Yet</h2>
+            <p className="text-white/50 max-w-md mx-auto text-sm">
+              Complete your psychometric assessment first to unlock AI-powered career recommendations tailored to your personality and aptitude.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <a
+              href="/psychometric"
+              className="btn-primary flex items-center gap-2 justify-center"
+            >
+              <Brain className="w-4 h-4" /> Take Psychometric Assessment
+            </a>
+            <button
+              onClick={() => generateMutation.mutate()}
+              disabled={generateMutation.isPending}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl glass border border-white/10 text-white/70 hover:text-white hover:border-white/20 transition-all text-sm justify-center"
+            >
+              {generateMutation.isPending ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Zap className="w-4 h-4" />
+              )}
+              Generate Recommendations
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
   }
 
   return (
@@ -269,9 +341,9 @@ export default function CareerOraclePage() {
             <p className="text-white/50 max-w-lg">
               Powered by AI, your personality profile, and academic performance. Discover paths uniquely matched to you.
             </p>
-            {data.generatedAt && (
+            {profile?.generatedAt && (
               <p className="text-white/30 text-xs mt-2">
-                Last generated: {new Date(data.generatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                Last generated: {new Date(profile.generatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
               </p>
             )}
           </div>
@@ -293,177 +365,184 @@ export default function CareerOraclePage() {
               ) : (
                 <Zap className="w-4 h-4" />
               )}
-              Generate Recommendations
+              Regenerate
             </button>
           </div>
         </div>
       </motion.div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-        {/* Bar Chart */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-          className="xl:col-span-3 card"
-        >
-          <h2 className="text-lg font-semibold text-white mb-1">Top Career Matches</h2>
-          <p className="text-white/40 text-sm mb-6">Click a bar to explore details</p>
+      {recommendations.length > 0 && (
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+          {/* Bar Chart */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="xl:col-span-3 card"
+          >
+            <h2 className="text-lg font-semibold text-white mb-1">Top Career Matches</h2>
+            <p className="text-white/40 text-sm mb-6">Click a bar to explore details</p>
 
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart
-              layout="vertical"
-              data={data.recommendations.slice(0, 5)}
-              margin={{ top: 0, right: 24, left: 0, bottom: 0 }}
-            >
-              <XAxis type="number" domain={[0, 100]} tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="domain" width={90} tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 12 }} axisLine={false} tickLine={false} />
-              <Tooltip
-                cursor={{ fill: 'rgba(255,255,255,0.04)' }}
-                contentStyle={{ background: '#1e2130', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: '#fff' }}
-                formatter={(value: number) => [`${value}%`, 'Match Score']}
-              />
-              <Bar
-                dataKey="score"
-                shape={<CustomBar />}
-                onClick={(d) => setSelectedCareer(d as CareerRecommendation)}
-                cursor="pointer"
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart
+                layout="vertical"
+                data={recommendations.slice(0, 5)}
+                margin={{ top: 0, right: 24, left: 0, bottom: 0 }}
               >
-                {data.recommendations.slice(0, 5).map((_, index) => (
-                  <Cell key={index} fill={DOMAIN_COLORS[index % DOMAIN_COLORS.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+                <XAxis type="number" domain={[0, 100]} tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="domain" width={90} tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                  contentStyle={{ background: '#1e2130', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: '#fff' }}
+                  formatter={(value: number) => [`${value}%`, 'Match Score']}
+                />
+                <Bar
+                  dataKey="score"
+                  shape={<CustomBar />}
+                  onClick={(d) => setSelectedCareer(d as CareerRecommendation)}
+                  cursor="pointer"
+                >
+                  {recommendations.slice(0, 5).map((_, index) => (
+                    <Cell key={index} fill={DOMAIN_COLORS[index % DOMAIN_COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
 
-          {/* Detail Panel */}
+            {/* Detail Panel */}
+            <AnimatePresence>
+              {selectedCareer && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden mt-4 pt-4 border-t border-white/8"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <h3 className="font-bold text-white text-lg mb-1">{selectedCareer.domain}</h3>
+                      <p className="text-white/50 text-sm mb-3">{selectedCareer.description}</p>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {(selectedCareer.requiredSkills?.length
+                          ? selectedCareer.requiredSkills
+                          : SKILLS_MAP[selectedCareer.domain] ?? []
+                        ).map((skill) => (
+                          <span key={skill} className="badge bg-brand-600/20 text-brand-300">{skill}</span>
+                        ))}
+                      </div>
+                      <p className="text-emerald-400 text-sm font-medium">
+                        Avg. Salary: {selectedCareer.salaryRange ?? SALARY_MAP[selectedCareer.domain] ?? 'N/A'}
+                      </p>
+                    </div>
+                    <a
+                      href={`https://www.google.com/search?q=${encodeURIComponent(selectedCareer.domain + ' career courses India')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-1.5 text-brand-400 hover:text-brand-300 text-sm font-medium flex-shrink-0"
+                    >
+                      Explore Courses <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+
+          {/* Radar Chart */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.15 }}
+            className="xl:col-span-2 card flex flex-col"
+          >
+            <h2 className="text-lg font-semibold text-white mb-1">Domain Radar</h2>
+            <p className="text-white/40 text-sm mb-4">Your spread across all domains</p>
+            <div className="flex-1 flex items-center justify-center">
+              <ResponsiveContainer width="100%" height={260}>
+                <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
+                  <PolarGrid stroke="rgba(255,255,255,0.06)" />
+                  <PolarAngleAxis dataKey="domain" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
+                  <Radar
+                    name="Score"
+                    dataKey="score"
+                    stroke="#6366f1"
+                    fill="#6366f1"
+                    fillOpacity={0.25}
+                    strokeWidth={2}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* AI Insights */}
+      {(profile?.insights?.length ?? 0) > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="card"
+        >
+          <button
+            className="w-full flex items-center justify-between text-left"
+            onClick={() => setInsightsExpanded(!insightsExpanded)}
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-brand-600/20">
+                <TrendingUp className="w-4 h-4 text-brand-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-white">Why these recommendations?</h2>
+                <p className="text-white/40 text-sm">AI-generated insights based on your profile</p>
+              </div>
+            </div>
+            {insightsExpanded ? (
+              <ChevronUp className="w-5 h-5 text-white/40" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-white/40" />
+            )}
+          </button>
+
           <AnimatePresence>
-            {selectedCareer && (
+            {insightsExpanded && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden mt-4 pt-4 border-t border-white/8"
+                className="overflow-hidden"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-white text-lg mb-1">{selectedCareer.domain}</h3>
-                    <p className="text-white/50 text-sm mb-3">{selectedCareer.description}</p>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {(SKILLS_MAP[selectedCareer.domain] ?? []).map((skill) => (
-                        <span key={skill} className="badge bg-brand-600/20 text-brand-300">{skill}</span>
-                      ))}
-                    </div>
-                    <p className="text-emerald-400 text-sm font-medium">
-                      Avg. Salary: {SALARY_MAP[selectedCareer.domain] ?? 'N/A'}
-                    </p>
-                  </div>
-                  <a
-                    href={`https://www.google.com/search?q=${encodeURIComponent(selectedCareer.domain + ' career courses India')}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-1.5 text-brand-400 hover:text-brand-300 text-sm font-medium flex-shrink-0"
-                  >
-                    Explore Courses <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
+                <div className="mt-5 pt-5 border-t border-white/8 space-y-3">
+                  {(profile?.insights ?? []).map((insight, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.06 }}
+                      className="flex items-start gap-3"
+                    >
+                      <span className="w-5 h-5 rounded-full bg-brand-600/25 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-brand-400" />
+                      </span>
+                      <p className="text-white/70 text-sm">{insight}</p>
+                    </motion.div>
+                  ))}
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
         </motion.div>
-
-        {/* Radar Chart */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.15 }}
-          className="xl:col-span-2 card flex flex-col"
-        >
-          <h2 className="text-lg font-semibold text-white mb-1">Domain Radar</h2>
-          <p className="text-white/40 text-sm mb-4">Your spread across all domains</p>
-          <div className="flex-1 flex items-center justify-center">
-            <ResponsiveContainer width="100%" height={260}>
-              <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
-                <PolarGrid stroke="rgba(255,255,255,0.06)" />
-                <PolarAngleAxis dataKey="domain" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
-                <Radar
-                  name="Score"
-                  dataKey="score"
-                  stroke="#6366f1"
-                  fill="#6366f1"
-                  fillOpacity={0.25}
-                  strokeWidth={2}
-                />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* AI Insights */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="card"
-      >
-        <button
-          className="w-full flex items-center justify-between text-left"
-          onClick={() => setInsightsExpanded(!insightsExpanded)}
-        >
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-brand-600/20">
-              <TrendingUp className="w-4 h-4 text-brand-400" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-white">Why these recommendations?</h2>
-              <p className="text-white/40 text-sm">AI-generated insights based on your profile</p>
-            </div>
-          </div>
-          {insightsExpanded ? (
-            <ChevronUp className="w-5 h-5 text-white/40" />
-          ) : (
-            <ChevronDown className="w-5 h-5 text-white/40" />
-          )}
-        </button>
-
-        <AnimatePresence>
-          {insightsExpanded && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="mt-5 pt-5 border-t border-white/8 space-y-3">
-                {(data.insights ?? MOCK_PROFILE.insights).map((insight, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: -12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.06 }}
-                    className="flex items-start gap-3"
-                  >
-                    <span className="w-5 h-5 rounded-full bg-brand-600/25 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-brand-400" />
-                    </span>
-                    <p className="text-white/70 text-sm">{insight}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+      )}
 
       {/* Domain Exploration Tiles */}
       <div>
         <h2 className="text-xl font-bold text-white mb-4">Explore Career Domains</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           {Object.keys(DOMAIN_ICONS).map((domain, i) => {
-            const rec = data.recommendations.find((r) => r.domain === domain);
-            const score = rec?.score ?? Math.floor(30 + Math.random() * 40);
+            const rec = recommendations.find((r) => r.domain === domain);
+            const score = rec?.score ?? 0;
             return (
               <DomainTile
                 key={domain}
