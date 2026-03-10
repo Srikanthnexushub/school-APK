@@ -17,6 +17,8 @@ import reactor.core.publisher.Mono;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Primary
 @Component
@@ -88,13 +90,7 @@ public class AnthropicWebClientAdapter implements LlmClient {
                       + "I recommend booking at least 3 days in advance to secure your preferred time slot.";
             } else if (user.contains("psychometric") || user.contains("personality") || user.contains("riasec")
                     || user.contains("career") || user.contains("big five") || user.contains("trait")) {
-                reply = "Your child's psychometric assessment has been completed! "
-                      + "The results show a strong Big Five profile — high Openness (90) and Conscientiousness (90) indicate excellent intellectual curiosity and study discipline. "
-                      + "Extraversion is moderate (50) and Agreeableness is high (80), suggesting they thrive in collaborative settings. "
-                      + "Their RIASEC code is I-A-S (Investigative, Artistic, Social), which maps to careers such as: "
-                      + "Research Scientist, Data Analyst, Psychologist, or Educator. "
-                      + "Their dominant learning style is Visual (90%) — encourage diagrams, mind maps, and video-based revision. "
-                      + "You can view the full Personality DNA report in your child's Student Portal under 'Psychometric Analysis'.";
+                reply = buildPsychReplyFromContext(request.systemPrompt());
             } else {
                 reply = "I'm here to help you stay on top of your child's academic journey. "
                       + "You can ask me about performance trends, exam schedules, fee status, weak areas, psychometric results, career recommendations, or how to book mentor sessions. "
@@ -121,6 +117,48 @@ public class AnthropicWebClientAdapter implements LlmClient {
                 1L
         );
         return Mono.just(response);
+    }
+
+    /**
+     * Extracts real Big Five scores, RIASEC code, and learning style from the
+     * system prompt (injected by CopilotService) and builds a factual reply.
+     * Falls back to generic text if the profile section is absent.
+     */
+    private String buildPsychReplyFromContext(String systemPrompt) {
+        if (systemPrompt == null || !systemPrompt.contains("Student Psychometric Profile")) {
+            return "Your child's psychometric profile hasn't been completed yet, or no student is linked to this conversation. "
+                 + "Once the assessment is taken, you'll be able to see their Big Five personality scores, RIASEC career code, and learning style recommendations here.";
+        }
+        String o = extractScore(systemPrompt, "Openness");
+        String c = extractScore(systemPrompt, "Conscientiousness");
+        String e = extractScore(systemPrompt, "Extraversion");
+        String a = extractScore(systemPrompt, "Agreeableness");
+        String n = extractScore(systemPrompt, "Neuroticism");
+        String riasec = extractField(systemPrompt, "RIASEC Career Code: ([A-Z-]+)");
+        String learning = extractField(systemPrompt, "Dominant Learning Style: ([^\n]+)");
+
+        return "Your child's psychometric assessment results:\n\n"
+             + "Big Five Personality Profile:\n"
+             + "• Openness: " + o + "/100 — high intellectual curiosity and creativity\n"
+             + "• Conscientiousness: " + c + "/100 — excellent organisation and study discipline\n"
+             + "• Extraversion: " + e + "/100 — balanced social energy\n"
+             + "• Agreeableness: " + a + "/100 — cooperative and empathetic in groups\n"
+             + "• Neuroticism: " + n + "/100 — resilient under pressure (lower is better)\n\n"
+             + "RIASEC Career Code: " + riasec + "\n"
+             + "Dominant Learning Style: " + learning + "\n\n"
+             + "Recommended career paths: Research Scientist, Data Analyst, Psychologist, Educator, Software Architect.\n"
+             + "Encourage your child to use visual study techniques: diagrams, colour-coded notes, and video-based learning.";
+    }
+
+    private String extractScore(String text, String traitName) {
+        Pattern p = Pattern.compile(traitName + ":\\s*(\\d+)/100", Pattern.CASE_INSENSITIVE);
+        Matcher m = p.matcher(text);
+        return m.find() ? m.group(1) : "N/A";
+    }
+
+    private String extractField(String text, String regex) {
+        Matcher m = Pattern.compile(regex).matcher(text);
+        return m.find() ? m.group(1).trim() : "N/A";
     }
 
     private Mono<CompletionResponse> executeAnthropic(CompletionRequest request) {
