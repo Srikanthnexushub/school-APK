@@ -12,6 +12,7 @@ import com.edutech.center.domain.port.in.UploadContentUseCase;
 import com.edutech.center.domain.port.out.CenterEventPublisher;
 import com.edutech.center.domain.port.out.CenterRepository;
 import com.edutech.center.domain.port.out.ContentRepository;
+import com.edutech.center.domain.port.out.TeacherRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -31,20 +32,30 @@ public class ContentService implements UploadContentUseCase {
     private final ContentRepository contentRepository;
     private final CenterRepository centerRepository;
     private final CenterEventPublisher eventPublisher;
+    private final TeacherRepository teacherRepository;
 
     public ContentService(ContentRepository contentRepository,
                           CenterRepository centerRepository,
-                          CenterEventPublisher eventPublisher) {
+                          CenterEventPublisher eventPublisher,
+                          TeacherRepository teacherRepository) {
         this.contentRepository = contentRepository;
         this.centerRepository = centerRepository;
         this.eventPublisher = eventPublisher;
+        this.teacherRepository = teacherRepository;
+    }
+
+    /** True if principal is super-admin, center owner, an assigned teacher, or a student (read-only). */
+    private boolean hasAccess(AuthPrincipal principal, UUID centerId) {
+        return principal.belongsToCenter(centerId)
+                || teacherRepository.existsByUserIdAndCenterId(principal.userId(), centerId)
+                || principal.isStudent();
     }
 
     @Override
     @Transactional
     public ContentItemResponse uploadContent(UUID centerId, UploadContentRequest request,
                                              AuthPrincipal principal) {
-        if (!principal.belongsToCenter(centerId)) {
+        if (!hasAccess(principal, centerId)) {
             throw new CenterAccessDeniedException();
         }
         centerRepository.findById(centerId)
@@ -66,7 +77,7 @@ public class ContentService implements UploadContentUseCase {
 
     @Transactional(readOnly = true)
     public List<ContentItemResponse> listContent(UUID centerId, AuthPrincipal principal) {
-        if (!principal.belongsToCenter(centerId)) {
+        if (!hasAccess(principal, centerId)) {
             throw new CenterAccessDeniedException();
         }
         return contentRepository.findByCenterId(centerId).stream().map(this::toResponse).toList();
@@ -74,7 +85,7 @@ public class ContentService implements UploadContentUseCase {
 
     @Transactional(readOnly = true)
     public Page<ContentItemResponse> listContent(UUID centerId, AuthPrincipal principal, Pageable pageable) {
-        if (!principal.belongsToCenter(centerId)) {
+        if (!hasAccess(principal, centerId)) {
             throw new CenterAccessDeniedException();
         }
         List<ContentItemResponse> all = contentRepository.findByCenterId(centerId).stream()
@@ -87,7 +98,7 @@ public class ContentService implements UploadContentUseCase {
     @Transactional(readOnly = true)
     public List<ContentItemResponse> listContentByBatch(UUID batchId, AuthPrincipal principal) {
         return contentRepository.findByBatchId(batchId).stream()
-            .filter(c -> principal.belongsToCenter(c.getCenterId()))
+            .filter(c -> hasAccess(principal, c.getCenterId()))
             .map(this::toResponse).toList();
     }
 

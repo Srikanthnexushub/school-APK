@@ -38,4 +38,11 @@ public class GradeController {
             @AuthenticationPrincipal AuthPrincipal principal) {
         return gradeService.listGradesByStudent(studentId, principal);
     }
+
+    @GetMapping("/api/v1/grades/student/{studentId}")
+    public List<GradeResponse> listByStudentAlt(
+            @PathVariable UUID studentId,
+            @AuthenticationPrincipal AuthPrincipal principal) {
+        return gradeService.listGradesByStudent(studentId, principal);
+    }
 }

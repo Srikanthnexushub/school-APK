@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Bot, ClipboardList, BarChart3, Target, Brain,
   Users, Calendar, Settings, LogOut, BookOpen, Menu, X, ChevronLeft,
-  Bell, Search, ChevronRight, BookOpenCheck,
+  Bell, Search, ChevronRight, BookOpenCheck, Library, Award,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '../../stores/authStore';
@@ -29,6 +29,7 @@ const studentNav: NavItem[] = [
   { icon: Brain,           label: 'Psychometric', to: '/psychometric' },
   { icon: Users,           label: 'Mentors',      to: '/mentors' },
   { icon: Calendar,        label: 'Exam Tracker', to: '/exam-tracker' },
+  { icon: Library,         label: 'Library',      to: '/library' },
 ];
 
 const adminNav: NavItem[] = [
@@ -44,10 +45,12 @@ const parentNav: NavItem[] = [
 ];
 
 const mentorNav: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard',  to: '/mentor-portal' },
-  { icon: Calendar,        label: 'Sessions',   to: '/mentor-portal/sessions' },
-  { icon: Brain,           label: 'AI Insights',to: '/mentor-portal/insights' },
-  { icon: ClipboardList,   label: 'Exams',      to: '/mentor-portal/exams' },
+  { icon: LayoutDashboard, label: 'Dashboard',    to: '/mentor-portal' },
+  { icon: Calendar,        label: 'Sessions',     to: '/mentor-portal/sessions' },
+  { icon: Brain,           label: 'AI Insights',  to: '/mentor-portal/insights' },
+  { icon: ClipboardList,   label: 'Exams',        to: '/mentor-portal/exams' },
+  { icon: Award,           label: 'My Performance',to: '/mentor-portal/performance' },
+  { icon: Library,         label: 'Library',      to: '/mentor-portal/library' },
 ];
 
 function getNavItems(role?: string): NavItem[] {

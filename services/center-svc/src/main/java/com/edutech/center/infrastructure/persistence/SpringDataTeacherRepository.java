@@ -19,4 +19,7 @@ interface SpringDataTeacherRepository extends JpaRepository<Teacher, UUID> {
 
     @Query("SELECT COUNT(t) > 0 FROM Teacher t WHERE t.userId = :userId AND t.centerId = :centerId AND t.deletedAt IS NULL")
     boolean existsByUserIdAndCenterId(UUID userId, UUID centerId);
+
+    @Query("SELECT t FROM Teacher t WHERE t.userId = :userId AND t.deletedAt IS NULL")
+    List<Teacher> findByUserIdActive(UUID userId);
 }

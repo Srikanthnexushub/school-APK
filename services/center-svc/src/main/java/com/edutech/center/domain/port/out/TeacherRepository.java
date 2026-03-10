@@ -13,4 +13,5 @@ public interface TeacherRepository {
     Optional<Teacher> findByIdAndCenterId(UUID id, UUID centerId);
     List<Teacher> findByCenterId(UUID centerId);
     boolean existsByUserIdAndCenterId(UUID userId, UUID centerId);
+    List<Teacher> findByUserId(UUID userId);
 }

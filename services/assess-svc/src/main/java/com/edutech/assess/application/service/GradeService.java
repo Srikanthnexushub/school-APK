@@ -50,7 +50,7 @@ public class GradeService {
     public List<GradeResponse> listGradesByExam(UUID examId, AuthPrincipal principal) {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ExamNotFoundException(examId));
-        if (!principal.belongsToCenter(exam.getCenterId())) {
+        if (!principal.isSuperAdmin() && !principal.isTeacher() && !principal.belongsToCenter(exam.getCenterId())) {
             throw new AssessAccessDeniedException();
         }
         return gradeRepository.findByExamId(examId).stream()

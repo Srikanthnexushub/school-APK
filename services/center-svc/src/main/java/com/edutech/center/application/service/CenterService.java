@@ -14,6 +14,7 @@ import com.edutech.center.domain.port.in.CreateCenterUseCase;
 import com.edutech.center.domain.port.in.UpdateCenterUseCase;
 import com.edutech.center.domain.port.out.CenterEventPublisher;
 import com.edutech.center.domain.port.out.CenterRepository;
+import com.edutech.center.domain.port.out.TeacherRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -22,7 +23,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -32,11 +36,14 @@ public class CenterService implements CreateCenterUseCase, UpdateCenterUseCase {
 
     private final CenterRepository centerRepository;
     private final CenterEventPublisher eventPublisher;
+    private final TeacherRepository teacherRepository;
 
     public CenterService(CenterRepository centerRepository,
-                         CenterEventPublisher eventPublisher) {
+                         CenterEventPublisher eventPublisher,
+                         TeacherRepository teacherRepository) {
         this.centerRepository = centerRepository;
         this.eventPublisher = eventPublisher;
+        this.teacherRepository = teacherRepository;
     }
 
     @Override
@@ -84,20 +91,35 @@ public class CenterService implements CreateCenterUseCase, UpdateCenterUseCase {
 
     @Transactional(readOnly = true)
     public List<CenterResponse> listCenters(AuthPrincipal principal) {
-        List<CoachingCenter> centers = principal.isSuperAdmin()
-            ? centerRepository.findAll()
-            : centerRepository.findByOwnerId(principal.userId());
-        return centers.stream().map(this::toResponse).toList();
+        return resolveAccessibleCenters(principal);
     }
 
     @Transactional(readOnly = true)
     public Page<CenterResponse> listCenters(AuthPrincipal principal, Pageable pageable) {
-        List<CenterResponse> all = principal.isSuperAdmin()
-            ? centerRepository.findAll().stream().map(this::toResponse).toList()
-            : centerRepository.findByOwnerId(principal.userId()).stream().map(this::toResponse).toList();
+        List<CenterResponse> all = resolveAccessibleCenters(principal);
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), all.size());
         return new PageImpl<>(start < all.size() ? all.subList(start, end) : List.of(), pageable, all.size());
+    }
+
+    /** Returns all centers the principal may access: owned + teacher-assigned (deduped). */
+    private List<CenterResponse> resolveAccessibleCenters(AuthPrincipal principal) {
+        if (principal.isSuperAdmin()) {
+            return centerRepository.findAll().stream().map(this::toResponse).toList();
+        }
+        Set<UUID> seen = new LinkedHashSet<>();
+        List<CenterResponse> result = new ArrayList<>();
+        // Centers owned by this user
+        for (CoachingCenter c : centerRepository.findByOwnerId(principal.userId())) {
+            if (seen.add(c.getId())) result.add(toResponse(c));
+        }
+        // Centers where this user is an assigned teacher
+        for (var t : teacherRepository.findByUserId(principal.userId())) {
+            centerRepository.findById(t.getCenterId()).ifPresent(c -> {
+                if (seen.add(c.getId())) result.add(toResponse(c));
+            });
+        }
+        return result;
     }
 
     @Transactional(readOnly = true)

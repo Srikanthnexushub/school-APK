@@ -17,6 +17,7 @@ import com.edutech.center.domain.port.in.UpdateBatchUseCase;
 import com.edutech.center.domain.port.out.BatchRepository;
 import com.edutech.center.domain.port.out.CenterEventPublisher;
 import com.edutech.center.domain.port.out.CenterRepository;
+import com.edutech.center.domain.port.out.TeacherRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -36,19 +37,27 @@ public class BatchService implements CreateBatchUseCase, UpdateBatchUseCase {
     private final BatchRepository batchRepository;
     private final CenterRepository centerRepository;
     private final CenterEventPublisher eventPublisher;
+    private final TeacherRepository teacherRepository;
 
     public BatchService(BatchRepository batchRepository,
                         CenterRepository centerRepository,
-                        CenterEventPublisher eventPublisher) {
+                        CenterEventPublisher eventPublisher,
+                        TeacherRepository teacherRepository) {
         this.batchRepository = batchRepository;
         this.centerRepository = centerRepository;
         this.eventPublisher = eventPublisher;
+        this.teacherRepository = teacherRepository;
+    }
+
+    private boolean hasAccess(AuthPrincipal principal, UUID centerId) {
+        return principal.belongsToCenter(centerId)
+                || teacherRepository.existsByUserIdAndCenterId(principal.userId(), centerId);
     }
 
     @Override
     @Transactional
     public BatchResponse createBatch(UUID centerId, CreateBatchRequest request, AuthPrincipal principal) {
-        if (!principal.belongsToCenter(centerId)) {
+        if (!hasAccess(principal, centerId)) {
             throw new CenterAccessDeniedException();
         }
         centerRepository.findById(centerId)
@@ -74,7 +83,7 @@ public class BatchService implements CreateBatchUseCase, UpdateBatchUseCase {
         Batch batch = batchRepository.findById(batchId)
             .orElseThrow(() -> new BatchNotFoundException(batchId));
 
-        if (!principal.belongsToCenter(batch.getCenterId())) {
+        if (!hasAccess(principal, batch.getCenterId())) {
             throw new CenterAccessDeniedException();
         }
 
@@ -103,7 +112,7 @@ public class BatchService implements CreateBatchUseCase, UpdateBatchUseCase {
 
     @Transactional(readOnly = true)
     public List<BatchResponse> listBatches(UUID centerId, BatchStatus status, AuthPrincipal principal) {
-        if (!principal.belongsToCenter(centerId)) {
+        if (!hasAccess(principal, centerId)) {
             throw new CenterAccessDeniedException();
         }
         List<Batch> batches = status != null
@@ -114,7 +123,7 @@ public class BatchService implements CreateBatchUseCase, UpdateBatchUseCase {
 
     @Transactional(readOnly = true)
     public Page<BatchResponse> listBatches(UUID centerId, BatchStatus status, AuthPrincipal principal, Pageable pageable) {
-        if (!principal.belongsToCenter(centerId)) {
+        if (!hasAccess(principal, centerId)) {
             throw new CenterAccessDeniedException();
         }
         List<BatchResponse> all = (status != null
@@ -128,7 +137,7 @@ public class BatchService implements CreateBatchUseCase, UpdateBatchUseCase {
 
     @Transactional(readOnly = true)
     public BatchResponse getBatch(UUID centerId, UUID batchId, AuthPrincipal principal) {
-        if (!principal.belongsToCenter(centerId)) {
+        if (!hasAccess(principal, centerId)) {
             throw new CenterAccessDeniedException();
         }
         Batch batch = batchRepository.findByIdAndCenterId(batchId, centerId)

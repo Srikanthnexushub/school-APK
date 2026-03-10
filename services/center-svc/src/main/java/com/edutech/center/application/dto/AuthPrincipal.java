@@ -19,6 +19,7 @@ public record AuthPrincipal(
     public boolean isSuperAdmin() { return role == Role.SUPER_ADMIN; }
     public boolean isCenterAdmin() { return role == Role.CENTER_ADMIN; }
     public boolean isTeacher() { return role == Role.TEACHER; }
+    public boolean isStudent() { return role == Role.STUDENT; }
 
     public boolean belongsToCenter(UUID targetCenterId) {
         return isSuperAdmin() || (centerId != null && centerId.equals(targetCenterId));

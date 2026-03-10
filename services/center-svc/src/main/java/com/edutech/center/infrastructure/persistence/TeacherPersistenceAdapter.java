@@ -21,4 +21,5 @@ public class TeacherPersistenceAdapter implements TeacherRepository {
     @Override public Optional<Teacher> findByIdAndCenterId(UUID id, UUID centerId) { return jpa.findByIdAndCenterIdActive(id, centerId); }
     @Override public List<Teacher> findByCenterId(UUID centerId) { return jpa.findByCenterIdActive(centerId); }
     @Override public boolean existsByUserIdAndCenterId(UUID userId, UUID centerId) { return jpa.existsByUserIdAndCenterId(userId, centerId); }
+    @Override public List<Teacher> findByUserId(UUID userId) { return jpa.findByUserIdActive(userId); }
 }
