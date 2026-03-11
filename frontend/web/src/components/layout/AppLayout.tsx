@@ -33,10 +33,10 @@ const studentNav: NavItem[] = [
 ];
 
 const adminNav: NavItem[] = [
-  { icon: LayoutDashboard,  label: 'Overview',    to: '/admin' },
-  { icon: Users,            label: 'Centers',     to: '/admin/centers' },
-  { icon: BookOpenCheck,    label: 'Batches',     to: '/admin/batches' },
-  { icon: ClipboardList,    label: 'Assessments', to: '/admin/assessments' },
+  { icon: LayoutDashboard,  label: 'Overview',    to: '/admin?tab=overview' },
+  { icon: Users,            label: 'Centers',     to: '/admin?tab=centers' },
+  { icon: BookOpenCheck,    label: 'Batches',     to: '/admin?tab=batches' },
+  { icon: ClipboardList,    label: 'Assessments', to: '/admin?tab=assessments' },
 ];
 
 const parentNav: NavItem[] = [
@@ -184,6 +184,7 @@ function SidebarContent({
 }) {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const navItems = getNavItems(user?.role);
 
   function handleLogout() {
@@ -193,7 +194,20 @@ function SidebarContent({
     if (onNavigate) onNavigate();
   }
 
-  const endPaths = ['/dashboard', '/admin', '/parent', '/mentor-portal'];
+  // For items with query params (e.g. /admin?tab=centers), match both pathname + search
+  function isTabActive(to: string): boolean | null {
+    if (!to.includes('?')) return null; // let NavLink handle non-tab items
+    const [path, qs] = to.split('?');
+    const toParams = new URLSearchParams(qs);
+    const locParams = new URLSearchParams(location.search);
+    if (location.pathname !== path) return false;
+    for (const [k, v] of toParams.entries()) {
+      if (locParams.get(k) !== v) return false;
+    }
+    return true;
+  }
+
+  const endPaths = ['/dashboard', '/parent', '/mentor-portal'];
 
   return (
     <div className="flex flex-col h-full">
@@ -250,30 +264,35 @@ function SidebarContent({
 
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ icon: Icon, label, to, badge }) => (
-          collapsed ? (
+        {navItems.map(({ icon: Icon, label, to, badge }) => {
+          const tabActive = isTabActive(to);
+          return collapsed ? (
             <CollapseTooltip key={to} label={label}>
               <NavLink
                 to={to}
                 end={endPaths.includes(to)}
                 onClick={onNavigate}
-                className={({ isActive }) =>
-                  cn(
+                className={({ isActive }) => {
+                  const active = tabActive ?? isActive;
+                  return cn(
                     'flex items-center justify-center p-2.5 rounded-xl transition-all duration-200 relative',
-                    isActive
+                    active
                       ? 'bg-brand-500/10 text-white border-l-2 border-brand-500'
                       : 'text-white/50 hover:text-white hover:bg-white/5'
-                  )
-                }
+                  );
+                }}
               >
-                {({ isActive }) => (
-                  <>
-                    <Icon style={{ width: 18, height: 18 }} className={cn('flex-shrink-0', isActive ? 'text-brand-400' : '')} />
-                    {badge !== undefined && badge > 0 && (
-                      <span className="absolute top-1 right-1 w-2 h-2 bg-brand-500 rounded-full" />
-                    )}
-                  </>
-                )}
+                {({ isActive }) => {
+                  const active = tabActive ?? isActive;
+                  return (
+                    <>
+                      <Icon style={{ width: 18, height: 18 }} className={cn('flex-shrink-0', active ? 'text-brand-400' : '')} />
+                      {badge !== undefined && badge > 0 && (
+                        <span className="absolute top-1 right-1 w-2 h-2 bg-brand-500 rounded-full" />
+                      )}
+                    </>
+                  );
+                }}
               </NavLink>
             </CollapseTooltip>
           ) : (
@@ -282,32 +301,36 @@ function SidebarContent({
               to={to}
               end={endPaths.includes(to)}
               onClick={onNavigate}
-              className={({ isActive }) =>
-                cn(
+              className={({ isActive }) => {
+                const active = tabActive ?? isActive;
+                return cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative',
-                  isActive
+                  active
                     ? 'bg-brand-500/10 text-white border-l-2 border-brand-500'
                     : 'text-white/50 hover:text-white hover:bg-white/5'
-                )
-              }
+                );
+              }}
             >
-              {({ isActive }) => (
-                <>
-                  <Icon
-                    style={{ width: 18, height: 18 }}
-                    className={cn('flex-shrink-0 transition-colors', isActive ? 'text-brand-400' : 'text-white/40 group-hover:text-white/70')}
-                  />
-                  <span className="flex-1">{label}</span>
-                  {badge !== undefined && badge > 0 && (
-                    <span className="bg-brand-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                      {badge}
-                    </span>
-                  )}
-                </>
-              )}
+              {({ isActive }) => {
+                const active = tabActive ?? isActive;
+                return (
+                  <>
+                    <Icon
+                      style={{ width: 18, height: 18 }}
+                      className={cn('flex-shrink-0 transition-colors', active ? 'text-brand-400' : 'text-white/40 group-hover:text-white/70')}
+                    />
+                    <span className="flex-1">{label}</span>
+                    {badge !== undefined && badge > 0 && (
+                      <span className="bg-brand-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                        {badge}
+                      </span>
+                    )}
+                  </>
+                );
+              }}
             </NavLink>
-          )
-        ))}
+          );
+        })}
       </nav>
 
       {/* Bottom actions */}

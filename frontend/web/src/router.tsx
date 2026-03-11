@@ -19,6 +19,7 @@ import ExamTrackerPage from './pages/exam-tracker/ExamTrackerPage';
 import SettingsPage from './pages/settings/SettingsPage';
 import ParentDashboardPage from './pages/parent/ParentDashboardPage';
 import ParentCopilotPage from './pages/parent/ParentCopilotPage';
+import AdminPortalPage from './pages/admin/AdminPortalPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminBatchesPage from './pages/admin/AdminBatchesPage';
 import AdminAssessmentsPage from './pages/admin/AdminAssessmentsPage';
@@ -93,11 +94,11 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <AdminDashboardPage /> },
-      { path: 'dashboard', element: <AdminDashboardPage /> },
-      { path: 'centers', element: <AdminCentersPage /> },
-      { path: 'batches', element: <AdminBatchesPage /> },
-      { path: 'assessments', element: <AdminAssessmentsPage /> },
+      { index: true, element: <AdminPortalPage /> },
+      { path: 'dashboard', element: <AdminPortalPage /> },
+      { path: 'centers', element: <AdminPortalPage /> },
+      { path: 'batches', element: <AdminPortalPage /> },
+      { path: 'assessments', element: <AdminPortalPage /> },
     ],
   },
   {
