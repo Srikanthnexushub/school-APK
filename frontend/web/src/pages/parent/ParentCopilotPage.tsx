@@ -232,7 +232,10 @@ export default function ParentCopilotPage() {
 
   const { data: linkedStudents = [] } = useQuery<StudentLinkResponse[]>({
     queryKey: ['linked-students', profile?.id],
-    queryFn: () => api.get(`/api/v1/parents/${profile!.id}/students`).then((r) => r.data),
+    queryFn: () => api.get(`/api/v1/parents/${profile!.id}/students`).then((r) => {
+      const d = r.data;
+      return Array.isArray(d) ? d : (d.content ?? []);
+    }),
     enabled: !!profile?.id,
   });
 

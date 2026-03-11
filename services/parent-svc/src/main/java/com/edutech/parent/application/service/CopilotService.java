@@ -6,6 +6,7 @@ import com.edutech.parent.application.exception.ConversationNotFoundException;
 import com.edutech.parent.domain.model.CopilotConversation;
 import com.edutech.parent.domain.model.StudentLink;
 import com.edutech.parent.domain.port.out.CopilotConversationRepository;
+import com.edutech.parent.domain.port.out.ParentProfileRepository;
 import com.edutech.parent.domain.port.out.StudentLinkRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,7 @@ public class CopilotService {
 
     private final CopilotConversationRepository conversationRepository;
     private final StudentLinkRepository studentLinkRepository;
+    private final ParentProfileRepository parentProfileRepository;
     private final WebClient aiGatewayWebClient;
     private final WebClient psychSvcWebClient;
     private final int timeoutSeconds;
@@ -49,11 +51,13 @@ public class CopilotService {
     public CopilotService(
             CopilotConversationRepository conversationRepository,
             StudentLinkRepository studentLinkRepository,
+            ParentProfileRepository parentProfileRepository,
             @Qualifier("aiGatewayWebClient") WebClient aiGatewayWebClient,
             @Qualifier("psychSvcWebClient") WebClient psychSvcWebClient,
             @Value("${ai-gateway.timeout-seconds:30}") int timeoutSeconds) {
         this.conversationRepository = conversationRepository;
         this.studentLinkRepository = studentLinkRepository;
+        this.parentProfileRepository = parentProfileRepository;
         this.aiGatewayWebClient = aiGatewayWebClient;
         this.psychSvcWebClient = psychSvcWebClient;
         this.timeoutSeconds = timeoutSeconds;
@@ -140,16 +144,21 @@ public class CopilotService {
     // Private helpers
     // -------------------------------------------------------------------------
 
-    private String resolveStudentName(String parentId, String studentId) {
-        if (parentId == null || studentId == null) return null;
+    private String resolveStudentName(String userId, String studentId) {
+        if (userId == null || studentId == null || studentId.isBlank()) return null;
         try {
-            UUID parentUuid = UUID.fromString(parentId);
+            UUID userUuid = UUID.fromString(userId);
             UUID studentUuid = UUID.fromString(studentId);
-            return studentLinkRepository.findByParentIdAndStudentId(parentUuid, studentUuid)
+            // student_links stores parent profile ID, not user ID — resolve first
+            UUID profileId = parentProfileRepository.findByUserId(userUuid)
+                    .map(p -> p.getId())
+                    .orElse(null);
+            if (profileId == null) return null;
+            return studentLinkRepository.findByParentIdAndStudentId(profileId, studentUuid)
                     .map(StudentLink::getStudentName)
                     .orElse(null);
         } catch (Exception e) {
-            log.warn("Could not resolve student name for parent={} student={}: {}", parentId, studentId, e.getMessage());
+            log.warn("Could not resolve student name for user={} student={}: {}", userId, studentId, e.getMessage());
             return null;
         }
     }
