@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
 } from 'recharts';
 import { cn } from '../../lib/utils';
 import { Avatar } from '../../components/ui/Avatar';
@@ -27,59 +27,43 @@ interface StudentLinkResponse {
   status: string;
 }
 
-interface TraitDimension {
-  trait: string;
-  score: number;
-  percentile: number;
-}
-
-interface CareerMapping {
-  riasecCode: string;
-  score: number;
-  careerSuggestions: string[];
+interface BigFiveTrait {
+  name: string;
+  key: string;
+  score: number; // 0–100
 }
 
 interface PsychProfile {
   id: string;
   studentId: string;
-  sessionType: 'INITIAL' | 'REASSESSMENT';
+  bigFive: BigFiveTrait[];
+  riasecCode: string;
+  riasecScores: Record<string, number>;
+  dominantLearningStyle: string;
+  generatedAt: string;
   status: string;
-  traitDimensions: TraitDimension[];
-  careerMappings: CareerMapping[];
-  learningStyle: string;
-  completedAt: string;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-const BIG_FIVE_LABELS: Record<string, string> = {
-  OPENNESS: 'Openness',
-  CONSCIENTIOUSNESS: 'Conscientiousness',
-  EXTRAVERSION: 'Extraversion',
-  AGREEABLENESS: 'Agreeableness',
-  NEUROTICISM: 'Neuroticism',
+const RIASEC_META: Record<string, { label: string; color: string; careers: string[] }> = {
+  R: { label: 'Realistic',     color: '#f87171', careers: ['Engineer', 'Technician', 'Mechanic'] },
+  I: { label: 'Investigative', color: '#818cf8', careers: ['Research Scientist', 'Data Analyst', 'Physician'] },
+  A: { label: 'Artistic',      color: '#fb923c', careers: ['Designer', 'Architect', 'Writer'] },
+  S: { label: 'Social',        color: '#34d399', careers: ['Counselor', 'Teacher', 'Nurse'] },
+  E: { label: 'Enterprising',  color: '#fbbf24', careers: ['Manager', 'Entrepreneur', 'Lawyer'] },
+  C: { label: 'Conventional',  color: '#60a5fa', careers: ['Accountant', 'Analyst', 'Administrator'] },
 };
 
-const RIASEC_LABELS: Record<string, string> = {
-  R: 'Realistic',
-  I: 'Investigative',
-  A: 'Artistic',
-  S: 'Social',
-  E: 'Enterprising',
-  C: 'Conventional',
-};
-
-const RIASEC_COLORS: Record<string, string> = {
-  R: '#f87171', I: '#818cf8', A: '#fb923c',
-  S: '#34d399', E: '#fbbf24', C: '#60a5fa',
+const LEARNING_STYLE_LABELS: Record<string, string> = {
+  visual: 'Visual',
+  auditory: 'Auditory',
+  kinesthetic: 'Kinesthetic',
+  reading: 'Reading/Writing',
 };
 
 const LEARNING_STYLE_ICONS: Record<string, string> = {
-  VISUAL: '👁️',
-  AUDITORY: '👂',
-  KINESTHETIC: '✋',
-  'READING-WRITING': '📖',
-  READING_WRITING: '📖',
+  visual: '👁️', auditory: '👂', kinesthetic: '✋', reading: '📖',
 };
 
 function formatDate(iso: string): string {
@@ -91,17 +75,58 @@ function formatDate(iso: string): string {
   }
 }
 
+// ─── Transform raw API response → PsychProfile ───────────────────────────────
+
+function transformProfile(raw: any): PsychProfile {
+  const o = raw.openness ?? 0;
+  const c = raw.conscientiousness ?? 0;
+  const e = raw.extraversion ?? 0;
+  const a = raw.agreeableness ?? 0;
+  const n = raw.neuroticism ?? 0;
+
+  const bigFive: BigFiveTrait[] = [
+    { name: 'Openness',          key: 'openness',          score: Math.round(o * 100) },
+    { name: 'Conscientiousness', key: 'conscientiousness', score: Math.round(c * 100) },
+    { name: 'Extraversion',      key: 'extraversion',      score: Math.round(e * 100) },
+    { name: 'Agreeableness',     key: 'agreeableness',     score: Math.round(a * 100) },
+    { name: 'Neuroticism',       key: 'neuroticism',       score: Math.round(n * 100) },
+  ].filter(t => t.score > 0);
+
+  const riasecScores: Record<string, number> = {
+    R: Math.round((c * 0.5 + (1 - o) * 0.5) * 100),
+    I: Math.round((o * 0.7 + c * 0.3) * 100),
+    A: Math.round((o * 0.8 + e * 0.2) * 100),
+    S: Math.round((a * 0.6 + e * 0.4) * 100),
+    E: Math.round((e * 0.5 + (1 - n) * 0.5) * 100),
+    C: Math.round((c * 0.7 + (1 - o) * 0.3) * 100),
+  };
+
+  const learningStyleScores: Record<string, number> = {
+    visual:      Math.round((o * 0.6 + c * 0.4) * 100),
+    auditory:    Math.round((e * 0.5 + o * 0.5) * 100),
+    kinesthetic: Math.round((e * 0.4 + c * 0.6) * 100),
+    reading:     Math.round((c * 0.7 + o * 0.3) * 100),
+  };
+  const dominantLearningStyle = Object.entries(learningStyleScores)
+    .sort((x, y) => y[1] - x[1])[0][0];
+
+  return {
+    id: raw.id,
+    studentId: raw.studentId,
+    bigFive,
+    riasecCode: raw.riasecCode ?? '',
+    riasecScores,
+    dominantLearningStyle,
+    generatedAt: raw.updatedAt ?? raw.createdAt ?? '',
+    status: raw.status ?? '',
+  };
+}
+
 // ─── Big Five Radar ────────────────────────────────────────────────────────────
 
-function BigFiveRadar({ traits }: { traits: TraitDimension[] }) {
-  const data = traits.map((t) => ({
-    subject: BIG_FIVE_LABELS[t.trait?.toUpperCase()] ?? t.trait,
-    score: Math.round(t.score * 100),
-    fullMark: 100,
-  }));
-
+function BigFiveRadar({ bigFive }: { bigFive: BigFiveTrait[] }) {
+  const data = bigFive.map((t) => ({ subject: t.name.slice(0, 5), score: t.score, fullMark: 100 }));
   if (data.length === 0) return null;
-
   return (
     <div className="card">
       <h3 className="font-semibold text-white text-sm mb-4">Big Five Personality Traits</h3>
@@ -131,21 +156,17 @@ function BigFiveRadar({ traits }: { traits: TraitDimension[] }) {
 
 // ─── RIASEC Chart ─────────────────────────────────────────────────────────────
 
-function RiasecChart({ mappings }: { mappings: CareerMapping[] }) {
-  // Build RIASEC bar data
-  const data = Object.keys(RIASEC_LABELS).map((code) => {
-    const mapping = mappings.find((m) => m.riasecCode?.toUpperCase().startsWith(code));
-    return {
-      name: RIASEC_LABELS[code],
-      code,
-      score: mapping ? Math.round(mapping.score * 100) : 0,
-      fill: RIASEC_COLORS[code],
-    };
-  });
+function RiasecChart({ riasecCode, riasecScores }: { riasecCode: string; riasecScores: Record<string, number> }) {
+  const data = Object.keys(RIASEC_META).map((code) => ({
+    name: RIASEC_META[code].label,
+    code,
+    score: riasecScores[code] ?? 0,
+    fill: RIASEC_META[code].color,
+  }));
 
-  // Top 3 codes by score
-  const top3 = [...data].sort((a, b) => b.score - a.score).slice(0, 3);
-  const topCode = top3.map((d) => d.code).join('');
+  const topCode = riasecCode || data.sort((a, b) => b.score - a.score).slice(0, 3).map(d => d.code).join('');
+  const topLetters = topCode.split('-').filter(Boolean);
+  const topNames = topLetters.map(l => RIASEC_META[l]?.label ?? l).join(' · ');
 
   return (
     <div className="card">
@@ -156,7 +177,7 @@ function RiasecChart({ mappings }: { mappings: CareerMapping[] }) {
         </div>
         <div className="text-right">
           <div className="text-lg font-bold text-brand-400">{topCode || '—'}</div>
-          <div className="text-xs text-white/30">{top3.map((d) => d.name).join(' · ')}</div>
+          <div className="text-xs text-white/30">{topNames}</div>
         </div>
       </div>
       <ResponsiveContainer width="100%" height={180}>
@@ -170,7 +191,7 @@ function RiasecChart({ mappings }: { mappings: CareerMapping[] }) {
           />
           <Bar dataKey="score" radius={[4, 4, 0, 0]}>
             {data.map((entry) => (
-              <rect key={entry.code} fill={entry.fill} />
+              <Cell key={entry.code} fill={entry.fill} />
             ))}
           </Bar>
         </BarChart>
@@ -181,19 +202,16 @@ function RiasecChart({ mappings }: { mappings: CareerMapping[] }) {
 
 // ─── Career Suggestions ───────────────────────────────────────────────────────
 
-function CareerSuggestions({ mappings }: { mappings: CareerMapping[] }) {
-  const suggestions = mappings
-    .flatMap((m) => m.careerSuggestions ?? [])
-    .filter(Boolean)
-    .slice(0, 5);
-
-  if (suggestions.length === 0) return null;
+function CareerSuggestions({ riasecCode }: { riasecCode: string }) {
+  const letters = riasecCode.split('-').filter(Boolean);
+  const careers = letters.flatMap(l => RIASEC_META[l]?.careers ?? []).filter(Boolean).slice(0, 5);
+  if (careers.length === 0) return null;
 
   return (
     <div className="card">
       <h3 className="font-semibold text-white text-sm mb-4">Top Career Recommendations</h3>
       <div className="space-y-2">
-        {suggestions.map((career, i) => (
+        {careers.map((career, i) => (
           <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5">
             <div className="w-6 h-6 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
               <span className="text-brand-400 text-xs font-bold">{i + 1}</span>
@@ -209,10 +227,9 @@ function CareerSuggestions({ mappings }: { mappings: CareerMapping[] }) {
 
 // ─── Strengths & Growth ────────────────────────────────────────────────────────
 
-function StrengthsCard({ traits }: { traits: TraitDimension[] }) {
-  if (traits.length === 0) return null;
-
-  const sorted = [...traits].sort((a, b) => b.score - a.score);
+function StrengthsCard({ bigFive }: { bigFive: BigFiveTrait[] }) {
+  if (bigFive.length === 0) return null;
+  const sorted = [...bigFive].sort((a, b) => b.score - a.score);
   const strengths = sorted.slice(0, 3);
   const growth = sorted[sorted.length - 1];
 
@@ -227,18 +244,15 @@ function StrengthsCard({ traits }: { traits: TraitDimension[] }) {
           </div>
           <div className="space-y-2">
             {strengths.map((t) => (
-              <div key={t.trait} className="flex items-center gap-3">
+              <div key={t.key} className="flex items-center gap-3">
                 <Star className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-white/80">{BIG_FIVE_LABELS[t.trait?.toUpperCase()] ?? t.trait}</span>
-                    <span className="text-xs text-white/40">{Math.round(t.score * 100)}%</span>
+                    <span className="text-sm text-white/80">{t.name}</span>
+                    <span className="text-xs text-white/40">{t.score}%</span>
                   </div>
                   <div className="w-full bg-white/5 rounded-full h-1">
-                    <div
-                      className="h-1 rounded-full bg-emerald-400 transition-all"
-                      style={{ width: `${Math.round(t.score * 100)}%` }}
-                    />
+                    <div className="h-1 rounded-full bg-emerald-400 transition-all" style={{ width: `${t.score}%` }} />
                   </div>
                 </div>
               </div>
@@ -252,18 +266,13 @@ function StrengthsCard({ traits }: { traits: TraitDimension[] }) {
               <TrendingDown className="w-4 h-4 text-amber-400" />
               <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Growth Area</span>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-white/80">{BIG_FIVE_LABELS[growth.trait?.toUpperCase()] ?? growth.trait}</span>
-                  <span className="text-xs text-white/40">{Math.round(growth.score * 100)}%</span>
-                </div>
-                <div className="w-full bg-white/5 rounded-full h-1">
-                  <div
-                    className="h-1 rounded-full bg-amber-400 transition-all"
-                    style={{ width: `${Math.round(growth.score * 100)}%` }}
-                  />
-                </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm text-white/80">{growth.name}</span>
+                <span className="text-xs text-white/40">{growth.score}%</span>
+              </div>
+              <div className="w-full bg-white/5 rounded-full h-1">
+                <div className="h-1 rounded-full bg-amber-400 transition-all" style={{ width: `${growth.score}%` }} />
               </div>
             </div>
           </div>
@@ -296,17 +305,18 @@ export default function ParentPsychometricPage() {
   const resolvedStudentId = activeStudentId ?? linkedStudents[0]?.studentId ?? null;
   const selectedLink = linkedStudents.find((s) => s.studentId === resolvedStudentId) ?? linkedStudents[0] ?? null;
 
-  const { data: psychProfiles = [], isLoading: psychLoading } = useQuery<PsychProfile[]>({
+  const { data: psychProfile = null, isLoading: psychLoading } = useQuery<PsychProfile | null>({
     queryKey: ['psych-profiles-parent', resolvedStudentId],
-    queryFn: () =>
-      api.get(`/api/v1/psych/profiles?studentId=${resolvedStudentId}`).then((r) => {
-        const d = r.data;
-        return Array.isArray(d) ? d : (d.content ?? []);
-      }),
+    queryFn: async () => {
+      const res = await api.get(`/api/v1/psych/profiles?studentId=${resolvedStudentId}`);
+      const d = res.data;
+      const list = Array.isArray(d) ? d : (d.content ?? []);
+      const raw = list[0];
+      return raw ? transformProfile(raw) : null;
+    },
     enabled: !!resolvedStudentId,
   });
 
-  const latestProfile = psychProfiles[0] ?? null;
   const isLoading = studentsLoading || psychLoading;
 
   return (
@@ -359,7 +369,7 @@ export default function ParentPsychometricPage() {
       )}
 
       {/* No profile state */}
-      {!isLoading && selectedLink && !latestProfile && (
+      {!isLoading && selectedLink && !psychProfile && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -387,57 +397,50 @@ export default function ParentPsychometricPage() {
       )}
 
       {/* Profile data */}
-      {!isLoading && latestProfile && (
+      {!isLoading && psychProfile && (
         <>
-          {/* Session info */}
+          {/* Status bar */}
           <div className="flex items-center gap-3 flex-wrap">
             <span className="text-xs text-white/40">
-              Assessment completed: <span className="text-white/60">{formatDate(latestProfile.completedAt)}</span>
-            </span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-brand-500/15 text-brand-400 font-medium">
-              {latestProfile.sessionType}
+              Last updated: <span className="text-white/60">{formatDate(psychProfile.generatedAt)}</span>
             </span>
             <span className={cn(
               'text-xs px-2 py-0.5 rounded-full font-medium',
-              latestProfile.status === 'COMPLETED' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'
+              psychProfile.status === 'ACTIVE' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'
             )}>
-              {latestProfile.status}
+              {psychProfile.status}
             </span>
           </div>
 
-          {/* Learning style */}
-          {latestProfile.learningStyle && (
-            <div className="card border border-brand-500/15">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-brand-500/15 flex-shrink-0">
-                  <BookOpen className="w-5 h-5 text-brand-400" />
-                </div>
-                <div>
-                  <div className="text-xs text-white/40 mb-0.5">Dominant Learning Style</div>
-                  <div className="text-lg font-bold text-white flex items-center gap-2">
-                    <span>{LEARNING_STYLE_ICONS[latestProfile.learningStyle?.toUpperCase()] ?? '🧠'}</span>
-                    <span className="capitalize">{latestProfile.learningStyle.replace('_', '-').toLowerCase()}</span>
-                  </div>
+          {/* Dominant learning style */}
+          <div className="card border border-brand-500/15">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-brand-500/15 flex-shrink-0">
+                <BookOpen className="w-5 h-5 text-brand-400" />
+              </div>
+              <div>
+                <div className="text-xs text-white/40 mb-0.5">Dominant Learning Style</div>
+                <div className="text-lg font-bold text-white flex items-center gap-2">
+                  <span>{LEARNING_STYLE_ICONS[psychProfile.dominantLearningStyle] ?? '🧠'}</span>
+                  <span>{LEARNING_STYLE_LABELS[psychProfile.dominantLearningStyle] ?? psychProfile.dominantLearningStyle}</span>
                 </div>
               </div>
             </div>
-          )}
-
-          {/* Radar + Strengths grid */}
-          <div className="grid lg:grid-cols-2 gap-6">
-            {latestProfile.traitDimensions?.length > 0 && (
-              <BigFiveRadar traits={latestProfile.traitDimensions} />
-            )}
-            {latestProfile.traitDimensions?.length > 0 && (
-              <StrengthsCard traits={latestProfile.traitDimensions} />
-            )}
           </div>
 
-          {/* RIASEC + Career */}
-          {latestProfile.careerMappings?.length > 0 && (
+          {/* Radar + Strengths grid */}
+          {psychProfile.bigFive.length > 0 && (
             <div className="grid lg:grid-cols-2 gap-6">
-              <RiasecChart mappings={latestProfile.careerMappings} />
-              <CareerSuggestions mappings={latestProfile.careerMappings} />
+              <BigFiveRadar bigFive={psychProfile.bigFive} />
+              <StrengthsCard bigFive={psychProfile.bigFive} />
+            </div>
+          )}
+
+          {/* RIASEC + Career */}
+          {psychProfile.riasecCode && (
+            <div className="grid lg:grid-cols-2 gap-6">
+              <RiasecChart riasecCode={psychProfile.riasecCode} riasecScores={psychProfile.riasecScores} />
+              <CareerSuggestions riasecCode={psychProfile.riasecCode} />
             </div>
           )}
         </>
