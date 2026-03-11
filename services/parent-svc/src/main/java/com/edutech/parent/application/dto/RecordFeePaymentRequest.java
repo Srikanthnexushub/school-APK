@@ -11,11 +11,13 @@ import java.util.UUID;
 
 public record RecordFeePaymentRequest(
         @NotNull UUID studentId,
-        @NotNull UUID centerId,
+        UUID centerId,
         UUID batchId,
         @NotNull @DecimalMin("0.01") BigDecimal amountPaid,
         String currency,
         @NotNull LocalDate paymentDate,
         @NotBlank String referenceNumber,
-        String remarks
+        String remarks,
+        String feeType,
+        String paymentMethod
 ) {}

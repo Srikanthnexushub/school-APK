@@ -72,7 +72,7 @@ class StudentLinkServiceTest {
     }
 
     private LinkStudentRequest linkRequest() {
-        return new LinkStudentRequest(UUID.randomUUID(), "Test Student", CENTER_ID);
+        return new LinkStudentRequest(UUID.randomUUID(), "Test Student", CENTER_ID, null, null, null, null, null);
     }
 
     // -------------------------------------------------------------------------

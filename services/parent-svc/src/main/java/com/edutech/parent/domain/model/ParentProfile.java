@@ -31,6 +31,24 @@ public class ParentProfile {
     @Column
     private String phone;
 
+    @Column
+    private String email;
+
+    @Column
+    private String address;
+
+    @Column
+    private String city;
+
+    @Column
+    private String state;
+
+    @Column
+    private String pincode;
+
+    @Column(name = "relationship_type")
+    private String relationshipType;
+
     @Column(nullable = false)
     private boolean verified;
 
@@ -52,11 +70,19 @@ public class ParentProfile {
 
     private ParentProfile() {}
 
-    public static ParentProfile create(UUID userId, String name, String phone) {
+    public static ParentProfile create(UUID userId, String name, String phone,
+                                       String email, String address, String city,
+                                       String state, String pincode, String relationshipType) {
         ParentProfile profile = new ParentProfile();
         profile.userId = userId;
         profile.name = name;
         profile.phone = phone;
+        profile.email = email;
+        profile.address = address;
+        profile.city = city;
+        profile.state = state;
+        profile.pincode = pincode;
+        profile.relationshipType = (relationshipType != null) ? relationshipType : "PARENT";
         profile.verified = false;
         profile.status = ParentStatus.ACTIVE;
         profile.createdAt = Instant.now();
@@ -64,12 +90,31 @@ public class ParentProfile {
         return profile;
     }
 
-    public void update(String name, String phone) {
+    public void update(String name, String phone, String email, String address,
+                       String city, String state, String pincode, String relationshipType) {
         if (name != null) {
             this.name = name;
         }
         if (phone != null) {
             this.phone = phone;
+        }
+        if (email != null) {
+            this.email = email;
+        }
+        if (address != null) {
+            this.address = address;
+        }
+        if (city != null) {
+            this.city = city;
+        }
+        if (state != null) {
+            this.state = state;
+        }
+        if (pincode != null) {
+            this.pincode = pincode;
+        }
+        if (relationshipType != null) {
+            this.relationshipType = relationshipType;
         }
         this.updatedAt = Instant.now();
     }
@@ -109,6 +154,30 @@ public class ParentProfile {
 
     public String getPhone() {
         return phone;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public String getPincode() {
+        return pincode;
+    }
+
+    public String getRelationshipType() {
+        return relationshipType;
     }
 
     public boolean isVerified() {

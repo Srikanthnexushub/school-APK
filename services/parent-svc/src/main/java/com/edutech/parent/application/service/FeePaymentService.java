@@ -59,7 +59,9 @@ public class FeePaymentService implements RecordFeePaymentUseCase {
                 currency,
                 request.paymentDate(),
                 request.referenceNumber(),
-                request.remarks()
+                request.remarks(),
+                request.feeType(),
+                request.paymentMethod()
         );
         FeePayment saved = paymentRepository.save(payment);
         eventPublisher.publish(new FeePaymentRecordedEvent(
@@ -113,6 +115,8 @@ public class FeePaymentService implements RecordFeePaymentUseCase {
                 p.getPaymentDate(),
                 p.getReferenceNumber(),
                 p.getRemarks(),
+                p.getFeeType(),
+                p.getPaymentMethod(),
                 p.getStatus(),
                 p.getCreatedAt()
         );

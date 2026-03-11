@@ -4,10 +4,16 @@ package com.edutech.parent.application.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record LinkStudentRequest(
         @NotNull UUID studentId,
         @NotBlank String studentName,
-        @NotNull UUID centerId
+        @NotNull UUID centerId,
+        LocalDate dateOfBirth,
+        String schoolName,
+        String standard,
+        String board,
+        String rollNumber
 ) {}

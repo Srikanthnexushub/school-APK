@@ -5,6 +5,7 @@ import {
   LayoutDashboard, Bot, ClipboardList, BarChart3, Target, Brain,
   Users, Calendar, Settings, LogOut, BookOpen, Menu, X, ChevronLeft,
   Bell, Search, ChevronRight, BookOpenCheck, Library, Award,
+  CreditCard,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '../../stores/authStore';
@@ -40,8 +41,13 @@ const adminNav: NavItem[] = [
 ];
 
 const parentNav: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Overview', to: '/parent' },
-  { icon: Bot,             label: 'Copilot',  to: '/parent/copilot' },
+  { icon: LayoutDashboard, label: 'Overview',      to: '/parent' },
+  { icon: Users,           label: 'My Children',   to: '/parent/children' },
+  { icon: CreditCard,      label: 'Fees',          to: '/parent/fees' },
+  { icon: Brain,           label: 'Psychometric',  to: '/parent/psychometric' },
+  { icon: BookOpen,        label: 'Question Bank', to: '/parent/question-bank' },
+  { icon: Bot,             label: 'Copilot',       to: '/parent/copilot' },
+  { icon: Settings,        label: 'Profile',       to: '/parent/profile' },
 ];
 
 const mentorNav: NavItem[] = [

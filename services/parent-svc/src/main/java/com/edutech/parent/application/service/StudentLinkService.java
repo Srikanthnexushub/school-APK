@@ -4,6 +4,7 @@ package com.edutech.parent.application.service;
 import com.edutech.parent.application.dto.AuthPrincipal;
 import com.edutech.parent.application.dto.LinkStudentRequest;
 import com.edutech.parent.application.dto.StudentLinkResponse;
+import com.edutech.parent.application.dto.UpdateChildDetailsRequest;
 import com.edutech.parent.application.exception.DuplicateStudentLinkException;
 import com.edutech.parent.application.exception.ParentAccessDeniedException;
 import com.edutech.parent.application.exception.ParentProfileNotFoundException;
@@ -57,6 +58,11 @@ public class StudentLinkService implements LinkStudentUseCase, RevokeStudentLink
                     }
                 });
         StudentLink link = StudentLink.create(parentProfileId, request.studentId(), request.studentName(), request.centerId());
+        if (request.dateOfBirth() != null || request.schoolName() != null || request.standard() != null
+                || request.board() != null || request.rollNumber() != null) {
+            link.updateChildDetails(request.dateOfBirth(), request.schoolName(), request.standard(),
+                    request.board(), request.rollNumber());
+        }
         StudentLink saved = linkRepository.save(link);
         eventPublisher.publish(new StudentLinkedEvent(saved.getId(), parentProfileId, request.studentId(), request.centerId()));
         return toResponse(saved);
@@ -103,6 +109,29 @@ public class StudentLinkService implements LinkStudentUseCase, RevokeStudentLink
         return new PageImpl<>(start < all.size() ? all.subList(start, end) : List.of(), pageable, all.size());
     }
 
+    public StudentLinkResponse updateChildDetails(UUID profileId, UUID linkId,
+                                                   UpdateChildDetailsRequest request,
+                                                   AuthPrincipal principal) {
+        ParentProfile parent = profileRepository.findById(profileId)
+                .orElseThrow(() -> new ParentProfileNotFoundException(profileId));
+        if (!principal.ownsProfile(parent.getUserId())) {
+            throw new ParentAccessDeniedException();
+        }
+        StudentLink link = linkRepository.findById(linkId)
+                .orElseThrow(() -> new StudentLinkNotFoundException(linkId));
+        if (!link.getParentId().equals(profileId)) {
+            throw new ParentAccessDeniedException();
+        }
+        link.updateChildDetails(
+                request.dateOfBirth(),
+                request.schoolName(),
+                request.standard(),
+                request.board(),
+                request.rollNumber()
+        );
+        return toResponse(linkRepository.save(link));
+    }
+
     private StudentLinkResponse toResponse(StudentLink l) {
         return new StudentLinkResponse(
                 l.getId(),
@@ -111,6 +140,11 @@ public class StudentLinkService implements LinkStudentUseCase, RevokeStudentLink
                 l.getStudentName(),
                 l.getCenterId(),
                 l.getStatus(),
+                l.getDateOfBirth(),
+                l.getSchoolName(),
+                l.getStandard(),
+                l.getBoard(),
+                l.getRollNumber(),
                 l.getCreatedAt()
         );
     }

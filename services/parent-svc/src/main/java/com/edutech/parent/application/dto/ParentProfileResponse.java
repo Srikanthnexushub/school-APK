@@ -11,6 +11,12 @@ public record ParentProfileResponse(
         UUID userId,
         String name,
         String phone,
+        String email,
+        String address,
+        String city,
+        String state,
+        String pincode,
+        String relationshipType,
         boolean verified,
         ParentStatus status,
         Instant createdAt

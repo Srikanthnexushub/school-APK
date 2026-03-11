@@ -71,7 +71,7 @@ public class PsychProfileService implements CreatePsychProfileUseCase {
 
     @Transactional(readOnly = true)
     public List<PsychProfileResponse> listByStudentId(UUID studentId, AuthPrincipal principal) {
-        if (!principal.isSuperAdmin() && !principal.userId().equals(studentId)) {
+        if (!principal.isSuperAdmin() && !principal.isParent() && !principal.userId().equals(studentId)) {
             throw new PsychAccessDeniedException();
         }
         return profileRepository.findByStudentId(studentId).stream()

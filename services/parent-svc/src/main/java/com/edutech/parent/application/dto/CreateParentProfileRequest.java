@@ -6,5 +6,11 @@ import jakarta.validation.constraints.Pattern;
 
 public record CreateParentProfileRequest(
         @NotBlank String name,
-        @Pattern(regexp = "^\\+?[0-9]{7,15}$", message = "Invalid phone number") String phone
+        @Pattern(regexp = "^\\+?[0-9]{7,15}$", message = "Invalid phone number") String phone,
+        String email,
+        String address,
+        String city,
+        String state,
+        String pincode,
+        String relationshipType
 ) {}

@@ -51,6 +51,12 @@ public class FeePayment {
     @Column
     private String remarks;
 
+    @Column(name = "fee_type")
+    private String feeType;
+
+    @Column(name = "payment_method")
+    private String paymentMethod;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PaymentStatus status;
@@ -67,8 +73,9 @@ public class FeePayment {
     private FeePayment() {}
 
     public static FeePayment create(UUID parentId, UUID studentId, UUID centerId, UUID batchId,
-                                     BigDecimal amountPaid, String currency, LocalDate paymentDate,
-                                     String referenceNumber, String remarks) {
+                                    BigDecimal amountPaid, String currency, LocalDate paymentDate,
+                                    String referenceNumber, String remarks,
+                                    String feeType, String paymentMethod) {
         FeePayment payment = new FeePayment();
         payment.parentId = parentId;
         payment.studentId = studentId;
@@ -79,6 +86,8 @@ public class FeePayment {
         payment.paymentDate = paymentDate;
         payment.referenceNumber = referenceNumber;
         payment.remarks = remarks;
+        payment.feeType = (feeType != null) ? feeType : "TUITION";
+        payment.paymentMethod = (paymentMethod != null) ? paymentMethod : "CASH";
         payment.status = PaymentStatus.PENDING;
         payment.createdAt = Instant.now();
         payment.updatedAt = payment.createdAt;
@@ -147,6 +156,14 @@ public class FeePayment {
 
     public String getRemarks() {
         return remarks;
+    }
+
+    public String getFeeType() {
+        return feeType;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
     }
 
     public PaymentStatus getStatus() {

@@ -12,6 +12,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -37,6 +38,21 @@ public class StudentLink {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private LinkStatus status;
+
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    @Column(name = "school_name")
+    private String schoolName;
+
+    @Column
+    private String standard;
+
+    @Column
+    private String board;
+
+    @Column(name = "roll_number")
+    private String rollNumber;
 
     @Version
     private Long version;
@@ -69,6 +85,26 @@ public class StudentLink {
         this.updatedAt = Instant.now();
     }
 
+    public void updateChildDetails(LocalDate dob, String schoolName, String standard,
+                                   String board, String rollNumber) {
+        if (dob != null) {
+            this.dateOfBirth = dob;
+        }
+        if (schoolName != null) {
+            this.schoolName = schoolName;
+        }
+        if (standard != null) {
+            this.standard = standard;
+        }
+        if (board != null) {
+            this.board = board;
+        }
+        if (rollNumber != null) {
+            this.rollNumber = rollNumber;
+        }
+        this.updatedAt = Instant.now();
+    }
+
     public UUID getId() {
         return id;
     }
@@ -91,6 +127,26 @@ public class StudentLink {
 
     public LinkStatus getStatus() {
         return status;
+    }
+
+    public LocalDate getDateOfBirth() {
+        return dateOfBirth;
+    }
+
+    public String getSchoolName() {
+        return schoolName;
+    }
+
+    public String getStandard() {
+        return standard;
+    }
+
+    public String getBoard() {
+        return board;
+    }
+
+    public String getRollNumber() {
+        return rollNumber;
     }
 
     public Long getVersion() {

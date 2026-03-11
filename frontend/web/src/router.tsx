@@ -19,6 +19,11 @@ import ExamTrackerPage from './pages/exam-tracker/ExamTrackerPage';
 import SettingsPage from './pages/settings/SettingsPage';
 import ParentDashboardPage from './pages/parent/ParentDashboardPage';
 import ParentCopilotPage from './pages/parent/ParentCopilotPage';
+import ParentProfilePage from './pages/parent/ParentProfilePage';
+import ParentChildrenPage from './pages/parent/ParentChildrenPage';
+import ParentFeesPage from './pages/parent/ParentFeesPage';
+import ParentPsychometricPage from './pages/parent/ParentPsychometricPage';
+import ParentQuestionBankPage from './pages/parent/ParentQuestionBankPage';
 import AdminPortalPage from './pages/admin/AdminPortalPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminBatchesPage from './pages/admin/AdminBatchesPage';
@@ -84,6 +89,11 @@ export const router = createBrowserRouter([
       { index: true, element: <ParentDashboardPage /> },
       { path: 'dashboard', element: <ParentDashboardPage /> },
       { path: 'copilot', element: <ParentCopilotPage /> },
+      { path: 'profile', element: <ParentProfilePage /> },
+      { path: 'children', element: <ParentChildrenPage /> },
+      { path: 'fees', element: <ParentFeesPage /> },
+      { path: 'psychometric', element: <ParentPsychometricPage /> },
+      { path: 'question-bank', element: <ParentQuestionBankPage /> },
     ],
   },
   {

@@ -37,7 +37,17 @@ public class ParentProfileService implements CreateParentProfileUseCase, UpdateP
     @Override
     public ParentProfileResponse createProfile(CreateParentProfileRequest request, AuthPrincipal principal) {
         UUID ownerId = principal.userId();
-        ParentProfile profile = ParentProfile.create(ownerId, request.name(), request.phone());
+        ParentProfile profile = ParentProfile.create(
+                ownerId,
+                request.name(),
+                request.phone(),
+                request.email(),
+                request.address(),
+                request.city(),
+                request.state(),
+                request.pincode(),
+                request.relationshipType()
+        );
         ParentProfile saved = profileRepository.save(profile);
         log.info("Parent profile created: id={} userId={}", saved.getId(), ownerId);
         return toResponse(saved);
@@ -50,7 +60,16 @@ public class ParentProfileService implements CreateParentProfileUseCase, UpdateP
         if (!principal.ownsProfile(profile.getUserId())) {
             throw new ParentAccessDeniedException();
         }
-        profile.update(request.name(), request.phone());
+        profile.update(
+                request.name(),
+                request.phone(),
+                request.email(),
+                request.address(),
+                request.city(),
+                request.state(),
+                request.pincode(),
+                request.relationshipType()
+        );
         return toResponse(profileRepository.save(profile));
     }
 
@@ -77,6 +96,12 @@ public class ParentProfileService implements CreateParentProfileUseCase, UpdateP
                 p.getUserId(),
                 p.getName(),
                 p.getPhone(),
+                p.getEmail(),
+                p.getAddress(),
+                p.getCity(),
+                p.getState(),
+                p.getPincode(),
+                p.getRelationshipType(),
                 p.isVerified(),
                 p.getStatus(),
                 p.getCreatedAt()

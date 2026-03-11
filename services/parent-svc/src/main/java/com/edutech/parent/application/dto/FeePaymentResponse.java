@@ -19,6 +19,8 @@ public record FeePaymentResponse(
         LocalDate paymentDate,
         String referenceNumber,
         String remarks,
+        String feeType,
+        String paymentMethod,
         PaymentStatus status,
         Instant createdAt
 ) {}

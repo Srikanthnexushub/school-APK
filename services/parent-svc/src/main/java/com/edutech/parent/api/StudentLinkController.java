@@ -4,6 +4,7 @@ package com.edutech.parent.api;
 import com.edutech.parent.application.dto.AuthPrincipal;
 import com.edutech.parent.application.dto.LinkStudentRequest;
 import com.edutech.parent.application.dto.StudentLinkResponse;
+import com.edutech.parent.application.dto.UpdateChildDetailsRequest;
 import com.edutech.parent.application.service.StudentLinkService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -15,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -55,6 +57,16 @@ public class StudentLinkController {
             @RequestParam(defaultValue = "50") int size,
             @AuthenticationPrincipal AuthPrincipal principal) {
         return studentLinkService.listLinkedStudents(profileId, principal, PageRequest.of(page, size));
+    }
+
+    @PatchMapping("/{linkId}")
+    @Operation(summary = "Update child details for a student link")
+    public StudentLinkResponse updateChildDetails(
+            @PathVariable UUID profileId,
+            @PathVariable UUID linkId,
+            @RequestBody UpdateChildDetailsRequest request,
+            @AuthenticationPrincipal AuthPrincipal principal) {
+        return studentLinkService.updateChildDetails(profileId, linkId, request, principal);
     }
 
     @DeleteMapping("/{linkId}")

@@ -1,0 +1,7 @@
+ALTER TABLE parent_schema.parent_profiles
+    ADD COLUMN IF NOT EXISTS email TEXT,
+    ADD COLUMN IF NOT EXISTS address TEXT,
+    ADD COLUMN IF NOT EXISTS city TEXT,
+    ADD COLUMN IF NOT EXISTS state TEXT,
+    ADD COLUMN IF NOT EXISTS pincode TEXT,
+    ADD COLUMN IF NOT EXISTS relationship_type TEXT DEFAULT 'PARENT';
