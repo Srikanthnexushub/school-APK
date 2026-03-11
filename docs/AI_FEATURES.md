@@ -35,20 +35,36 @@ They need plain-language summaries and actionable advice without navigating mult
 
 **User flow:**
 1. Parent logs into the parent portal → Copilot tab
-2. Sends a natural-language question (e.g. "How is Arjun doing in Math?")
-3. Parent-svc fetches the student's recent scores from student-profile-svc and exam results from assess-svc
-4. Calls `POST /api/v1/ai/completions` on ai-gateway-svc with system prompt + context
-5. AI returns a parent-friendly paragraph with key observations and suggestions
+2. Selects a linked child (auto-selected if only one)
+3. Sends a natural-language question (e.g. "Who is my child?" or "How is Arjun doing?")
+4. `CopilotService` injects the student's real name and psychometric profile into the system prompt
+5. Calls `POST /api/v1/ai/completions` on ai-gateway-svc
+6. AI returns a personalised, factually grounded response (no hallucination)
 
 **Technical flow:**
 ```
 ParentCopilotController (parent-svc)
-  → WebClient → ai-gateway-svc /api/v1/ai/completions
-    → LlmRoutingService → AnthropicWebClientAdapter (or local-echo)
-      → Response streamed back to frontend
+  → CopilotService.startConversation(parentId, studentId, message)
+      → parentProfileRepository.findByUserId(userUuid)   ← resolves JWT userId → profile UUID
+      → studentLinkRepository.findByParentIdAndStudentId(profileId, studentUuid)  ← gets studentName
+      → psychSvcWebClient GET /api/v1/psych/profiles?studentId=...  ← fetches Big Five + RIASEC
+      → aiGatewayWebClient POST /api/v1/ai/completions  ← system prompt includes studentName + psychContext
+        → LlmRoutingService → OpenRouterWebClientAdapter (or local-echo)
 ```
 
-**Frontend:** `src/pages/parent/ParentOverviewPage.tsx` — Copilot section at `/parent`
+**Critical architecture — student name resolution (FROZEN commit d0a1311):**
+- JWT subject = user ID (`30a06234...`). `student_links.parent_id` stores **profile ID** (`59ca5bc7...`)
+- Must resolve: `userUuid → parentProfileRepository → profileId → studentLinkRepository → studentName`
+- Without this chain the system prompt has no name → LLM hallucinates ("John Doe, Delhi Public School")
+
+**Frontend:** `src/pages/parent/ParentCopilotPage.tsx` — full-page Copilot at `/parent/copilot`
+- `linkedStudents` query uses Page extraction: `const d = r.data; return Array.isArray(d) ? d : (d.content ?? [])`
+- Without this, `studentId` is never populated → backend receives `studentId: ''` → no name injected
+
+**Endpoints:**
+- `POST /api/v1/copilot/conversations` — start conversation (with `studentId` in body)
+- `POST /api/v1/copilot/conversations/{id}/messages` — continue conversation
+- `GET /api/v1/copilot/conversations/{id}` — fetch conversation history
 
 ---
 
@@ -147,11 +163,12 @@ without changing application code.
 **Configuration:**
 ```bash
 OPENROUTER_API_KEY=<key from openrouter.ai/keys>
-OPENROUTER_MODEL=openai/gpt-4o-mini   # or any OpenRouter model slug
+OPENROUTER_MODEL=arcee-ai/trinity-large-preview:free   # free tier; supports system prompts
 ```
 
-**How to use:** Set `provider: OPENROUTER` in the `CompletionRequest` (or configure
-`LlmRoutingService.resolveProvider()` to return `OPENROUTER` by default).
+**Active provider:** `AI_DEFAULT_PROVIDER=OPENROUTER` in `.env` → `LlmRoutingService.resolveProvider()`
+routes all completions through OpenRouter by default. Switch to `ANTHROPIC` by changing this value.
+
 OpenRouter supports: OpenAI GPT-4o, Anthropic Claude, Gemini, Mistral, Llama 3, and 100+ more.
 
 ---
