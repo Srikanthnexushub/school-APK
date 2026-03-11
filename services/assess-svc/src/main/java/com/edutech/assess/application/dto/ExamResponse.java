@@ -21,5 +21,6 @@ public record ExamResponse(
         double totalMarks,
         double passingMarks,
         ExamStatus status,
-        Instant createdAt
+        Instant createdAt,
+        int totalQuestions
 ) {}

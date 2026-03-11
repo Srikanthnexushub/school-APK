@@ -162,10 +162,12 @@ public class ExamService implements CreateExamUseCase, PublishExamUseCase, ListP
     }
 
     private ExamResponse toResponse(Exam e) {
+        int qCount = e.getId() != null ? questionRepository.countByExamId(e.getId()) : 0;
         return new ExamResponse(
                 e.getId(), e.getBatchId(), e.getCenterId(), e.getTitle(), e.getDescription(),
                 e.getMode(), e.getDurationMinutes(), e.getMaxAttempts(), e.getStartAt(), e.getEndAt(),
-                e.getTotalMarks(), e.getPassingMarks(), e.getStatus(), e.getCreatedAt()
+                e.getTotalMarks(), e.getPassingMarks(), e.getStatus(), e.getCreatedAt(),
+                qCount
         );
     }
 

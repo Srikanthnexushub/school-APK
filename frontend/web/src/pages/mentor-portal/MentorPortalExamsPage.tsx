@@ -32,7 +32,7 @@ interface ExamResponse {
   mode: string;
   durationMinutes: number;
   totalQuestions: number;
-  status: 'DRAFT' | 'PUBLISHED' | 'CLOSED';
+  status: 'DRAFT' | 'PUBLISHED' | 'AVAILABLE' | 'CLOSED';
   createdAt?: string;
 }
 
@@ -82,6 +82,7 @@ const DIFFICULTY_STYLES: Record<Difficulty, string> = {
 const STATUS_STYLES: Record<string, string> = {
   DRAFT:     'bg-white/10 text-white/50',
   PUBLISHED: 'bg-emerald-500/15 text-emerald-400',
+  AVAILABLE: 'bg-brand-500/15 text-brand-400',
   CLOSED:    'bg-red-500/15 text-red-400',
 };
 
@@ -686,13 +687,31 @@ function Step3({
 // ─── My Exams Table ───────────────────────────────────────────────────────────
 
 function MyExamsTable() {
-  const { data: exams = [], isLoading } = useQuery<ExamResponse[]>({
-    queryKey: ['teacher-exams'],
+  // Reuse cached centers to fetch exams by centerId (returns full exam details)
+  const { data: centers = [] } = useQuery<CenterResponse[]>({
+    queryKey: ['teacher-centers'],
     queryFn: async () => {
-      const res = await api.get('/api/v1/exams');
+      const res = await api.get('/api/v1/centers');
       const d = res.data;
       return Array.isArray(d) ? d : (d.content ?? []);
     },
+    staleTime: 60_000,
+  });
+
+  const { data: exams = [], isLoading } = useQuery<ExamResponse[]>({
+    queryKey: ['teacher-exams', centers.map(c => c.id)],
+    queryFn: async () => {
+      const all: ExamResponse[] = [];
+      const seen = new Set<string>();
+      for (const c of centers) {
+        const res = await api.get(`/api/v1/exams?centerId=${c.id}`);
+        const d = res.data;
+        const items: ExamResponse[] = Array.isArray(d) ? d : (d.content ?? []);
+        items.forEach(e => { if (!seen.has(e.id)) { seen.add(e.id); all.push(e); } });
+      }
+      return all;
+    },
+    enabled: centers.length > 0,
     retry: false,
   });
 
