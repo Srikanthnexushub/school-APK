@@ -75,7 +75,18 @@ public class OpenRouterWebClientAdapter implements LlmClient {
         String reply;
 
         if (sys.contains("parent copilot") || sys.contains("parent")) {
-            if (user.contains("doing") || user.contains("progress") || user.contains("performance")) {
+            if (user.contains("who is") || user.contains("child's name") || user.contains("child name")
+                    || user.equals("who is my child") || user.contains("which child") || user.contains("my child's name")) {
+                String childName = extractField(request.systemPrompt() != null ? request.systemPrompt() : "",
+                        "linked child is: ([^\\.\\n]+)");
+                if (!"N/A".equals(childName)) {
+                    reply = "Your linked child on NexusEd is **" + childName.trim() + "**. "
+                          + "I can help you with " + childName.trim() + "'s academic progress, exam schedules, fees, psychometric profile, and study recommendations. What would you like to know?";
+                } else {
+                    reply = "I can see your account is set up, but no child appears to be linked yet. "
+                          + "Please visit the 'My Children' section to link your child's account using their student ID.";
+                }
+            } else if (user.contains("doing") || user.contains("progress") || user.contains("performance")) {
                 reply = "Your child is actively enrolled and has been completing assessments. "
                       + "Their latest Exam Readiness Score (ERS) reflects recent test activity. "
                       + "I recommend checking the Performance tab for a detailed breakdown of subject-wise scores and weak areas. "

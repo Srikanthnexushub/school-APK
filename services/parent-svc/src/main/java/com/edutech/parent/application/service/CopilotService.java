@@ -4,7 +4,9 @@ import com.edutech.parent.application.dto.ConversationResponse;
 import com.edutech.parent.application.dto.MessageResponse;
 import com.edutech.parent.application.exception.ConversationNotFoundException;
 import com.edutech.parent.domain.model.CopilotConversation;
+import com.edutech.parent.domain.model.StudentLink;
 import com.edutech.parent.domain.port.out.CopilotConversationRepository;
+import com.edutech.parent.domain.port.out.StudentLinkRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -18,6 +20,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -38,16 +41,19 @@ public class CopilotService {
     private static final String COPILOT_TYPE = "PARENT_COPILOT";
 
     private final CopilotConversationRepository conversationRepository;
+    private final StudentLinkRepository studentLinkRepository;
     private final WebClient aiGatewayWebClient;
     private final WebClient psychSvcWebClient;
     private final int timeoutSeconds;
 
     public CopilotService(
             CopilotConversationRepository conversationRepository,
+            StudentLinkRepository studentLinkRepository,
             @Qualifier("aiGatewayWebClient") WebClient aiGatewayWebClient,
             @Qualifier("psychSvcWebClient") WebClient psychSvcWebClient,
             @Value("${ai-gateway.timeout-seconds:30}") int timeoutSeconds) {
         this.conversationRepository = conversationRepository;
+        this.studentLinkRepository = studentLinkRepository;
         this.aiGatewayWebClient = aiGatewayWebClient;
         this.psychSvcWebClient = psychSvcWebClient;
         this.timeoutSeconds = timeoutSeconds;
@@ -66,8 +72,9 @@ public class CopilotService {
         CopilotConversation conversation = new CopilotConversation(parentId, studentId, title);
         conversation.addMessage("user", initialMessage);
 
+        String studentName = resolveStudentName(parentId, studentId);
         String psychContext = studentId != null ? fetchStudentPsychContext(studentId) : null;
-        String aiReply = callAiGateway(initialMessage, List.of(), psychContext);
+        String aiReply = callAiGateway(initialMessage, List.of(), psychContext, studentName);
         conversation.addMessage("assistant", aiReply);
 
         CopilotConversation saved = conversationRepository.save(conversation);
@@ -95,9 +102,10 @@ public class CopilotService {
         List<Map<String, String>> history = buildHistory(conversation);
 
         conversation.addMessage("user", userMessage);
+        String studentName = resolveStudentName(parentId, conversation.getStudentId());
         String psychContext = conversation.getStudentId() != null
                 ? fetchStudentPsychContext(conversation.getStudentId()) : null;
-        String aiReply = callAiGateway(userMessage, history, psychContext);
+        String aiReply = callAiGateway(userMessage, history, psychContext, studentName);
         conversation.addMessage("assistant", aiReply);
 
         CopilotConversation saved = conversationRepository.save(conversation);
@@ -132,7 +140,21 @@ public class CopilotService {
     // Private helpers
     // -------------------------------------------------------------------------
 
-    private String callAiGateway(String message, List<Map<String, String>> history, String studentContext) {
+    private String resolveStudentName(String parentId, String studentId) {
+        if (parentId == null || studentId == null) return null;
+        try {
+            UUID parentUuid = UUID.fromString(parentId);
+            UUID studentUuid = UUID.fromString(studentId);
+            return studentLinkRepository.findByParentIdAndStudentId(parentUuid, studentUuid)
+                    .map(StudentLink::getStudentName)
+                    .orElse(null);
+        } catch (Exception e) {
+            log.warn("Could not resolve student name for parent={} student={}: {}", parentId, studentId, e.getMessage());
+            return null;
+        }
+    }
+
+    private String callAiGateway(String message, List<Map<String, String>> history, String studentContext, String studentName) {
         String historyText = history.stream()
                 .map(m -> m.get("role") + ": " + m.get("content"))
                 .collect(Collectors.joining("\n"));
@@ -140,7 +162,13 @@ public class CopilotService {
         StringBuilder systemPrompt = new StringBuilder(
                 "You are the NexusEd Parent Copilot. Help parents understand their child's academic progress, " +
                 "psychometric profile, career recommendations, fees, attendance, weak areas, and exam schedules. " +
-                "Be concise, supportive, and always reference actual data when available.");
+                "Be concise and supportive. IMPORTANT: Only use data explicitly provided in this prompt. " +
+                "Do NOT fabricate, invent, or assume any details about the student that are not stated here.");
+
+        if (studentName != null && !studentName.isBlank()) {
+            systemPrompt.append("\n\nThe parent's linked child is: ").append(studentName).append(". ")
+                    .append("Always refer to them by name. Do not invent any other details about them beyond what is given.");
+        }
 
         if (studentContext != null && !studentContext.isBlank()) {
             systemPrompt.append("\n\n").append(studentContext);
