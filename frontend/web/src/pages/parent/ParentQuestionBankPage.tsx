@@ -436,23 +436,30 @@ export default function ParentQuestionBankPage() {
         </div>
 
         {/* Generate button */}
-        <button
-          onClick={handleGenerate}
-          disabled={generating}
-          className="btn-primary flex items-center gap-2 px-6 py-3 text-sm font-medium disabled:opacity-50"
-        >
-          {generating ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Generating…
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-4 h-4" />
-              Generate Paper
-            </>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleGenerate}
+            disabled={generating}
+            className="btn-primary flex items-center gap-2 px-6 py-3 text-sm font-medium disabled:opacity-50"
+          >
+            {generating ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Generating…
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                Generate Paper
+              </>
+            )}
+          </button>
+          {generating && (
+            <p className="text-xs text-white/40 animate-pulse">
+              AI is writing your questions — this can take up to 45 seconds…
+            </p>
           )}
-        </button>
+        </div>
       </div>
 
       {/* Active paper */}
