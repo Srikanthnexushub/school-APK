@@ -21,11 +21,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -114,6 +116,16 @@ public class AuthController {
         User user = userRepository.findById(principal.userId())
             .orElseThrow();
         return authMapper.toUserResponse(user);
+    }
+
+    @GetMapping("/users/lookup")
+    @SecurityRequirement(name = "BearerAuth")
+    @Operation(summary = "Look up a user by email — used by parents to find their child's account")
+    public ResponseEntity<UserResponse> lookupByEmail(@RequestParam String email) {
+        return userRepository.findByEmail(email)
+            .map(authMapper::toUserResponse)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
 
     private String getClientIp(HttpServletRequest request) {
