@@ -24,6 +24,7 @@ import ParentChildrenPage from './pages/parent/ParentChildrenPage';
 import ParentFeesPage from './pages/parent/ParentFeesPage';
 import ParentPsychometricPage from './pages/parent/ParentPsychometricPage';
 import ParentQuestionBankPage from './pages/parent/ParentQuestionBankPage';
+import ParentLibraryPage from './pages/parent/ParentLibraryPage';
 import AdminPortalPage from './pages/admin/AdminPortalPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminBatchesPage from './pages/admin/AdminBatchesPage';
@@ -94,6 +95,7 @@ export const router = createBrowserRouter([
       { path: 'fees', element: <ParentFeesPage /> },
       { path: 'psychometric', element: <ParentPsychometricPage /> },
       { path: 'question-bank', element: <ParentQuestionBankPage /> },
+      { path: 'library', element: <ParentLibraryPage /> },
     ],
   },
   {

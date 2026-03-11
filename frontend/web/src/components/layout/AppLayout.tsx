@@ -45,6 +45,7 @@ const parentNav: NavItem[] = [
   { icon: Users,           label: 'My Children',   to: '/parent/children' },
   { icon: CreditCard,      label: 'Fees',          to: '/parent/fees' },
   { icon: Brain,           label: 'Psychometric',  to: '/parent/psychometric' },
+  { icon: Library,         label: 'Library',       to: '/parent/library' },
   { icon: BookOpen,        label: 'Question Bank', to: '/parent/question-bank' },
   { icon: Bot,             label: 'Copilot',       to: '/parent/copilot' },
   { icon: Settings,        label: 'Profile',       to: '/parent/profile' },
