@@ -515,6 +515,10 @@ export default function ParentDashboardPage() {
 
   const feeStatus = latestFeeForStudent?.status?.toUpperCase() === 'PAID' ? 'Paid' : 'Due';
 
+  const outstandingAmount = feePayments
+    .filter((f) => (!resolvedStudentId || f.studentId === resolvedStudentId) && f.status?.toUpperCase() === 'PENDING')
+    .reduce((sum, f) => sum + f.amountPaid, 0);
+
   const isLoading = profileLoading || studentsLoading;
 
   if (isLoading) {
@@ -784,10 +788,15 @@ export default function ParentDashboardPage() {
                         <AlertTriangle className="w-4 h-4 text-red-400" />
                         <span className="font-semibold text-white text-sm">Outstanding Fee</span>
                       </div>
+                      {outstandingAmount > 0 && (
+                        <p className="text-lg font-bold text-red-400 mt-1">
+                          ₹{outstandingAmount.toLocaleString('en-IN')}
+                        </p>
+                      )}
                       <p className="text-xs text-white/40 mt-1">Please make payment at your center</p>
                     </div>
                     <button
-                      onClick={() => toast.success('Redirecting to payment gateway…')}
+                      onClick={() => navigate('/parent/fees')}
                       className="btn-primary px-5 py-2.5 text-sm font-semibold"
                     >
                       Pay Now
