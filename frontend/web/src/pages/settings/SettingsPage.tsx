@@ -1,12 +1,12 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   User, Bell, Palette, Shield, Camera, Check, AlertTriangle,
-  Smartphone, Monitor, Eye, EyeOff,
+  Smartphone, Monitor, Eye, EyeOff, GraduationCap, Calendar, MapPin, BookOpen,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
@@ -62,9 +62,31 @@ function loadAccentColor(): string {
   }
 }
 
+interface StudentProfile {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  city?: string;
+  state?: string;
+  board?: string;
+  currentClass?: number;
+  stream?: string;
+  targetYear?: number;
+  status: string;
+  createdAt: string;
+}
+
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   phone: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  stream: z.string().optional(),
+  targetYear: z.number().int().min(2024).max(2035).optional().or(z.nan()).transform(v => isNaN(v as number) ? undefined : v),
 });
 
 const passwordSchema = z.object({
@@ -79,26 +101,67 @@ const passwordSchema = z.object({
 type ProfileForm = z.infer<typeof profileSchema>;
 type PasswordForm = z.infer<typeof passwordSchema>;
 
+function InfoBadge({ label, value, icon: Icon }: { label: string; value?: string | number | null; icon: React.ElementType }) {
+  return (
+    <div className="flex items-start gap-3 py-3 border-b border-white/5 last:border-0">
+      <div className="p-2 rounded-lg bg-brand-500/10 flex-shrink-0 mt-0.5">
+        <Icon className="w-4 h-4 text-brand-400" />
+      </div>
+      <div>
+        <div className="text-xs text-white/40 uppercase tracking-wider font-medium mb-0.5">{label}</div>
+        <div className="text-sm text-white font-medium">{value || '—'}</div>
+      </div>
+    </div>
+  );
+}
+
+function formatDob(dob?: string): string {
+  if (!dob) return '—';
+  try {
+    return new Date(dob).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
+  } catch { return dob; }
+}
+
 function ProfileTab() {
   const user = useAuthStore((s) => s.user);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
 
+  const { data: profile } = useQuery<StudentProfile>({
+    queryKey: ['student-profile', user?.id],
+    queryFn: () => api.get(`/api/v1/students/${user?.id}`).then((r) => r.data),
+    enabled: !!user?.id,
+  });
+
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { name: user?.name ?? '', phone: '' },
+    defaultValues: { name: user?.name ?? '', phone: '', city: '', state: '', stream: '', targetYear: undefined },
+    values: profile ? {
+      name: user?.name ?? '',
+      phone: profile.phone ?? '',
+      city: profile.city ?? '',
+      state: profile.state ?? '',
+      stream: profile.stream ?? '',
+      targetYear: profile.targetYear,
+    } : undefined,
   });
 
   const saveMutation = useMutation({
     mutationFn: (data: ProfileForm) =>
-      api.patch(`/api/v1/students/${user?.id}`, { name: data.name, phone: data.phone }),
+      api.patch(`/api/v1/students/${user?.id}`, {
+        phone: data.phone || undefined,
+        city: data.city || undefined,
+        state: data.state || undefined,
+        stream: data.stream || undefined,
+        targetYear: data.targetYear || undefined,
+      }),
     onSuccess: () => toast.success('Profile updated successfully!'),
     onError: () => toast.error('Failed to save profile.'),
   });
 
-  const profileFields = [!!user?.name, !!user?.email, !!user?.avatarUrl];
-  const profilePct = Math.round((profileFields.filter(Boolean).length / profileFields.length) * 100);
+  const allFields = [!!user?.name, !!user?.email, !!user?.avatarUrl, !!profile?.phone, !!profile?.gender, !!profile?.dateOfBirth, !!profile?.city, !!profile?.stream];
+  const profilePct = Math.round((allFields.filter(Boolean).length / allFields.length) * 100);
 
   return (
     <div className="space-y-6">
@@ -106,18 +169,18 @@ function ProfileTab() {
       <div className="card">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-white/70 font-medium">Profile Completion</span>
-          <span className={cn('text-sm font-bold', profilePct === 100 ? 'text-emerald-400' : profilePct >= 67 ? 'text-amber-400' : 'text-red-400')}>
+          <span className={cn('text-sm font-bold', profilePct === 100 ? 'text-emerald-400' : profilePct >= 50 ? 'text-amber-400' : 'text-red-400')}>
             {profilePct}%
           </span>
         </div>
         <div className="h-2 bg-surface-200 rounded-full overflow-hidden">
           <div
-            className={cn('h-full rounded-full transition-all duration-500', profilePct === 100 ? 'bg-emerald-500' : profilePct >= 67 ? 'bg-amber-500' : 'bg-red-500')}
+            className={cn('h-full rounded-full transition-all duration-500', profilePct === 100 ? 'bg-emerald-500' : profilePct >= 50 ? 'bg-amber-500' : 'bg-red-500')}
             style={{ width: `${profilePct}%` }}
           />
         </div>
         {profilePct < 100 && (
-          <p className="text-xs text-white/30 mt-1.5">Add a profile photo to reach 100%</p>
+          <p className="text-xs text-white/30 mt-1.5">{allFields.filter(Boolean).length}/{allFields.length} fields complete — fill in details below to improve</p>
         )}
       </div>
 
@@ -148,9 +211,26 @@ function ProfileTab() {
         </div>
       </div>
 
+      {/* Academic & personal details — read only */}
+      {profile && (
+        <div className="card">
+          <h3 className="text-base font-semibold text-white mb-2">Academic Details</h3>
+          <div>
+            <InfoBadge label="Gender" value={profile.gender} icon={User} />
+            <InfoBadge label="Date of Birth" value={formatDob(profile.dateOfBirth)} icon={Calendar} />
+            <InfoBadge label="Board" value={profile.board} icon={BookOpen} />
+            <InfoBadge label="Current Class" value={profile.currentClass != null ? `Class ${profile.currentClass}` : undefined} icon={GraduationCap} />
+            <InfoBadge label="Stream" value={profile.stream} icon={BookOpen} />
+            <InfoBadge label="Target Year" value={profile.targetYear} icon={Calendar} />
+            <InfoBadge label="City" value={profile.city} icon={MapPin} />
+            <InfoBadge label="State" value={profile.state} icon={MapPin} />
+          </div>
+        </div>
+      )}
+
       {/* Edit Info */}
       <div className="card">
-        <h3 className="text-base font-semibold text-white mb-4">Personal Information</h3>
+        <h3 className="text-base font-semibold text-white mb-4">Edit Information</h3>
         <form onSubmit={handleSubmit((d) => saveMutation.mutate(d))} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-white/70 mb-1.5">Full Name</label>
@@ -162,9 +242,36 @@ function ProfileTab() {
             <input value={user?.email ?? ''} readOnly className="input w-full opacity-50 cursor-not-allowed" />
             <p className="text-white/30 text-xs mt-1">Email cannot be changed.</p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5">Phone Number</label>
-            <input {...register('phone')} placeholder="+91 98765 43210" className="input w-full" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">Phone Number</label>
+              <input {...register('phone')} placeholder="+91 98765 43210" className="input w-full" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">Stream</label>
+              <select {...register('stream')} className="input w-full">
+                <option value="">— Select —</option>
+                <option value="PCM">PCM</option>
+                <option value="PCB">PCB</option>
+                <option value="COMMERCE">Commerce</option>
+                <option value="ARTS">Arts</option>
+                <option value="VOCATIONAL">Vocational</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">City</label>
+              <input {...register('city')} placeholder="Mumbai" className="input w-full" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">State</label>
+              <input {...register('state')} placeholder="Maharashtra" className="input w-full" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">Target Year</label>
+              <input {...register('targetYear', { valueAsNumber: true })} type="number" placeholder="2026" className="input w-full" />
+            </div>
           </div>
           <button
             type="submit"
