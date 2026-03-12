@@ -389,8 +389,38 @@ function SidebarContent({
   );
 }
 
+function ProfileRing({ pct, onClick }: { pct: number; onClick: () => void }) {
+  const r = 9;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - pct / 100);
+  const color = pct === 100 ? '#10b981' : pct >= 67 ? '#f59e0b' : '#ef4444';
+  return (
+    <button
+      onClick={onClick}
+      title={`Profile ${pct}% complete`}
+      className="relative flex items-center justify-center w-8 h-8 rounded-xl hover:bg-white/5 transition-colors"
+    >
+      <svg width="24" height="24" viewBox="0 0 24 24" className="-rotate-90">
+        <circle cx="12" cy="12" r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2.5" />
+        <circle
+          cx="12" cy="12" r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={offset}
+          style={{ transition: 'stroke-dashoffset 0.4s ease' }}
+        />
+      </svg>
+      <span className="absolute text-[8px] font-bold rotate-90" style={{ color }}>{pct}</span>
+    </button>
+  );
+}
+
 export default function AppLayout() {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -398,6 +428,11 @@ export default function AppLayout() {
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const { notifications, unreadCount, isLoading, markRead, markAllRead } = useNotifications();
+
+  const profilePct = user
+    ? Math.round(([!!user.name, !!user.email, !!user.avatarUrl].filter(Boolean).length / 3) * 100)
+    : 0;
+  const profilePath = user?.role === 'PARENT' ? '/parent/profile' : '/settings';
 
   // Close mobile on route change
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
@@ -522,6 +557,11 @@ export default function AppLayout() {
                 )}
               </AnimatePresence>
             </div>
+
+            {/* Profile completion ring */}
+            {user && (
+              <ProfileRing pct={profilePct} onClick={() => navigate(profilePath)} />
+            )}
 
             {/* Avatar dropdown */}
             {user && (

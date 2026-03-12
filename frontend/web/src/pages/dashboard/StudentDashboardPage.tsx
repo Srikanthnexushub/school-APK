@@ -163,8 +163,6 @@ export default function StudentDashboardPage() {
   const { label: readinessLabel, color: readinessColor } =
     getReadinessLabel(readinessScore);
 
-  const profilePct = Math.round(([!!user?.name, !!user?.email, !!user?.avatarUrl].filter(Boolean).length / 3) * 100);
-
   // Synthetic trend anchored to real score — memoised so it doesn't re-randomize
   const performanceData = useMemo(
     () => generateTrend(readinessScore),
@@ -463,14 +461,6 @@ export default function StudentDashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            {profilePct < 100 && (
-              <button
-                onClick={() => navigate('/settings')}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-medium hover:bg-amber-500/25 transition-colors"
-              >
-                Profile {profilePct}% · Complete →
-              </button>
-            )}
             <button onClick={() => navigate('/ai-mentor')} className="btn-primary px-5 py-2.5 text-sm flex items-center gap-2">
               AI Study Plan <ChevronRight className="w-4 h-4" />
             </button>
