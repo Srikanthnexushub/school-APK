@@ -160,8 +160,10 @@ function ProfileTab() {
     onError: () => toast.error('Failed to save profile.'),
   });
 
-  const allFields = [!!user?.name, !!user?.email, !!user?.avatarUrl, !!profile?.phone, !!profile?.gender, !!profile?.dateOfBirth, !!profile?.city, !!profile?.stream];
-  const profilePct = Math.round((allFields.filter(Boolean).length / allFields.length) * 100);
+  const allFields = profile
+    ? [user?.name, user?.email, user?.avatarUrl, profile.phone, profile.gender, profile.dateOfBirth, profile.city, profile.stream]
+    : null;
+  const profilePct = allFields ? Math.round(allFields.filter(Boolean).length / allFields.length * 100) : null;
 
   return (
     <div className="space-y-6">
@@ -169,17 +171,16 @@ function ProfileTab() {
       <div className="card">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-white/70 font-medium">Profile Completion</span>
-          <span className={cn('text-sm font-bold', profilePct === 100 ? 'text-emerald-400' : profilePct >= 50 ? 'text-amber-400' : 'text-red-400')}>
-            {profilePct}%
-          </span>
+          {profilePct !== null
+            ? <span className={cn('text-sm font-bold', profilePct === 100 ? 'text-emerald-400' : profilePct >= 50 ? 'text-amber-400' : 'text-red-400')}>{profilePct}%</span>
+            : <span className="h-4 w-8 bg-white/10 rounded animate-pulse" />}
         </div>
         <div className="h-2 bg-surface-200 rounded-full overflow-hidden">
-          <div
-            className={cn('h-full rounded-full transition-all duration-500', profilePct === 100 ? 'bg-emerald-500' : profilePct >= 50 ? 'bg-amber-500' : 'bg-red-500')}
-            style={{ width: `${profilePct}%` }}
-          />
+          {profilePct !== null
+            ? <div className={cn('h-full rounded-full transition-all duration-500', profilePct === 100 ? 'bg-emerald-500' : profilePct >= 50 ? 'bg-amber-500' : 'bg-red-500')} style={{ width: `${profilePct}%` }} />
+            : <div className="h-full w-1/3 bg-white/10 rounded-full animate-pulse" />}
         </div>
-        {profilePct < 100 && (
+        {profilePct !== null && profilePct < 100 && allFields && (
           <p className="text-xs text-white/30 mt-1.5">{allFields.filter(Boolean).length}/{allFields.length} fields complete — fill in details below to improve</p>
         )}
       </div>

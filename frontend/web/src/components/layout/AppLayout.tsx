@@ -14,6 +14,8 @@ import { cn } from '../../lib/utils';
 import CommandPalette from '../ui/CommandPalette';
 import NotificationPanel from '../ui/NotificationPanel';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useQuery } from '@tanstack/react-query';
+import api from '../../lib/api';
 
 interface NavItem {
   icon: React.ElementType;
@@ -429,9 +431,33 @@ export default function AppLayout() {
   const notifRef = useRef<HTMLDivElement>(null);
   const { notifications, unreadCount, isLoading, markRead, markAllRead } = useNotifications();
 
-  const profilePct = user
-    ? Math.round(([!!user.name, !!user.email, !!user.avatarUrl].filter(Boolean).length / 3) * 100)
-    : 0;
+  const { data: studentProfile } = useQuery({
+    queryKey: ['student-profile', user?.id],
+    queryFn: () => api.get(`/api/v1/students/${user!.id}`).then((r) => r.data),
+    enabled: !!user && user.role === 'STUDENT',
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: parentProfile } = useQuery({
+    queryKey: ['parent-profile'],
+    queryFn: () => api.get('/api/v1/parents/me').then((r) => r.data),
+    enabled: !!user && user.role === 'PARENT',
+    staleTime: 5 * 60 * 1000,
+  });
+
+  let profilePct = 0;
+  if (user) {
+    if (user.role === 'STUDENT' && studentProfile) {
+      const f = [user.name, user.email, user.avatarUrl, studentProfile.phone, studentProfile.gender, studentProfile.dateOfBirth, studentProfile.city, studentProfile.stream];
+      profilePct = Math.round(f.filter(Boolean).length / f.length * 100);
+    } else if (user.role === 'PARENT' && parentProfile) {
+      const f = [parentProfile.name, parentProfile.phone, parentProfile.email, parentProfile.relationshipType, parentProfile.address, parentProfile.city, parentProfile.state, parentProfile.pincode];
+      profilePct = Math.round(f.filter(Boolean).length / f.length * 100);
+    } else if (user.role === 'TEACHER' || user.role === 'CENTER_ADMIN' || user.role === 'SUPER_ADMIN') {
+      const f = [!!user.name, !!user.email, !!user.avatarUrl];
+      profilePct = Math.round(f.filter(Boolean).length / f.length * 100);
+    }
+  }
   const profilePath = user?.role === 'PARENT' ? '/parent/profile' : '/settings';
 
   // Close mobile on route change
