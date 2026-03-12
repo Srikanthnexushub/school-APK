@@ -30,9 +30,11 @@ import com.edutech.assess.domain.port.out.AssessEventPublisher;
 import com.edutech.assess.domain.port.out.ExamEnrollmentRepository;
 import com.edutech.assess.domain.port.out.ExamRepository;
 import com.edutech.assess.domain.port.out.GradeRepository;
+import com.edutech.assess.domain.port.out.NotificationEventPort;
 import com.edutech.assess.domain.port.out.QuestionRepository;
 import com.edutech.assess.domain.port.out.SubmissionAnswerRepository;
 import com.edutech.assess.domain.port.out.SubmissionRepository;
+import com.edutech.events.notification.NotificationSendEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -40,6 +42,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -56,6 +59,7 @@ public class SubmissionService implements StartSubmissionUseCase, SubmitAnswersU
     private final SubmissionAnswerRepository answerRepository;
     private final GradeRepository gradeRepository;
     private final AssessEventPublisher eventPublisher;
+    private final NotificationEventPort notificationEventPort;
     private final IrtThetaEstimator irtThetaEstimator;
 
     public SubmissionService(SubmissionRepository submissionRepository,
@@ -64,7 +68,8 @@ public class SubmissionService implements StartSubmissionUseCase, SubmitAnswersU
                               ExamEnrollmentRepository enrollmentRepository,
                               SubmissionAnswerRepository answerRepository,
                               GradeRepository gradeRepository,
-                              AssessEventPublisher eventPublisher) {
+                              AssessEventPublisher eventPublisher,
+                              NotificationEventPort notificationEventPort) {
         this.submissionRepository = submissionRepository;
         this.examRepository = examRepository;
         this.questionRepository = questionRepository;
@@ -72,6 +77,7 @@ public class SubmissionService implements StartSubmissionUseCase, SubmitAnswersU
         this.answerRepository = answerRepository;
         this.gradeRepository = gradeRepository;
         this.eventPublisher = eventPublisher;
+        this.notificationEventPort = notificationEventPort;
         this.irtThetaEstimator = new IrtThetaEstimator();
     }
 
@@ -161,6 +167,19 @@ public class SubmissionService implements StartSubmissionUseCase, SubmitAnswersU
                 savedGrade.getId(), saved.getId(), examId, saved.getStudentId(),
                 exam.getBatchId(), exam.getCenterId(),
                 saved.getPercentage(), savedGrade.isPassed()
+        ));
+        // Notify the student their result is ready
+        String resultStatus = savedGrade.isPassed() ? "Passed ✓" : "Did not pass";
+        notificationEventPort.publish(NotificationSendEvent.inApp(
+                saved.getStudentId(),
+                "Result: " + exam.getTitle(),
+                "Your result for \"" + exam.getTitle() + "\" is ready. "
+                        + "Score: " + String.format("%.1f", saved.getPercentage()) + "% — " + resultStatus + ". "
+                        + "View your detailed breakdown on the Assessments page.",
+                Map.of("notificationType", "RESULT_PUBLISHED",
+                       "actionUrl",        "/assessments",
+                       "examId",           examId.toString(),
+                       "submissionId",     String.valueOf(saved.getId()))
         ));
         log.info("Submission graded: id={} student={} score={}/{}",
                 saved.getId(), saved.getStudentId(), saved.getScoredMarks(), saved.getTotalMarks());

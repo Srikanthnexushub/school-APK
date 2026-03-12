@@ -13,6 +13,7 @@ import { Avatar } from '../ui/Avatar';
 import { cn } from '../../lib/utils';
 import CommandPalette from '../ui/CommandPalette';
 import NotificationPanel from '../ui/NotificationPanel';
+import { useNotifications } from '../../hooks/useNotifications';
 
 interface NavItem {
   icon: React.ElementType;
@@ -396,6 +397,7 @@ export default function AppLayout() {
   const [commandOpen, setCommandOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  const { notifications, unreadCount, isLoading, markRead, markAllRead } = useNotifications();
 
   // Close mobile on route change
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
@@ -501,11 +503,22 @@ export default function AppLayout() {
                 aria-label="Notifications"
               >
                 <Bell className="w-4 h-4" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-500 rounded-full border border-surface text-[9px] flex items-center justify-center text-white font-bold" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[14px] h-3.5 bg-brand-500 rounded-full border border-surface text-[8px] flex items-center justify-center text-white font-bold px-0.5">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </button>
               <AnimatePresence>
                 {notifOpen && (
-                  <NotificationPanel onClose={() => setNotifOpen(false)} />
+                  <NotificationPanel
+                    onClose={() => setNotifOpen(false)}
+                    notifications={notifications}
+                    unreadCount={unreadCount}
+                    isLoading={isLoading}
+                    markRead={markRead}
+                    markAllRead={markAllRead}
+                  />
                 )}
               </AnimatePresence>
             </div>

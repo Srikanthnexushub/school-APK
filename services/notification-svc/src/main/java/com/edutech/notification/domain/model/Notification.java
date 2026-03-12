@@ -51,6 +51,18 @@ public class Notification {
     @Column(name = "sent_at")
     private Instant sentAt;
 
+    /** Semantic type used by the frontend to render the notification differently. */
+    @Column(name = "notification_type", length = 50)
+    private String notificationType;
+
+    /** Timestamp when the user dismissed/read this in-app notification. */
+    @Column(name = "read_at")
+    private Instant readAt;
+
+    /** Deep-link to the page associated with this notification. */
+    @Column(name = "action_url", length = 500)
+    private String actionUrl;
+
     @Version
     @Column(name = "version", nullable = false)
     private long version;
@@ -59,13 +71,16 @@ public class Notification {
     }
 
     private Notification(UUID id, UUID recipientId, String recipientEmail,
-                         NotificationChannel channel, String subject, String body) {
+                         NotificationChannel channel, String subject, String body,
+                         String notificationType, String actionUrl) {
         this.id = id;
         this.recipientId = recipientId;
         this.recipientEmail = recipientEmail;
         this.channel = channel;
         this.subject = subject;
         this.body = body;
+        this.notificationType = notificationType;
+        this.actionUrl = actionUrl;
         this.status = NotificationStatus.PENDING;
         this.retryCount = 0;
         this.createdAt = Instant.now();
@@ -73,7 +88,15 @@ public class Notification {
 
     public static Notification create(UUID recipientId, String recipientEmail,
                                       NotificationChannel channel, String subject, String body) {
-        return new Notification(UUID.randomUUID(), recipientId, recipientEmail, channel, subject, body);
+        return new Notification(UUID.randomUUID(), recipientId, recipientEmail,
+                channel, subject, body, null, null);
+    }
+
+    public static Notification create(UUID recipientId, String recipientEmail,
+                                      NotificationChannel channel, String subject, String body,
+                                      String notificationType, String actionUrl) {
+        return new Notification(UUID.randomUUID(), recipientId, recipientEmail,
+                channel, subject, body, notificationType, actionUrl);
     }
 
     public void markSent() {
@@ -87,6 +110,17 @@ public class Notification {
         this.retryCount++;
     }
 
+    /** Mark this in-app notification as read by the recipient. */
+    public void markRead() {
+        if (this.readAt == null) {
+            this.readAt = Instant.now();
+        }
+    }
+
+    public boolean isRead() {
+        return this.readAt != null;
+    }
+
     public UUID getId() { return id; }
     public UUID getRecipientId() { return recipientId; }
     public String getRecipientEmail() { return recipientEmail; }
@@ -98,5 +132,8 @@ public class Notification {
     public String getErrorMessage() { return errorMessage; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getSentAt() { return sentAt; }
+    public String getNotificationType() { return notificationType; }
+    public Instant getReadAt() { return readAt; }
+    public String getActionUrl() { return actionUrl; }
     public long getVersion() { return version; }
 }

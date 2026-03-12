@@ -11,5 +11,8 @@ public record NotificationHistoryResponse(
         String status,
         int retryCount,
         Instant createdAt,
-        Instant sentAt
+        Instant sentAt,
+        String notificationType,
+        String actionUrl,
+        Instant readAt
 ) {}

@@ -60,6 +60,8 @@ kafka:
     parent-events: ${KAFKA_TOPIC_PARENT_EVENTS}
     center-events: ${KAFKA_TOPIC_CENTER_EVENTS}
     audit-immutable: ${KAFKA_TOPIC_AUDIT_IMMUTABLE}
+    assess-events: ${KAFKA_TOPIC_ASSESS_EVENTS}
+    notification-send: ${KAFKA_TOPIC_NOTIFICATION_SEND}
 
 # JWT validation (public key only — parent-svc never signs tokens)
 jwt:

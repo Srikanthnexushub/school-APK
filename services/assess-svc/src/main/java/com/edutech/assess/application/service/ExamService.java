@@ -18,7 +18,9 @@ import com.edutech.assess.domain.port.in.PublishExamUseCase;
 import com.edutech.assess.domain.port.out.AssessEventPublisher;
 import com.edutech.assess.domain.port.out.ExamEnrollmentRepository;
 import com.edutech.assess.domain.port.out.ExamRepository;
+import com.edutech.assess.domain.port.out.NotificationEventPort;
 import com.edutech.assess.domain.port.out.QuestionRepository;
+import com.edutech.events.notification.NotificationSendEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -28,6 +30,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -44,15 +49,18 @@ public class ExamService implements CreateExamUseCase, PublishExamUseCase, ListP
     private final ExamEnrollmentRepository enrollmentRepository;
     private final AssessEventPublisher eventPublisher;
     private final QuestionRepository questionRepository;
+    private final NotificationEventPort notificationEventPort;
 
     public ExamService(ExamRepository examRepository,
                        ExamEnrollmentRepository enrollmentRepository,
                        AssessEventPublisher eventPublisher,
-                       QuestionRepository questionRepository) {
+                       QuestionRepository questionRepository,
+                       NotificationEventPort notificationEventPort) {
         this.examRepository = examRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.eventPublisher = eventPublisher;
         this.questionRepository = questionRepository;
+        this.notificationEventPort = notificationEventPort;
     }
 
     @Override
@@ -91,6 +99,11 @@ public class ExamService implements CreateExamUseCase, PublishExamUseCase, ListP
                 saved.getId(), saved.getBatchId(), saved.getCenterId(),
                 saved.getTitle(), saved.getTotalMarks()
         ));
+        // Fan out IN_APP notifications to all currently enrolled students
+        List<ExamEnrollment> enrollments = enrollmentRepository.findByExamId(saved.getId());
+        for (ExamEnrollment enrollment : enrollments) {
+            publishExamAnnouncedNotification(saved, enrollment.getStudentId());
+        }
         return toResponse(saved);
     }
 
@@ -159,6 +172,83 @@ public class ExamService implements CreateExamUseCase, PublishExamUseCase, ListP
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), all.size());
         return new PageImpl<>(start < all.size() ? all.subList(start, end) : List.of(), pageable, all.size());
+    }
+
+    /** Publishes EXAM_ANNOUNCED + STUDY_ROUTE notifications for a student. */
+    private void publishExamAnnouncedNotification(Exam exam, UUID studentId) {
+        String examDate = exam.getStartAt() != null
+                ? DateTimeFormatter.ofPattern("dd MMM yyyy").withZone(ZoneOffset.UTC).format(exam.getStartAt())
+                : "TBD";
+        notificationEventPort.publish(NotificationSendEvent.inApp(
+                studentId,
+                "New Exam: " + exam.getTitle(),
+                "Exam \"" + exam.getTitle() + "\" is now available. Scheduled for " + examDate
+                        + ". Duration: " + exam.getDurationMinutes() + " min | Total marks: " + (int) exam.getTotalMarks() + ".",
+                Map.of("notificationType", "EXAM_ANNOUNCED",
+                       "actionUrl",        "/assessments",
+                       "examId",           exam.getId().toString())
+        ));
+        notificationEventPort.publish(NotificationSendEvent.inApp(
+                studentId,
+                "Study Route for " + exam.getTitle(),
+                buildStudyRoute(exam),
+                Map.of("notificationType", "STUDY_ROUTE",
+                       "actionUrl",        "/assessments",
+                       "examId",           exam.getId().toString())
+        ));
+    }
+
+    /** Generates a structured week-by-week study plan based on days until exam. */
+    private String buildStudyRoute(Exam exam) {
+        long daysUntil = exam.getStartAt() != null
+                ? ChronoUnit.DAYS.between(Instant.now(), exam.getStartAt())
+                : 14;
+        String examTitle = exam.getTitle();
+
+        if (daysUntil <= 3) {
+            return "Phase 1: Final Sprint (Days 1-" + daysUntil + ")\n"
+                 + "• Revise all key formulas and definitions\n"
+                 + "• Attempt one full mock exam\n"
+                 + "• Focus only on high-weightage topics\n"
+                 + "• Rest 8 hours before exam day";
+        }
+        if (daysUntil <= 7) {
+            return "Phase 1: Foundation Scan (Days 1-2)\n"
+                 + "• Read chapter summaries for " + examTitle + "\n"
+                 + "• Identify your top 3 weak topics from previous tests\n"
+                 + "• List all key formulas\n"
+                 + "---\n"
+                 + "Phase 2: Focused Practice (Days 3-" + (daysUntil - 1) + ")\n"
+                 + "• Solve 15 practice questions per weak topic daily\n"
+                 + "• Review every mistake immediately\n"
+                 + "• Attempt one timed mock test\n"
+                 + "---\n"
+                 + "Phase 3: Final Revision (Day " + daysUntil + ")\n"
+                 + "• Quick formula revision\n"
+                 + "• Rest well — avoid new topics";
+        }
+        long phase1End = Math.max(2, daysUntil / 3);
+        long phase2End = Math.max(phase1End + 2, (daysUntil * 2) / 3);
+        return "Phase 1: Foundation (Days 1-" + phase1End + ")\n"
+             + "• Read all chapters and mark key concepts for " + examTitle + "\n"
+             + "• Build formula sheets and definition lists\n"
+             + "• Identify weak areas from past performance\n"
+             + "---\n"
+             + "Phase 2: Deep Practice (Days " + (phase1End + 1) + "-" + phase2End + ")\n"
+             + "• Solve 20 questions/day on weak topics\n"
+             + "• Review each incorrect answer for root cause\n"
+             + "• Attempt two full-length timed mock exams\n"
+             + "• Peer/mentor review of difficult problems\n"
+             + "---\n"
+             + "Phase 3: Mock & Gap-Fill (Days " + (phase2End + 1) + "-" + (daysUntil - 2) + ")\n"
+             + "• Full mock exam under exam conditions\n"
+             + "• Analyse score breakdown — target topics below 50%\n"
+             + "• Redo weak sections with focused practice sets\n"
+             + "---\n"
+             + "Phase 4: Final Sprint (Last 2 days)\n"
+             + "• Revise formula sheets and high-weightage topics only\n"
+             + "• No new material\n"
+             + "• 8 hours of sleep before exam day";
     }
 
     private ExamResponse toResponse(Exam e) {

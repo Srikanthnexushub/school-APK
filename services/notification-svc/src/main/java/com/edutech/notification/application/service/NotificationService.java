@@ -5,6 +5,7 @@ import com.edutech.notification.application.dto.NotificationHistoryResponse;
 import com.edutech.notification.domain.model.Notification;
 import com.edutech.notification.domain.model.NotificationChannel;
 import com.edutech.notification.domain.port.in.GetNotificationHistoryUseCase;
+import com.edutech.notification.domain.port.in.MarkNotificationReadUseCase;
 import com.edutech.notification.domain.port.in.SendNotificationUseCase;
 import com.edutech.notification.domain.port.out.NotificationRepository;
 import com.edutech.notification.domain.port.out.NotificationSender;
@@ -22,7 +23,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
-public class NotificationService implements SendNotificationUseCase, GetNotificationHistoryUseCase {
+public class NotificationService implements SendNotificationUseCase,
+        GetNotificationHistoryUseCase, MarkNotificationReadUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
 
@@ -47,12 +49,19 @@ public class NotificationService implements SendNotificationUseCase, GetNotifica
             return;
         }
 
+        // Extract enrichment fields from metadata (sent by the publishing service)
+        Map<String, String> meta = command.metadata() != null ? command.metadata() : Map.of();
+        String notificationType = meta.get("notificationType");
+        String actionUrl = meta.get("actionUrl");
+
         Notification notification = Notification.create(
                 command.recipientId(),
                 command.recipientEmail(),
                 channel,
                 command.subject(),
-                command.body()
+                command.body(),
+                notificationType,
+                actionUrl
         );
         notificationRepository.save(notification);
 
@@ -67,8 +76,8 @@ public class NotificationService implements SendNotificationUseCase, GetNotifica
         try {
             sender.send(notification);
             notification.markSent();
-            log.info("Notification sent: id={} channel={} recipientId={}",
-                    notification.getId(), channel, notification.getRecipientId());
+            log.info("Notification sent: id={} channel={} type={} recipientId={}",
+                    notification.getId(), channel, notificationType, notification.getRecipientId());
         } catch (Exception ex) {
             notification.markFailed(ex.getMessage());
             log.error("Notification delivery failed: id={} channel={} error={}",
@@ -82,15 +91,47 @@ public class NotificationService implements SendNotificationUseCase, GetNotifica
     @Transactional(readOnly = true)
     public Page<NotificationHistoryResponse> getHistory(UUID recipientId, Pageable pageable) {
         return notificationRepository.findByRecipientId(recipientId, pageable)
-                .map(n -> new NotificationHistoryResponse(
-                        n.getId(),
-                        n.getChannel().name(),
-                        n.getSubject(),
-                        n.getBody(),
-                        n.getStatus().name(),
-                        n.getRetryCount(),
-                        n.getCreatedAt(),
-                        n.getSentAt()
-                ));
+                .map(this::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<NotificationHistoryResponse> getInAppNotifications(UUID recipientId, Pageable pageable) {
+        return notificationRepository.findInAppByRecipientId(recipientId, pageable)
+                .map(this::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countUnreadInApp(UUID recipientId) {
+        return notificationRepository.countUnreadInApp(recipientId);
+    }
+
+    @Override
+    @Transactional
+    public void markRead(UUID notificationId, UUID userId) {
+        notificationRepository.markRead(notificationId, userId);
+    }
+
+    @Override
+    @Transactional
+    public void markAllRead(UUID userId) {
+        notificationRepository.markAllReadByRecipient(userId);
+    }
+
+    private NotificationHistoryResponse toResponse(Notification n) {
+        return new NotificationHistoryResponse(
+                n.getId(),
+                n.getChannel().name(),
+                n.getSubject(),
+                n.getBody(),
+                n.getStatus().name(),
+                n.getRetryCount(),
+                n.getCreatedAt(),
+                n.getSentAt(),
+                n.getNotificationType(),
+                n.getActionUrl(),
+                n.getReadAt()
+        );
     }
 }

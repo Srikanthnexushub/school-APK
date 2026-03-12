@@ -71,6 +71,7 @@ kafka:
     assess-events: ${KAFKA_TOPIC_ASSESS_EVENTS}
     center-events: ${KAFKA_TOPIC_CENTER_EVENTS}
     audit-immutable: ${KAFKA_TOPIC_AUDIT_IMMUTABLE}
+    notification-send: ${KAFKA_TOPIC_NOTIFICATION_SEND}
 
 jwt:
   public-key-path: ${JWT_PUBLIC_KEY_PATH}

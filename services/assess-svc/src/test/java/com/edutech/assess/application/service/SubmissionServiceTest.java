@@ -21,6 +21,7 @@ import com.edutech.assess.domain.port.out.AssessEventPublisher;
 import com.edutech.assess.domain.port.out.ExamEnrollmentRepository;
 import com.edutech.assess.domain.port.out.ExamRepository;
 import com.edutech.assess.domain.port.out.GradeRepository;
+import com.edutech.assess.domain.port.out.NotificationEventPort;
 import com.edutech.assess.domain.port.out.QuestionRepository;
 import com.edutech.assess.domain.port.out.SubmissionAnswerRepository;
 import com.edutech.assess.domain.port.out.SubmissionRepository;
@@ -76,6 +77,9 @@ class SubmissionServiceTest {
 
     @Mock
     AssessEventPublisher eventPublisher;
+
+    @Mock
+    NotificationEventPort notificationEventPort;
 
     @InjectMocks
     SubmissionService submissionService;
