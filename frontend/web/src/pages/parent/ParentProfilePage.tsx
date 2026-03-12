@@ -143,6 +143,9 @@ export default function ParentProfilePage() {
     );
   }
 
+  const profileFields = [profile.name, profile.phone, profile.email, profile.relationshipType, profile.address, profile.city, profile.state, profile.pincode];
+  const profilePct = Math.round((profileFields.filter(Boolean).length / profileFields.length) * 100);
+
   return (
     <div className="p-4 lg:p-8 max-w-3xl mx-auto space-y-6">
       {/* Header */}
@@ -159,6 +162,27 @@ export default function ParentProfilePage() {
             <Edit2 className="w-4 h-4" />
             Edit Profile
           </button>
+        )}
+      </div>
+
+      {/* Profile completion */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-white/70 font-medium">Profile Completion</span>
+          <span className={cn('text-sm font-bold', profilePct === 100 ? 'text-emerald-400' : profilePct >= 50 ? 'text-amber-400' : 'text-red-400')}>
+            {profilePct}%
+          </span>
+        </div>
+        <div className="h-2 bg-surface-200 rounded-full overflow-hidden">
+          <div
+            className={cn('h-full rounded-full transition-all duration-500', profilePct === 100 ? 'bg-emerald-500' : profilePct >= 50 ? 'bg-amber-500' : 'bg-red-500')}
+            style={{ width: `${profilePct}%` }}
+          />
+        </div>
+        {profilePct < 100 && (
+          <p className="text-xs text-white/30 mt-1.5">
+            {profileFields.filter(Boolean).length}/{profileFields.length} fields filled — click Edit Profile to complete
+          </p>
         )}
       </div>
 

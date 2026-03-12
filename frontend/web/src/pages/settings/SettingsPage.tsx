@@ -97,8 +97,30 @@ function ProfileTab() {
     onError: () => toast.error('Failed to save profile.'),
   });
 
+  const profileFields = [!!user?.name, !!user?.email, !!user?.avatarUrl];
+  const profilePct = Math.round((profileFields.filter(Boolean).length / profileFields.length) * 100);
+
   return (
     <div className="space-y-6">
+      {/* Profile completion */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-white/70 font-medium">Profile Completion</span>
+          <span className={cn('text-sm font-bold', profilePct === 100 ? 'text-emerald-400' : profilePct >= 67 ? 'text-amber-400' : 'text-red-400')}>
+            {profilePct}%
+          </span>
+        </div>
+        <div className="h-2 bg-surface-200 rounded-full overflow-hidden">
+          <div
+            className={cn('h-full rounded-full transition-all duration-500', profilePct === 100 ? 'bg-emerald-500' : profilePct >= 67 ? 'bg-amber-500' : 'bg-red-500')}
+            style={{ width: `${profilePct}%` }}
+          />
+        </div>
+        {profilePct < 100 && (
+          <p className="text-xs text-white/30 mt-1.5">Add a profile photo to reach 100%</p>
+        )}
+      </div>
+
       {/* Avatar */}
       <div className="card">
         <h3 className="text-base font-semibold text-white mb-4">Profile Photo</h3>
