@@ -5,7 +5,7 @@ import {
   Brain, Sparkles, AlertTriangle, TrendingDown, TrendingUp,
   CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp,
   FileText, Users, BarChart3, Lightbulb, Shield, RefreshCw,
-  ClipboardList, BookOpen, Target, Zap,
+  ClipboardList, BookOpen, Target, Zap, GraduationCap,
 } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -706,6 +706,112 @@ function GradeAssistSection({ userId }: { userId: string | undefined }) {
   );
 }
 
+// ─── Career Coach Section ─────────────────────────────────────────────────────
+
+function CareerCoachSection({
+  teacherName,
+  exams,
+  submissions,
+  batches,
+}: {
+  teacherName: string;
+  exams: ExamResponse[];
+  submissions: SubmissionResponse[];
+  batches: BatchResponse[];
+}) {
+  const [advice, setAdvice] = useState<string | null>(null);
+
+  const coachMutation = useMutation({
+    mutationFn: async () => {
+      const avgScore = submissions.length
+        ? (submissions.reduce((s, sub) => s + (sub.percentage ?? 0), 0) / submissions.length).toFixed(1)
+        : 'N/A';
+      const passRate = submissions.length
+        ? ((submissions.filter(s => (s.percentage ?? 0) >= 40).length / submissions.length) * 100).toFixed(1)
+        : 'N/A';
+
+      const res = await api.post('/api/v1/ai/completions', {
+        requesterId: 'teacher-career-coach',
+        systemPrompt: `You are a teacher career development coach at NexusEd. Teacher: ${teacherName}. Stats: ${exams.length} exams created, avg student score: ${avgScore}%, pass rate: ${passRate}%, batches managed: ${batches.length}. Provide specific, actionable teaching skill improvement and career growth advice based on these metrics.`,
+        userMessage: 'Based on my teaching performance data, what specific skills should I improve and how can I advance my teaching career?',
+        maxTokens: 400,
+        temperature: 0.7,
+      });
+      return (res.data?.content ?? res.data?.text ?? '') as string;
+    },
+    onSuccess: (data) => setAdvice(data),
+    onError: () => toast.error('Failed to get AI advice. Please try again.'),
+  });
+
+  const totalStudents = batches.reduce((s, b) => s + (b.enrolledCount ?? 0), 0);
+  const avgScore = submissions.length
+    ? (submissions.reduce((s, sub) => s + (sub.percentage ?? 0), 0) / submissions.length).toFixed(1)
+    : '—';
+  const passRate = submissions.length
+    ? ((submissions.filter(s => (s.percentage ?? 0) >= 40).length / submissions.length) * 100).toFixed(1)
+    : '—';
+
+  return (
+    <div className="space-y-5">
+      {/* Stats summary */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          { label: 'Exams Created', value: String(exams.length), color: 'text-brand-400' },
+          { label: 'Batches', value: String(batches.length), color: 'text-purple-400' },
+          { label: 'Avg Score', value: avgScore === '—' ? '—' : `${avgScore}%`, color: 'text-amber-400' },
+          { label: 'Pass Rate', value: passRate === '—' ? '—' : `${passRate}%`, color: 'text-emerald-400' },
+        ].map(stat => (
+          <div key={stat.label} className="glass rounded-xl p-4 border border-white/5">
+            <p className="text-white/40 text-xs mb-1">{stat.label}</p>
+            <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="card space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-white font-semibold flex items-center gap-2">
+              <GraduationCap className="w-4 h-4 text-cyan-400" />
+              AI Career & Skill Analysis
+            </h3>
+            <p className="text-white/40 text-sm mt-0.5">
+              Get personalised skill improvement and career growth recommendations based on your real performance data.
+            </p>
+          </div>
+          <button
+            onClick={() => coachMutation.mutate()}
+            disabled={coachMutation.isPending}
+            className="btn-primary flex items-center gap-2 flex-shrink-0 disabled:opacity-40"
+          >
+            {coachMutation.isPending ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Analysing…</>
+            ) : (
+              <><Sparkles className="w-4 h-4" /> Get AI Advice</>
+            )}
+          </button>
+        </div>
+
+        {advice && (
+          <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Brain className="w-4 h-4 text-cyan-400" />
+              <span className="text-cyan-400 text-sm font-medium">AI Career Coach</span>
+            </div>
+            <p className="text-white/70 text-sm leading-relaxed whitespace-pre-wrap">{advice}</p>
+          </div>
+        )}
+
+        {totalStudents > 0 && !advice && (
+          <p className="text-white/30 text-xs text-center py-2">
+            Click "Get AI Advice" to receive personalised recommendations based on {totalStudents} students across {batches.length} batch{batches.length !== 1 ? 'es' : ''}.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── AI Feature Cards (Summary) ───────────────────────────────────────────────
 
 const AI_FEATURES = [
@@ -757,6 +863,14 @@ const AI_FEATURES = [
     color: 'bg-cyan-500/10 border-cyan-500/20',
     iconBg: 'bg-cyan-500/20',
   },
+  {
+    icon: <GraduationCap className="w-5 h-5 text-teal-400" />,
+    title: 'AI Career Coach',
+    desc: 'Personalised skill improvement and career growth advice from your real performance metrics',
+    status: 'LIVE',
+    color: 'bg-teal-500/10 border-teal-500/20',
+    iconBg: 'bg-teal-500/20',
+  },
 ];
 
 const STATUS_PILL: Record<string, string> = {
@@ -767,13 +881,14 @@ const STATUS_PILL: Record<string, string> = {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'batch-health' | 'question-gen' | 'grade-assist';
+type Tab = 'overview' | 'batch-health' | 'question-gen' | 'grade-assist' | 'career-coach';
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: 'overview',     label: 'Overview',         icon: <Lightbulb className="w-4 h-4" /> },
-  { id: 'batch-health', label: 'Batch Health',      icon: <BarChart3 className="w-4 h-4" /> },
-  { id: 'question-gen', label: 'Question Generator',icon: <Sparkles className="w-4 h-4" /> },
-  { id: 'grade-assist', label: 'Grade Assist',      icon: <Brain className="w-4 h-4" /> },
+  { id: 'overview',      label: 'Overview',          icon: <Lightbulb className="w-4 h-4" /> },
+  { id: 'batch-health',  label: 'Batch Health',       icon: <BarChart3 className="w-4 h-4" /> },
+  { id: 'question-gen',  label: 'Question Generator', icon: <Sparkles className="w-4 h-4" /> },
+  { id: 'grade-assist',  label: 'Grade Assist',       icon: <Brain className="w-4 h-4" /> },
+  { id: 'career-coach',  label: 'Career Coach',       icon: <GraduationCap className="w-4 h-4" /> },
 ];
 
 export default function MentorPortalInsightsPage() {
@@ -934,6 +1049,7 @@ export default function MentorPortalInsightsPage() {
                             'Batch Health Monitor': 'batch-health',
                             'Auto Question Generator': 'question-gen',
                             'AI Grade Assist': 'grade-assist',
+                            'AI Career Coach': 'career-coach',
                           };
                           if (tabMap[f.title]) setActiveTab(tabMap[f.title]);
                         } else {
@@ -1027,6 +1143,26 @@ export default function MentorPortalInsightsPage() {
               <div className="card">
                 <GradeAssistSection userId={user?.id} />
               </div>
+            </div>
+          )}
+
+          {activeTab === 'career-coach' && (
+            <div className="space-y-5">
+              <div>
+                <h2 className="text-white font-semibold flex items-center gap-2">
+                  <GraduationCap className="w-5 h-5 text-teal-400" />
+                  AI Career Coach
+                </h2>
+                <p className="text-white/40 text-sm mt-0.5">
+                  Personalised skill improvement and career growth recommendations based on your live performance data
+                </p>
+              </div>
+              <CareerCoachSection
+                teacherName={user?.name ?? 'Teacher'}
+                exams={publishedExams ?? []}
+                submissions={overviewSubmissions ?? []}
+                batches={overviewBatches ?? []}
+              />
             </div>
           )}
         </motion.div>

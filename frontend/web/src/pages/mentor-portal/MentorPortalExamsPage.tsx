@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ClipboardList, ChevronRight, Plus, Trash2, CheckCircle2,
   BookOpen, Clock, BarChart3, FlaskConical, AlertCircle,
-  Eye, Zap,
+  Eye, Zap, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
@@ -686,8 +686,18 @@ function Step3({
 
 // ─── My Exams Table ───────────────────────────────────────────────────────────
 
+interface QuestionResponse {
+  id: string;
+  questionText: string;
+  options: string[];
+  correctAnswer: number;
+  difficulty: number;
+  marks: number;
+}
+
 function MyExamsTable() {
-  // Reuse cached centers to fetch exams by centerId (returns full exam details)
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
   const { data: centers = [] } = useQuery<CenterResponse[]>({
     queryKey: ['teacher-centers'],
     queryFn: async () => {
@@ -715,6 +725,17 @@ function MyExamsTable() {
     retry: false,
   });
 
+  const { data: questions = [], isFetching: questionsLoading } = useQuery<QuestionResponse[]>({
+    queryKey: ['exam-questions', expandedId],
+    queryFn: async () => {
+      const res = await api.get(`/api/v1/exams/${expandedId}/questions`);
+      const d = res.data;
+      return Array.isArray(d) ? d : (d.content ?? []);
+    },
+    enabled: !!expandedId,
+    retry: false,
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-2">
@@ -734,6 +755,8 @@ function MyExamsTable() {
     );
   }
 
+  const OPTION_LABELS = ['A', 'B', 'C', 'D'];
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -743,24 +766,77 @@ function MyExamsTable() {
             <th className="text-left py-3 pr-4">Mode</th>
             <th className="text-left py-3 pr-4">Duration</th>
             <th className="text-left py-3 pr-4">Questions</th>
-            <th className="text-left py-3">Status</th>
+            <th className="text-left py-3 pr-4">Status</th>
+            <th className="py-3 w-8" />
           </tr>
         </thead>
-        <tbody className="divide-y divide-white/5">
+        <tbody>
           {exams.map((exam) => (
-            <tr key={exam.id} className="hover:bg-white/2 transition-colors">
-              <td className="py-3 pr-4 text-white font-medium">{exam.title}</td>
-              <td className="py-3 pr-4 text-white/60">{exam.mode}</td>
-              <td className="py-3 pr-4 text-white/60 flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" />{exam.durationMinutes} min
-              </td>
-              <td className="py-3 pr-4 text-white/60">{exam.totalQuestions ?? '—'}</td>
-              <td className="py-3">
-                <span className={cn('badge', STATUS_STYLES[exam.status] ?? 'bg-white/10 text-white/50')}>
-                  {exam.status}
-                </span>
-              </td>
-            </tr>
+            <>
+              <tr
+                key={exam.id}
+                onClick={() => setExpandedId(expandedId === exam.id ? null : exam.id)}
+                className="border-b border-white/5 hover:bg-white/2 transition-colors cursor-pointer"
+              >
+                <td className="py-3 pr-4 text-white font-medium">{exam.title}</td>
+                <td className="py-3 pr-4 text-white/60">{exam.mode}</td>
+                <td className="py-3 pr-4 text-white/60">
+                  <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{exam.durationMinutes} min</span>
+                </td>
+                <td className="py-3 pr-4 text-white/60">{exam.totalQuestions ?? '—'}</td>
+                <td className="py-3 pr-4">
+                  <span className={cn('badge', STATUS_STYLES[exam.status] ?? 'bg-white/10 text-white/50')}>
+                    {exam.status}
+                  </span>
+                </td>
+                <td className="py-3 text-white/30">
+                  {expandedId === exam.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </td>
+              </tr>
+              {expandedId === exam.id && (
+                <tr key={`${exam.id}-questions`}>
+                  <td colSpan={6} className="pb-4 pt-2 px-2">
+                    {questionsLoading ? (
+                      <div className="space-y-2">
+                        {[...Array(3)].map((_, i) => <div key={i} className="h-10 glass rounded-lg animate-pulse" />)}
+                      </div>
+                    ) : questions.length === 0 ? (
+                      <p className="text-white/30 text-xs py-3 text-center">No questions added yet.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {questions.map((q, i) => (
+                          <div key={q.id} className="glass rounded-xl p-4 border border-white/5 space-y-2">
+                            <p className="text-white/80 text-sm font-medium">
+                              <span className="text-brand-400 mr-2">Q{i + 1}.</span>{q.questionText}
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                              {q.options.map((opt, oi) => (
+                                <div
+                                  key={oi}
+                                  className={cn(
+                                    'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs',
+                                    oi === q.correctAnswer
+                                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                      : 'bg-white/3 text-white/50 border border-white/5'
+                                  )}
+                                >
+                                  <span className="font-bold flex-shrink-0">{OPTION_LABELS[oi]}.</span>
+                                  {opt}
+                                  {oi === q.correctAnswer && <CheckCircle2 className="w-3 h-3 ml-auto flex-shrink-0" />}
+                                </div>
+                              ))}
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-white/30">
+                              <span>{q.marks} mark{q.marks !== 1 ? 's' : ''}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              )}
+            </>
           ))}
         </tbody>
       </table>

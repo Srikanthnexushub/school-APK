@@ -112,6 +112,21 @@ public class AnthropicWebClientAdapter implements LlmClient {
                   + "I'd recommend reviewing the core concept from your textbook first, then working through 2–3 solved examples. "
                   + "If the doubt persists, consider flagging it for your assigned mentor during the next session. "
                   + "Practice problems on this topic are also available in your assessment library.";
+        } else if (sys.contains("teacher career") || sys.contains("teaching skill") || sys.contains("career coach")) {
+            reply = "Based on your performance metrics, here are targeted recommendations:\n\n"
+                  + "**Immediate Focus (next 30 days):**\n"
+                  + "• Question Quality: Use varied cognitive levels (Bloom's taxonomy) — mix recall, application, and analysis questions\n"
+                  + "• Pass Rate: Identify students scoring below 40% in the first 2 weeks and schedule targeted intervention sessions\n"
+                  + "• Feedback Loop: After each exam, review the 3 most-missed questions with the batch\n\n"
+                  + "**Skills to Build (next 90 days):**\n"
+                  + "• Formative Assessment: Use weekly 5-question ungraded quizzes to detect gaps early\n"
+                  + "• Adaptive Teaching: Vary explanation style — visual (diagrams), auditory (verbal walkthrough), written (step-by-step notes)\n"
+                  + "• Data-Driven Practice: Review IRT discrimination scores — questions with a-param < 0.5 need revision\n\n"
+                  + "**Career Growth Path:**\n"
+                  + "• Short-term: Achieve batch avg score ≥ 65% — this directly improves your Teacher Performance Index\n"
+                  + "• Mid-term: Apply for Senior Mentor or Academic Coordinator roles after 2 quarters of consistent improvement\n"
+                  + "• Certifications: CBSE/NEET pedagogy certification, AI-assisted teaching workshops\n\n"
+                  + "Focus on the pass rate metric first — it is the highest-leverage improvement for your students and your career.";
         } else {
             reply = "I've received your message. "
                   + "For the best experience, please configure a valid API key in the platform settings. "
