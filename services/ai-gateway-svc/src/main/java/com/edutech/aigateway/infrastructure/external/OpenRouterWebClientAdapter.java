@@ -115,6 +115,8 @@ public class OpenRouterWebClientAdapter implements LlmClient {
                       + "You can ask me about performance trends, exam schedules, fee status, weak areas, psychometric results, career recommendations, or how to book mentor sessions. "
                       + "What would you like to know?";
             }
+        } else if (sys.contains("question generator")) {
+            reply = buildQuestionJson(request.systemPrompt(), request.userMessage());
         } else if (sys.contains("tutor") || sys.contains("doubt") || sys.contains("academic")) {
             reply = "Great question! This topic is fundamental to your exam preparation. "
                   + "I'd recommend reviewing the core concept from your textbook first, then working through 2–3 solved examples. "
@@ -187,6 +189,58 @@ public class OpenRouterWebClientAdapter implements LlmClient {
     private String extractField(String text, String regex) {
         Matcher m = Pattern.compile(regex).matcher(text);
         return m.find() ? m.group(1).trim() : "N/A";
+    }
+
+    private String buildQuestionJson(String systemPrompt, String userMessage) {
+        String combined = (systemPrompt != null ? systemPrompt : "") + " " + (userMessage != null ? userMessage : "");
+        String topicMatch = extractField(combined, "topic: \"([^\"]+)\"");
+        String topic = "N/A".equals(topicMatch) ? "General Knowledge" : topicMatch;
+        String diffMatch = extractField(combined, "Difficulty level: (\\w+)");
+        String difficulty = "N/A".equals(diffMatch) ? "MEDIUM" : diffMatch.toUpperCase();
+        int count = 5;
+        Matcher cm = Pattern.compile("Generate exactly (\\d+) multiple").matcher(combined);
+        if (cm.find()) { count = Integer.parseInt(cm.group(1)); }
+        count = Math.max(1, Math.min(count, 20));
+
+        String[] qTexts = {
+            "What is the fundamental concept underlying " + topic + "?",
+            "Which of the following best describes a key property of " + topic + "?",
+            "In the context of " + topic + ", which statement is correct?",
+            "A student studying " + topic + " needs to solve a problem. What is the best approach?",
+            "Which concept is most closely associated with " + topic + "?"
+        };
+        String[][] opts = {
+            {"A) Conservation principle", "B) Entropy principle", "C) Uncertainty principle", "D) Relativity theory"},
+            {"A) It is always linear", "B) It follows predictable patterns", "C) It is purely theoretical", "D) It has no practical applications"},
+            {"A) All variables are independent", "B) Cause and effect are always direct", "C) Multiple factors interact", "D) Single-factor analysis is sufficient"},
+            {"A) Apply the simplest formula", "B) Identify variables and apply relevant principles", "C) Memorize all outcomes", "D) Avoid complex calculations"},
+            {"A) Randomness", "B) Equilibrium and balance", "C) Linear progression", "D) Absolute certainty"}
+        };
+        int[] correct = {0, 1, 2, 1, 1};
+        String[] explanations = {
+            "The fundamental principle in " + topic + " relates to conservation laws and systematic analysis.",
+            topic + " follows evidence-based patterns that can be studied and reliably applied.",
+            "In complex domains like " + topic + ", multiple factors interact — single-variable analysis oversimplifies.",
+            "Systematic identification of variables and application of domain principles is the correct approach.",
+            topic + " is fundamentally concerned with equilibrium between competing forces or factors."
+        };
+
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < count; i++) {
+            int idx = i % 5;
+            if (i > 0) sb.append(",");
+            sb.append("{\"questionText\":\"").append(qTexts[idx].replace("\"", "'")).append("\",");
+            sb.append("\"options\":[");
+            for (int j = 0; j < 4; j++) {
+                if (j > 0) sb.append(",");
+                sb.append("\"").append(opts[idx][j].replace("\"", "'")).append("\"");
+            }
+            sb.append("],\"correctAnswer\":").append(correct[idx]).append(",");
+            sb.append("\"explanation\":\"").append(explanations[idx].replace("\"", "'")).append("\",");
+            sb.append("\"difficulty\":\"").append(difficulty).append("\"}");
+        }
+        sb.append("]");
+        return sb.toString();
     }
 
     private Mono<CompletionResponse> executeOpenRouter(CompletionRequest request) {
