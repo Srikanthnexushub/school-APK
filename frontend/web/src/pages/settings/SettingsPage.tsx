@@ -129,9 +129,9 @@ function ProfileTab() {
   const [deleteConfirm, setDeleteConfirm] = useState('');
 
   const { data: profile } = useQuery<StudentProfile>({
-    queryKey: ['student-profile', user?.id],
-    queryFn: () => api.get(`/api/v1/students/${user?.id}`).then((r) => r.data),
-    enabled: !!user?.id,
+    queryKey: ['student-profile-me'],
+    queryFn: () => api.get('/api/v1/students/me').then((r) => r.data),
+    enabled: !!user,
   });
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ProfileForm>({
@@ -149,7 +149,7 @@ function ProfileTab() {
 
   const saveMutation = useMutation({
     mutationFn: (data: ProfileForm) =>
-      api.patch(`/api/v1/students/${user?.id}`, {
+      api.patch('/api/v1/students/me', {
         phone: data.phone || undefined,
         city: data.city || undefined,
         state: data.state || undefined,

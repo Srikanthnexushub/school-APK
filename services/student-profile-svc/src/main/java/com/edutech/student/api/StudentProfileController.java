@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
@@ -47,9 +48,23 @@ public class StudentProfileController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<StudentProfileResponse> getMyProfile(
+            @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(getStudentProfileUseCase.getProfileByUserId(userId));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<StudentProfileResponse> getProfile(@PathVariable UUID id) {
         return ResponseEntity.ok(getStudentProfileUseCase.getProfile(id));
+    }
+
+    @PatchMapping("/me")
+    public ResponseEntity<StudentProfileResponse> updateMyProfile(
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestBody UpdateStudentProfileRequest request) {
+        StudentProfileResponse profile = getStudentProfileUseCase.getProfileByUserId(userId);
+        return ResponseEntity.ok(updateStudentProfileUseCase.updateProfile(profile.id(), request));
     }
 
     @PatchMapping("/{id}")

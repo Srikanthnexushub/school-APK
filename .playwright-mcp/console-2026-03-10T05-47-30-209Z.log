@@ -1,0 +1,800 @@
+[     258ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4435
+[     285ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/v1/parents/me:0
+[    1306ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/v1/parents/me:0
+[  781716ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/v1/auth/login:0
+[  781990ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4435
+[  799545ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/v1/auth/login:0
+[  799744ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4435
+[  914907ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/v1/parents/me:0
+[  915935ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/v1/parents/me:0
+[  921973ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/v1/parents/me:0
+[  922996ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/v1/parents/me:0
+[  936465ms] [ERROR] Failed to load resource: the server responded with a status of 400 (Bad Request) @ http://localhost:3000/api/v1/copilot/conversations/2/messages:0
+[ 1080562ms] [ERROR] Failed to load resource: the server responded with a status of 400 (Bad Request) @ http://localhost:3000/api/v1/copilot/conversations/2/messages:0
+[ 1286170ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/v1/auth/login:0
+[ 1286501ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4435
+[ 1898777ms] [ERROR] Warning: React has detected a change in the order of Hooks called by %s. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://reactjs.org/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+%s   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+%s AdminDashboardPage 1. useContext                 useContext
+2. useState                   useState
+3. useState                   useState
+4. useContext                 useContext
+5. useContext                 useContext
+6. useContext                 useContext
+7. useEffect                  useEffect
+8. useState                   useState
+9. useCallback                useCallback
+10. useSyncExternalStore      useSyncExternalStore
+11. useEffect                 useEffect
+12. useMemo                   useContext
+ 
+    at AdminDashboardPage (http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:837:14)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4537:26)
+    at div
+    at main
+    at div
+    at div
+    at AppLayout (http://localhost:3000/src/components/layout/AppLayout.tsx:653:20)
+    at ProtectedRoute (http://localhost:3000/src/components/layout/ProtectedRoute.tsx:20:42)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4091:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5282:5)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4544:15)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5096:5)
+    at QueryClientProvider (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3168:3) @ http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:520
+[ 1898795ms] TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>)
+[ 1898780ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 1898780ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 1898801ms] TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>)
+[ 1898783ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 1898783ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 1898789ms] [ERROR] The above error occurred in the <AdminDashboardPage> component:
+
+    at AdminDashboardPage (http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:837:14)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4537:26)
+    at div
+    at main
+    at div
+    at div
+    at AppLayout (http://localhost:3000/src/components/layout/AppLayout.tsx:653:20)
+    at ProtectedRoute (http://localhost:3000/src/components/layout/ProtectedRoute.tsx:20:42)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4091:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5282:5)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4544:15)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5096:5)
+    at QueryClientProvider (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3168:3)
+
+React will try to recreate this component tree from scratch using the error boundary you provided, RenderErrorBoundary. @ http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:14031
+[ 1898789ms] [ERROR] React Router caught the following error during render TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) {componentStack: 
+    at AdminDashboardPage (http://localhost:3000/…/deps/@tanstack_react-query.js?v=6ca20c62:3168:3)} @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4117
+[ 1909998ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4435
+[ 1910027ms] [ERROR] Warning: React has detected a change in the order of Hooks called by %s. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://reactjs.org/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+%s   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+%s AdminDashboardPage 1. useContext                 useContext
+2. useState                   useState
+3. useState                   useState
+4. useContext                 useContext
+5. useContext                 useContext
+6. useContext                 useContext
+7. useEffect                  useEffect
+8. useState                   useState
+9. useCallback                useCallback
+10. useSyncExternalStore      useSyncExternalStore
+11. useEffect                 useEffect
+12. useMemo                   useContext
+ 
+    at AdminDashboardPage (http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:837:14)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4537:26)
+    at div
+    at main
+    at div
+    at div
+    at AppLayout (http://localhost:3000/src/components/layout/AppLayout.tsx:653:20)
+    at ProtectedRoute (http://localhost:3000/src/components/layout/ProtectedRoute.tsx:20:42)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4091:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5282:5)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4544:15)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5096:5)
+    at QueryClientProvider (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3168:3) @ http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:520
+[ 1910030ms] TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>)
+[ 1910029ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 1910029ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 1910035ms] TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>)
+[ 1910031ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 1910031ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 1910032ms] [ERROR] The above error occurred in the <AdminDashboardPage> component:
+
+    at AdminDashboardPage (http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:837:14)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4537:26)
+    at div
+    at main
+    at div
+    at div
+    at AppLayout (http://localhost:3000/src/components/layout/AppLayout.tsx:653:20)
+    at ProtectedRoute (http://localhost:3000/src/components/layout/ProtectedRoute.tsx:20:42)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4091:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5282:5)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4544:15)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5096:5)
+    at QueryClientProvider (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3168:3)
+
+React will try to recreate this component tree from scratch using the error boundary you provided, RenderErrorBoundary. @ http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:14031
+[ 1910032ms] [ERROR] React Router caught the following error during render TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) {componentStack: 
+    at AdminDashboardPage (http://localhost:3000/…/deps/@tanstack_react-query.js?v=6ca20c62:3168:3)} @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4117
+[ 2035168ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4435
+[ 2035232ms] [ERROR] Warning: React has detected a change in the order of Hooks called by %s. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://reactjs.org/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+%s   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+%s AdminDashboardPage 1. useContext                 useContext
+2. useState                   useState
+3. useState                   useState
+4. useContext                 useContext
+5. useContext                 useContext
+6. useContext                 useContext
+7. useEffect                  useEffect
+8. useState                   useState
+9. useCallback                useCallback
+10. useSyncExternalStore      useSyncExternalStore
+11. useEffect                 useEffect
+12. useMemo                   useContext
+ 
+    at AdminDashboardPage (http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:837:14)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4537:26)
+    at div
+    at main
+    at div
+    at div
+    at AppLayout (http://localhost:3000/src/components/layout/AppLayout.tsx:653:20)
+    at ProtectedRoute (http://localhost:3000/src/components/layout/ProtectedRoute.tsx:20:42)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4091:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5282:5)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4544:15)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5096:5)
+    at QueryClientProvider (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3168:3) @ http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:520
+[ 2035237ms] TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>)
+[ 2035233ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 2035233ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 2035239ms] TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>)
+[ 2035235ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 2035235ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 2035236ms] [ERROR] The above error occurred in the <AdminDashboardPage> component:
+
+    at AdminDashboardPage (http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:837:14)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4537:26)
+    at div
+    at main
+    at div
+    at div
+    at AppLayout (http://localhost:3000/src/components/layout/AppLayout.tsx:653:20)
+    at ProtectedRoute (http://localhost:3000/src/components/layout/ProtectedRoute.tsx:20:42)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4091:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5282:5)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4544:15)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5096:5)
+    at QueryClientProvider (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3168:3)
+
+React will try to recreate this component tree from scratch using the error boundary you provided, RenderErrorBoundary. @ http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:14031
+[ 2035236ms] [ERROR] React Router caught the following error during render TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) {componentStack: 
+    at AdminDashboardPage (http://localhost:3000/…/deps/@tanstack_react-query.js?v=6ca20c62:3168:3)} @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4117
+[ 2036661ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4435
+[ 2036693ms] [ERROR] Warning: React has detected a change in the order of Hooks called by %s. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://reactjs.org/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+%s   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+%s AdminDashboardPage 1. useContext                 useContext
+2. useState                   useState
+3. useState                   useState
+4. useContext                 useContext
+5. useContext                 useContext
+6. useContext                 useContext
+7. useEffect                  useEffect
+8. useState                   useState
+9. useCallback                useCallback
+10. useSyncExternalStore      useSyncExternalStore
+11. useEffect                 useEffect
+12. useMemo                   useContext
+ 
+    at AdminDashboardPage (http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:837:14)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4537:26)
+    at div
+    at main
+    at div
+    at div
+    at AppLayout (http://localhost:3000/src/components/layout/AppLayout.tsx:653:20)
+    at ProtectedRoute (http://localhost:3000/src/components/layout/ProtectedRoute.tsx:20:42)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4091:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5282:5)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4544:15)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5096:5)
+    at QueryClientProvider (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3168:3) @ http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:520
+[ 2036695ms] TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>)
+[ 2036695ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 2036695ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 2036696ms] TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>)
+[ 2036696ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 2036697ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 2036698ms] [ERROR] The above error occurred in the <AdminDashboardPage> component:
+
+    at AdminDashboardPage (http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:837:14)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4537:26)
+    at div
+    at main
+    at div
+    at div
+    at AppLayout (http://localhost:3000/src/components/layout/AppLayout.tsx:653:20)
+    at ProtectedRoute (http://localhost:3000/src/components/layout/ProtectedRoute.tsx:20:42)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4091:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5282:5)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4544:15)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5096:5)
+    at QueryClientProvider (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3168:3)
+
+React will try to recreate this component tree from scratch using the error boundary you provided, RenderErrorBoundary. @ http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:14031
+[ 2036698ms] [ERROR] React Router caught the following error during render TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx:855:9
+    at Array.map (<anonymous>) {componentStack: 
+    at AdminDashboardPage (http://localhost:3000/…/deps/@tanstack_react-query.js?v=6ca20c62:3168:3)} @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4117
+[ 2166792ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4435
+[ 2166828ms] [ERROR] Warning: React has detected a change in the order of Hooks called by %s. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://reactjs.org/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+%s   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+%s AdminDashboardPage 1. useContext                 useContext
+2. useState                   useState
+3. useState                   useState
+4. useContext                 useContext
+5. useContext                 useContext
+6. useContext                 useContext
+7. useEffect                  useEffect
+8. useState                   useState
+9. useCallback                useCallback
+10. useSyncExternalStore      useSyncExternalStore
+11. useEffect                 useEffect
+12. useMemo                   useContext
+ 
+    at AdminDashboardPage (http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx?t=1773123763119:837:14)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4537:26)
+    at div
+    at main
+    at div
+    at div
+    at AppLayout (http://localhost:3000/src/components/layout/AppLayout.tsx?t=1773123741552:653:20)
+    at ProtectedRoute (http://localhost:3000/src/components/layout/ProtectedRoute.tsx?t=1773123741552:20:42)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4091:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5282:5)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4544:15)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5096:5)
+    at QueryClientProvider (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3168:3) @ http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:520
+[ 2166830ms] TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx?t=1773123763119:855:9
+    at Array.map (<anonymous>)
+[ 2166829ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx?t=1773123763119:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 2166830ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx?t=1773123763119:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 2166833ms] TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx?t=1773123763119:855:9
+    at Array.map (<anonymous>)
+[ 2166831ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx?t=1773123763119:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 2166832ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx?t=1773123763119:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 2166833ms] [ERROR] The above error occurred in the <AdminDashboardPage> component:
+
+    at AdminDashboardPage (http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx?t=1773123763119:837:14)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4537:26)
+    at div
+    at main
+    at div
+    at div
+    at AppLayout (http://localhost:3000/src/components/layout/AppLayout.tsx?t=1773123741552:653:20)
+    at ProtectedRoute (http://localhost:3000/src/components/layout/ProtectedRoute.tsx?t=1773123741552:20:42)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4091:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5282:5)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4544:15)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5096:5)
+    at QueryClientProvider (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3168:3)
+
+React will try to recreate this component tree from scratch using the error boundary you provided, RenderErrorBoundary. @ http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:14031
+[ 2166833ms] [ERROR] React Router caught the following error during render TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx?t=1773123763119:855:9
+    at Array.map (<anonymous>) {componentStack: 
+    at AdminDashboardPage (http://localhost:3000/…/deps/@tanstack_react-query.js?v=6ca20c62:3168:3)} @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4117
+[ 2243037ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4435
+[ 2243071ms] [ERROR] Warning: React has detected a change in the order of Hooks called by %s. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://reactjs.org/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+%s   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+%s AdminDashboardPage 1. useContext                 useContext
+2. useState                   useState
+3. useState                   useState
+4. useContext                 useContext
+5. useContext                 useContext
+6. useContext                 useContext
+7. useEffect                  useEffect
+8. useState                   useState
+9. useCallback                useCallback
+10. useSyncExternalStore      useSyncExternalStore
+11. useEffect                 useEffect
+12. useMemo                   useContext
+ 
+    at AdminDashboardPage (http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx?t=1773123763119:837:14)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4537:26)
+    at div
+    at main
+    at div
+    at div
+    at AppLayout (http://localhost:3000/src/components/layout/AppLayout.tsx?t=1773123741552:653:20)
+    at ProtectedRoute (http://localhost:3000/src/components/layout/ProtectedRoute.tsx?t=1773123741552:20:42)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4091:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5282:5)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4544:15)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5096:5)
+    at QueryClientProvider (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3168:3) @ http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:520
+[ 2243074ms] TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx?t=1773123763119:855:9
+    at Array.map (<anonymous>)
+[ 2243073ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx?t=1773123763119:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 2243073ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx?t=1773123763119:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 2243076ms] TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx?t=1773123763119:855:9
+    at Array.map (<anonymous>)
+[ 2243074ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx?t=1773123763119:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 2243075ms] [ERROR] Error handled by React Router default ErrorBoundary: TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx?t=1773123763119:855:9
+    at Array.map (<anonymous>) @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4072
+[ 2243076ms] [ERROR] The above error occurred in the <AdminDashboardPage> component:
+
+    at AdminDashboardPage (http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx?t=1773123763119:837:14)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4537:26)
+    at div
+    at main
+    at div
+    at div
+    at AppLayout (http://localhost:3000/src/components/layout/AppLayout.tsx?t=1773123741552:653:20)
+    at ProtectedRoute (http://localhost:3000/src/components/layout/ProtectedRoute.tsx?t=1773123741552:20:42)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4091:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5282:5)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4544:15)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5096:5)
+    at QueryClientProvider (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3168:3)
+
+React will try to recreate this component tree from scratch using the error boundary you provided, RenderErrorBoundary. @ http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:14031
+[ 2243077ms] [ERROR] React Router caught the following error during render TypeError: Cannot read properties of undefined (reading 'length')
+    at areHookInputsEqual (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:11516:46)
+    at updateEffectImpl (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12082:19)
+    at updateEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12099:18)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:12703:22)
+    at Object.useEffect (http://localhost:3000/node_modules/.vite/deps/chunk-3TFVT2CW.js?v=6ca20c62:1078:29)
+    at useClearResetErrorBoundary (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3223:10)
+    at useBaseQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3371:3)
+    at useQuery (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3431:10)
+    at http://localhost:3000/src/pages/admin/AdminDashboardPage.tsx?t=1773123763119:855:9
+    at Array.map (<anonymous>) {componentStack: 
+    at AdminDashboardPage (http://localhost:3000/…/deps/@tanstack_react-query.js?v=6ca20c62:3168:3)} @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4117

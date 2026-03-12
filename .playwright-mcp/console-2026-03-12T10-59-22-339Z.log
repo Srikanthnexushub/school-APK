@@ -1,0 +1,67 @@
+[     973ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4435
+[  100763ms] [ERROR] Warning: Each child in a list should have a unique "key" prop.%s%s See https://reactjs.org/link/warning-keys for more information.%s 
+
+Check the render method of `MyExamsTable`.  
+    at MyExamsTable (http://localhost:3000/src/pages/mentor-portal/MentorPortalExamsPage.tsx?t=1773311878555:1363:39)
+    at div
+    at div
+    at MotionComponent (http://localhost:3000/node_modules/.vite/deps/framer-motion.js?v=1ef57048:945:40)
+    at MentorPortalExamsPage (http://localhost:3000/src/pages/mentor-portal/MentorPortalExamsPage.tsx?t=1773311878555:1676:16)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4131:5)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4537:26)
+    at div
+    at main
+    at div
+    at div
+    at AppLayout (http://localhost:3000/src/components/layout/AppLayout.tsx:690:20)
+    at ProtectedRoute (http://localhost:3000/src/components/layout/ProtectedRoute.tsx:20:42)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4131:5)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4091:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:5282:5)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4544:15)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:5096:5)
+    at QueryClientProvider (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=56044aee:3168:3) @ http://localhost:3000/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=a66d2276:63
+[ 2000676ms] [ERROR] SyntaxError: The requested module '/src/lib/api.ts' does not provide an export named 'api' @ http://localhost:3000/@vite/client:173
+[ 2000677ms] [ERROR] [hmr] Failed to reload /src/components/layout/AppLayout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:3000/@vite/client:175
+[ 2014705ms] [ERROR] SyntaxError: The requested module '/src/lib/api.ts' does not provide an export named 'api' @ http://localhost:3000/@vite/client:173
+[ 2014705ms] [ERROR] [hmr] Failed to reload /src/components/layout/AppLayout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:3000/@vite/client:175
+[ 2194254ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/v1/notifications/stream:0
+[ 2194254ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/v1/centers:0
+[ 2194257ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/v1/exams?centerId=fe26add1-da4b-48f7-aa64-e7d5a1d0781a:0
+[ 2194258ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/v1/notifications/inapp?size=50&sort=createdAt,desc:0
+[ 2194285ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/v1/notifications/inapp?size=50&sort=createdAt,desc:0
+[ 2194754ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/v1/notifications/stream:0
+[ 2194755ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/v1/notifications/inapp?size=50&sort=createdAt,desc:0
+[ 2194787ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/v1/notifications/inapp?size=50&sort=createdAt,desc:0
+[ 2194819ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/v1/notifications/inapp?size=50&sort=createdAt,desc:0
+[ 4754211ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4435
+[ 4754361ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/v1/centers:0
+[ 4754367ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/v1/notifications/stream:0
+[ 4754369ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/v1/notifications/inapp?size=50&sort=createdAt,desc:0
+[ 4754394ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/v1/notifications/inapp?size=50&sort=createdAt,desc:0
+[ 4754699ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/v1/notifications/stream:0
+[ 4754700ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/v1/notifications/inapp?size=50&sort=createdAt,desc:0
+[ 4754749ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/v1/notifications/inapp?size=50&sort=createdAt,desc:0
+[ 4754781ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/v1/notifications/inapp?size=50&sort=createdAt,desc:0
+[ 4754937ms] [ERROR] Warning: Each child in a list should have a unique "key" prop.%s%s See https://reactjs.org/link/warning-keys for more information.%s 
+
+Check the render method of `MyExamsTable`.  
+    at MyExamsTable (http://localhost:3000/src/pages/mentor-portal/MentorPortalExamsPage.tsx?t=1773311878555:1363:39)
+    at div
+    at div
+    at MotionComponent (http://localhost:3000/node_modules/.vite/deps/framer-motion.js?v=1ef57048:945:40)
+    at MentorPortalExamsPage (http://localhost:3000/src/pages/mentor-portal/MentorPortalExamsPage.tsx?t=1773311878555:1676:16)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4131:5)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4537:26)
+    at div
+    at main
+    at div
+    at div
+    at AppLayout (http://localhost:3000/src/components/layout/AppLayout.tsx?t=1773315356226:691:20)
+    at ProtectedRoute (http://localhost:3000/src/components/layout/ProtectedRoute.tsx:20:42)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4131:5)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4091:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:5282:5)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4544:15)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:5096:5)
+    at QueryClientProvider (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=56044aee:3168:3) @ http://localhost:3000/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=a66d2276:63

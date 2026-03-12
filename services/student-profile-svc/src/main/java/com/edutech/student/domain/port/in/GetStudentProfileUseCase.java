@@ -6,4 +6,5 @@ import java.util.UUID;
 
 public interface GetStudentProfileUseCase {
     StudentProfileResponse getProfile(UUID studentId);
+    StudentProfileResponse getProfileByUserId(UUID userId);
 }

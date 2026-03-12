@@ -432,8 +432,8 @@ export default function AppLayout() {
   const { notifications, unreadCount, isLoading, markRead, markAllRead } = useNotifications();
 
   const { data: studentProfile } = useQuery({
-    queryKey: ['student-profile', user?.id],
-    queryFn: () => api.get(`/api/v1/students/${user!.id}`).then((r) => r.data),
+    queryKey: ['student-profile-me'],
+    queryFn: () => api.get('/api/v1/students/me').then((r) => r.data),
     enabled: !!user && user.role === 'STUDENT',
     staleTime: 5 * 60 * 1000,
   });

@@ -1,0 +1,22 @@
+[     287ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4435
+[  460119ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/v1/students/309e6849-967d-4be5-a61e-368f5ed25141:0
+[  461153ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/v1/students/309e6849-967d-4be5-a61e-368f5ed25141:0
+[  708130ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/v1/notifications/stream:0
+[  708131ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/v1/notifications/inapp?size=50&sort=createdAt,desc:0
+[  708592ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4435
+[  796305ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/v1/students/309e6849-967d-4be5-a61e-368f5ed25141:0
+[  797776ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/v1/students/309e6849-967d-4be5-a61e-368f5ed25141:0
+[  804138ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/v1/students/309e6849-967d-4be5-a61e-368f5ed25141:0
+[  805191ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/v1/students/309e6849-967d-4be5-a61e-368f5ed25141:0
+[  847124ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/v1/students/309e6849-967d-4be5-a61e-368f5ed25141:0
+[  962030ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/v1/students/309e6849-967d-4be5-a61e-368f5ed25141:0
+[ 1096578ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/v1/students/309e6849-967d-4be5-a61e-368f5ed25141:0
+[ 1096583ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/v1/students/me:0
+[ 1097629ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/v1/students/me:0
+[ 1097640ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/v1/students/309e6849-967d-4be5-a61e-368f5ed25141:0
+[ 1106095ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/v1/students/me:0
+[ 1106116ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/v1/students/309e6849-967d-4be5-a61e-368f5ed25141:0
+[ 1107135ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/v1/students/me:0
+[ 1142412ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/v1/students/me:0
+[ 1143468ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/v1/students/me:0
+[ 1266893ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/v1/students/me:0

@@ -1,0 +1,80 @@
+QUESTION PAPER
+Subject: Physics | Exam: JEE Main | Difficulty: Medium
+Chapters: Mechanics, Thermodynamics, Electrostatics, Magnetism, Optics, Modern Physics
+Total Questions: 10 | Generated: 11 Mar 2026, 06:57 pm
+
+============================================================
+
+Q1. A block of mass m is placed on a rough inclined plane with angle of inclination θ. If the coefficient of static friction is μ_s, what is the minimum angle at which the block will start sliding down?
+   A) θ = tan⁻¹(μ_s)
+   B) θ = sin⁻¹(μ_s)
+   C) θ = cos⁻¹(μ_s)
+   D) θ = tan⁻¹(1/μ_s)
+
+Q2. An ideal gas undergoes a cyclic process ABCA as shown in the P-V diagram. If the net work done by the gas is 200 J, what is the net heat absorbed by the gas in one complete cycle?
+   A) 0 J
+   B) 100 J
+   C) 200 J
+   D) -200 J
+
+Q3. Three point charges +q, +q, and -2q are placed at the vertices of an equilateral triangle of side length a. What is the magnitude of the net force on the charge -2q?
+   A) (2kq²)/a²
+   B) (3kq²)/a²
+   C) (4kq²)/a²
+   D) (5kq²)/a²
+
+Q4. A long straight wire carries a current I. What is the magnitude of the magnetic field at a distance r from the wire?
+   A) μ₀I/(2πr)
+   B) μ₀I/(4πr)
+   C) μ₀I/r
+   D) μ₀I/(2r)
+
+Q5. A concave mirror has a focal length of 20 cm. An object is placed 30 cm in front of the mirror. Where is the image formed?
+   A) 12 cm in front of the mirror
+   B) 12 cm behind the mirror
+   C) 60 cm in front of the mirror
+   D) 60 cm behind the mirror
+
+Q6. In the photoelectric effect, the stopping potential is measured to be 1.5 V for a certain frequency of incident light. What is the maximum kinetic energy of the emitted photoelectrons?
+   A) 1.5 eV
+   B) 1.5 J
+   C) 2.4 × 10⁻¹⁹ J
+   D) 2.4 × 10⁻¹⁹ eV
+
+Q7. A particle moves in a circular path of radius r with constant speed v. What is its centripetal acceleration?
+   A) v²/r
+   B) r²/v
+   C) 2πr/v
+   D) v/(2πr)
+
+Q8. An ideal gas is compressed adiabatically to half its initial volume. If the initial pressure is P₁ and the initial volume is V₁, what is the final pressure?
+   A) P₁/2
+   B) P₁
+   C) 2P₁
+   D) 2^γ P₁
+
+Q9. Two point charges +q and -q are separated by a distance d. What is the electric field at a point P on the perpendicular bisector of the line joining the charges, at a distance r from the midpoint?
+   A) (2kq/d²) î
+   B) (2kqr/(r² + d²/4)^(3/2)) ĵ
+   C) (2kqr/(r² + d²/4)^(3/2)) î
+   D) (kq/d²) ĵ
+
+Q10. A solenoid of length l and radius a has n turns per unit length. What is the magnetic field at the center of the solenoid when a current I flows through it?
+   A) μ₀nI
+   B) μ₀nI/2
+   C) μ₀nI/l
+   D) μ₀nI/(2πa)
+
+============================================================
+ANSWER KEY
+
+Q1: A — The block will start sliding when the component of gravity parallel to the incline equals the maximum static friction force. This gives mg sin θ = μ_s mg cos θ, which simplifies to tan θ = μ_s.
+Q2: C — For a cyclic process, the change in internal energy is zero. By the first law of thermodynamics, ΔU = Q - W, so Q = W. Therefore, the net heat absorbed equals the net work done, which is 200 J.
+Q3: C — Each +q charge exerts a force of magnitude kq²/a² on -2q. The angle between these two forces is 60°. Using vector addition, the net force is F_net = 2F cos 30° = 2(kq²/a²)(√3/2) = √3(kq²/a²). The magnitude is (4kq²)/a².
+Q4: A — Using Ampere's law for an infinite straight wire, the magnetic field at distance r is given by B = μ₀I/(2πr), where μ₀ is the permeability of free space.
+Q5: C — Using the mirror equation 1/f = 1/u + 1/v, where f = 20 cm and u = -30 cm, we get 1/20 = -1/30 + 1/v. Solving for v gives v = -60 cm. The negative sign indicates the image is formed 60 cm in front of the mirror.
+Q6: A — The stopping potential is directly related to the maximum kinetic energy of photoelectrons by the equation K_max = eV_s, where e is the elementary charge and V_s is the stopping potential. Therefore, K_max = 1.6 × 10⁻¹⁹ C × 1.5 V = 2.4 × 10⁻¹⁹ J = 1.5 eV.
+Q7: A — Centripetal acceleration is given by the formula a_c = v²/r, where v is the speed and r is the radius of the circular path.
+Q8: D — For an adiabatic process, PV^γ = constant, where γ is the heat capacity ratio. If V₂ = V₁/2, then P₁V₁^γ = P₂V₂^γ = P₂(V₁/2)^γ. Solving for P₂ gives P₂ = 2^γ P₁.
+Q9: C — The electric field due to each charge at point P has a component along the line joining the charges and a component perpendicular to it. The perpendicular components cancel out, while the parallel components add up. The magnitude of the net field is (2kqr/(r² + d²/4)^(3/2)), and it points along the line joining the charges (î direction).
+Q10: A — The magnetic field inside a long solenoid is uniform and given by B = μ₀nI, where μ₀ is the permeability of free space, n is the number of turns per unit length, and I is the current flowing through the solenoid.

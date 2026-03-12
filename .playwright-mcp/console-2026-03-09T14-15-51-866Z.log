@@ -1,0 +1,32 @@
+[     257ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4435
+[   27644ms] [ERROR] Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
+
+Check the render method of `PopChild`. 
+    at QuestionCard (http://localhost:5173/src/pages/mentor-portal/MentorPortalExamsPage.tsx:559:3)
+    at PopChildMeasure (http://localhost:5173/node_modules/.vite/deps/framer-motion.js?v=6ca20c62:62:23)
+    at PopChild (http://localhost:5173/node_modules/.vite/deps/framer-motion.js?v=6ca20c62:83:21)
+    at PresenceChild (http://localhost:5173/node_modules/.vite/deps/framer-motion.js?v=6ca20c62:121:24)
+    at AnimatePresence (http://localhost:5173/node_modules/.vite/deps/framer-motion.js?v=6ca20c62:210:26)
+    at div
+    at Step2 (http://localhost:5173/src/pages/mentor-portal/MentorPortalExamsPage.tsx:949:3)
+    at div
+    at MotionComponent (http://localhost:5173/node_modules/.vite/deps/framer-motion.js?v=6ca20c62:945:40)
+    at PresenceChild (http://localhost:5173/node_modules/.vite/deps/framer-motion.js?v=6ca20c62:121:24)
+    at AnimatePresence (http://localhost:5173/node_modules/.vite/deps/framer-motion.js?v=6ca20c62:210:26)
+    at div
+    at MotionComponent (http://localhost:5173/node_modules/.vite/deps/framer-motion.js?v=6ca20c62:945:40)
+    at MentorPortalExamsPage (http://localhost:5173/src/pages/mentor-portal/MentorPortalExamsPage.tsx:1501:16)
+    at RenderedRoute (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at Outlet (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4537:26)
+    at div
+    at main
+    at div
+    at div
+    at AppLayout (http://localhost:5173/src/components/layout/AppLayout.tsx:653:20)
+    at ProtectedRoute (http://localhost:5173/src/components/layout/ProtectedRoute.tsx:20:42)
+    at RenderedRoute (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at RenderErrorBoundary (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4091:5)
+    at DataRoutes (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5282:5)
+    at Router (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4544:15)
+    at RouterProvider (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5096:5)
+    at QueryClientProvider (http://localhost:5173/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3168:3) @ http://localhost:5173/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:520

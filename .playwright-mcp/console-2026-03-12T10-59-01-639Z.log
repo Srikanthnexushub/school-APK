@@ -1,0 +1,23 @@
+[     726ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4435
+[     942ms] [ERROR] Warning: Each child in a list should have a unique "key" prop.%s%s See https://reactjs.org/link/warning-keys for more information.%s 
+
+Check the render method of `MyExamsTable`.  
+    at MyExamsTable (http://localhost:3000/src/pages/mentor-portal/MentorPortalExamsPage.tsx?t=1773311878555:1363:39)
+    at div
+    at div
+    at MotionComponent (http://localhost:3000/node_modules/.vite/deps/framer-motion.js?v=1ef57048:945:40)
+    at MentorPortalExamsPage (http://localhost:3000/src/pages/mentor-portal/MentorPortalExamsPage.tsx?t=1773311878555:1676:16)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4131:5)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4537:26)
+    at div
+    at main
+    at div
+    at div
+    at AppLayout (http://localhost:3000/src/components/layout/AppLayout.tsx:690:20)
+    at ProtectedRoute (http://localhost:3000/src/components/layout/ProtectedRoute.tsx:20:42)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4131:5)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4091:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:5282:5)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:4544:15)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=49ab96c3:5096:5)
+    at QueryClientProvider (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=56044aee:3168:3) @ http://localhost:3000/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=a66d2276:63

@@ -1,0 +1,30 @@
+[     383ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4435
+[  238694ms] [ERROR] Warning: Each child in a list should have a unique "key" prop.%s%s See https://reactjs.org/link/warning-keys for more information.%s 
+
+Check the render method of `StudyPlansTab`.  
+    at span
+    at StudyPlansTab (http://localhost:3000/src/pages/ai-mentor/AiMentorPage.tsx?t=1772978541982:69:23)
+    at div
+    at MotionComponent (http://localhost:3000/node_modules/.vite/deps/framer-motion.js?v=6ca20c62:945:40)
+    at PresenceChild (http://localhost:3000/node_modules/.vite/deps/framer-motion.js?v=6ca20c62:121:24)
+    at AnimatePresence (http://localhost:3000/node_modules/.vite/deps/framer-motion.js?v=6ca20c62:210:26)
+    at div
+    at MotionComponent (http://localhost:3000/node_modules/.vite/deps/framer-motion.js?v=6ca20c62:945:40)
+    at AiMentorPage (http://localhost:3000/src/pages/ai-mentor/AiMentorPage.tsx?t=1772978541982:1149:37)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4537:26)
+    at div
+    at main
+    at div
+    at div
+    at AppLayout (http://localhost:3000/src/components/layout/AppLayout.tsx?t=1772974822367:649:20)
+    at ProtectedRoute (http://localhost:3000/src/components/layout/ProtectedRoute.tsx?t=1772974822361:20:42)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4091:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5282:5)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4544:15)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5096:5)
+    at QueryClientProvider (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3168:3) @ http://localhost:3000/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=6ca20c62:63
+[  255834ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/v1/career-profiles/by-student/ea008897-3fa1-44e4-88bd-3ce8c7df656c:0
+[  258025ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/v1/psych/profiles/ea008897-3fa1-44e4-88bd-3ce8c7df656c:0
+[  264061ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3000/api/v1/exam-tracker/students/ea008897-3fa1-44e4-88bd-3ce8c7df656c/mock-tests:0

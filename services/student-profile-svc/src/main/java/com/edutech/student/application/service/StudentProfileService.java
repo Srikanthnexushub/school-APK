@@ -84,6 +84,14 @@ public class StudentProfileService implements CreateStudentProfileUseCase,
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public StudentProfileResponse getProfileByUserId(UUID userId) {
+        return profileRepository.findByUserId(userId)
+                .map(this::toResponse)
+                .orElseThrow(() -> new StudentNotFoundException(userId));
+    }
+
+    @Override
     public StudentProfileResponse updateProfile(UUID studentId, UpdateStudentProfileRequest request) {
         StudentProfile profile = profileRepository.findById(studentId)
                 .orElseThrow(() -> new StudentNotFoundException(studentId));

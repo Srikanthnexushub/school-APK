@@ -1,0 +1,47 @@
+[   11379ms] [WARNING] Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://www.youtube.com') does not match the recipient window's origin ('https://www.google.com'). @ https://www.youtube.com/s/player/18d29a11/www-widgetapi.vflset/www-widgetapi.js:209
+[   13498ms] [WARNING] The provided value 'undefined' is not a valid enum value of type XMLHttpRequestResponseType. @ https://st1.zoom.us/web-media/l0gtm9h/vb-resource/vbPreload.js:0
+[   13885ms] [WARNING] Manifest: scope_extensions entry ignored, required properties 'type' and 'origin' are missing. @ https://app.zoom.us/wc/manifest.json:0
+[   14004ms] Uncaught (in promise) 
+    at <anonymous> (https://st1.zoom.us/web-media/l0gtm9h/vb-resource/vbPreload.js:0:786)
+[   14809ms] [ERROR] Access to XMLHttpRequest at 'https://log-gateway.zoom.us/pwa/webclient?from=pwa' from origin 'https://app.zoom.us' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ https://app.zoom.us/wc:0
+[   14810ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://log-gateway.zoom.us/pwa/webclient?from=pwa:0
+[   28681ms] [ERROR] Attestation check for Attribution Reporting on https://www.facebook.com failed. @ https://app.zoom.us/signin?from=pwa#/login:0
+[   28703ms] [WARNING] Amplitude Logger [Warn]: Plugin name is undefined. 
+      Generating a random UUID for plugin name: 38836a5b-3b5f-4c68-9f1c-1df5bf5d12e5. 
+      Set a name for the plugin to prevent it from being added multiple times. @ https://cdn.amplitude.com/libs/analytics-browser-gtm-2.34.0-feat-zoning-alpha-min.js.gz:0
+[   78096ms] [WARNING] Amplitude Logger [Warn]: Plugin name is undefined. 
+      Generating a random UUID for plugin name: e4a8c754-dbe8-4bd5-b62a-0f854e9855d2. 
+      Set a name for the plugin to prevent it from being added multiple times. @ https://cdn.amplitude.com/libs/analytics-browser-gtm-2.34.0-feat-zoning-alpha-min.js.gz:0
+[  138921ms] [WARNING] Blocked aria-hidden on an element because its descendant retained focus. The focus must not be hidden from assistive technology users. Avoid using aria-hidden on a focused element or its ancestor. Consider using the inert attribute instead, which will also prevent focus. For more details, see the aria-hidden section of the WAI-ARIA specification at https://w3c.github.io/aria/#aria-hidden.
+Element with focus: <a>
+Ancestor with aria-hidden: <span.zoom-form-item__error-text> @ https://app.zoom.us/signin?from=pwa#/login:0
+[  143938ms] [WARNING] Amplitude Logger [Warn]: Plugin name is undefined. 
+      Generating a random UUID for plugin name: 36a101e7-b4f5-4ef5-badc-765580109078. 
+      Set a name for the plugin to prevent it from being added multiple times. @ https://cdn.amplitude.com/libs/analytics-browser-gtm-2.34.0-feat-zoning-alpha-min.js.gz:0
+[  143971ms] [ERROR] Attestation check for Attribution Reporting on https://www.facebook.com failed. @ https://app.zoom.us/signup#/signup:0
+[  144518ms] [WARNING] Amplitude Logger [Warn]: Plugin name is undefined. 
+      Generating a random UUID for plugin name: 45071fb5-40a4-4fa6-b5da-1489eba6646c. 
+      Set a name for the plugin to prevent it from being added multiple times. @ https://cdn.amplitude.com/libs/analytics-browser-gtm-2.34.0-feat-zoning-alpha-min.js.gz:0
+[  157470ms] [ERROR] Attestation check for Attribution Reporting on https://www.facebook.com failed. @ https://app.zoom.us/signup#/signup/email:0
+[  170138ms] [ERROR] Attestation check for Attribution Reporting on https://www.facebook.com failed. @ https://app.zoom.us/signup#/signup/verification?entry=signup:0
+[  186556ms] [WARNING] [OBT-4313] has an error:  TypeError: Cannot read properties of undefined (reading 'replace')
+    at Object.callback (https://explore.zoom.us/docs/js/optimizely/optimizely.js:5713:69)
+    at https://explore.zoom.us/docs/js/optimizely/optimizely.js:2:62092
+    at h (https://explore.zoom.us/docs/js/optimizely/optimizely.js:2:62146)
+    at un (https://explore.zoom.us/docs/js/optimizely/optimizely.js:2:31344)
+    at Vt.jn (https://explore.zoom.us/docs/js/optimizely/optimizely.js:2:37069)
+    at MutationObserver.n (https://explore.zoom.us/docs/js/optimizely/optimizely.js:2:61209) @ https://explore.zoom.us/docs/js/optimizely/optimizely.js:5724
+[  186783ms] [ERROR] Attestation check for Attribution Reporting on https://www.facebook.com failed. @ https://app.zoom.us/signup#/signup/activate?enableEduServiceFlow=true:0
+[  209623ms] [WARNING] Amplitude Logger [Warn]: Plugin name is undefined. 
+      Generating a random UUID for plugin name: 783f9b71-089c-4edb-9103-ba03f74595af. 
+      Set a name for the plugin to prevent it from being added multiple times. @ https://cdn.amplitude.com/libs/analytics-browser-gtm-2.34.0-feat-zoning-alpha-min.js.gz:0
+[  209678ms] [ERROR] Attestation check for Attribution Reporting on https://www.facebook.com failed. @ https://us05web.zoom.us/myhome:0
+[  210870ms] [WARNING] Amplitude Logger [Warn]: Plugin name is undefined. 
+      Generating a random UUID for plugin name: edbefb8d-a538-4f6b-a8cb-0f0e7db2aa2c. 
+      Set a name for the plugin to prevent it from being added multiple times. @ https://cdn.amplitude.com/libs/analytics-browser-gtm-2.34.0-feat-zoning-alpha-min.js.gz:0
+[  241096ms] [WARNING] Amplitude Logger [Warn]: Plugin name is undefined. 
+      Generating a random UUID for plugin name: d6e41407-73b3-4dba-90e6-ed9d0ff98b00. 
+      Set a name for the plugin to prevent it from being added multiple times. @ https://cdn.amplitude.com/libs/analytics-browser-gtm-2.34.0-feat-zoning-alpha-min.js.gz:0
+[  241117ms] [WARNING] Amplitude Logger [Warn]: Plugin name is undefined. 
+      Generating a random UUID for plugin name: c51ad3de-1ba3-4302-8480-95fe26565b2f. 
+      Set a name for the plugin to prevent it from being added multiple times. @ https://cdn.amplitude.com/libs/analytics-browser-gtm-2.34.0-feat-zoning-alpha-min.js.gz:0

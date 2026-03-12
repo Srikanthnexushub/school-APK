@@ -1,0 +1,28 @@
+[     344ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4435
+[  229584ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3000/api/v1/exams:0
+[  378529ms] [ERROR] Warning: A component is changing a controlled input to be uncontrolled. This is likely caused by the value changing from a defined to undefined, which should not happen. Decide between using a controlled or uncontrolled input element for the lifetime of the component. More info: https://reactjs.org/link/controlled-components%s 
+    at input
+    at div
+    at div
+    at form
+    at div
+    at MotionComponent (http://localhost:3000/node_modules/.vite/deps/framer-motion.js?v=6ca20c62:945:40)
+    at CreateExamForm (http://localhost:3000/src/pages/admin/AdminAssessmentsPage.tsx?t=1773126328483:87:27)
+    at PresenceChild (http://localhost:3000/node_modules/.vite/deps/framer-motion.js?v=6ca20c62:121:24)
+    at AnimatePresence (http://localhost:3000/node_modules/.vite/deps/framer-motion.js?v=6ca20c62:210:26)
+    at div
+    at AdminAssessmentsPage (http://localhost:3000/src/pages/admin/AdminAssessmentsPage.tsx?t=1773126328483:1215:14)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4537:26)
+    at div
+    at main
+    at div
+    at div
+    at AppLayout (http://localhost:3000/src/components/layout/AppLayout.tsx?t=1773123741552:653:20)
+    at ProtectedRoute (http://localhost:3000/src/components/layout/ProtectedRoute.tsx?t=1773123741552:20:42)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4131:5)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4091:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5282:5)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:4544:15)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6ca20c62:5096:5)
+    at QueryClientProvider (http://localhost:3000/node_modules/.vite/deps/@tanstack_react-query.js?v=6ca20c62:3168:3) @ http://localhost:3000/node_modules/.vite/deps/chunk-WERSD76P.js?v=6ca20c62:520
