@@ -63,6 +63,15 @@ public class MentorProfileService implements RegisterMentorUseCase, GetMentorPro
 
     @Override
     @Transactional(readOnly = true)
+    public MentorProfileResponse getMentorByUserId(UUID userId) {
+        MentorProfile profile = mentorProfileRepository.findByUserId(userId)
+                .filter(p -> p.getDeletedAt() == null)
+                .orElseThrow(() -> new MentorNotFoundException(userId));
+        return toResponse(profile);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<MentorProfileResponse> getAllAvailableMentors() {
         return mentorProfileRepository.findAllAvailable()
                 .stream()

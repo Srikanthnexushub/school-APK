@@ -445,6 +445,13 @@ export default function AppLayout() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: mentorProfile } = useQuery({
+    queryKey: ['mentor-profile-me'],
+    queryFn: () => api.get('/api/v1/mentors/me').then((r) => r.data),
+    enabled: !!user && user.role === 'TEACHER',
+    staleTime: 5 * 60 * 1000,
+  });
+
   let profilePct = 0;
   if (user) {
     if (user.role === 'STUDENT' && studentProfile) {
@@ -453,7 +460,10 @@ export default function AppLayout() {
     } else if (user.role === 'PARENT' && parentProfile) {
       const f = [parentProfile.name, parentProfile.phone, parentProfile.email, parentProfile.relationshipType, parentProfile.address, parentProfile.city, parentProfile.state, parentProfile.pincode];
       profilePct = Math.round(f.filter(Boolean).length / f.length * 100);
-    } else if (user.role === 'TEACHER' || user.role === 'CENTER_ADMIN' || user.role === 'SUPER_ADMIN') {
+    } else if (user.role === 'TEACHER' && mentorProfile) {
+      const f = [mentorProfile.fullName, mentorProfile.email, user.avatarUrl, mentorProfile.bio, mentorProfile.specializations, mentorProfile.yearsOfExperience, mentorProfile.hourlyRate];
+      profilePct = Math.round(f.filter(Boolean).length / f.length * 100);
+    } else if (user.role === 'CENTER_ADMIN' || user.role === 'SUPER_ADMIN') {
       const f = [!!user.name, !!user.email, !!user.avatarUrl];
       profilePct = Math.round(f.filter(Boolean).length / f.length * 100);
     }

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -49,6 +50,13 @@ public class MentorProfileController {
             @Valid @RequestBody RegisterMentorRequest request) {
         MentorProfileResponse response = registerMentorUseCase.registerMentor(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/me")
+    @Operation(summary = "Get own mentor profile (by JWT user ID)")
+    public ResponseEntity<MentorProfileResponse> getMyMentorProfile(
+            @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(getMentorProfileUseCase.getMentorByUserId(userId));
     }
 
     @GetMapping("/{mentorId}")
