@@ -1,11 +1,12 @@
 // src/pages/mentor-portal/MentorPortalInsightsPage.tsx
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Brain, Sparkles, AlertTriangle, TrendingDown, TrendingUp,
   CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp,
   FileText, Users, BarChart3, Lightbulb, Shield, RefreshCw,
-  ClipboardList, BookOpen, Target, Zap, GraduationCap,
+  ClipboardList, BookOpen, Target, Zap, GraduationCap, X,
 } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -295,11 +296,51 @@ function BatchHealthSection({ userId }: { userId: string | undefined }) {
 // ─── AI Question Generator ────────────────────────────────────────────────────
 
 function QuestionGenerator() {
+  const navigate = useNavigate();
   const [topic, setTopic] = useState('');
   const [difficulty, setDifficulty] = useState<'EASY' | 'MEDIUM' | 'HARD'>('MEDIUM');
   const [count, setCount] = useState(3);
   const [results, setResults] = useState<GeneratedQuestion[]>([]);
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [selectedExamId, setSelectedExamId] = useState('');
+
+  const { data: teacherExams = [] } = useQuery({
+    queryKey: ['teacher-exams-for-bank'],
+    queryFn: async () => {
+      const res = await api.get('/api/v1/exams?page=0&size=100');
+      const d = res.data;
+      return Array.isArray(d) ? d : (d.content ?? []);
+    },
+    enabled: saveModalOpen,
+  });
+
+  const saveToExamMutation = useMutation({
+    mutationFn: async (examId: string) => {
+      const difficultyNum = difficulty === 'EASY' ? 0.3 : difficulty === 'HARD' ? 0.8 : 0.5;
+      for (const q of results) {
+        await api.post(`/api/v1/exams/${examId}/questions`, {
+          questionText: q.questionText,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          explanation: q.explanation || '',
+          marks: 1.0,
+          difficulty: difficultyNum,
+          discrimination: 1.0,
+          guessingParam: 0.25,
+        });
+      }
+      return examId;
+    },
+    onSuccess: () => {
+      toast.success(`${results.length} questions saved to exam bank!`);
+      setResults([]);
+      setSaveModalOpen(false);
+      setSelectedExamId('');
+      navigate('/mentor-portal/exams');
+    },
+    onError: () => toast.error('Failed to save questions. Please try again.'),
+  });
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -395,12 +436,53 @@ function QuestionGenerator() {
             <div className="flex items-center justify-between">
               <p className="text-white/60 text-sm font-medium">{results.length} questions generated</p>
               <button
-                onClick={() => { toast.success('Questions saved to exam bank!'); setResults([]); }}
+                onClick={() => setSaveModalOpen(true)}
                 className="text-xs text-brand-400 hover:text-brand-300 flex items-center gap-1"
               >
                 <ClipboardList className="w-3.5 h-3.5" /> Save to Exam Bank
               </button>
             </div>
+
+            {/* Save to Exam Bank Modal */}
+            {saveModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                <div className="glass border border-white/10 rounded-2xl p-6 w-full max-w-md mx-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-white font-semibold text-base">Save to Exam Bank</h3>
+                    <button onClick={() => setSaveModalOpen(false)} className="text-white/40 hover:text-white/70">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-white/50 text-sm">Select an exam to add the {results.length} generated questions to.</p>
+                  {teacherExams.length === 0 ? (
+                    <p className="text-amber-400 text-sm bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                      No exams found. Create an exam in the <strong>Exams</strong> tab first, then save questions to it.
+                    </p>
+                  ) : (
+                    <select
+                      value={selectedExamId}
+                      onChange={(e) => setSelectedExamId(e.target.value)}
+                      className="input w-full text-sm"
+                    >
+                      <option value="">Select an exam…</option>
+                      {teacherExams.map((e: any) => (
+                        <option key={e.id} value={e.id}>{e.title} ({e.status})</option>
+                      ))}
+                    </select>
+                  )}
+                  <div className="flex gap-3 justify-end">
+                    <button onClick={() => setSaveModalOpen(false)} className="btn-ghost text-sm px-4 py-2">Cancel</button>
+                    <button
+                      onClick={() => saveToExamMutation.mutate(selectedExamId)}
+                      disabled={!selectedExamId || saveToExamMutation.isPending}
+                      className="btn-primary text-sm px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {saveToExamMutation.isPending ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</> : <><ClipboardList className="w-3.5 h-3.5" /> Save Questions</>}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {results.map((q, i) => (
               <motion.div
