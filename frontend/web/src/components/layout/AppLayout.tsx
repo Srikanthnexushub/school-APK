@@ -390,30 +390,30 @@ function SidebarContent({
 }
 
 function ProfileRing({ pct, onClick }: { pct: number; onClick: () => void }) {
-  const r = 9;
+  const r = 13;
   const circ = 2 * Math.PI * r;
   const offset = circ * (1 - pct / 100);
-  const color = pct === 100 ? '#10b981' : pct >= 67 ? '#f59e0b' : '#ef4444';
+  const color = pct === 100 ? '#10b981' : pct >= 67 ? '#f97316' : '#ef4444';
   return (
     <button
       onClick={onClick}
       title={`Profile ${pct}% complete`}
-      className="relative flex items-center justify-center w-8 h-8 rounded-xl hover:bg-white/5 transition-colors"
+      className="relative flex items-center justify-center w-10 h-10 rounded-xl hover:bg-white/5 transition-colors"
     >
-      <svg width="24" height="24" viewBox="0 0 24 24" className="-rotate-90">
-        <circle cx="12" cy="12" r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2.5" />
+      <svg width="36" height="36" viewBox="0 0 36 36" className="-rotate-90">
+        <circle cx="18" cy="18" r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="3" />
         <circle
-          cx="12" cy="12" r={r}
+          cx="18" cy="18" r={r}
           fill="none"
           stroke={color}
-          strokeWidth="2.5"
+          strokeWidth="3"
           strokeLinecap="round"
           strokeDasharray={circ}
           strokeDashoffset={offset}
           style={{ transition: 'stroke-dashoffset 0.4s ease' }}
         />
       </svg>
-      <span className="absolute text-[8px] font-bold rotate-90" style={{ color }}>{pct}</span>
+      <span className="absolute text-[10px] font-extrabold leading-none" style={{ color }}>{pct}</span>
     </button>
   );
 }
