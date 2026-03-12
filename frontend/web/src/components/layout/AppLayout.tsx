@@ -413,7 +413,7 @@ function ProfileRing({ pct, onClick }: { pct: number; onClick: () => void }) {
           style={{ transition: 'stroke-dashoffset 0.4s ease' }}
         />
       </svg>
-      <span className="absolute text-[10px] font-extrabold leading-none" style={{ color }}>{pct}</span>
+      <span className="absolute text-[10px] font-extrabold leading-none text-white">{pct}</span>
     </button>
   );
 }
