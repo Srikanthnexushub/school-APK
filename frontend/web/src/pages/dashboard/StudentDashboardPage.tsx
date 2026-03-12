@@ -11,6 +11,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { cn, getReadinessLabel, getRiskColor } from '../../lib/utils';
 import api from '../../lib/api';
@@ -118,6 +119,7 @@ function StatCard({ label, value, sub, Icon, color, delay = 0 }: StatCardProps) 
 export default function StudentDashboardPage() {
   const user = useAuthStore((s) => s.user);
   const studentId = user?.id ?? '';
+  const navigate = useNavigate();
 
   // ── Readiness ──
   const readinessQuery = useQuery<ReadinessResponse>({
@@ -359,7 +361,7 @@ export default function StudentDashboardPage() {
               <AlertTriangle className="w-4 h-4 text-amber-400" />
               Weak Areas
             </h3>
-            <button className="text-brand-400 hover:text-brand-300 text-xs font-medium flex items-center gap-1 transition-colors">
+            <button onClick={() => navigate('/performance')} className="text-brand-400 hover:text-brand-300 text-xs font-medium flex items-center gap-1 transition-colors">
               View all <ChevronRight className="w-3 h-3" />
             </button>
           </div>
@@ -408,7 +410,7 @@ export default function StudentDashboardPage() {
               <Brain className="w-4 h-4 text-violet-400" />
               Upcoming Exams
             </h3>
-            <button className="text-brand-400 hover:text-brand-300 text-xs font-medium flex items-center gap-1 transition-colors">
+            <button onClick={() => navigate('/exam-tracker')} className="text-brand-400 hover:text-brand-300 text-xs font-medium flex items-center gap-1 transition-colors">
               Tracker <ChevronRight className="w-3 h-3" />
             </button>
           </div>
@@ -459,10 +461,10 @@ export default function StudentDashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button className="btn-primary px-5 py-2.5 text-sm flex items-center gap-2">
+            <button onClick={() => navigate('/ai-mentor')} className="btn-primary px-5 py-2.5 text-sm flex items-center gap-2">
               AI Study Plan <ChevronRight className="w-4 h-4" />
             </button>
-            <button className="btn-ghost text-sm">View Details</button>
+            <button onClick={() => navigate('/performance')} className="btn-ghost text-sm">View Details</button>
           </div>
         </div>
       </motion.div>
