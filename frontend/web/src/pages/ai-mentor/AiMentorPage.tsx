@@ -389,9 +389,10 @@ function DoubtResolverTab() {
   const submitMutation = useMutation({
     mutationFn: (payload: { subjectArea: string; question: string }) =>
       api.post('/api/v1/doubts', payload),
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['doubts'] });
       setNewQuestion('');
+      setSelectedId(response.data.id);
       toast.success('Doubt submitted!');
     },
     onError: () => toast.error('Failed to submit doubt'),
