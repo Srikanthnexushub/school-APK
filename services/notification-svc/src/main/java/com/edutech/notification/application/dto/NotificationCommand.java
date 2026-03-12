@@ -11,6 +11,7 @@ public record NotificationCommand(
         String channel,
         UUID recipientId,
         String recipientEmail,
+        String recipientPhone,
         String subject,
         String body,
         Map<String, String> metadata

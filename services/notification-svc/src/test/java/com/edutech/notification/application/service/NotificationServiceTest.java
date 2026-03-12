@@ -57,7 +57,7 @@ class NotificationServiceTest {
         // Given
         when(notificationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         NotificationCommand command = new NotificationCommand(
-                "EMAIL", recipientId, recipientEmail, "Welcome!", "Welcome to EduTech.", Map.of());
+                "EMAIL", recipientId, recipientEmail, null, "Welcome!", "Welcome to EduTech.", Map.of());
 
         // When
         notificationService.send(command);
@@ -76,7 +76,7 @@ class NotificationServiceTest {
     void send_unknownChannel_skipsProcessing() {
         // Given
         NotificationCommand command = new NotificationCommand(
-                "TELEGRAM", recipientId, recipientEmail, "Test", "Body", Map.of());
+                "TELEGRAM", recipientId, recipientEmail, null, "Test", "Body", Map.of());
 
         // When
         notificationService.send(command);
@@ -91,7 +91,7 @@ class NotificationServiceTest {
         // Given — channel is IN_APP but no IN_APP sender registered
         when(notificationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         NotificationCommand command = new NotificationCommand(
-                "IN_APP", recipientId, null, "Alert", "You have a new message.", Map.of());
+                "IN_APP", recipientId, null, null, "Alert", "You have a new message.", Map.of());
 
         // When
         notificationService.send(command);
@@ -109,7 +109,7 @@ class NotificationServiceTest {
         doThrow(new RuntimeException("SMTP timeout")).when(emailSender).send(any());
 
         NotificationCommand command = new NotificationCommand(
-                "EMAIL", recipientId, recipientEmail, "Test", "Body", Map.of());
+                "EMAIL", recipientId, recipientEmail, null, "Test", "Body", Map.of());
 
         // When
         notificationService.send(command);

@@ -34,6 +34,7 @@ public class NotificationEventConsumer {
                 event.channel(),
                 event.recipientId(),
                 event.recipientEmail(),
+                event.recipientPhone(),
                 event.subject(),
                 event.body(),
                 event.metadata()

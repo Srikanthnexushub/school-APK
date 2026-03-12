@@ -63,6 +63,10 @@ public class Notification {
     @Column(name = "action_url", length = 500)
     private String actionUrl;
 
+    /** Phone number used for SMS channel delivery (E.164 or local format). */
+    @Column(name = "recipient_phone", length = 20)
+    private String recipientPhone;
+
     @Version
     @Column(name = "version", nullable = false)
     private long version;
@@ -70,12 +74,13 @@ public class Notification {
     protected Notification() {
     }
 
-    private Notification(UUID id, UUID recipientId, String recipientEmail,
+    private Notification(UUID id, UUID recipientId, String recipientEmail, String recipientPhone,
                          NotificationChannel channel, String subject, String body,
                          String notificationType, String actionUrl) {
         this.id = id;
         this.recipientId = recipientId;
         this.recipientEmail = recipientEmail;
+        this.recipientPhone = recipientPhone;
         this.channel = channel;
         this.subject = subject;
         this.body = body;
@@ -88,14 +93,21 @@ public class Notification {
 
     public static Notification create(UUID recipientId, String recipientEmail,
                                       NotificationChannel channel, String subject, String body) {
-        return new Notification(UUID.randomUUID(), recipientId, recipientEmail,
+        return new Notification(UUID.randomUUID(), recipientId, recipientEmail, null,
                 channel, subject, body, null, null);
     }
 
     public static Notification create(UUID recipientId, String recipientEmail,
                                       NotificationChannel channel, String subject, String body,
                                       String notificationType, String actionUrl) {
-        return new Notification(UUID.randomUUID(), recipientId, recipientEmail,
+        return new Notification(UUID.randomUUID(), recipientId, recipientEmail, null,
+                channel, subject, body, notificationType, actionUrl);
+    }
+
+    public static Notification create(UUID recipientId, String recipientEmail, String recipientPhone,
+                                      NotificationChannel channel, String subject, String body,
+                                      String notificationType, String actionUrl) {
+        return new Notification(UUID.randomUUID(), recipientId, recipientEmail, recipientPhone,
                 channel, subject, body, notificationType, actionUrl);
     }
 
@@ -124,6 +136,7 @@ public class Notification {
     public UUID getId() { return id; }
     public UUID getRecipientId() { return recipientId; }
     public String getRecipientEmail() { return recipientEmail; }
+    public String getRecipientPhone() { return recipientPhone; }
     public NotificationChannel getChannel() { return channel; }
     public String getSubject() { return subject; }
     public String getBody() { return body; }

@@ -57,6 +57,7 @@ public class NotificationService implements SendNotificationUseCase,
         Notification notification = Notification.create(
                 command.recipientId(),
                 command.recipientEmail(),
+                command.recipientPhone(),
                 channel,
                 command.subject(),
                 command.body(),

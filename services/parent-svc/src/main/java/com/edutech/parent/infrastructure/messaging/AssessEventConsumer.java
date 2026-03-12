@@ -20,9 +20,11 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Consumes assess-svc domain events to fan out IN_APP notifications to parents.
- * On GradeIssuedEvent: looks up all active parents for the student and publishes
- * a RESULT_PUBLISHED notification for each parent so they know their child's result.
+ * Consumes assess-svc domain events to fan out notifications to parents.
+ *
+ * <p>On GradeIssuedEvent: looks up all active parents for the student and publishes
+ * both an IN_APP notification (bell icon in portal) and an SMS to the parent's
+ * registered phone number, so they are notified through two channels.</p>
  */
 @Component
 public class AssessEventConsumer {
@@ -61,9 +63,6 @@ public class AssessEventConsumer {
             if (node.has("studentId") && node.has("percentage") && node.has("passed")) {
                 handleGradeIssued(node);
             }
-            // ExamPublishedEvent detection: has title + batchId but no studentId
-            // Parent notification for exam announcements is handled by assess-svc directly to enrolled students.
-            // Parent awareness of new exams can be a future feature once batch-parent mapping is available.
         } catch (Exception ex) {
             log.error("Failed to process assess event: {}", ex.getMessage(), ex);
         }
@@ -75,7 +74,6 @@ public class AssessEventConsumer {
         double pct     = node.get("percentage").asDouble();
         boolean passed = node.get("passed").asBoolean();
 
-        // Look up all active parent links for this student
         List<StudentLink> links = studentLinkRepository.findActiveByStudentId(studentId);
         if (links.isEmpty()) {
             log.debug("No active parent links for studentId={} — skipping parent notification", studentId);
@@ -84,15 +82,15 @@ public class AssessEventConsumer {
 
         String resultStatus = passed ? "Passed ✓" : "Did not pass";
         for (StudentLink link : links) {
-            // link.getParentId() is the parent PROFILE ID (see frozen fix)
+            // link.getParentId() is the parent PROFILE ID (frozen fix — never change)
             parentProfileRepository.findById(link.getParentId()).ifPresent(profile -> {
-                // profile.getUserId() is the JWT user ID needed for notification delivery
-                notifyParent(profile, examId, pct, resultStatus);
+                notifyParentInApp(profile, examId, pct, resultStatus);
+                notifyParentSms(profile, pct, resultStatus);
             });
         }
     }
 
-    private void notifyParent(ParentProfile profile, UUID examId, double pct, String resultStatus) {
+    private void notifyParentInApp(ParentProfile profile, UUID examId, double pct, String resultStatus) {
         String body = "Your child's exam result is ready. "
                 + "Score: " + String.format("%.1f", pct) + "% — " + resultStatus + ". "
                 + "View the full breakdown in Performance on the Parent Dashboard.";
@@ -109,10 +107,41 @@ public class AssessEventConsumer {
         kafkaTemplate.send(topicProperties.notificationSend(), profile.getUserId().toString(), event)
             .whenComplete((result, ex) -> {
                 if (ex != null) {
-                    log.error("Failed to publish parent result notification: parentUserId={} error={}",
+                    log.error("Failed to publish IN_APP parent notification: parentUserId={} error={}",
                             profile.getUserId(), ex.getMessage());
                 } else {
-                    log.debug("Parent result notification published: parentUserId={}", profile.getUserId());
+                    log.debug("IN_APP parent notification published: parentUserId={}", profile.getUserId());
+                }
+            });
+    }
+
+    private void notifyParentSms(ParentProfile profile, double pct, String resultStatus) {
+        String phone = profile.getPhone();
+        if (phone == null || phone.isBlank()) {
+            log.debug("No phone on parent profile id={} — skipping SMS", profile.getId());
+            return;
+        }
+
+        String smsBody = "EduPath Alert: Your child's exam result is ready. "
+                + "Score: " + String.format("%.1f", pct) + "% — " + resultStatus + ". "
+                + "Login to your Parent Dashboard for the full breakdown.";
+
+        NotificationSendEvent event = NotificationSendEvent.sms(
+                profile.getUserId(),
+                phone,
+                "Child's Result Published",
+                smsBody,
+                Map.of("notificationType", "RESULT_PUBLISHED",
+                       "actionUrl",        "/parent")
+        );
+
+        kafkaTemplate.send(topicProperties.notificationSend(), profile.getUserId().toString(), event)
+            .whenComplete((result, ex) -> {
+                if (ex != null) {
+                    log.error("Failed to publish SMS parent notification: parentUserId={} phone={} error={}",
+                            profile.getUserId(), phone, ex.getMessage());
+                } else {
+                    log.debug("SMS parent notification published: parentUserId={} phone={}", profile.getUserId(), phone);
                 }
             });
     }

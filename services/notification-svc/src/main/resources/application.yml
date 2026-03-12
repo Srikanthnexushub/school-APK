@@ -45,6 +45,11 @@ mail:
   from-address: ${MAIL_FROM_ADDRESS}
   from-name: ${MAIL_FROM_NAME}
 
+twilio:
+  account-sid: ${TWILIO_ACCOUNT_SID}
+  auth-token: ${TWILIO_AUTH_TOKEN}
+  from-number: ${TWILIO_FROM_NUMBER:+15005550006}
+
 management:
   endpoints:
     web:
