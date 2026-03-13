@@ -9,7 +9,9 @@ import com.edutech.auth.application.exception.InvalidCredentialsException;
 import com.edutech.auth.application.exception.InvalidTokenException;
 import com.edutech.auth.application.exception.OtpExpiredException;
 import com.edutech.auth.application.exception.OtpMaxAttemptsExceededException;
+import com.edutech.auth.application.exception.OtpMaxResendsExceededException;
 import com.edutech.auth.application.exception.UserNotFoundException;
+import com.edutech.auth.application.service.GoogleOAuthService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -71,6 +73,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(OtpMaxAttemptsExceededException.class)
     public ProblemDetail handleOtpMaxAttempts(OtpMaxAttemptsExceededException ex) {
         return problem(HttpStatus.TOO_MANY_REQUESTS, "otp-max-attempts", ex.getMessage());
+    }
+
+    @ExceptionHandler(OtpMaxResendsExceededException.class)
+    public ProblemDetail handleOtpMaxResends(OtpMaxResendsExceededException ex) {
+        return problem(HttpStatus.TOO_MANY_REQUESTS, "otp-max-resends", ex.getMessage());
+    }
+
+    @ExceptionHandler(GoogleOAuthService.InvalidGoogleTokenException.class)
+    public ProblemDetail handleInvalidGoogleToken(GoogleOAuthService.InvalidGoogleTokenException ex) {
+        return problem(HttpStatus.UNAUTHORIZED, "google-token-invalid", ex.getMessage());
+    }
+
+    @ExceptionHandler(GoogleOAuthService.GoogleOAuthDisabledException.class)
+    public ProblemDetail handleGoogleOAuthDisabled(GoogleOAuthService.GoogleOAuthDisabledException ex) {
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, "google-oauth-disabled", ex.getMessage());
     }
 
     @ExceptionHandler(UserNotFoundException.class)

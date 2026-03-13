@@ -7,9 +7,12 @@ import { motion } from 'framer-motion';
 import { BookOpen, Sparkles, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import CaptchaWidget from '../../components/CaptchaWidget';
+import GoogleSignInButton from '../../components/GoogleSignInButton';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../lib/utils';
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
 
 const schema = z.object({
   email: z.string().email('Invalid email'),
@@ -23,12 +26,39 @@ export default function LoginPage() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const [showPw, setShowPw] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const handleCaptchaVerify = useCallback((token: string | null) => setCaptchaToken(token), []);
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
+
+  async function handleGoogleSuccess(accessToken: string) {
+    setIsGoogleLoading(true);
+    try {
+      const deviceId = crypto.randomUUID();
+      const res = await api.post('/api/v1/auth/google', { idToken: accessToken }, {
+        headers: { 'X-Device-Id': deviceId },
+      });
+      const { accessToken: jwt, refreshToken } = res.data;
+      const meRes = await api.get('/api/v1/auth/me', {
+        headers: { Authorization: `Bearer ${jwt}` },
+      });
+      const u = meRes.data;
+      const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;
+      setAuth(jwt, { id: u.id, email: u.email, role: u.role, name }, refreshToken, deviceId);
+      toast.success('Signed in with Google!');
+      if (u.role === 'CENTER_ADMIN' || u.role === 'SUPER_ADMIN') navigate('/admin');
+      else if (u.role === 'PARENT') navigate('/parent');
+      else if (u.role === 'TEACHER') navigate('/mentor-portal');
+      else navigate('/dashboard');
+    } catch {
+      toast.error('Google Sign-In failed. Please try again.');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  }
 
   async function onSubmit(data: FormData) {
     try {
@@ -125,6 +155,22 @@ export default function LoginPage() {
 
           <h2 className="text-3xl font-bold text-white mb-2">Welcome back</h2>
           <p className="text-white/50 mb-8">Sign in to continue your learning journey.</p>
+
+          {/* Google Sign-In — only mounted when VITE_GOOGLE_CLIENT_ID is configured */}
+          {GOOGLE_CLIENT_ID && (
+            <div className="mb-6">
+              <GoogleSignInButton
+                onSuccess={handleGoogleSuccess}
+                onError={() => toast.error('Google Sign-In was cancelled or failed.')}
+                loading={isGoogleLoading}
+              />
+              <div className="flex items-center gap-3 mt-4 mb-2">
+                <div className="flex-1 h-px bg-white/10" />
+                <span className="text-white/30 text-xs">or sign in with email</span>
+                <div className="flex-1 h-px bg-white/10" />
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div>

@@ -19,8 +19,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import CaptchaWidget from '../../components/CaptchaWidget';
+import GoogleSignInButton from '../../components/GoogleSignInButton';
 import api from '../../lib/api';
+import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../lib/utils';
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
 
 
 const step1Schema = z
@@ -105,6 +109,7 @@ const slideVariants = {
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const setAuth = useAuthStore((s) => s.setAuth);
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
@@ -116,6 +121,7 @@ export default function RegisterPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [centerId, setCenterId] = useState<string | null>(null);
   const [centerName, setCenterName] = useState<string | null>(null);
@@ -126,8 +132,35 @@ export default function RegisterPage() {
   const [isValidatingCode, setIsValidatingCode] = useState(false);
   const [isUnder13, setIsUnder13] = useState(false);
   const [parentEmail, setParentEmail] = useState<string | null>(null);
+  const [resendsRemaining, setResendsRemaining] = useState<number | null>(null);
 
   const handleCaptchaVerify = useCallback((token: string | null) => setCaptchaToken(token), []);
+
+  async function handleGoogleSuccess(accessToken: string) {
+    setIsGoogleLoading(true);
+    try {
+      const deviceId = crypto.randomUUID();
+      const res = await api.post('/api/v1/auth/google', { idToken: accessToken }, {
+        headers: { 'X-Device-Id': deviceId },
+      });
+      const { accessToken: jwt, refreshToken } = res.data;
+      const meRes = await api.get('/api/v1/auth/me', {
+        headers: { Authorization: `Bearer ${jwt}` },
+      });
+      const u = meRes.data;
+      const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;
+      setAuth(jwt, { id: u.id, email: u.email, role: u.role, name }, refreshToken, deviceId);
+      toast.success('Signed in with Google!');
+      if (u.role === 'CENTER_ADMIN' || u.role === 'SUPER_ADMIN') navigate('/admin');
+      else if (u.role === 'PARENT') navigate('/parent');
+      else if (u.role === 'TEACHER') navigate('/mentor-portal');
+      else navigate('/dashboard');
+    } catch {
+      toast.error('Google Sign-In failed. Please try again.');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  }
 
   const {
     register,
@@ -363,7 +396,9 @@ export default function RegisterPage() {
     if (!step1Data) return;
     setIsResending(true);
     try {
-      await api.post('/api/v1/otp/send', { email: step1Data.email, purpose: 'EMAIL_VERIFICATION', channel: 'email' });
+      const res = await api.post('/api/v1/otp/send', { email: step1Data.email, purpose: 'EMAIL_VERIFICATION', channel: 'email' });
+      const remaining = res.data?.resendsRemaining ?? null;
+      setResendsRemaining(remaining);
       toast.success('New code sent! Check your email (or auth-svc console in local dev).');
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { detail?: string } } };
@@ -524,6 +559,22 @@ export default function RegisterPage() {
               >
                 <h2 className="text-2xl font-bold text-white mb-1">Create your account</h2>
                 <p className="text-white/40 mb-6 text-sm">Get started with NexusEd today.</p>
+
+                {GOOGLE_CLIENT_ID && (
+                  <div className="mb-5">
+                    <GoogleSignInButton
+                      onSuccess={handleGoogleSuccess}
+                      onError={() => toast.error('Google Sign-In was cancelled or failed.')}
+                      loading={isGoogleLoading}
+                      label="Continue with Google"
+                    />
+                    <div className="flex items-center gap-3 mt-4 mb-2">
+                      <div className="flex-1 h-px bg-white/10" />
+                      <span className="text-white/30 text-xs">or sign up with email</span>
+                      <div className="flex-1 h-px bg-white/10" />
+                    </div>
+                  </div>
+                )}
 
                 <form onSubmit={handleSubmit(onStep1Submit)} className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
@@ -1023,14 +1074,24 @@ export default function RegisterPage() {
                     <ArrowLeft className="w-3 h-3 inline mr-1" />
                     Go back
                   </button>
-                  <button
-                    type="button"
-                    onClick={onResendOtp}
-                    disabled={isResending}
-                    className="text-xs text-brand-400 hover:text-brand-300 transition-colors disabled:opacity-50"
-                  >
-                    {isResending ? 'Sending…' : 'Resend code'}
-                  </button>
+                  <div className="flex flex-col items-end gap-0.5">
+                    <button
+                      type="button"
+                      onClick={onResendOtp}
+                      disabled={isResending || resendsRemaining === 0}
+                      className="text-xs text-brand-400 hover:text-brand-300 transition-colors disabled:opacity-50"
+                    >
+                      {isResending ? 'Sending…' : 'Resend code'}
+                    </button>
+                    {resendsRemaining !== null && (
+                      <span className={cn(
+                        'text-xs',
+                        resendsRemaining === 0 ? 'text-red-400' : 'text-white/30'
+                      )}>
+                        {resendsRemaining === 0 ? 'Limit reached' : `${resendsRemaining} resend${resendsRemaining === 1 ? '' : 's'} left`}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             )}

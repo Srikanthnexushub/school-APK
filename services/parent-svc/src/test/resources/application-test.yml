@@ -1,0 +1,106 @@
+spring:
+  application:
+    name: parent-svc-test
+
+  # DataSource is injected by @DynamicPropertySource from PostgreSQLContainer
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        default_schema: parent_schema
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    schemas: parent_schema
+    locations: classpath:db/migration/parent
+    baseline-on-migrate: false
+    placeholder-replacement: false
+
+  # Disable Redis auto-configuration — not under test
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ""
+      ssl:
+        enabled: false
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+  # Kafka bootstrap-servers are injected by @DynamicPropertySource from KafkaContainer
+  kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: parent-svc-test-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+
+server:
+  port: 0
+
+kafka:
+  topics:
+    parent-events: parent-events-test
+    center-events: center-events-test
+    audit-immutable: audit-immutable-test
+    assess-events: assess-events-test
+    notification-send: notification-send-test
+
+# JWT — stub values; the JwtTokenValidator is @MockBean in IT so these are unused
+jwt:
+  public-key-path: /dev/null
+  issuer: test-issuer
+
+firebase:
+  project-id: test-project
+  service-account-key-path: /dev/null
+
+ai-gateway:
+  base-url: http://localhost:9999
+
+psych-svc:
+  base-url: http://localhost:9999
+
+service:
+  api-key: test-service-key
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      ai-gateway:
+        sliding-window-size: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 5s
+      auth-svc:
+        sliding-window-size: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 5s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  tracing:
+    sampling:
+      probability: 0.0
+
+otel:
+  exporter:
+    otlp:
+      endpoint: http://localhost:4317
+
+logging:
+  level:
+    root: WARN
+    com.edutech: DEBUG

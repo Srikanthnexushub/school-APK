@@ -2,6 +2,7 @@
 package com.edutech.auth.api;
 
 import com.edutech.auth.application.dto.OtpSendRequest;
+import com.edutech.auth.application.dto.OtpSendResponse;
 import com.edutech.auth.application.dto.OtpVerifyRequest;
 import com.edutech.auth.domain.port.in.VerifyOtpUseCase;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,10 +27,9 @@ public class OtpController {
     }
 
     @PostMapping("/send")
-    @ResponseStatus(HttpStatus.ACCEPTED)
     @Operation(summary = "Send OTP to the specified email or phone")
-    public void send(@Valid @RequestBody OtpSendRequest request) {
-        verifyOtpUseCase.sendOtp(request.email(), request.purpose(), request.channel());
+    public OtpSendResponse send(@Valid @RequestBody OtpSendRequest request) {
+        return verifyOtpUseCase.sendOtp(request.email(), request.purpose(), request.channel());
     }
 
     @PostMapping("/verify")

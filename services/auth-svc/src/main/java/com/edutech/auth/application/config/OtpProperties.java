@@ -7,5 +7,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record OtpProperties(
     int expirySeconds,
     int maxAttempts,
-    int length
+    int length,
+    int maxResends
 ) {}

@@ -14,4 +14,5 @@ public interface UserRepository {
     Optional<User> findById(UUID id);
     boolean existsByEmail(String email);
     List<User> findExpiredPendingVerification(Instant cutoff);
+    Optional<User> findByProviderAndProviderId(String provider, String providerId);
 }

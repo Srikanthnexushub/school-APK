@@ -1,9 +1,11 @@
 // src/main/java/com/edutech/auth/application/service/OtpService.java
 package com.edutech.auth.application.service;
 
+import com.edutech.auth.application.dto.OtpSendResponse;
 import com.edutech.auth.application.dto.OtpVerifyRequest;
 import com.edutech.auth.application.exception.OtpExpiredException;
 import com.edutech.auth.application.exception.OtpMaxAttemptsExceededException;
+import com.edutech.auth.application.exception.OtpMaxResendsExceededException;
 import com.edutech.auth.application.exception.UserNotFoundException;
 import com.edutech.auth.domain.event.OtpRequestedEvent;
 import com.edutech.auth.domain.model.User;
@@ -45,10 +47,17 @@ public class OtpService implements VerifyOtpUseCase {
     }
 
     @Override
-    public void sendOtp(String email, String purpose, String channel) {
-        String otp = generateOtp(otpProperties.length());
+    public OtpSendResponse sendOtp(String email, String purpose, String channel) {
         String key = buildKey(email, purpose);
 
+        int totalSends = otpStore.getResends(key);
+        if (totalSends > otpProperties.maxResends()) {
+            throw new OtpMaxResendsExceededException();
+        }
+
+        otpStore.incrementResends(key, 3600);
+
+        String otp = generateOtp(otpProperties.length());
         otpStore.save(key, otp, otpProperties.expirySeconds());
 
         int expiryMinutes = otpProperties.expirySeconds() / 60;
@@ -60,6 +69,11 @@ public class OtpService implements VerifyOtpUseCase {
 
         auditEventPublisher.publish(new OtpRequestedEvent(email, purpose, channel));
         log.debug("OTP sent: email={} purpose={} channel={}", email, purpose, channel);
+
+        return new OtpSendResponse(
+            Math.max(0, otpProperties.maxResends() - totalSends),
+            otpProperties.maxResends()
+        );
     }
 
     @Override

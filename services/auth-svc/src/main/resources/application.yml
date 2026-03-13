@@ -91,17 +91,25 @@ otp:
   expiry-seconds: ${OTP_EXPIRY_SECONDS}
   max-attempts: ${OTP_MAX_ATTEMPTS}
   length: ${OTP_LENGTH}
+  max-resends: ${OTP_MAX_RESENDS:3}
 
 # hCaptcha Enterprise
 captcha:
   verify-url: ${HCAPTCHA_VERIFY_URL}
   site-key: ${HCAPTCHA_SITE_KEY}
   secret-key: ${HCAPTCHA_SECRET_KEY}
+  # E2E test bypass — leave empty in all non-test environments
+  e2e-bypass-token: ${CAPTCHA_E2E_BYPASS_TOKEN:}
 
 # Mail sender identity
 mail:
   from-address: ${MAIL_FROM_ADDRESS}
   from-name: ${MAIL_FROM_NAME}
+
+# Google OAuth2 — for Google Sign-In (ID token exchange)
+# Set GOOGLE_OAUTH2_CLIENT_ID in .env; leave empty to disable Google Sign-In
+google:
+  client-id: ${GOOGLE_OAUTH2_CLIENT_ID:}
 
 # Twilio
 twilio:

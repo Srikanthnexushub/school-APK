@@ -1,0 +1,92 @@
+spring:
+  application:
+    name: center-svc-test
+
+  # Datasource — overridden by @DynamicPropertySource in IT classes
+  datasource:
+    url: jdbc:postgresql://localhost:5432/test
+    username: test
+    password: test
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      connection-timeout: 10000
+      idle-timeout: 30000
+
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: center_schema
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    schemas: center_schema
+    locations: classpath:db/migration/center
+    baseline-on-migrate: false
+    placeholder-replacement: false
+
+  # Disable Redis auto-configuration for tests
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+  # Kafka — bootstrap points to a non-existent address; listeners don't start in tests
+  kafka:
+    bootstrap-servers: localhost:9999
+    consumer:
+      group-id: center-svc-test-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+    listener:
+      auto-startup: false
+
+# JWT — JwtTokenValidator is mocked in IT tests
+jwt:
+  public-key-path: classpath:test-public-key.pem
+  issuer: test-issuer
+
+# AI gateway — disabled in tests
+ai-gateway:
+  base-url: http://localhost:9999
+
+# Kafka topics — non-null placeholders
+kafka:
+  topics:
+    center-events: center-events-test
+    audit-immutable: audit-test
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      ai-gateway:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  tracing:
+    sampling:
+      probability: 0.0
+
+otel:
+  exporter:
+    otlp:
+      endpoint: http://localhost:4317
+
+logging:
+  level:
+    root: WARN
+    com.edutech: DEBUG
+    org.flywaydb: DEBUG
+
+springdoc:
+  api-docs:
+    path: /api-docs

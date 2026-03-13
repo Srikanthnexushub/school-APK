@@ -26,4 +26,8 @@ interface SpringDataUserRepository extends JpaRepository<User, UUID> {
 
     @Query("SELECT u FROM User u WHERE u.status = com.edutech.auth.domain.model.UserStatus.PENDING_VERIFICATION AND u.createdAt < :cutoff AND u.deletedAt IS NULL")
     List<User> findExpiredPendingVerification(@Param("cutoff") Instant cutoff);
+
+    @Query("SELECT u FROM User u WHERE u.provider = :provider AND u.providerId = :providerId AND u.deletedAt IS NULL")
+    Optional<User> findByProviderAndProviderId(@Param("provider") String provider,
+                                               @Param("providerId") String providerId);
 }

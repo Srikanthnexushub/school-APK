@@ -37,7 +37,7 @@ public class User {
     @Column(updatable = false, nullable = false)
     private String email;
 
-    @Column(name = "password_hash", nullable = false)
+    @Column(name = "password_hash")
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
@@ -75,6 +75,15 @@ public class User {
     @Column(name = "parent_email")
     private String parentEmail;
 
+    @Column(name = "provider", length = 30)
+    private String provider;
+
+    @Column(name = "provider_id", length = 255)
+    private String providerId;
+
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified;
+
     // Required by JPA — not for application use
     protected User() {}
 
@@ -91,13 +100,15 @@ public class User {
         this.lastName = lastName;
         this.phoneNumber = phoneNumber;
         this.parentEmail = parentEmail;
+        this.emailVerified = false;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }
 
     // -------------------------------------------------------------------------
-    // Factory method — only way to create a new User
+    // Factory methods — only way to create a new User
     // -------------------------------------------------------------------------
+
     public static User create(String email, String passwordHash, Role role,
                               UUID centerId, String firstName,
                               String lastName, String phoneNumber) {
@@ -118,6 +129,23 @@ public class User {
         );
     }
 
+    /**
+     * Factory for OAuth2 sign-in (Google, etc.).
+     * These users are immediately ACTIVE (email already verified by OAuth provider).
+     */
+    public static User createFromOAuth(String email, String firstName, String lastName,
+                                       String provider, String providerId,
+                                       Role role, UUID centerId) {
+        User u = new User(
+            UUID.randomUUID(), email, null, role,
+            UserStatus.ACTIVE, centerId, firstName, lastName, null, null
+        );
+        u.provider = provider;
+        u.providerId = providerId;
+        u.emailVerified = true;
+        return u;
+    }
+
     // -------------------------------------------------------------------------
     // Domain methods — state transitions with precondition guards
     // -------------------------------------------------------------------------
@@ -128,6 +156,7 @@ public class User {
                 "Cannot activate user in status: " + this.status);
         }
         this.status = UserStatus.ACTIVE;
+        this.emailVerified = true;
         this.updatedAt = Instant.now();
     }
 
@@ -153,6 +182,14 @@ public class User {
 
     public void updatePassword(String newPasswordHash) {
         this.passwordHash = newPasswordHash;
+        this.updatedAt = Instant.now();
+    }
+
+    /** Links an OAuth provider to an existing email/password account. */
+    public void linkOAuthProvider(String provider, String providerId) {
+        this.provider = provider;
+        this.providerId = providerId;
+        this.emailVerified = true;
         this.updatedAt = Instant.now();
     }
 
@@ -190,4 +227,7 @@ public class User {
     public Instant getDeletedAt() { return deletedAt; }
     public Long getVersion() { return version; }
     public String getParentEmail() { return parentEmail; }
+    public String getProvider() { return provider; }
+    public String getProviderId() { return providerId; }
+    public boolean isEmailVerified() { return emailVerified; }
 }

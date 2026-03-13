@@ -2,6 +2,7 @@
 package com.edutech.auth.api;
 
 import com.edutech.auth.application.dto.AuthPrincipal;
+import com.edutech.auth.application.dto.GoogleAuthRequest;
 import com.edutech.auth.application.dto.LoginRequest;
 import com.edutech.auth.application.dto.RefreshTokenRequest;
 import com.edutech.auth.application.dto.RegisterRequest;
@@ -9,6 +10,7 @@ import com.edutech.auth.application.dto.TokenPair;
 import com.edutech.auth.application.dto.UpdateNameRequest;
 import com.edutech.auth.application.dto.UserResponse;
 import com.edutech.auth.api.mapper.AuthMapper;
+import com.edutech.auth.application.service.GoogleOAuthService;
 import com.edutech.auth.domain.model.User;
 import com.edutech.auth.domain.port.in.AuthenticateUserUseCase;
 import com.edutech.auth.domain.port.in.LogoutUseCase;
@@ -45,6 +47,7 @@ public class AuthController {
     private final UserRepository userRepository;
     private final AuthMapper authMapper;
     private final TrustedProxyValidator trustedProxyValidator;
+    private final GoogleOAuthService googleOAuthService;
 
     public AuthController(RegisterUserUseCase registerUserUseCase,
                           AuthenticateUserUseCase authenticateUserUseCase,
@@ -52,7 +55,8 @@ public class AuthController {
                           LogoutUseCase logoutUseCase,
                           UserRepository userRepository,
                           AuthMapper authMapper,
-                          TrustedProxyValidator trustedProxyValidator) {
+                          TrustedProxyValidator trustedProxyValidator,
+                          GoogleOAuthService googleOAuthService) {
         this.registerUserUseCase = registerUserUseCase;
         this.authenticateUserUseCase = authenticateUserUseCase;
         this.refreshTokenUseCase = refreshTokenUseCase;
@@ -60,6 +64,7 @@ public class AuthController {
         this.userRepository = userRepository;
         this.authMapper = authMapper;
         this.trustedProxyValidator = trustedProxyValidator;
+        this.googleOAuthService = googleOAuthService;
     }
 
     @PostMapping("/register")
@@ -139,6 +144,17 @@ public class AuthController {
             .map(authMapper::toUserResponse)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/google")
+    @Operation(summary = "Sign in or register via Google ID token (Google One Tap / OAuth2)")
+    public TokenPair googleSignIn(@Valid @RequestBody GoogleAuthRequest request,
+                                  HttpServletRequest servletRequest) {
+        return googleOAuthService.authenticate(
+            request,
+            servletRequest.getHeader("User-Agent"),
+            servletRequest.getHeader("X-Device-Id")
+        );
     }
 
     private String getClientIp(HttpServletRequest request) {

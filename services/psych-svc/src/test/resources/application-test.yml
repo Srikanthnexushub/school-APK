@@ -1,0 +1,101 @@
+spring:
+  application:
+    name: psych-svc-test
+
+  # DataSource is injected by @DynamicPropertySource from PostgreSQLContainer
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        default_schema: psych_schema
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    schemas: psych_schema
+    locations: classpath:db/migration/psych
+    baseline-on-migrate: false
+    placeholder-replacement: false
+
+  # Disable Redis auto-configuration — not under test
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ""
+      ssl:
+        enabled: false
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+  # Kafka bootstrap-servers are injected by @DynamicPropertySource from KafkaContainer
+  kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: psych-svc-test-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+
+server:
+  port: 0
+
+kafka:
+  topics:
+    psych-events: psych-events-test
+    assess-events: assess-events-test
+    audit-immutable: audit-immutable-test
+
+# JWT — stub values; the JwtTokenValidator is @MockBean so these are unused at test time
+jwt:
+  public-key-path: /dev/null
+  issuer: test-issuer
+
+service:
+  api-key: test-service-key
+
+psych-ai-svc:
+  base-url: http://localhost:9999
+  connect-timeout-seconds: 5
+  read-timeout-seconds: 10
+
+pgvector:
+  embedding-dimensions: 1536
+
+ai-gateway:
+  base-url: http://localhost:9999
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      psych-ai-svc:
+        sliding-window-size: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 5s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  tracing:
+    sampling:
+      probability: 0.0
+
+otel:
+  exporter:
+    otlp:
+      endpoint: http://localhost:4317
+
+logging:
+  level:
+    root: WARN
+    com.edutech: DEBUG

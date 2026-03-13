@@ -9,4 +9,6 @@ public interface OtpStore {
     void incrementAttempts(String key);
     int getAttempts(String key);
     void delete(String key);
+    int getResends(String key);
+    void incrementResends(String key, int ttlSeconds);
 }

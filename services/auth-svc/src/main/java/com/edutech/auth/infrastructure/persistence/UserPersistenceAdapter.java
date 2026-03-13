@@ -47,4 +47,9 @@ public class UserPersistenceAdapter implements UserRepository {
     public List<User> findExpiredPendingVerification(Instant cutoff) {
         return jpaRepository.findExpiredPendingVerification(cutoff);
     }
+
+    @Override
+    public Optional<User> findByProviderAndProviderId(String provider, String providerId) {
+        return jpaRepository.findByProviderAndProviderId(provider, providerId);
+    }
 }
