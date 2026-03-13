@@ -327,7 +327,7 @@ export default function RegisterPage() {
   }
 
   function onStep5Continue() {
-    if (selectedSubjects.length === 0) {
+    if (availableSubjects.length > 0 && selectedSubjects.length === 0) {
       toast.error('Please select at least one subject');
       return;
     }
