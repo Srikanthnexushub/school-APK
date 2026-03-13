@@ -23,5 +23,6 @@ public record RegisterRequest(
     @NotBlank @Size(max = 100) String lastName,
     @Size(max = 20) String phoneNumber,
     @NotBlank String captchaToken,
-    @NotNull @Valid DeviceFingerprint deviceFingerprint
+    @NotNull @Valid DeviceFingerprint deviceFingerprint,
+    String parentEmail
 ) {}

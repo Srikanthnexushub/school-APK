@@ -63,7 +63,8 @@ public class UserRegistrationService implements RegisterUserUseCase {
             request.centerId(),
             request.firstName(),
             request.lastName(),
-            request.phoneNumber()
+            request.phoneNumber(),
+            request.parentEmail()
         );
 
         User savedUser = userRepository.save(user);
@@ -76,6 +77,18 @@ public class UserRegistrationService implements RegisterUserUseCase {
 
         // Send verification OTP asynchronously via notification topic
         otpService.sendOtp(savedUser.getEmail(), "EMAIL_VERIFICATION", "email");
+
+        // Send parental consent request if student is under 13
+        if (request.parentEmail() != null && !request.parentEmail().isBlank()) {
+            try {
+                otpService.sendOtp(request.parentEmail(), "PARENTAL_CONSENT", "email");
+                log.info("Parental consent requested: userId={} parentEmail={}",
+                         savedUser.getId(), request.parentEmail());
+            } catch (Exception e) {
+                log.warn("Parental consent email failed (non-fatal): userId={} parentEmail={} error={}",
+                         savedUser.getId(), request.parentEmail(), e.getMessage());
+            }
+        }
 
         log.info("User registered: id={} email={} role={}", savedUser.getId(),
                  savedUser.getEmail(), savedUser.getRole());

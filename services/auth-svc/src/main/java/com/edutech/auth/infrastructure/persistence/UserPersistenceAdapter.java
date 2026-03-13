@@ -5,6 +5,8 @@ import com.edutech.auth.domain.model.User;
 import com.edutech.auth.domain.port.out.UserRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,5 +41,10 @@ public class UserPersistenceAdapter implements UserRepository {
     @Override
     public boolean existsByEmail(String email) {
         return jpaRepository.existsByEmail(email);
+    }
+
+    @Override
+    public List<User> findExpiredPendingVerification(Instant cutoff) {
+        return jpaRepository.findExpiredPendingVerification(cutoff);
     }
 }

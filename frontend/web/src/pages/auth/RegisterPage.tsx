@@ -53,6 +53,21 @@ const step3Schema = z.object({
 
 type Step3Data = z.infer<typeof step3Schema>;
 
+const consentSchema = z.object({
+  parentEmail: z.string().email('Enter a valid parent/guardian email'),
+});
+
+type ConsentData = z.infer<typeof consentSchema>;
+
+function calculateAge(dob: string): number {
+  const today = new Date();
+  const birth = new Date(dob);
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
+}
+
 type Role = 'STUDENT' | 'PARENT' | 'TEACHER';
 
 const roleCards: { role: Role; label: string; description: string; Icon: React.ElementType }[] = [
@@ -109,6 +124,8 @@ export default function RegisterPage() {
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
+  const [isUnder13, setIsUnder13] = useState(false);
+  const [parentEmail, setParentEmail] = useState<string | null>(null);
 
   const handleCaptchaVerify = useCallback((token: string | null) => setCaptchaToken(token), []);
 
@@ -126,6 +143,12 @@ export default function RegisterPage() {
     formState: { errors: errors3 },
   } = useForm<Step3Data>({ resolver: zodResolver(step3Schema), defaultValues: { grade: 10 } });
 
+  const {
+    register: registerConsent,
+    handleSubmit: handleSubmitConsent,
+    formState: { errors: errorsConsent },
+  } = useForm<ConsentData>({ resolver: zodResolver(consentSchema) });
+
   const watchedPassword = watch('password', '');
 
   const pwChecks = {
@@ -137,7 +160,15 @@ export default function RegisterPage() {
 
   const steps =
     selectedRole === 'STUDENT'
-      ? ['Personal Details', 'Your Role', 'Academic Info', 'Create Account', 'Subjects', 'Verify Email']
+      ? [
+          'Personal Details',
+          'Your Role',
+          'Academic Info',
+          ...(isUnder13 ? ['Parental Consent'] : []),
+          'Create Account',
+          'Subjects',
+          'Verify Email',
+        ]
       : ['Personal Details', 'Your Role', 'Verify Email'];
 
   function goNext() {
@@ -209,6 +240,8 @@ export default function RegisterPage() {
       const resp = await api.get(`/api/v1/centers/lookup?code=${data.institutionCode}`);
       setCenterId(resp.data.id);
       setCenterName(resp.data.name);
+      const age = calculateAge(data.dateOfBirth);
+      setIsUnder13(age < 13);
       setStep3Data(data);
       goNext();
     } catch (err: unknown) {
@@ -221,6 +254,11 @@ export default function RegisterPage() {
     } finally {
       setIsValidatingCode(false);
     }
+  }
+
+  function onConsentSubmit(data: ConsentData) {
+    setParentEmail(data.parentEmail);
+    goNext();
   }
 
   async function onStep4Continue() {
@@ -240,6 +278,7 @@ export default function RegisterPage() {
           deviceId: crypto.randomUUID(),
           ipSubnet: '127.0.0',
         },
+        parentEmail: parentEmail ?? undefined,
       });
       setRegToken(response.data.accessToken);
       toast.success('Account created! Fetching your subjects…');
@@ -380,8 +419,12 @@ export default function RegisterPage() {
     }
   }
 
-  // For STUDENT, OTP is step 6; for others, step 3.
-  const otpStep = selectedRole === 'STUDENT' ? 6 : 3;
+  // Dynamic step indices for STUDENT flow (shift by 1 when under-13 consent step is inserted)
+  const consentStep   = isUnder13 ? 4 : null;
+  const createStep    = isUnder13 ? 5 : 4;
+  const subjectsStep  = isUnder13 ? 6 : 5;
+  // For STUDENT, OTP is step 7 (under-13) or step 6 (over-13); for others, step 3.
+  const otpStep = selectedRole === 'STUDENT' ? (isUnder13 ? 7 : 6) : 3;
 
   return (
     <div className="min-h-screen bg-surface flex items-center justify-center p-6">
@@ -754,8 +797,50 @@ export default function RegisterPage() {
               </motion.div>
             )}
 
-            {/* ── Step 4: Captcha + Create Account (STUDENT only) ── */}
-            {step === 4 && selectedRole === 'STUDENT' && (
+            {/* ── Step 3.5: Parental Consent (STUDENT under-13 only) ── */}
+            {step === consentStep && selectedRole === 'STUDENT' && isUnder13 && (
+              <motion.div
+                key="step-consent"
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+              >
+                <h2 className="text-2xl font-bold text-white mb-1">Parental Consent Required</h2>
+                <p className="text-white/40 mb-6 text-sm">
+                  You appear to be under 13. A consent request will be sent to your parent or guardian.
+                </p>
+
+                <form onSubmit={handleSubmitConsent(onConsentSubmit)} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-1.5">Parent / Guardian Email</label>
+                    <input
+                      {...registerConsent('parentEmail')}
+                      type="email"
+                      placeholder="parent@example.com"
+                      className={cn('input w-full', errorsConsent.parentEmail && 'border-red-500/50')}
+                    />
+                    {errorsConsent.parentEmail && (
+                      <p className="text-red-400 text-xs mt-1">{errorsConsent.parentEmail.message}</p>
+                    )}
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button type="button" onClick={goBack} className="btn-ghost flex items-center gap-2 py-3 px-4">
+                      <ArrowLeft className="w-4 h-4" /> Back
+                    </button>
+                    <button type="submit" className="btn-primary flex-1 flex items-center justify-center gap-2 py-3">
+                      Continue <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            )}
+
+            {/* ── Step 4 / 5: Captcha + Create Account (STUDENT only) ── */}
+            {step === createStep && selectedRole === 'STUDENT' && (
               <motion.div
                 key="step4-register"
                 custom={direction}
@@ -794,8 +879,8 @@ export default function RegisterPage() {
               </motion.div>
             )}
 
-            {/* ── Step 5: Subject Selection (STUDENT only) ── */}
-            {step === 5 && selectedRole === 'STUDENT' && (
+            {/* ── Step 5 / 6: Subject Selection (STUDENT only) ── */}
+            {step === subjectsStep && selectedRole === 'STUDENT' && (
               <motion.div
                 key="step5-subjects"
                 custom={direction}

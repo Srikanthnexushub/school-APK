@@ -163,3 +163,9 @@ springdoc:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+# Unverified account cleanup scheduler
+auth:
+  cleanup:
+    cron: "0 0 * * * *"          # every hour
+    retention-hours: 72

@@ -72,12 +72,15 @@ public class User {
     @Version
     private Long version;
 
+    @Column(name = "parent_email")
+    private String parentEmail;
+
     // Required by JPA — not for application use
     protected User() {}
 
     private User(UUID id, String email, String passwordHash, Role role,
                  UserStatus status, UUID centerId, String firstName,
-                 String lastName, String phoneNumber) {
+                 String lastName, String phoneNumber, String parentEmail) {
         this.id = id;
         this.email = email;
         this.passwordHash = passwordHash;
@@ -87,6 +90,7 @@ public class User {
         this.firstName = firstName;
         this.lastName = lastName;
         this.phoneNumber = phoneNumber;
+        this.parentEmail = parentEmail;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }
@@ -100,7 +104,17 @@ public class User {
         return new User(
             UUID.randomUUID(), email, passwordHash, role,
             UserStatus.PENDING_VERIFICATION, centerId,
-            firstName, lastName, phoneNumber
+            firstName, lastName, phoneNumber, null
+        );
+    }
+
+    public static User create(String email, String passwordHash, Role role,
+                              UUID centerId, String firstName,
+                              String lastName, String phoneNumber, String parentEmail) {
+        return new User(
+            UUID.randomUUID(), email, passwordHash, role,
+            UserStatus.PENDING_VERIFICATION, centerId,
+            firstName, lastName, phoneNumber, parentEmail
         );
     }
 
@@ -175,4 +189,5 @@ public class User {
     public Instant getUpdatedAt() { return updatedAt; }
     public Instant getDeletedAt() { return deletedAt; }
     public Long getVersion() { return version; }
+    public String getParentEmail() { return parentEmail; }
 }
