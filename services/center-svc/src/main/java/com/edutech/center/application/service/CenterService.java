@@ -2,6 +2,7 @@
 package com.edutech.center.application.service;
 
 import com.edutech.center.application.dto.AuthPrincipal;
+import com.edutech.center.application.dto.CenterLookupResponse;
 import com.edutech.center.application.dto.CenterResponse;
 import com.edutech.center.application.dto.CreateCenterRequest;
 import com.edutech.center.application.dto.UpdateCenterRequest;
@@ -26,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -130,6 +132,12 @@ public class CenterService implements CreateCenterUseCase, UpdateCenterUseCase {
             throw new CenterAccessDeniedException();
         }
         return toResponse(center);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<CenterLookupResponse> lookupByCode(String code) {
+        return centerRepository.findByCode(code)
+            .map(c -> new CenterLookupResponse(c.getId(), c.getName(), c.getCity()));
     }
 
     private CenterResponse toResponse(CoachingCenter c) {

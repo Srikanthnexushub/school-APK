@@ -13,4 +13,5 @@ public interface CenterRepository {
     List<CoachingCenter> findAll();
     List<CoachingCenter> findByOwnerId(UUID ownerId);
     boolean existsByCode(String code);
+    Optional<CoachingCenter> findByCode(String code);
 }

@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public record CreateStudentProfileRequest(
@@ -23,5 +24,6 @@ public record CreateStudentProfileRequest(
         String state,
         String pincode,
         Board board,
-        @Min(10) @Max(13) Integer currentClass
+        @Min(10) @Max(13) Integer currentClass,
+        List<String> subjects
 ) {}

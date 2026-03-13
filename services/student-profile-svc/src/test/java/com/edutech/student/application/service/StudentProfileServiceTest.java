@@ -71,7 +71,8 @@ class StudentProfileServiceTest {
                 "Delhi",
                 "110001",
                 Board.CBSE,
-                11
+                11,
+                null
         );
     }
 

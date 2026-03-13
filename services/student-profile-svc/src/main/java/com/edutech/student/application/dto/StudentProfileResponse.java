@@ -7,6 +7,7 @@ import com.edutech.student.domain.model.Stream;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public record StudentProfileResponse(
@@ -25,5 +26,6 @@ public record StudentProfileResponse(
         Stream stream,
         Integer targetYear,
         ProfileStatus status,
-        Instant createdAt
+        Instant createdAt,
+        List<String> subjects
 ) {}

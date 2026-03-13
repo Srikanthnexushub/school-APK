@@ -10,8 +10,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -66,6 +71,10 @@ public class StudentProfile {
 
     @Column(name = "target_year")
     private Integer targetYear;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "subjects", columnDefinition = "JSONB")
+    private List<String> subjects = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -233,5 +242,13 @@ public class StudentProfile {
 
     public Instant getDeletedAt() {
         return deletedAt;
+    }
+
+    public List<String> getSubjects() {
+        return subjects;
+    }
+
+    public void setSubjects(List<String> subjects) {
+        this.subjects = subjects != null ? subjects : new ArrayList<>();
     }
 }

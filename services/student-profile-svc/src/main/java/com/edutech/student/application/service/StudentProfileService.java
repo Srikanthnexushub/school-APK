@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -57,6 +58,8 @@ public class StudentProfileService implements CreateStudentProfileUseCase,
                 request.board(),
                 request.currentClass()
         );
+
+        profile.setSubjects(request.subjects() != null ? request.subjects() : List.of());
 
         StudentProfile saved = profileRepository.save(profile);
         log.info("Student profile created: id={} userId={}", saved.getId(), saved.getUserId());
@@ -129,7 +132,8 @@ public class StudentProfileService implements CreateStudentProfileUseCase,
                 p.getStream(),
                 p.getTargetYear(),
                 p.getStatus(),
-                p.getCreatedAt()
+                p.getCreatedAt(),
+                p.getSubjects()
         );
     }
 }

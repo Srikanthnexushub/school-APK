@@ -2,6 +2,7 @@
 package com.edutech.center.api;
 
 import com.edutech.center.application.dto.AuthPrincipal;
+import com.edutech.center.application.dto.CenterLookupResponse;
 import com.edutech.center.application.dto.CenterResponse;
 import com.edutech.center.application.dto.CreateCenterRequest;
 import com.edutech.center.application.dto.UpdateCenterRequest;
@@ -15,6 +16,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -44,6 +46,14 @@ public class CenterController {
         this.createCenterUseCase = createCenterUseCase;
         this.updateCenterUseCase = updateCenterUseCase;
         this.centerService = centerService;
+    }
+
+    @GetMapping("/lookup")
+    @Operation(summary = "Look up a center by institution code — public, no auth required")
+    public ResponseEntity<CenterLookupResponse> lookupByCode(@RequestParam String code) {
+        return centerService.lookupByCode(code)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping

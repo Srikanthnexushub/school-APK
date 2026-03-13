@@ -49,7 +49,8 @@ public class SecurityConfig {
                     "/actuator/info",
                     "/api-docs/**",
                     "/swagger-ui/**",
-                    "/swagger-ui.html").permitAll()
+                    "/swagger-ui.html",
+                    "/api/v1/centers/lookup").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)

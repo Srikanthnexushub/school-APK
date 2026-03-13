@@ -23,4 +23,5 @@ public class CenterPersistenceAdapter implements CenterRepository {
     @Override public List<CoachingCenter> findAll() { return jpa.findAllActive(); }
     @Override public List<CoachingCenter> findByOwnerId(UUID ownerId) { return jpa.findByOwnerIdActive(ownerId); }
     @Override public boolean existsByCode(String code) { return jpa.existsByCode(code); }
+    @Override public Optional<CoachingCenter> findByCode(String code) { return jpa.findByCodeActive(code); }
 }
