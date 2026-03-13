@@ -115,6 +115,20 @@ public class StudentProfileService implements CreateStudentProfileUseCase,
         return toResponse(saved);
     }
 
+    @Transactional(readOnly = true)
+    public StudentProfileResponse getByLinkCode(String code) {
+        return profileRepository.findByParentLinkCode(code)
+                .map(this::toResponse)
+                .orElseThrow(() -> new StudentNotFoundException(null));
+    }
+
+    public StudentProfileResponse regenerateLinkCode(UUID userId) {
+        StudentProfile profile = profileRepository.findByUserId(userId)
+                .orElseThrow(() -> new StudentNotFoundException(userId));
+        profile.regenerateLinkCode();
+        return toResponse(profileRepository.save(profile));
+    }
+
     private StudentProfileResponse toResponse(StudentProfile p) {
         return new StudentProfileResponse(
                 p.getId(),
@@ -133,7 +147,8 @@ public class StudentProfileService implements CreateStudentProfileUseCase,
                 p.getTargetYear(),
                 p.getStatus(),
                 p.getCreatedAt(),
-                p.getSubjects()
+                p.getSubjects(),
+                p.getParentLinkCode()
         );
     }
 }

@@ -39,6 +39,8 @@ const step1Schema = z
       .regex(/[0-9]/, 'At least 1 digit')
       .regex(/[^A-Za-z0-9]/, 'At least 1 special character'),
     confirmPassword: z.string(),
+    phone: z.string().max(20).optional().or(z.literal('')),
+    occupation: z.string().max(100).optional().or(z.literal('')),
   })
   .refine((d) => d.password === d.confirmPassword, {
     message: 'Passwords do not match',
@@ -126,6 +128,8 @@ export default function RegisterPage() {
   const [centerId, setCenterId] = useState<string | null>(null);
   const [centerName, setCenterName] = useState<string | null>(null);
   const [regToken, setRegToken] = useState<string | null>(null);
+  const [regRefreshToken, setRegRefreshToken] = useState<string | null>(null);
+  const [regDeviceId, setRegDeviceId] = useState<string | null>(null);
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
@@ -133,6 +137,17 @@ export default function RegisterPage() {
   const [isUnder13, setIsUnder13] = useState(false);
   const [parentEmail, setParentEmail] = useState<string | null>(null);
   const [resendsRemaining, setResendsRemaining] = useState<number | null>(null);
+  // Parent-specific fields (collected in Step 2)
+  const [parentPhone, setParentPhone] = useState('');
+  const [parentOccupation, setParentOccupation] = useState('');
+  // Parent child-linking step state
+  const [parentProfileId, setParentProfileId] = useState<string | null>(null);
+  const [childLinkCode, setChildLinkCode] = useState('');
+  const [childRelationship, setChildRelationship] = useState('MOTHER');
+  const [foundChild, setFoundChild] = useState<{ id: string; firstName: string; lastName: string; currentClass?: number; board?: string; city?: string } | null>(null);
+  const [childLookupError, setChildLookupError] = useState('');
+  const [isLookingUpChild, setIsLookingUpChild] = useState(false);
+  const [isLinkingChild, setIsLinkingChild] = useState(false);
 
   const handleCaptchaVerify = useCallback((token: string | null) => setCaptchaToken(token), []);
 
@@ -224,6 +239,8 @@ export default function RegisterPage() {
           'Subjects',
           'Verify Email',
         ]
+      : selectedRole === 'PARENT'
+      ? ['Personal Details', 'Your Role', 'Verify Email', 'Link Child']
       : ['Personal Details', 'Your Role', 'Verify Email'];
 
   function goNext() {
@@ -254,6 +271,8 @@ export default function RegisterPage() {
     if (!step1Data) return;
     setIsRegistering(true);
     try {
+      const deviceId = crypto.randomUUID();
+      setRegDeviceId(deviceId);
       const response = await api.post('/api/v1/auth/register', {
         firstName: step1Data.firstName,
         lastName: step1Data.lastName,
@@ -263,11 +282,12 @@ export default function RegisterPage() {
         captchaToken: captchaToken!,
         deviceFingerprint: {
           userAgent: navigator.userAgent,
-          deviceId: crypto.randomUUID(),
+          deviceId,
           ipSubnet: '127.0.0',
         },
       });
       setRegToken(response.data.accessToken);
+      setRegRefreshToken(response.data.refreshToken ?? null);
       toast.success('Account created! Check your email for OTP.');
       goNext();
     } catch (err: unknown) {
@@ -451,6 +471,30 @@ export default function RegisterPage() {
         }
       }
 
+      if (selectedRole === 'PARENT' && step1Data && regToken) {
+        try {
+          const meRes = await axios.get('/api/v1/auth/me', { headers: { Authorization: `Bearer ${regToken}` } });
+          const u = meRes.data;
+          const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;
+          setAuth(regToken, { id: u.id, email: u.email, role: u.role, name }, regRefreshToken, regDeviceId ?? crypto.randomUUID());
+
+          const profileRes = await axios.post('/api/v1/parents', {
+            name,
+            phone: parentPhone || undefined,
+            email: step1Data.email,
+            occupation: parentOccupation || undefined,
+          }, { headers: { Authorization: `Bearer ${regToken}` } });
+          setParentProfileId(profileRes.data.id);
+          toast.success('Account verified! Optionally link your child below.');
+          goNext();
+        } catch (parentErr) {
+          console.error('Parent profile setup failed:', parentErr);
+          toast.success('Email verified!');
+          navigate('/parent');
+        }
+        return;
+      }
+
       toast.success('Email verified! You can now sign in.');
       navigate('/login');
     } catch (err: unknown) {
@@ -485,6 +529,49 @@ export default function RegisterPage() {
   const subjectsStep  = isUnder13 ? 6 : 5;
   // For STUDENT, OTP is step 7 (under-13) or step 6 (over-13); for others, step 3.
   const otpStep = selectedRole === 'STUDENT' ? (isUnder13 ? 7 : 6) : 3;
+  // PARENT child link step = 4
+  const parentLinkStep = 4;
+
+  async function handleChildLookup() {
+    const trimmed = childLinkCode.trim();
+    if (trimmed.length !== 6) return;
+    setChildLookupError('');
+    setFoundChild(null);
+    setIsLookingUpChild(true);
+    try {
+      const res = await axios.get(`/api/v1/students/link-code/${encodeURIComponent(trimmed)}`, {
+        headers: { Authorization: `Bearer ${regToken}` },
+      });
+      setFoundChild(res.data);
+    } catch {
+      setChildLookupError('Invalid verification code. Please ask your child or school for the correct code.');
+    } finally {
+      setIsLookingUpChild(false);
+    }
+  }
+
+  async function handleLinkChildAndFinish() {
+    if (!foundChild || !parentProfileId || !regToken) { navigate('/parent'); return; }
+    setIsLinkingChild(true);
+    try {
+      const res = await axios.get('/api/v1/centers?size=1', { headers: { Authorization: `Bearer ${regToken}` } });
+      const centers = Array.isArray(res.data) ? res.data : (res.data.content ?? []);
+      const cId = centers[0]?.id;
+      await axios.post(`/api/v1/parents/${parentProfileId}/students`, {
+        studentId: foundChild.id,
+        studentName: `${foundChild.firstName} ${foundChild.lastName}`,
+        centerId: cId ?? '00000000-0000-0000-0000-000000000000',
+        relationship: childRelationship,
+      }, { headers: { Authorization: `Bearer ${regToken}` } });
+      toast.success(`${foundChild.firstName} linked to your account!`);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } } };
+      toast.error(err?.response?.data?.detail ?? 'Could not link child — you can try again from your dashboard.');
+    } finally {
+      setIsLinkingChild(false);
+      navigate('/parent');
+    }
+  }
 
   return (
     <div className="min-h-screen bg-surface flex items-center justify-center p-6">
@@ -737,6 +824,33 @@ export default function RegisterPage() {
                     </button>
                   ))}
                 </div>
+
+                {selectedRole === 'PARENT' && (
+                  <div className="space-y-3 mb-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-white/70 mb-1.5">Phone Number</label>
+                        <input
+                          type="tel"
+                          value={parentPhone}
+                          onChange={(e) => setParentPhone(e.target.value)}
+                          placeholder="+91 87654 32100"
+                          className="input w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-white/70 mb-1.5">Occupation</label>
+                        <input
+                          type="text"
+                          value={parentOccupation}
+                          onChange={(e) => setParentOccupation(e.target.value)}
+                          placeholder="e.g. Marketing Manager"
+                          className="input w-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {selectedRole !== 'STUDENT' && (
                   <div className="flex justify-center mb-4">
@@ -1091,6 +1205,105 @@ export default function RegisterPage() {
                         {resendsRemaining === 0 ? 'Limit reached' : `${resendsRemaining} resend${resendsRemaining === 1 ? '' : 's'} left`}
                       </span>
                     )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Step 4: PARENT — Link Child ── */}
+            {step === parentLinkStep && selectedRole === 'PARENT' && (
+              <motion.div
+                key="step4-link-child"
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+              >
+                <h2 className="text-2xl font-bold text-white mb-1">Link Your Child</h2>
+                <p className="text-white/40 mb-6 text-sm">
+                  Enter the 6-digit code shown on your child's Student Profile page. You can also skip this and link later from your dashboard.
+                </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-1.5">Child's Verification Code</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={childLinkCode}
+                        onChange={(e) => { setChildLinkCode(e.target.value.replace(/\D/g, '')); setFoundChild(null); setChildLookupError(''); }}
+                        onKeyDown={(e) => e.key === 'Enter' && handleChildLookup()}
+                        placeholder="739251"
+                        className="flex-1 input tracking-widest text-center font-mono text-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleChildLookup}
+                        disabled={isLookingUpChild || childLinkCode.length !== 6}
+                        className="btn-primary px-4 py-2.5 text-sm disabled:opacity-50"
+                      >
+                        {isLookingUpChild ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Find'}
+                      </button>
+                    </div>
+                    {childLookupError && <p className="text-xs text-red-400 mt-2">{childLookupError}</p>}
+                  </div>
+
+                  {foundChild && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4 space-y-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-brand-400 font-bold text-sm">
+                            {foundChild.firstName?.[0]}{foundChild.lastName?.[0]}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="font-semibold text-white">{foundChild.firstName} {foundChild.lastName}</div>
+                          <div className="text-xs text-white/40">
+                            {[foundChild.currentClass && `Class ${foundChild.currentClass}`, foundChild.board, foundChild.city].filter(Boolean).join(' · ')}
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1.5 block">Your relationship</label>
+                        <select
+                          value={childRelationship}
+                          onChange={(e) => setChildRelationship(e.target.value)}
+                          className="w-full input"
+                        >
+                          <option value="MOTHER">Mother</option>
+                          <option value="FATHER">Father</option>
+                          <option value="GUARDIAN">Guardian</option>
+                          <option value="GRANDPARENT">Grandparent</option>
+                          <option value="OTHER">Other</option>
+                        </select>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => navigate('/parent')}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-colors"
+                    >
+                      Skip for now
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleLinkChildAndFinish}
+                      disabled={!foundChild || isLinkingChild}
+                      className="flex-1 btn-primary py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isLinkingChild ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                      {isLinkingChild ? 'Linking…' : 'Link & Go to Dashboard'}
+                    </button>
                   </div>
                 </div>
               </motion.div>

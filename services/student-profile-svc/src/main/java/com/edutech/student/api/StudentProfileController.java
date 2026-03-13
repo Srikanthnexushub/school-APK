@@ -4,6 +4,7 @@ import com.edutech.student.application.dto.CreateStudentProfileRequest;
 import com.edutech.student.application.dto.StudentDashboardResponse;
 import com.edutech.student.application.dto.StudentProfileResponse;
 import com.edutech.student.application.dto.UpdateStudentProfileRequest;
+import com.edutech.student.application.service.StudentProfileService;
 import com.edutech.student.domain.port.in.CreateStudentProfileUseCase;
 import com.edutech.student.domain.port.in.GetStudentDashboardUseCase;
 import com.edutech.student.domain.port.in.GetStudentProfileUseCase;
@@ -30,15 +31,18 @@ public class StudentProfileController {
     private final GetStudentProfileUseCase getStudentProfileUseCase;
     private final UpdateStudentProfileUseCase updateStudentProfileUseCase;
     private final GetStudentDashboardUseCase getStudentDashboardUseCase;
+    private final StudentProfileService studentProfileService;
 
     public StudentProfileController(CreateStudentProfileUseCase createStudentProfileUseCase,
                                      GetStudentProfileUseCase getStudentProfileUseCase,
                                      UpdateStudentProfileUseCase updateStudentProfileUseCase,
-                                     GetStudentDashboardUseCase getStudentDashboardUseCase) {
+                                     GetStudentDashboardUseCase getStudentDashboardUseCase,
+                                     StudentProfileService studentProfileService) {
         this.createStudentProfileUseCase = createStudentProfileUseCase;
         this.getStudentProfileUseCase = getStudentProfileUseCase;
         this.updateStudentProfileUseCase = updateStudentProfileUseCase;
         this.getStudentDashboardUseCase = getStudentDashboardUseCase;
+        this.studentProfileService = studentProfileService;
     }
 
     @PostMapping
@@ -77,5 +81,18 @@ public class StudentProfileController {
     @GetMapping("/{id}/dashboard")
     public ResponseEntity<StudentDashboardResponse> getDashboard(@PathVariable UUID id) {
         return ResponseEntity.ok(getStudentDashboardUseCase.getDashboard(id));
+    }
+
+    /** Authenticated endpoint — any logged-in user (e.g. a PARENT) can look up a student by their 6-digit link code. */
+    @GetMapping("/link-code/{code}")
+    public ResponseEntity<StudentProfileResponse> getByLinkCode(@PathVariable String code) {
+        return ResponseEntity.ok(studentProfileService.getByLinkCode(code));
+    }
+
+    /** Student regenerates their own link code. */
+    @PostMapping("/me/link-code/regenerate")
+    public ResponseEntity<StudentProfileResponse> regenerateLinkCode(
+            @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(studentProfileService.regenerateLinkCode(userId));
     }
 }

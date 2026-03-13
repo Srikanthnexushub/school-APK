@@ -13,4 +13,6 @@ interface SpringDataStudentProfileRepository extends JpaRepository<StudentProfil
     Optional<StudentProfile> findByUserIdAndDeletedAtIsNull(UUID userId);
 
     Optional<StudentProfile> findByEmailAndDeletedAtIsNull(String email);
+
+    Optional<StudentProfile> findByParentLinkCodeAndDeletedAtIsNull(String code);
 }

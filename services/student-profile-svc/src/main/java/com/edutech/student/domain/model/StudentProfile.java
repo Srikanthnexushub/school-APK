@@ -80,6 +80,9 @@ public class StudentProfile {
     @Column(nullable = false)
     private ProfileStatus status;
 
+    @Column(name = "parent_link_code", unique = true)
+    private String parentLinkCode;
+
     @Version
     private Long version;
 
@@ -120,9 +123,20 @@ public class StudentProfile {
         profile.currentBoard = board;
         profile.currentClass = currentClass;
         profile.status = ProfileStatus.ACTIVE;
+        profile.parentLinkCode = generateCode();
         profile.createdAt = Instant.now();
         profile.updatedAt = profile.createdAt;
         return profile;
+    }
+
+    public void regenerateLinkCode() {
+        this.parentLinkCode = generateCode();
+        this.updatedAt = Instant.now();
+    }
+
+    private static String generateCode() {
+        int code = (int) (Math.random() * 1_000_000);
+        return String.format("%06d", code);
     }
 
     public void updateName(String firstName, String lastName) {
@@ -250,5 +264,9 @@ public class StudentProfile {
 
     public void setSubjects(List<String> subjects) {
         this.subjects = subjects != null ? subjects : new ArrayList<>();
+    }
+
+    public String getParentLinkCode() {
+        return parentLinkCode;
     }
 }

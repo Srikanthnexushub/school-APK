@@ -17,6 +17,7 @@ public record ParentProfileResponse(
         String state,
         String pincode,
         String relationshipType,
+        String occupation,
         boolean verified,
         ParentStatus status,
         Instant createdAt

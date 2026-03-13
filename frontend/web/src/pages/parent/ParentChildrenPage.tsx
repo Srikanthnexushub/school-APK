@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Plus, Trash2, Edit2, Save, X, ChevronDown, ChevronUp,
-  Loader2, School, Calendar, BookOpen, Hash, Search,
+  Loader2, School, Calendar, BookOpen, Hash, Key,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Avatar } from '../../components/ui/Avatar';
@@ -27,6 +27,7 @@ interface StudentLinkResponse {
   studentName: string;
   centerId: string;
   status: string;
+  relationship?: string;
   dateOfBirth?: string;
   schoolName?: string;
   standard?: string;
@@ -35,13 +36,16 @@ interface StudentLinkResponse {
   createdAt: string;
 }
 
-interface UserLookupResponse {
+interface StudentLookupByCodeResponse {
   id: string;
-  email: string;
   firstName: string;
   lastName: string;
-  role: string;
-  centerId: string | null;
+  email: string;
+  city?: string;
+  state?: string;
+  board?: string;
+  currentClass?: number;
+  parentLinkCode?: string;
 }
 
 interface CenterOption { id: string; name: string; }
@@ -71,6 +75,15 @@ const statusColors: Record<string, string> = {
   PENDING: 'bg-amber-500/15 text-amber-400',
 };
 
+const RELATIONSHIP_OPTIONS = [
+  { value: 'MOTHER', label: 'Mother' },
+  { value: 'FATHER', label: 'Father' },
+  { value: 'GUARDIAN', label: 'Guardian' },
+  { value: 'GRANDPARENT', label: 'Grandparent' },
+  { value: 'SIBLING', label: 'Sibling' },
+  { value: 'OTHER', label: 'Other' },
+];
+
 // ─── Link Child Modal ─────────────────────────────────────────────────────────
 
 function LinkChildModal({
@@ -82,11 +95,12 @@ function LinkChildModal({
   onClose: () => void;
   onLinked: () => void;
 }) {
-  const [email, setEmail] = useState('');
-  const [foundUser, setFoundUser] = useState<UserLookupResponse | null>(null);
+  const [code, setCode] = useState('');
+  const [foundStudent, setFoundStudent] = useState<StudentLookupByCodeResponse | null>(null);
   const [lookupError, setLookupError] = useState('');
   const [looking, setLooking] = useState(false);
   const [linking, setLinking] = useState(false);
+  const [relationship, setRelationship] = useState('MOTHER');
 
   const { data: centers = [] } = useQuery<CenterOption[]>({
     queryKey: ['all-centers-parent'],
@@ -94,45 +108,42 @@ function LinkChildModal({
   });
 
   async function handleLookup() {
-    if (!email.trim()) return;
+    const trimmed = code.trim();
+    if (!trimmed) return;
     setLookupError('');
-    setFoundUser(null);
+    setFoundStudent(null);
     setLooking(true);
     try {
-      const res = await api.get(`/api/v1/auth/users/lookup?email=${encodeURIComponent(email.trim())}`);
-      const u: UserLookupResponse = res.data;
-      if (u.role !== 'STUDENT') {
-        setLookupError('Email does not belong to a student account.');
-      } else {
-        setFoundUser(u);
-      }
+      const res = await api.get(`/api/v1/students/link-code/${encodeURIComponent(trimmed)}`);
+      setFoundStudent(res.data as StudentLookupByCodeResponse);
     } catch {
-      setLookupError('Student not found. Check the email and try again.');
+      setLookupError('Invalid verification code. Please ask your child or school for the correct code.');
     } finally {
       setLooking(false);
     }
   }
 
   async function handleLink() {
-    if (!foundUser) return;
-    const centerId = foundUser.centerId ?? (centers[0]?.id ?? null);
+    if (!foundStudent) return;
+    const centerId = centers[0]?.id ?? null;
     if (!centerId) {
-      toast.error('No center found for this student.');
+      toast.error('No center found. Please contact support.');
       return;
     }
     setLinking(true);
     try {
       await api.post(`/api/v1/parents/${profileId}/students`, {
-        studentId: foundUser.id,
-        studentName: `${foundUser.firstName} ${foundUser.lastName}`,
+        studentId: foundStudent.id,
+        studentName: `${foundStudent.firstName} ${foundStudent.lastName}`,
         centerId,
+        relationship,
       });
-      toast.success(`${foundUser.firstName} linked to your account!`);
+      toast.success(`${foundStudent.firstName} linked to your account!`);
       onLinked();
       onClose();
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } }; message?: string };
-      toast.error(err?.response?.data?.message ?? err?.message ?? 'Failed to link student.');
+      const err = e as { response?: { data?: { detail?: string; message?: string } }; message?: string };
+      toast.error(err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? 'Failed to link student.');
     } finally {
       setLinking(false);
     }
@@ -154,49 +165,67 @@ function LinkChildModal({
         </div>
 
         <p className="text-sm text-white/50 mb-5">
-          Enter your child's registered email address to link their account.
+          Enter the 6-digit verification code shown on your child's Student Profile page.
         </p>
 
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2 block">Student Email</label>
+            <label className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2 block">
+              <Key className="w-3.5 h-3.5 inline mr-1" />
+              Child's Verification Code
+            </label>
             <div className="flex gap-2">
               <input
-                type="email"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); setFoundUser(null); setLookupError(''); }}
+                type="text"
+                value={code}
+                maxLength={6}
+                onChange={(e) => { setCode(e.target.value.replace(/\D/g, '')); setFoundStudent(null); setLookupError(''); }}
                 onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
-                placeholder="student@example.com"
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-brand-500/50"
+                placeholder="e.g. 739251"
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-brand-500/50 tracking-widest text-center font-mono text-lg"
               />
               <button
                 onClick={handleLookup}
-                disabled={looking || !email.trim()}
+                disabled={looking || code.length !== 6}
                 className="btn-primary px-4 py-2.5 text-sm flex items-center gap-1.5 disabled:opacity-50"
               >
-                {looking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                Find
+                {looking ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Find'}
               </button>
             </div>
             {lookupError && <p className="text-xs text-red-400 mt-2">{lookupError}</p>}
           </div>
 
-          {foundUser && (
+          {foundStudent && (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4"
+              className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4 space-y-3"
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
                   <span className="text-brand-400 font-bold text-sm">
-                    {foundUser.firstName?.[0]}{foundUser.lastName?.[0]}
+                    {foundStudent.firstName?.[0]}{foundStudent.lastName?.[0]}
                   </span>
                 </div>
                 <div>
-                  <div className="font-semibold text-white">{foundUser.firstName} {foundUser.lastName}</div>
-                  <div className="text-xs text-white/40">{foundUser.email}</div>
+                  <div className="font-semibold text-white">{foundStudent.firstName} {foundStudent.lastName}</div>
+                  <div className="text-xs text-white/40">
+                    {[foundStudent.currentClass && `Class ${foundStudent.currentClass}`, foundStudent.board, foundStudent.city].filter(Boolean).join(' · ')}
+                  </div>
                 </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1.5 block">Your relationship</label>
+                <select
+                  value={relationship}
+                  onChange={(e) => setRelationship(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500/50"
+                >
+                  {RELATIONSHIP_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
               </div>
             </motion.div>
           )}
@@ -207,7 +236,7 @@ function LinkChildModal({
             </button>
             <button
               onClick={handleLink}
-              disabled={!foundUser || linking}
+              disabled={!foundStudent || linking}
               className="flex-1 btn-primary py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {linking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -284,7 +313,7 @@ function ChildCard({
             </span>
           </div>
           <p className="text-xs text-white/40 mt-0.5">
-            Center: {link.centerId ? `${link.centerId.slice(0, 8)}…` : '—'} · Linked {formatDate(link.createdAt)}
+            {link.relationship ?? 'Parent'} · Linked {formatDate(link.createdAt)}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">

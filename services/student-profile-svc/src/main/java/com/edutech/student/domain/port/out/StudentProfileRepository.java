@@ -13,4 +13,6 @@ public interface StudentProfileRepository {
     Optional<StudentProfile> findByUserId(UUID userId);
 
     Optional<StudentProfile> findByEmail(String email);
+
+    Optional<StudentProfile> findByParentLinkCode(String code);
 }

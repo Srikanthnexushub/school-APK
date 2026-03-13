@@ -27,5 +27,6 @@ public record StudentProfileResponse(
         Integer targetYear,
         ProfileStatus status,
         Instant createdAt,
-        List<String> subjects
+        List<String> subjects,
+        String parentLinkCode
 ) {}

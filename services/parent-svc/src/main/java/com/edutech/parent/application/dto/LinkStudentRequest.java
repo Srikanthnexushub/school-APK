@@ -11,6 +11,7 @@ public record LinkStudentRequest(
         @NotNull UUID studentId,
         @NotBlank String studentName,
         @NotNull UUID centerId,
+        String relationship,
         LocalDate dateOfBirth,
         String schoolName,
         String standard,

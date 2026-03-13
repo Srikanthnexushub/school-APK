@@ -12,5 +12,6 @@ public record CreateParentProfileRequest(
         String city,
         String state,
         String pincode,
-        String relationshipType
+        String relationshipType,
+        String occupation
 ) {}

@@ -39,6 +39,9 @@ public class StudentLink {
     @Column(nullable = false)
     private LinkStatus status;
 
+    @Column
+    private String relationship;
+
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
@@ -65,12 +68,13 @@ public class StudentLink {
 
     private StudentLink() {}
 
-    public static StudentLink create(UUID parentId, UUID studentId, String studentName, UUID centerId) {
+    public static StudentLink create(UUID parentId, UUID studentId, String studentName, UUID centerId, String relationship) {
         StudentLink link = new StudentLink();
         link.parentId = parentId;
         link.studentId = studentId;
         link.studentName = studentName;
         link.centerId = centerId;
+        link.relationship = (relationship != null && !relationship.isBlank()) ? relationship : "PARENT";
         link.status = LinkStatus.ACTIVE;
         link.createdAt = Instant.now();
         link.updatedAt = link.createdAt;
@@ -127,6 +131,10 @@ public class StudentLink {
 
     public LinkStatus getStatus() {
         return status;
+    }
+
+    public String getRelationship() {
+        return relationship;
     }
 
     public LocalDate getDateOfBirth() {

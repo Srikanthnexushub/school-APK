@@ -49,6 +49,9 @@ public class ParentProfile {
     @Column(name = "relationship_type")
     private String relationshipType;
 
+    @Column
+    private String occupation;
+
     @Column(nullable = false)
     private boolean verified;
 
@@ -72,7 +75,8 @@ public class ParentProfile {
 
     public static ParentProfile create(UUID userId, String name, String phone,
                                        String email, String address, String city,
-                                       String state, String pincode, String relationshipType) {
+                                       String state, String pincode, String relationshipType,
+                                       String occupation) {
         ParentProfile profile = new ParentProfile();
         profile.userId = userId;
         profile.name = name;
@@ -83,6 +87,7 @@ public class ParentProfile {
         profile.state = state;
         profile.pincode = pincode;
         profile.relationshipType = (relationshipType != null) ? relationshipType : "PARENT";
+        profile.occupation = occupation;
         profile.verified = false;
         profile.status = ParentStatus.ACTIVE;
         profile.createdAt = Instant.now();
@@ -91,7 +96,8 @@ public class ParentProfile {
     }
 
     public void update(String name, String phone, String email, String address,
-                       String city, String state, String pincode, String relationshipType) {
+                       String city, String state, String pincode, String relationshipType,
+                       String occupation) {
         if (name != null) {
             this.name = name;
         }
@@ -115,6 +121,9 @@ public class ParentProfile {
         }
         if (relationshipType != null) {
             this.relationshipType = relationshipType;
+        }
+        if (occupation != null) {
+            this.occupation = occupation;
         }
         this.updatedAt = Instant.now();
     }
@@ -178,6 +187,10 @@ public class ParentProfile {
 
     public String getRelationshipType() {
         return relationshipType;
+    }
+
+    public String getOccupation() {
+        return occupation;
     }
 
     public boolean isVerified() {

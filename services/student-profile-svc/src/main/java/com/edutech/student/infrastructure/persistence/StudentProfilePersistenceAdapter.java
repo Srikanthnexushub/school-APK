@@ -35,4 +35,9 @@ public class StudentProfilePersistenceAdapter implements StudentProfileRepositor
     public Optional<StudentProfile> findByEmail(String email) {
         return repository.findByEmailAndDeletedAtIsNull(email);
     }
+
+    @Override
+    public Optional<StudentProfile> findByParentLinkCode(String code) {
+        return repository.findByParentLinkCodeAndDeletedAtIsNull(code);
+    }
 }

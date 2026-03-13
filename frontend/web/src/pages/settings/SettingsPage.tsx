@@ -7,6 +7,7 @@ import { z } from 'zod';
 import {
   User, Bell, Palette, Shield, Camera, Check, AlertTriangle,
   Smartphone, Monitor, Eye, EyeOff, GraduationCap, Calendar, MapPin, BookOpen,
+  Key, RefreshCw, Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
@@ -78,6 +79,7 @@ interface StudentProfile {
   targetYear?: number;
   status: string;
   createdAt: string;
+  parentLinkCode?: string;
 }
 
 const profileSchema = z.object({
@@ -134,6 +136,22 @@ function ProfileTab() {
     queryFn: () => api.get('/api/v1/students/me').then((r) => r.data),
     enabled: !!user,
   });
+
+  const [regenerating, setRegenerating] = useState(false);
+
+  async function handleRegenerateCode() {
+    setRegenerating(true);
+    try {
+      await api.post('/api/v1/students/me/link-code/regenerate');
+      toast.success('New code generated!');
+      // refetch profile to show new code
+      window.location.reload();
+    } catch {
+      toast.error('Failed to regenerate code.');
+    } finally {
+      setRegenerating(false);
+    }
+  }
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -240,6 +258,51 @@ function ProfileTab() {
             <InfoBadge label="City" value={profile.city} icon={MapPin} />
             <InfoBadge label="State" value={profile.state} icon={MapPin} />
           </div>
+        </div>
+      )}
+
+      {/* Parent Link Code */}
+      {profile && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-3">
+            <Key className="w-4 h-4 text-brand-400" />
+            <h3 className="text-base font-semibold text-white">Parent Link Code</h3>
+          </div>
+          <p className="text-white/50 text-sm mb-4">
+            Share this 6-digit code with your parent or guardian so they can link to your account and monitor your progress.
+          </p>
+          <div className="flex items-center gap-4">
+            <div className="flex-1 bg-surface-200 border border-brand-500/30 rounded-xl px-5 py-4 text-center">
+              <span className="font-mono text-3xl font-bold text-brand-400 tracking-[0.3em]">
+                {profile.parentLinkCode ?? '——'}
+              </span>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  if (profile.parentLinkCode) {
+                    navigator.clipboard.writeText(profile.parentLinkCode);
+                    toast.success('Code copied!');
+                  }
+                }}
+                className="p-2.5 rounded-xl border border-white/10 text-white/40 hover:text-white hover:border-white/20 transition-colors"
+                title="Copy code"
+              >
+                <Copy className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleRegenerateCode}
+                disabled={regenerating}
+                className="p-2.5 rounded-xl border border-white/10 text-white/40 hover:text-white hover:border-white/20 transition-colors disabled:opacity-50"
+                title="Regenerate code"
+              >
+                <RefreshCw className={`w-4 h-4 ${regenerating ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+          </div>
+          <p className="text-xs text-white/30 mt-3">
+            Regenerating creates a new code — your parent will need to use the new code to re-link.
+          </p>
         </div>
       )}
 

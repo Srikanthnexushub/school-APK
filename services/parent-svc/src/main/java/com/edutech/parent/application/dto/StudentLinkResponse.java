@@ -14,6 +14,7 @@ public record StudentLinkResponse(
         String studentName,
         UUID centerId,
         LinkStatus status,
+        String relationship,
         LocalDate dateOfBirth,
         String schoolName,
         String standard,

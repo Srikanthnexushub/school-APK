@@ -7,6 +7,8 @@ import com.edutech.parent.application.exception.FeePaymentNotFoundException;
 import com.edutech.parent.application.exception.ParentAccessDeniedException;
 import com.edutech.parent.application.exception.ParentProfileNotFoundException;
 import com.edutech.parent.application.exception.StudentLinkNotFoundException;
+import com.edutech.parent.application.exception.TooManyChildrenException;
+import com.edutech.parent.application.exception.TooManyParentsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.validation.FieldError;
@@ -67,6 +69,22 @@ public class GlobalExceptionHandler {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
         pd.setType(URI.create(BASE_URI + "conversation-not-found"));
         pd.setTitle("Copilot Conversation Not Found");
+        return pd;
+    }
+
+    @ExceptionHandler(TooManyChildrenException.class)
+    public ProblemDetail handleTooManyChildren(TooManyChildrenException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+        pd.setType(URI.create(BASE_URI + "too-many-children"));
+        pd.setTitle("Child Limit Reached");
+        return pd;
+    }
+
+    @ExceptionHandler(TooManyParentsException.class)
+    public ProblemDetail handleTooManyParents(TooManyParentsException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+        pd.setType(URI.create(BASE_URI + "too-many-parents"));
+        pd.setTitle("Parent Limit Reached");
         return pd;
     }
 

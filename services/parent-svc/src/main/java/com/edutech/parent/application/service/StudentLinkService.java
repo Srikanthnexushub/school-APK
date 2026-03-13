@@ -9,6 +9,8 @@ import com.edutech.parent.application.exception.DuplicateStudentLinkException;
 import com.edutech.parent.application.exception.ParentAccessDeniedException;
 import com.edutech.parent.application.exception.ParentProfileNotFoundException;
 import com.edutech.parent.application.exception.StudentLinkNotFoundException;
+import com.edutech.parent.application.exception.TooManyChildrenException;
+import com.edutech.parent.application.exception.TooManyParentsException;
 import com.edutech.parent.domain.event.LinkRevokedEvent;
 import com.edutech.parent.domain.event.StudentLinkedEvent;
 import com.edutech.parent.domain.model.LinkStatus;
@@ -57,7 +59,17 @@ public class StudentLinkService implements LinkStudentUseCase, RevokeStudentLink
                         throw new DuplicateStudentLinkException(request.studentId());
                     }
                 });
-        StudentLink link = StudentLink.create(parentProfileId, request.studentId(), request.studentName(), request.centerId());
+        // Enforce max 5 children per parent
+        long activeChildCount = linkRepository.findActiveByParentId(parentProfileId).size();
+        if (activeChildCount >= 5) {
+            throw new TooManyChildrenException();
+        }
+        // Enforce max 2 parents per student
+        long activeParentCount = linkRepository.findActiveByStudentId(request.studentId()).size();
+        if (activeParentCount >= 2) {
+            throw new TooManyParentsException();
+        }
+        StudentLink link = StudentLink.create(parentProfileId, request.studentId(), request.studentName(), request.centerId(), request.relationship());
         if (request.dateOfBirth() != null || request.schoolName() != null || request.standard() != null
                 || request.board() != null || request.rollNumber() != null) {
             link.updateChildDetails(request.dateOfBirth(), request.schoolName(), request.standard(),
@@ -140,6 +152,7 @@ public class StudentLinkService implements LinkStudentUseCase, RevokeStudentLink
                 l.getStudentName(),
                 l.getCenterId(),
                 l.getStatus(),
+                l.getRelationship(),
                 l.getDateOfBirth(),
                 l.getSchoolName(),
                 l.getStandard(),
