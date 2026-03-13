@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -150,6 +150,28 @@ export default function RegisterPage() {
   } = useForm<ConsentData>({ resolver: zodResolver(consentSchema) });
 
   const watchedPassword = watch('password', '');
+  const watchedInstitutionCode = watch3('institutionCode', '');
+
+  // Live debounce lookup for institution code
+  useEffect(() => {
+    const code = watchedInstitutionCode?.trim();
+    if (!code || code.length < 3) {
+      setCenterName(null);
+      setCenterId(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const resp = await api.get(`/api/v1/centers/lookup?code=${encodeURIComponent(code)}`);
+        setCenterId(resp.data.id);
+        setCenterName(resp.data.name);
+      } catch {
+        setCenterName(null);
+        setCenterId(null);
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [watchedInstitutionCode]);
 
   const pwChecks = {
     length: watchedPassword.length >= 8,
@@ -237,9 +259,12 @@ export default function RegisterPage() {
   async function onStep3Submit(data: Step3Data) {
     setIsValidatingCode(true);
     try {
-      const resp = await api.get(`/api/v1/centers/lookup?code=${data.institutionCode}`);
-      setCenterId(resp.data.id);
-      setCenterName(resp.data.name);
+      // Re-validate only if live lookup hasn't already resolved the code
+      if (!centerName || !centerId) {
+        const resp = await api.get(`/api/v1/centers/lookup?code=${encodeURIComponent(data.institutionCode)}`);
+        setCenterId(resp.data.id);
+        setCenterName(resp.data.name);
+      }
       const age = calculateAge(data.dateOfBirth);
       setIsUnder13(age < 13);
       setStep3Data(data);
