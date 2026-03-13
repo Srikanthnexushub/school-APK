@@ -6,6 +6,8 @@ import com.edutech.center.application.exception.CenterAccessDeniedException;
 import com.edutech.center.application.exception.CenterException;
 import com.edutech.center.application.exception.CenterNotFoundException;
 import com.edutech.center.application.exception.DuplicateCenterCodeException;
+import com.edutech.center.application.exception.InstitutionAlreadyRegisteredException;
+import com.edutech.center.application.exception.RegistrationNotFoundException;
 import com.edutech.center.application.exception.ScheduleConflictException;
 import com.edutech.center.application.exception.TeacherAlreadyAssignedException;
 import com.edutech.center.application.exception.TeacherNotFoundException;
@@ -71,6 +73,16 @@ public class GlobalExceptionHandler {
             .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
             .reduce("", (a, b) -> a.isEmpty() ? b : a + "; " + b));
         return pd;
+    }
+
+    @ExceptionHandler(InstitutionAlreadyRegisteredException.class)
+    public ProblemDetail handleAlreadyRegistered(InstitutionAlreadyRegisteredException ex) {
+        return problem(HttpStatus.CONFLICT, "institution-already-registered", ex.getMessage());
+    }
+
+    @ExceptionHandler(RegistrationNotFoundException.class)
+    public ProblemDetail handleRegistrationNotFound(RegistrationNotFoundException ex) {
+        return problem(HttpStatus.NOT_FOUND, "registration-not-found", ex.getMessage());
     }
 
     @ExceptionHandler(CenterException.class)

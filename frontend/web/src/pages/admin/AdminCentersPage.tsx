@@ -15,7 +15,7 @@ import api from '../../lib/api';
 interface CenterResponse {
   id: string;
   name: string;
-  code: string;
+  code: string | null;
   address?: string;
   city?: string;
   state?: string;
@@ -24,7 +24,7 @@ interface CenterResponse {
   email?: string;
   website?: string;
   logoUrl?: string;
-  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'PENDING_VERIFICATION' | 'REJECTED';
   ownerId: string;
   createdAt: string;
   updatedAt: string;
@@ -52,15 +52,19 @@ const EMPTY_FORM: CenterFormState = {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const STATUS_STYLES: Record<string, string> = {
-  ACTIVE:    'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
-  INACTIVE:  'bg-white/8 text-white/40 border-white/10',
-  SUSPENDED: 'bg-red-500/15 text-red-400 border-red-500/20',
+  ACTIVE:               'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
+  INACTIVE:             'bg-white/8 text-white/40 border-white/10',
+  SUSPENDED:            'bg-red-500/15 text-red-400 border-red-500/20',
+  PENDING_VERIFICATION: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
+  REJECTED:             'bg-red-500/15 text-red-400 border-red-500/20',
 };
 
 const STATUS_ICON: Record<string, React.ElementType> = {
-  ACTIVE:    CheckCircle2,
-  INACTIVE:  Clock,
-  SUSPENDED: AlertCircle,
+  ACTIVE:               CheckCircle2,
+  INACTIVE:             Clock,
+  SUSPENDED:            AlertCircle,
+  PENDING_VERIFICATION: Clock,
+  REJECTED:             AlertCircle,
 };
 
 function formatDate(iso: string) {
@@ -302,7 +306,7 @@ export default function AdminCentersPage() {
   });
 
   const editFormInitial = editCenter ? {
-    name: editCenter.name, code: editCenter.code,
+    name: editCenter.name, code: editCenter.code ?? '',
     address: editCenter.address ?? '', city: editCenter.city ?? '',
     state: editCenter.state ?? '', pincode: editCenter.pincode ?? '',
     phone: editCenter.phone ?? '', email: editCenter.email ?? '',
@@ -330,12 +334,13 @@ export default function AdminCentersPage() {
 
       {/* Stats bar */}
       {!isLoading && (
-        <div className="flex gap-4">
-          {(['ACTIVE', 'INACTIVE', 'SUSPENDED'] as const).map(s => {
+        <div className="flex flex-wrap gap-2">
+          {(['ACTIVE', 'SUSPENDED', 'PENDING_VERIFICATION', 'REJECTED'] as const).map(s => {
             const count = centers.filter(c => c.status === s).length;
+            if (count === 0) return null;
             return (
               <div key={s} className={cn('flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium', STATUS_STYLES[s])}>
-                {s} <span className="opacity-60">({count})</span>
+                {s.replace(/_/g, ' ')} <span className="opacity-60">({count})</span>
               </div>
             );
           })}

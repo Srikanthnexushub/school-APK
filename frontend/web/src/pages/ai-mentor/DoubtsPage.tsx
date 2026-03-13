@@ -125,7 +125,7 @@ function DoubtCard({ doubt }: { doubt: DoubtTicket }) {
                     <p className="text-xs text-white/30 mt-2 flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                       Resolved on {new Date(doubt.resolvedAt).toLocaleDateString()}
-                      {doubt.resolutionTimeMinutes > 0 && ` · ${doubt.resolutionTimeMinutes} min response time`}
+                      {(doubt.resolutionTimeMinutes ?? 0) > 0 && ` · ${doubt.resolutionTimeMinutes} min response time`}
                     </p>
                   )}
                 </div>

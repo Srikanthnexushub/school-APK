@@ -247,6 +247,16 @@ export default function LoginPage() {
             </Link>
           </p>
 
+          <p className="mt-3 text-center text-white/25 text-sm">
+            Registering an institution?{' '}
+            <Link
+              to="/register-institution"
+              className="text-brand-400/70 hover:text-brand-400 font-medium transition-colors"
+            >
+              Apply here
+            </Link>
+          </p>
+
           <p className="mt-10 text-center text-white/15 text-xs">
             © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
           </p>

@@ -493,7 +493,7 @@ export default function RegisterPage() {
           const meRes = await axios.get('/api/v1/auth/me', { headers: { Authorization: `Bearer ${regToken}` } });
           const u = meRes.data;
           const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;
-          setAuth(regToken, { id: u.id, email: u.email, role: u.role, name }, regRefreshToken, regDeviceId ?? crypto.randomUUID());
+          setAuth(regToken, { id: u.id, email: u.email, role: u.role, name }, regRefreshToken ?? '', regDeviceId ?? crypto.randomUUID());
 
           const profileRes = await axios.post('/api/v1/parents', {
             name,

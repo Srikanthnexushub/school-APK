@@ -26,6 +26,7 @@ import ParentPsychometricPage from './pages/parent/ParentPsychometricPage';
 import ParentQuestionBankPage from './pages/parent/ParentQuestionBankPage';
 import ParentLibraryPage from './pages/parent/ParentLibraryPage';
 import AdminPortalPage from './pages/admin/AdminPortalPage';
+import RegisterInstitutionPage from './pages/auth/RegisterInstitutionPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminBatchesPage from './pages/admin/AdminBatchesPage';
 import AdminAssessmentsPage from './pages/admin/AdminAssessmentsPage';
@@ -50,6 +51,10 @@ export const router = createBrowserRouter([
   {
     path: '/verify-otp',
     element: <OtpPage />,
+  },
+  {
+    path: '/register-institution',
+    element: <RegisterInstitutionPage />,
   },
   {
     path: '/',

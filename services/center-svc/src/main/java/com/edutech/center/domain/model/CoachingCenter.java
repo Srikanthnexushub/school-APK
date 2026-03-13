@@ -33,7 +33,7 @@ public class CoachingCenter {
     @Column(nullable = false, length = 200)
     private String name;
 
-    @Column(nullable = false, length = 20, updatable = false)
+    @Column(length = 30)
     private String code;
 
     @Column(nullable = false, length = 500)
@@ -64,6 +64,27 @@ public class CoachingCenter {
     @Column(nullable = false, length = 20)
     private CenterStatus status;
 
+    @Column(name = "institution_type", length = 50)
+    private String institutionType;
+
+    @Column(length = 100)
+    private String board;
+
+    @Column(name = "admin_user_id")
+    private UUID adminUserId;
+
+    @Column(name = "registration_source", nullable = false, length = 30)
+    private String registrationSource;
+
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
+
+    @Column(name = "reviewed_by")
+    private UUID reviewedBy;
+
+    @Column(name = "reviewed_at")
+    private Instant reviewedAt;
+
     @Column(name = "owner_id", nullable = false, updatable = false)
     private UUID ownerId;
 
@@ -84,7 +105,7 @@ public class CoachingCenter {
     private CoachingCenter(UUID id, String name, String code, String address,
                            String city, String state, String pincode,
                            String phone, String email, String website,
-                           String logoUrl, UUID ownerId) {
+                           String logoUrl, UUID ownerId, String registrationSource) {
         this.id = id;
         this.name = name;
         this.code = code;
@@ -98,16 +119,35 @@ public class CoachingCenter {
         this.logoUrl = logoUrl;
         this.status = CenterStatus.ACTIVE;
         this.ownerId = ownerId;
+        this.registrationSource = registrationSource;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }
 
+    /** SUPER_ADMIN creates a center directly — immediately ACTIVE, code required. */
     public static CoachingCenter create(String name, String code, String address,
                                         String city, String state, String pincode,
                                         String phone, String email, String website,
                                         String logoUrl, UUID ownerId) {
         return new CoachingCenter(UUID.randomUUID(), name, code, address,
-                city, state, pincode, phone, email, website, logoUrl, ownerId);
+                city, state, pincode, phone, email, website, logoUrl, ownerId, "ADMIN_CREATED");
+    }
+
+    /**
+     * Institution self-registers — starts as PENDING_VERIFICATION with no code.
+     * Code is auto-generated and assigned when SUPER_ADMIN calls approve().
+     */
+    public static CoachingCenter registerSelf(String name, String institutionType, String board,
+                                              String address, String city, String state,
+                                              String pincode, String phone, String email,
+                                              String website, UUID adminUserId) {
+        CoachingCenter c = new CoachingCenter(UUID.randomUUID(), name, null, address,
+                city, state, pincode, phone, email, website, null, adminUserId, "SELF_REGISTERED");
+        c.status = CenterStatus.PENDING_VERIFICATION;
+        c.institutionType = institutionType;
+        c.board = board;
+        c.adminUserId = adminUserId;
+        return c;
     }
 
     public void update(String name, String address, String city, String state,
@@ -147,6 +187,28 @@ public class CoachingCenter {
         this.updatedAt = Instant.now();
     }
 
+    public void approve(String generatedCode, UUID reviewedByUserId) {
+        if (this.status != CenterStatus.PENDING_VERIFICATION) {
+            throw new IllegalStateException("Only PENDING_VERIFICATION registrations can be approved");
+        }
+        this.code = generatedCode;
+        this.status = CenterStatus.ACTIVE;
+        this.reviewedBy = reviewedByUserId;
+        this.reviewedAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
+
+    public void reject(String reason, UUID reviewedByUserId) {
+        if (this.status != CenterStatus.PENDING_VERIFICATION) {
+            throw new IllegalStateException("Only PENDING_VERIFICATION registrations can be rejected");
+        }
+        this.status = CenterStatus.REJECTED;
+        this.rejectionReason = reason;
+        this.reviewedBy = reviewedByUserId;
+        this.reviewedAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
+
     public boolean isActive() { return this.status == CenterStatus.ACTIVE && this.deletedAt == null; }
 
     public UUID getId() { return id; }
@@ -162,6 +224,13 @@ public class CoachingCenter {
     public String getLogoUrl() { return logoUrl; }
     public CenterStatus getStatus() { return status; }
     public UUID getOwnerId() { return ownerId; }
+    public String getInstitutionType() { return institutionType; }
+    public String getBoard() { return board; }
+    public UUID getAdminUserId() { return adminUserId; }
+    public String getRegistrationSource() { return registrationSource; }
+    public String getRejectionReason() { return rejectionReason; }
+    public UUID getReviewedBy() { return reviewedBy; }
+    public Instant getReviewedAt() { return reviewedAt; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public Instant getDeletedAt() { return deletedAt; }

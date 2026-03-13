@@ -2,6 +2,7 @@
 package com.edutech.center.infrastructure.persistence;
 
 import com.edutech.center.domain.model.CoachingCenter;
+import com.edutech.center.domain.model.CenterStatus;
 import com.edutech.center.domain.port.out.CenterRepository;
 import org.springframework.stereotype.Component;
 
@@ -24,4 +25,8 @@ public class CenterPersistenceAdapter implements CenterRepository {
     @Override public List<CoachingCenter> findByOwnerId(UUID ownerId) { return jpa.findByOwnerIdActive(ownerId); }
     @Override public boolean existsByCode(String code) { return jpa.existsByCode(code); }
     @Override public Optional<CoachingCenter> findByCode(String code) { return jpa.findByCodeActive(code); }
+    @Override public List<CoachingCenter> findByStatus(CenterStatus status) { return jpa.findByStatus(status); }
+    @Override public boolean existsByNameAndCity(String name, String city) { return jpa.existsByNameAndCity(name, city); }
+    @Override public long countByCodePrefix(String prefix) { return jpa.countByCodePrefix(prefix); }
+    @Override public Optional<CoachingCenter> findByAdminUserId(UUID adminUserId) { return jpa.findByAdminUserId(adminUserId); }
 }

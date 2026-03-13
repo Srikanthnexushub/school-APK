@@ -5,6 +5,10 @@ import com.edutech.center.application.dto.AuthPrincipal;
 import com.edutech.center.application.dto.CenterLookupResponse;
 import com.edutech.center.application.dto.CenterResponse;
 import com.edutech.center.application.dto.CreateCenterRequest;
+import com.edutech.center.application.dto.InstitutionRegistrationRequest;
+import com.edutech.center.application.dto.InstitutionRegistrationResponse;
+import com.edutech.center.application.dto.RejectInstitutionRequest;
+import com.edutech.center.application.dto.RegistrationStatusResponse;
 import com.edutech.center.application.dto.UpdateCenterRequest;
 import com.edutech.center.application.service.CenterService;
 import com.edutech.center.domain.port.in.CreateCenterUseCase;
@@ -28,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -86,5 +91,41 @@ public class CenterController {
                                        @Valid @RequestBody UpdateCenterRequest request,
                                        @AuthenticationPrincipal AuthPrincipal principal) {
         return updateCenterUseCase.updateCenter(centerId, request, principal);
+    }
+
+    @PostMapping("/register")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Self-register an institution — starts PENDING_VERIFICATION")
+    public InstitutionRegistrationResponse registerInstitution(
+            @Valid @RequestBody InstitutionRegistrationRequest request,
+            @AuthenticationPrincipal AuthPrincipal principal) {
+        return centerService.registerInstitution(request, principal);
+    }
+
+    @GetMapping("/pending")
+    @Operation(summary = "List pending institution registrations (SUPER_ADMIN only)")
+    public List<CenterResponse> listPendingRegistrations(@AuthenticationPrincipal AuthPrincipal principal) {
+        return centerService.listPendingRegistrations(principal);
+    }
+
+    @PostMapping("/{centerId}/approve")
+    @Operation(summary = "Approve an institution registration (SUPER_ADMIN only)")
+    public CenterResponse approveRegistration(@PathVariable UUID centerId,
+                                              @AuthenticationPrincipal AuthPrincipal principal) {
+        return centerService.approveCenterRegistration(centerId, principal);
+    }
+
+    @PostMapping("/{centerId}/reject")
+    @Operation(summary = "Reject an institution registration (SUPER_ADMIN only)")
+    public CenterResponse rejectRegistration(@PathVariable UUID centerId,
+                                             @Valid @RequestBody RejectInstitutionRequest request,
+                                             @AuthenticationPrincipal AuthPrincipal principal) {
+        return centerService.rejectCenterRegistration(centerId, request, principal);
+    }
+
+    @GetMapping("/my-registration")
+    @Operation(summary = "Get the current user's institution registration status")
+    public RegistrationStatusResponse getMyRegistration(@AuthenticationPrincipal AuthPrincipal principal) {
+        return centerService.getMyCenterRegistration(principal);
     }
 }

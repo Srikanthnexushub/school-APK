@@ -64,6 +64,10 @@ kafka:
     center-events: ${KAFKA_TOPIC_CENTER_EVENTS}
     audit-immutable: ${KAFKA_TOPIC_AUDIT_IMMUTABLE}
 
+app:
+  center:
+    code-prefix: ${CENTER_CODE_PREFIX:NEXUS}
+
 ai-gateway:
   base-url: ${AI_GATEWAY_BASE_URL}
 
