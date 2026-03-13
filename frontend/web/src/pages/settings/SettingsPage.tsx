@@ -124,6 +124,7 @@ function formatDob(dob?: string): string {
 
 function ProfileTab() {
   const user = useAuthStore((s) => s.user);
+  const updateUser = useAuthStore((s) => s.updateUser);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
@@ -148,15 +149,28 @@ function ProfileTab() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: (data: ProfileForm) =>
-      api.patch('/api/v1/students/me', {
-        phone: data.phone || undefined,
-        city: data.city || undefined,
-        state: data.state || undefined,
-        stream: data.stream || undefined,
-        targetYear: data.targetYear || undefined,
-      }),
-    onSuccess: () => toast.success('Profile updated successfully!'),
+    mutationFn: async (data: ProfileForm) => {
+      const parts = data.name.trim().split(/\s+/);
+      const firstName = parts[0] ?? '';
+      const lastName = parts.slice(1).join(' ') || firstName;
+      await Promise.all([
+        api.patch('/api/v1/students/me', {
+          firstName,
+          lastName,
+          phone: data.phone || undefined,
+          city: data.city || undefined,
+          state: data.state || undefined,
+          stream: data.stream || undefined,
+          targetYear: data.targetYear || undefined,
+        }),
+        api.patch('/api/v1/auth/me', { firstName, lastName }),
+      ]);
+      return data.name.trim();
+    },
+    onSuccess: (name) => {
+      updateUser({ name });
+      toast.success('Profile updated successfully!');
+    },
     onError: () => toast.error('Failed to save profile.'),
   });
 

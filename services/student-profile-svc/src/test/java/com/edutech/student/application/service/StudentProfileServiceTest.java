@@ -179,6 +179,8 @@ class StudentProfileServiceTest {
         // arrange
         StudentProfile profile = buildSavedProfile();
         UpdateStudentProfileRequest request = new UpdateStudentProfileRequest(
+                null,
+                null,
                 "8888888888",
                 "Mumbai",
                 "Maharashtra",
@@ -202,7 +204,7 @@ class StudentProfileServiceTest {
     void updateProfile_notFound() {
         // arrange
         UpdateStudentProfileRequest request = new UpdateStudentProfileRequest(
-                "8888888888", null, null, null, null
+                null, null, "8888888888", null, null, null, null
         );
         when(profileRepository.findById(STUDENT_ID)).thenReturn(Optional.empty());
 

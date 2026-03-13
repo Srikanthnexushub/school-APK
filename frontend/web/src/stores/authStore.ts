@@ -17,6 +17,7 @@ interface AuthState {
   isAuthenticated: boolean;
   setAuth: (token: string, user: User, refreshToken: string, deviceId: string) => void;
   setTokens: (token: string, refreshToken: string) => void;
+  updateUser: (partial: Partial<User>) => void;
   logout: () => void;
 }
 
@@ -31,6 +32,7 @@ export const useAuthStore = create<AuthState>()(
       setAuth: (token, user, refreshToken, deviceId) =>
         set({ token, refreshToken, deviceId, user, isAuthenticated: true }),
       setTokens: (token, refreshToken) => set({ token, refreshToken }),
+      updateUser: (partial) => set((state) => ({ user: state.user ? { ...state.user, ...partial } : null })),
       logout: () => set({ token: null, refreshToken: null, deviceId: null, user: null, isAuthenticated: false }),
     }),
     { name: 'edupath-auth' }

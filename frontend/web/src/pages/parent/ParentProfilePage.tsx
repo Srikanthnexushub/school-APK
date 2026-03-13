@@ -8,6 +8,7 @@ import { cn } from '../../lib/utils';
 import { Avatar } from '../../components/ui/Avatar';
 import { toast } from 'sonner';
 import api from '../../lib/api';
+import { useAuthStore } from '../../stores/authStore';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -71,6 +72,7 @@ function InfoRow({ label, value, icon: Icon }: { label: string; value: string; i
 
 export default function ParentProfilePage() {
   const queryClient = useQueryClient();
+  const updateUser = useAuthStore((s) => s.updateUser);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<UpdateProfileRequest>({
     name: '', phone: '', email: '', relationshipType: 'PARENT',
@@ -98,9 +100,18 @@ export default function ParentProfilePage() {
   }
 
   const updateMutation = useMutation({
-    mutationFn: (data: UpdateProfileRequest) =>
-      api.put(`/api/v1/parents/${profile!.id}`, data),
-    onSuccess: () => {
+    mutationFn: async (data: UpdateProfileRequest) => {
+      const parts = data.name.trim().split(/\s+/);
+      const firstName = parts[0] ?? '';
+      const lastName = parts.slice(1).join(' ') || firstName;
+      await Promise.all([
+        api.put(`/api/v1/parents/${profile!.id}`, data),
+        api.patch('/api/v1/auth/me', { firstName, lastName }),
+      ]);
+      return data.name.trim();
+    },
+    onSuccess: (name) => {
+      updateUser({ name });
       toast.success('Profile updated successfully.');
       queryClient.invalidateQueries({ queryKey: ['parent-profile'] });
       setEditing(false);

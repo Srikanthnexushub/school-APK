@@ -6,6 +6,7 @@ import com.edutech.auth.application.dto.LoginRequest;
 import com.edutech.auth.application.dto.RefreshTokenRequest;
 import com.edutech.auth.application.dto.RegisterRequest;
 import com.edutech.auth.application.dto.TokenPair;
+import com.edutech.auth.application.dto.UpdateNameRequest;
 import com.edutech.auth.application.dto.UserResponse;
 import com.edutech.auth.api.mapper.AuthMapper;
 import com.edutech.auth.domain.model.User;
@@ -24,6 +25,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -116,6 +118,17 @@ public class AuthController {
         User user = userRepository.findById(principal.userId())
             .orElseThrow();
         return authMapper.toUserResponse(user);
+    }
+
+    @PatchMapping("/me")
+    @SecurityRequirement(name = "BearerAuth")
+    @Operation(summary = "Update current user's display name")
+    public ResponseEntity<Void> updateMe(@AuthenticationPrincipal AuthPrincipal principal,
+                                         @RequestBody UpdateNameRequest request) {
+        User user = userRepository.findById(principal.userId()).orElseThrow();
+        user.updateName(request.firstName(), request.lastName());
+        userRepository.save(user);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/users/lookup")

@@ -116,6 +116,12 @@ public class StudentProfile {
         return profile;
     }
 
+    public void updateName(String firstName, String lastName) {
+        if (firstName != null && !firstName.isBlank()) this.firstName = firstName;
+        if (lastName != null && !lastName.isBlank()) this.lastName = lastName;
+        this.updatedAt = Instant.now();
+    }
+
     public void updatePhone(String phone) {
         if (phone != null) {
             this.phone = phone;

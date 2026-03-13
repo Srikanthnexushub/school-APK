@@ -131,6 +131,12 @@ public class User {
         this.updatedAt = Instant.now();
     }
 
+    public void updateName(String firstName, String lastName) {
+        if (firstName != null && !firstName.isBlank()) this.firstName = firstName;
+        if (lastName != null && !lastName.isBlank()) this.lastName = lastName;
+        this.updatedAt = Instant.now();
+    }
+
     public void updatePassword(String newPasswordHash) {
         this.passwordHash = newPasswordHash;
         this.updatedAt = Instant.now();

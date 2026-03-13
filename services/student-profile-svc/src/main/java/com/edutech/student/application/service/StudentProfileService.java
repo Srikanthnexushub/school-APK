@@ -96,6 +96,7 @@ public class StudentProfileService implements CreateStudentProfileUseCase,
         StudentProfile profile = profileRepository.findById(studentId)
                 .orElseThrow(() -> new StudentNotFoundException(studentId));
 
+        profile.updateName(request.firstName(), request.lastName());
         profile.updatePhone(request.phone());
         profile.updateLocation(request.city(), request.state());
 
