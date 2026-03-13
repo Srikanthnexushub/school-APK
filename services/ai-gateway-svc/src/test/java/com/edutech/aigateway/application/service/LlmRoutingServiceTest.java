@@ -11,10 +11,10 @@ import com.edutech.aigateway.domain.model.Role;
 import com.edutech.aigateway.domain.port.out.AiGatewayEventPublisher;
 import com.edutech.aigateway.domain.port.out.LlmClient;
 import com.edutech.aigateway.domain.port.out.RateLimitPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -35,9 +35,17 @@ import static org.mockito.Mockito.when;
 class LlmRoutingServiceTest {
 
     @Mock LlmClient llmClient;
+    @Mock LlmClient openRouterLlmClient;
     @Mock RateLimitPort rateLimitPort;
     @Mock AiGatewayEventPublisher eventPublisher;
-    @InjectMocks LlmRoutingService llmRoutingService;
+
+    LlmRoutingService llmRoutingService;
+
+    @BeforeEach
+    void setUp() {
+        llmRoutingService = new LlmRoutingService(
+                llmClient, openRouterLlmClient, rateLimitPort, eventPublisher, "ANTHROPIC");
+    }
 
     private static final String REQUESTER_ID = "assess-svc";
 

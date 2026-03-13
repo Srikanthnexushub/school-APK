@@ -15,6 +15,7 @@ import com.edutech.center.domain.model.Role;
 import com.edutech.center.domain.port.out.BatchRepository;
 import com.edutech.center.domain.port.out.CenterEventPublisher;
 import com.edutech.center.domain.port.out.CenterRepository;
+import com.edutech.center.domain.port.out.TeacherRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +41,7 @@ class BatchServiceTest {
     @Mock BatchRepository batchRepository;
     @Mock CenterRepository centerRepository;
     @Mock CenterEventPublisher eventPublisher;
+    @Mock TeacherRepository teacherRepository;
     @InjectMocks BatchService batchService;
 
     private static final UUID CENTER_ID = UUID.randomUUID();

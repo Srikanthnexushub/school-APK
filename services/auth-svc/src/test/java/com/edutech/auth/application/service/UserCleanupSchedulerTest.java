@@ -4,7 +4,7 @@ package com.edutech.auth.application.service;
 import com.edutech.auth.domain.model.Role;
 import com.edutech.auth.domain.model.User;
 import com.edutech.auth.domain.port.out.UserRepository;
-import com.edutech.auth.infrastructure.config.CleanupProperties;
+import com.edutech.auth.application.config.CleanupProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

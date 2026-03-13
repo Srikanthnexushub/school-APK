@@ -3,7 +3,7 @@ package com.edutech.auth.application.service;
 
 import com.edutech.auth.domain.model.User;
 import com.edutech.auth.domain.port.out.UserRepository;
-import com.edutech.auth.infrastructure.config.CleanupProperties;
+import com.edutech.auth.application.config.CleanupProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
