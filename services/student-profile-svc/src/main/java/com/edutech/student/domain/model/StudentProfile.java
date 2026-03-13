@@ -83,6 +83,18 @@ public class StudentProfile {
     @Column(name = "parent_link_code", unique = true)
     private String parentLinkCode;
 
+    @Column(name = "link_otp")
+    private String linkOtp;
+
+    @Column(name = "link_otp_expires_at")
+    private Instant linkOtpExpiresAt;
+
+    @Column(name = "link_otp_parent_user_id")
+    private UUID linkOtpParentUserId;
+
+    @Column(name = "link_otp_parent_name")
+    private String linkOtpParentName;
+
     @Version
     private Long version;
 
@@ -268,5 +280,38 @@ public class StudentProfile {
 
     public String getParentLinkCode() {
         return parentLinkCode;
+    }
+
+    public void generateLinkOtp(UUID parentUserId, String parentName) {
+        int code = (int) (Math.random() * 1_000_000);
+        this.linkOtp = String.format("%06d", code);
+        this.linkOtpExpiresAt = Instant.now().plusSeconds(300);
+        this.linkOtpParentUserId = parentUserId;
+        this.linkOtpParentName = parentName;
+        this.updatedAt = Instant.now();
+    }
+
+    public boolean isLinkOtpValid() {
+        return linkOtp != null && linkOtpExpiresAt != null && Instant.now().isBefore(linkOtpExpiresAt);
+    }
+
+    public void clearLinkOtp() {
+        this.linkOtp = null;
+        this.linkOtpExpiresAt = null;
+        this.linkOtpParentUserId = null;
+        this.linkOtpParentName = null;
+        this.updatedAt = Instant.now();
+    }
+
+    public String getLinkOtp() {
+        return linkOtp;
+    }
+
+    public Instant getLinkOtpExpiresAt() {
+        return linkOtpExpiresAt;
+    }
+
+    public String getLinkOtpParentName() {
+        return linkOtpParentName;
     }
 }

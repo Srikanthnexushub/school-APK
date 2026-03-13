@@ -1,9 +1,15 @@
 package com.edutech.student.api;
 
 import com.edutech.student.application.dto.CreateStudentProfileRequest;
+import com.edutech.student.application.dto.GenerateLinkOtpRequest;
+import com.edutech.student.application.dto.GenerateLinkOtpResponse;
+import com.edutech.student.application.dto.PendingLinkResponse;
 import com.edutech.student.application.dto.StudentDashboardResponse;
+import com.edutech.student.application.dto.StudentLookupResponse;
 import com.edutech.student.application.dto.StudentProfileResponse;
 import com.edutech.student.application.dto.UpdateStudentProfileRequest;
+import com.edutech.student.application.dto.VerifyLinkOtpRequest;
+import com.edutech.student.application.dto.VerifyLinkOtpResponse;
 import com.edutech.student.application.service.StudentProfileService;
 import com.edutech.student.domain.port.in.CreateStudentProfileUseCase;
 import com.edutech.student.domain.port.in.GetStudentDashboardUseCase;
@@ -19,6 +25,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
@@ -94,5 +101,33 @@ public class StudentProfileController {
     public ResponseEntity<StudentProfileResponse> regenerateLinkCode(
             @RequestHeader("X-User-Id") UUID userId) {
         return ResponseEntity.ok(studentProfileService.regenerateLinkCode(userId));
+    }
+
+    /** Any authenticated user can look up a student by email for linking purposes. */
+    @GetMapping("/lookup")
+    public ResponseEntity<StudentLookupResponse> lookupByEmail(@RequestParam String email) {
+        return ResponseEntity.ok(studentProfileService.lookupByEmail(email));
+    }
+
+    /** Parent generates a 6-digit OTP on the student's profile (5-minute expiry). */
+    @PostMapping("/link-otp/generate")
+    public ResponseEntity<GenerateLinkOtpResponse> generateLinkOtp(
+            @RequestHeader("X-User-Id") UUID parentUserId,
+            @Valid @RequestBody GenerateLinkOtpRequest request) {
+        return ResponseEntity.ok(studentProfileService.generateLinkOtp(request, parentUserId));
+    }
+
+    /** Student polls this endpoint to see if a parent has generated an OTP for them. */
+    @GetMapping("/me/pending-link")
+    public ResponseEntity<PendingLinkResponse> getPendingLink(
+            @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(studentProfileService.getPendingLink(userId));
+    }
+
+    /** Parent verifies the OTP shared by their child. Returns studentId/name for the parent-svc link call. */
+    @PostMapping("/link-otp/verify")
+    public ResponseEntity<VerifyLinkOtpResponse> verifyLinkOtp(
+            @Valid @RequestBody VerifyLinkOtpRequest request) {
+        return ResponseEntity.ok(studentProfileService.verifyLinkOtp(request));
     }
 }

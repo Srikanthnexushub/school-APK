@@ -2,6 +2,7 @@ package com.edutech.student.api;
 
 import com.edutech.student.application.exception.AcademicRecordNotFoundException;
 import com.edutech.student.application.exception.DuplicateStudentException;
+import com.edutech.student.application.exception.InvalidLinkOtpException;
 import com.edutech.student.application.exception.StudentNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -39,6 +40,14 @@ public class GlobalExceptionHandler {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
         pd.setType(URI.create(BASE_URI + "academic-record-not-found"));
         pd.setTitle("Academic Record Not Found");
+        return pd;
+    }
+
+    @ExceptionHandler(InvalidLinkOtpException.class)
+    public ProblemDetail handleInvalidLinkOtp(InvalidLinkOtpException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+        pd.setType(URI.create(BASE_URI + "invalid-link-otp"));
+        pd.setTitle("Invalid Link OTP");
         return pd;
     }
 

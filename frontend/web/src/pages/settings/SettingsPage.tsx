@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
@@ -7,7 +7,7 @@ import { z } from 'zod';
 import {
   User, Bell, Palette, Shield, Camera, Check, AlertTriangle,
   Smartphone, Monitor, Eye, EyeOff, GraduationCap, Calendar, MapPin, BookOpen,
-  Key, RefreshCw, Copy,
+  ShieldCheck, Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
@@ -137,21 +137,38 @@ function ProfileTab() {
     enabled: !!user,
   });
 
-  const [regenerating, setRegenerating] = useState(false);
+  interface PendingLink { otp: string; parentName: string; expiresAt: string; }
+  const [pendingLink, setPendingLink] = useState<PendingLink | null>(null);
+  const [pendingLinkLoading, setPendingLinkLoading] = useState(false);
+  const [otpSecondsLeft, setOtpSecondsLeft] = useState(0);
 
-  async function handleRegenerateCode() {
-    setRegenerating(true);
+  async function fetchPendingLink() {
+    setPendingLinkLoading(true);
     try {
-      await api.post('/api/v1/students/me/link-code/regenerate');
-      toast.success('New code generated!');
-      // refetch profile to show new code
-      window.location.reload();
+      const res = await api.get('/api/v1/students/me/pending-link');
+      setPendingLink(res.data as PendingLink);
+      setOtpSecondsLeft(Math.max(0, Math.round((new Date(res.data.expiresAt).getTime() - Date.now()) / 1000)));
     } catch {
-      toast.error('Failed to regenerate code.');
+      setPendingLink(null);
     } finally {
-      setRegenerating(false);
+      setPendingLinkLoading(false);
     }
   }
+
+  useEffect(() => { fetchPendingLink(); }, []);
+
+  useEffect(() => {
+    const interval = setInterval(fetchPendingLink, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!pendingLink) return;
+    const timer = setInterval(() => {
+      setOtpSecondsLeft((s) => Math.max(0, s - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [pendingLink]);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -261,50 +278,43 @@ function ProfileTab() {
         </div>
       )}
 
-      {/* Parent Link Code */}
-      {profile && (
-        <div className="card">
-          <div className="flex items-center gap-2 mb-3">
-            <Key className="w-4 h-4 text-brand-400" />
-            <h3 className="text-base font-semibold text-white">Parent Link Code</h3>
+      {/* Parent Link Request (OTP) */}
+      <div className="card">
+        <div className="flex items-center gap-2 mb-3">
+          <ShieldCheck className="w-4 h-4 text-brand-400" />
+          <h3 className="text-base font-semibold text-white">Parent Link Request</h3>
+        </div>
+        {pendingLinkLoading && !pendingLink ? (
+          <div className="h-20 flex items-center justify-center">
+            <div className="w-5 h-5 border-2 border-white/20 border-t-brand-400 rounded-full animate-spin" />
           </div>
-          <p className="text-white/50 text-sm mb-4">
-            Share this 6-digit code with your parent or guardian so they can link to your account and monitor your progress.
-          </p>
-          <div className="flex items-center gap-4">
-            <div className="flex-1 bg-surface-200 border border-brand-500/30 rounded-xl px-5 py-4 text-center">
-              <span className="font-mono text-3xl font-bold text-brand-400 tracking-[0.3em]">
-                {profile.parentLinkCode ?? '——'}
+        ) : pendingLink && otpSecondsLeft > 0 ? (
+          <>
+            <p className="text-sm text-white/50 mb-4">
+              <span className="text-white font-medium">{pendingLink.parentName}</span> wants to link to your account. Share the code below with them.
+            </p>
+            <div className="bg-brand-500/10 border border-brand-500/20 rounded-xl px-5 py-4 text-center mb-3">
+              <span className="font-mono text-4xl font-bold text-brand-400 tracking-[0.4em]">
+                {pendingLink.otp}
               </span>
             </div>
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={() => {
-                  if (profile.parentLinkCode) {
-                    navigator.clipboard.writeText(profile.parentLinkCode);
-                    toast.success('Code copied!');
-                  }
-                }}
-                className="p-2.5 rounded-xl border border-white/10 text-white/40 hover:text-white hover:border-white/20 transition-colors"
-                title="Copy code"
-              >
-                <Copy className="w-4 h-4" />
-              </button>
-              <button
-                onClick={handleRegenerateCode}
-                disabled={regenerating}
-                className="p-2.5 rounded-xl border border-white/10 text-white/40 hover:text-white hover:border-white/20 transition-colors disabled:opacity-50"
-                title="Regenerate code"
-              >
-                <RefreshCw className={`w-4 h-4 ${regenerating ? 'animate-spin' : ''}`} />
-              </button>
+            <div className="flex items-center justify-center gap-2 text-sm">
+              <Clock className="w-4 h-4 text-amber-400" />
+              <span className={`font-mono font-bold ${otpSecondsLeft < 60 ? 'text-red-400' : 'text-amber-400'}`}>
+                {`${Math.floor(otpSecondsLeft / 60)}:${String(otpSecondsLeft % 60).padStart(2, '0')}`}
+              </span>
+              <span className="text-white/30 text-xs">remaining</span>
             </div>
-          </div>
-          <p className="text-xs text-white/30 mt-3">
-            Regenerating creates a new code — your parent will need to use the new code to re-link.
+            <p className="text-xs text-white/30 mt-3 text-center">
+              This OTP expires automatically. If you don't recognize this request, ignore it.
+            </p>
+          </>
+        ) : (
+          <p className="text-sm text-white/40">
+            No active link request. When your parent clicks "Link Child" and finds your account, a one-time verification code will appear here for you to share with them.
           </p>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Edit Info */}
       <div className="card">

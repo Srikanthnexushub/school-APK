@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Calendar, CreditCard, BookOpen, MessageSquare,
   Download, Eye, CheckCircle2, AlertTriangle, Bot,
   ChevronRight, IndianRupee, PiggyBank, Loader2,
-  Plus, Trash2, Search, X,
+  Plus, Trash2,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -130,171 +130,6 @@ function relativeTime(dateStr: string): string {
   }
 }
 
-// ─── Link Child Modal ─────────────────────────────────────────────────────────
-
-interface UserLookupResponse {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: string;
-  centerId: string | null;
-}
-
-interface CenterOption { id: string; name: string; }
-
-function LinkChildModal({
-  profileId,
-  onClose,
-  onLinked,
-}: {
-  profileId: string;
-  onClose: () => void;
-  onLinked: () => void;
-}) {
-  const [email, setEmail] = useState('');
-  const [foundUser, setFoundUser] = useState<UserLookupResponse | null>(null);
-  const [lookupError, setLookupError] = useState('');
-  const [looking, setLooking] = useState(false);
-  const [linking, setLinking] = useState(false);
-
-  const { data: centers = [] } = useQuery<CenterOption[]>({
-    queryKey: ['all-centers-parent'],
-    queryFn: () => api.get('/api/v1/centers').then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }),
-  });
-
-  async function handleLookup() {
-    if (!email.trim()) return;
-    setLookupError('');
-    setFoundUser(null);
-    setLooking(true);
-    try {
-      const res = await api.get(`/api/v1/auth/users/lookup?email=${encodeURIComponent(email.trim())}`);
-      const u: UserLookupResponse = res.data;
-      if (u.role !== 'STUDENT') {
-        setLookupError('Email does not belong to a student account.');
-      } else {
-        setFoundUser(u);
-      }
-    } catch {
-      setLookupError('Student not found. Check the email and try again.');
-    } finally {
-      setLooking(false);
-    }
-  }
-
-  async function handleLink() {
-    if (!foundUser) return;
-    const centerId = foundUser.centerId ?? (centers[0]?.id ?? null);
-    if (!centerId) {
-      toast.error('No center found for this student.');
-      return;
-    }
-    setLinking(true);
-    try {
-      await api.post(`/api/v1/parents/${profileId}/students`, {
-        studentId: foundUser.id,
-        studentName: `${foundUser.firstName} ${foundUser.lastName}`,
-        centerId,
-      });
-      toast.success(`${foundUser.firstName} linked to your account!`);
-      onLinked();
-      onClose();
-    } catch (e: any) {
-      const msg = e?.response?.data?.message ?? e?.message ?? 'Failed to link student.';
-      toast.error(msg);
-    } finally {
-      setLinking(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-surface-100 border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl"
-      >
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold text-white">Link Your Child</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-white/70 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <p className="text-sm text-white/50 mb-5">
-          Enter your child's registered email address to link their account to your parent portal.
-        </p>
-
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2 block">Student Email</label>
-            <div className="flex gap-2">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); setFoundUser(null); setLookupError(''); }}
-                onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
-                placeholder="student@example.com"
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-brand-500/50"
-              />
-              <button
-                onClick={handleLookup}
-                disabled={looking || !email.trim()}
-                className="btn-primary px-4 py-2.5 text-sm flex items-center gap-1.5 disabled:opacity-50"
-              >
-                {looking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                Find
-              </button>
-            </div>
-            {lookupError && <p className="text-xs text-red-400 mt-2">{lookupError}</p>}
-          </div>
-
-          {foundUser && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
-                  <span className="text-brand-400 font-bold text-sm">
-                    {foundUser.firstName?.[0]}{foundUser.lastName?.[0]}
-                  </span>
-                </div>
-                <div>
-                  <div className="font-semibold text-white">{foundUser.firstName} {foundUser.lastName}</div>
-                  <div className="text-xs text-white/40">{foundUser.email}</div>
-                  {foundUser.centerId && (
-                    <div className="text-xs text-white/30 mt-0.5">Center: {foundUser.centerId.slice(0, 8)}…</div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          <div className="flex gap-3 pt-2">
-            <button
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleLink}
-              disabled={!foundUser || linking}
-              className="flex-1 btn-primary py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {linking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              Link Child
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
 
 // ─── Fee status colors ────────────────────────────────────────────────────────
 
@@ -384,7 +219,6 @@ export default function ParentDashboardPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeStudentId, setActiveStudentId] = useState<string | null>(null);
-  const [showLinkModal, setShowLinkModal] = useState(false);
 
   // 1. Fetch parent profile
   const { data: profile, isLoading: profileLoading } = useQuery<ParentProfileResponse>({
@@ -545,7 +379,7 @@ export default function ParentDashboardPage() {
         </div>
         {profile && (
           <button
-            onClick={() => setShowLinkModal(true)}
+            onClick={() => navigate('/parent/children')}
             className="btn-primary flex items-center gap-2 px-4 py-2.5 text-sm flex-shrink-0"
           >
             <Plus className="w-4 h-4" />
@@ -592,13 +426,13 @@ export default function ParentDashboardPage() {
         <div className="card text-center py-12">
           <Bot className="w-10 h-10 text-white/20 mx-auto mb-3" />
           <p className="text-white/50 text-sm">No children linked yet.</p>
-          <p className="text-white/30 text-xs mt-1 mb-4">Click "Link Child" above to connect your child's account.</p>
+          <p className="text-white/30 text-xs mt-1 mb-4">Go to My Children to link your child using their 6-digit verification code.</p>
           <button
-            onClick={() => setShowLinkModal(true)}
+            onClick={() => navigate('/parent/children')}
             className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm"
           >
             <Plus className="w-4 h-4" />
-            Link Your First Child
+            Go to My Children
           </button>
         </div>
       )}
@@ -889,16 +723,6 @@ export default function ParentDashboardPage() {
         </>
       )}
 
-      {/* Link Child Modal */}
-      <AnimatePresence>
-        {showLinkModal && profile && (
-          <LinkChildModal
-            profileId={profile.id}
-            onClose={() => setShowLinkModal(false)}
-            onLinked={() => queryClient.invalidateQueries({ queryKey: ['linked-students'] })}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }

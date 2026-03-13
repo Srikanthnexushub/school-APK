@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Plus, Trash2, Edit2, Save, X, ChevronDown, ChevronUp,
-  Loader2, School, Calendar, BookOpen, Hash, Key,
+  Loader2, School, Calendar, BookOpen, Hash, Mail, ShieldCheck,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Avatar } from '../../components/ui/Avatar';
 import { toast } from 'sonner';
 import api from '../../lib/api';
+import { useAuthStore } from '../../stores/authStore';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -36,16 +37,25 @@ interface StudentLinkResponse {
   createdAt: string;
 }
 
-interface StudentLookupByCodeResponse {
+interface StudentLookupResponse {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
   city?: string;
-  state?: string;
   board?: string;
   currentClass?: number;
-  parentLinkCode?: string;
+}
+
+interface GenerateLinkOtpResponse {
+  studentId: string;
+  studentName: string;
+  expiresAt: string;
+}
+
+interface VerifyLinkOtpResponse {
+  studentId: string;
+  studentName: string;
 }
 
 interface CenterOption { id: string; name: string; }
@@ -84,70 +94,121 @@ const RELATIONSHIP_OPTIONS = [
   { value: 'OTHER', label: 'Other' },
 ];
 
-// ─── Link Child Modal ─────────────────────────────────────────────────────────
+// ─── Link Child Modal (OTP flow) ─────────────────────────────────────────────
+
+type LinkStep = 'lookup' | 'otp-sent' | 'verify';
 
 function LinkChildModal({
   profileId,
+  parentName,
   onClose,
   onLinked,
 }: {
   profileId: string;
+  parentName: string;
   onClose: () => void;
   onLinked: () => void;
 }) {
-  const [code, setCode] = useState('');
-  const [foundStudent, setFoundStudent] = useState<StudentLookupByCodeResponse | null>(null);
+  const [linkStep, setLinkStep] = useState<LinkStep>('lookup');
+  const [email, setEmail] = useState('');
+  const [foundStudent, setFoundStudent] = useState<StudentLookupResponse | null>(null);
   const [lookupError, setLookupError] = useState('');
   const [looking, setLooking] = useState(false);
-  const [linking, setLinking] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [otpExpiresAt, setOtpExpiresAt] = useState<Date | null>(null);
+  const [otp, setOtp] = useState('');
+  const [otpError, setOtpError] = useState('');
+  const [verifying, setVerifying] = useState(false);
   const [relationship, setRelationship] = useState('MOTHER');
+  const [secondsLeft, setSecondsLeft] = useState(300);
 
   const { data: centers = [] } = useQuery<CenterOption[]>({
     queryKey: ['all-centers-parent'],
     queryFn: () => api.get('/api/v1/centers').then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }),
   });
 
+  // Countdown timer when OTP is sent
+  useEffect(() => {
+    if (linkStep !== 'otp-sent' || !otpExpiresAt) return;
+    const interval = setInterval(() => {
+      const secs = Math.max(0, Math.round((otpExpiresAt.getTime() - Date.now()) / 1000));
+      setSecondsLeft(secs);
+      if (secs <= 0) clearInterval(interval);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [linkStep, otpExpiresAt]);
+
   async function handleLookup() {
-    const trimmed = code.trim();
+    const trimmed = email.trim();
     if (!trimmed) return;
     setLookupError('');
     setFoundStudent(null);
     setLooking(true);
     try {
-      const res = await api.get(`/api/v1/students/link-code/${encodeURIComponent(trimmed)}`);
-      setFoundStudent(res.data as StudentLookupByCodeResponse);
+      const res = await api.get(`/api/v1/students/lookup?email=${encodeURIComponent(trimmed)}`);
+      setFoundStudent(res.data as StudentLookupResponse);
     } catch {
-      setLookupError('Invalid verification code. Please ask your child or school for the correct code.');
+      setLookupError('No student found with that email address.');
     } finally {
       setLooking(false);
     }
   }
 
-  async function handleLink() {
+  async function handleGenerateOtp() {
     if (!foundStudent) return;
-    const centerId = centers[0]?.id ?? null;
-    if (!centerId) {
-      toast.error('No center found. Please contact support.');
-      return;
-    }
-    setLinking(true);
+    setGenerating(true);
     try {
+      const res = await api.post('/api/v1/students/link-otp/generate', {
+        studentEmail: foundStudent.email,
+        parentName,
+      });
+      const data = res.data as GenerateLinkOtpResponse;
+      setOtpExpiresAt(new Date(data.expiresAt));
+      setSecondsLeft(300);
+      setLinkStep('otp-sent');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } } };
+      toast.error(err?.response?.data?.detail ?? 'Failed to generate OTP. Please try again.');
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function handleVerify() {
+    if (!foundStudent || otp.length !== 6) return;
+    setOtpError('');
+    setVerifying(true);
+    try {
+      const verifyRes = await api.post('/api/v1/students/link-otp/verify', {
+        studentEmail: foundStudent.email,
+        otp,
+      });
+      const verifyData = verifyRes.data as VerifyLinkOtpResponse;
+
+      const centerId = centers[0]?.id ?? '00000000-0000-0000-0000-000000000000';
       await api.post(`/api/v1/parents/${profileId}/students`, {
-        studentId: foundStudent.id,
-        studentName: `${foundStudent.firstName} ${foundStudent.lastName}`,
+        studentId: verifyData.studentId,
+        studentName: verifyData.studentName,
         centerId,
         relationship,
       });
-      toast.success(`${foundStudent.firstName} linked to your account!`);
+      toast.success(`${verifyData.studentName} linked to your account!`);
       onLinked();
       onClose();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { detail?: string; message?: string } }; message?: string };
-      toast.error(err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? 'Failed to link student.');
+      const msg = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? '';
+      if (msg.toLowerCase().includes('otp') || msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('expired')) {
+        setOtpError('Incorrect or expired OTP. Please try again or ask the parent to generate a new one.');
+      } else {
+        toast.error(msg || 'Failed to link child.');
+      }
     } finally {
-      setLinking(false);
+      setVerifying(false);
     }
   }
+
+  const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -164,59 +225,98 @@ function LinkChildModal({
           </button>
         </div>
 
-        <p className="text-sm text-white/50 mb-5">
-          Enter the 6-digit verification code shown on your child's Student Profile page.
-        </p>
-
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2 block">
-              <Key className="w-3.5 h-3.5 inline mr-1" />
-              Child's Verification Code
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={code}
-                maxLength={6}
-                onChange={(e) => { setCode(e.target.value.replace(/\D/g, '')); setFoundStudent(null); setLookupError(''); }}
-                onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
-                placeholder="e.g. 739251"
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-brand-500/50 tracking-widest text-center font-mono text-lg"
-              />
-              <button
-                onClick={handleLookup}
-                disabled={looking || code.length !== 6}
-                className="btn-primary px-4 py-2.5 text-sm flex items-center gap-1.5 disabled:opacity-50"
-              >
-                {looking ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Find'}
-              </button>
-            </div>
-            {lookupError && <p className="text-xs text-red-400 mt-2">{lookupError}</p>}
-          </div>
-
-          {foundStudent && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4 space-y-3"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
-                  <span className="text-brand-400 font-bold text-sm">
-                    {foundStudent.firstName?.[0]}{foundStudent.lastName?.[0]}
-                  </span>
+        <AnimatePresence mode="wait">
+          {linkStep === 'lookup' && (
+            <motion.div key="lookup" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+              <p className="text-sm text-white/50">
+                Enter your child's registered email address to begin the secure linking process.
+              </p>
+              <div>
+                <label className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2 block">
+                  <Mail className="w-3.5 h-3.5 inline mr-1" />
+                  Child's Email Address
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setFoundStudent(null); setLookupError(''); }}
+                    onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
+                    placeholder="child@example.com"
+                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-brand-500/50"
+                  />
+                  <button
+                    onClick={handleLookup}
+                    disabled={looking || !email.trim()}
+                    className="btn-primary px-4 py-2.5 text-sm flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {looking ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Find'}
+                  </button>
                 </div>
-                <div>
-                  <div className="font-semibold text-white">{foundStudent.firstName} {foundStudent.lastName}</div>
-                  <div className="text-xs text-white/40">
-                    {[foundStudent.currentClass && `Class ${foundStudent.currentClass}`, foundStudent.board, foundStudent.city].filter(Boolean).join(' · ')}
+                {lookupError && <p className="text-xs text-red-400 mt-2">{lookupError}</p>}
+              </div>
+
+              {foundStudent && (
+                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-brand-400 font-bold text-sm">{foundStudent.firstName?.[0]}{foundStudent.lastName?.[0]}</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-white">{foundStudent.firstName} {foundStudent.lastName}</div>
+                      <div className="text-xs text-white/40">
+                        {[foundStudent.currentClass && `Class ${foundStudent.currentClass}`, foundStudent.board, foundStudent.city].filter(Boolean).join(' · ')}
+                      </div>
+                    </div>
                   </div>
+                  <p className="text-xs text-white/50">Is this your child? Click below to send a one-time verification code to their portal.</p>
+                </motion.div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-colors">
+                  Cancel
+                </button>
+                <button
+                  onClick={handleGenerateOtp}
+                  disabled={!foundStudent || generating}
+                  className="flex-1 btn-primary py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                  {generating ? 'Sending…' : 'Generate OTP'}
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {linkStep === 'otp-sent' && foundStudent && (
+            <motion.div key="otp-sent" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
+                <p className="text-sm text-amber-300 font-medium mb-1">OTP sent to your child's portal</p>
+                <p className="text-xs text-white/50">
+                  Ask <span className="text-white font-medium">{foundStudent.firstName}</span> to open their Student Portal → Settings → Parent Link Request and share the 6-digit OTP with you.
+                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-xs text-white/30">Expires in</span>
+                  <span className={`text-xs font-mono font-bold ${secondsLeft < 60 ? 'text-red-400' : 'text-amber-400'}`}>{fmtTime(secondsLeft)}</span>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1.5 block">Your relationship</label>
+                <label className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2 block">Enter OTP shared by your child</label>
+                <input
+                  type="text"
+                  value={otp}
+                  maxLength={6}
+                  onChange={(e) => { setOtp(e.target.value.replace(/\D/g, '')); setOtpError(''); }}
+                  placeholder="6-digit OTP"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center font-mono text-2xl tracking-[0.4em] text-white placeholder-white/20 focus:outline-none focus:border-brand-500/50"
+                />
+                {otpError && <p className="text-xs text-red-400 mt-2">{otpError}</p>}
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1.5 block">Your relationship to {foundStudent.firstName}</label>
                 <select
                   value={relationship}
                   onChange={(e) => setRelationship(e.target.value)}
@@ -227,23 +327,30 @@ function LinkChildModal({
                   ))}
                 </select>
               </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => { setLinkStep('lookup'); setOtp(''); setOtpError(''); }}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handleVerify}
+                  disabled={otp.length !== 6 || verifying || secondsLeft <= 0}
+                  className="flex-1 btn-primary py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                  {verifying ? 'Verifying…' : 'Verify & Link'}
+                </button>
+              </div>
+
+              {secondsLeft <= 0 && (
+                <p className="text-xs text-red-400 text-center">OTP expired. <button className="underline text-brand-400" onClick={() => { setLinkStep('lookup'); setOtp(''); }}>Generate a new one</button></p>
+              )}
             </motion.div>
           )}
-
-          <div className="flex gap-3 pt-2">
-            <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-colors">
-              Cancel
-            </button>
-            <button
-              onClick={handleLink}
-              disabled={!foundStudent || linking}
-              className="flex-1 btn-primary py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {linking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              Link Child
-            </button>
-          </div>
-        </div>
+        </AnimatePresence>
       </motion.div>
     </div>
   );
@@ -459,6 +566,8 @@ function ChildCard({
 export default function ParentChildrenPage() {
   const queryClient = useQueryClient();
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const authUser = useAuthStore((s) => s.user);
+  const parentName: string = authUser?.name ?? 'Parent';
 
   const { data: profile, isLoading: profileLoading } = useQuery<ParentProfileResponse>({
     queryKey: ['parent-profile'],
@@ -572,6 +681,7 @@ export default function ParentChildrenPage() {
         {showLinkModal && profile && (
           <LinkChildModal
             profileId={profile.id}
+            parentName={parentName}
             onClose={() => setShowLinkModal(false)}
             onLinked={() => queryClient.invalidateQueries({ queryKey: ['linked-students'] })}
           />

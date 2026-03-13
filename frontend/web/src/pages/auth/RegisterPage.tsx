@@ -142,12 +142,18 @@ export default function RegisterPage() {
   const [parentOccupation, setParentOccupation] = useState('');
   // Parent child-linking step state
   const [parentProfileId, setParentProfileId] = useState<string | null>(null);
-  const [childLinkCode, setChildLinkCode] = useState('');
+  const [childEmail, setChildEmail] = useState('');
   const [childRelationship, setChildRelationship] = useState('MOTHER');
-  const [foundChild, setFoundChild] = useState<{ id: string; firstName: string; lastName: string; currentClass?: number; board?: string; city?: string } | null>(null);
+  const [foundChild, setFoundChild] = useState<{ id: string; firstName: string; lastName: string; email: string; currentClass?: number; board?: string; city?: string } | null>(null);
   const [childLookupError, setChildLookupError] = useState('');
   const [isLookingUpChild, setIsLookingUpChild] = useState(false);
   const [isLinkingChild, setIsLinkingChild] = useState(false);
+  const [childOtpSent, setChildOtpSent] = useState(false);
+  const [childOtp, setChildOtp] = useState('');
+  const [childOtpExpiresAt, setChildOtpExpiresAt] = useState<Date | null>(null);
+  const [childOtpSecondsLeft, setChildOtpSecondsLeft] = useState(300);
+  const [childOtpError, setChildOtpError] = useState('');
+  const [isGeneratingChildOtp, setIsGeneratingChildOtp] = useState(false);
 
   const handleCaptchaVerify = useCallback((token: string | null) => setCaptchaToken(token), []);
 
@@ -199,6 +205,17 @@ export default function RegisterPage() {
 
   const watchedPassword = watch('password', '');
   const watchedInstitutionCode = watch3('institutionCode', '');
+
+  // Child OTP countdown
+  useEffect(() => {
+    if (!childOtpSent || !childOtpExpiresAt) return;
+    const interval = setInterval(() => {
+      const secs = Math.max(0, Math.round((childOtpExpiresAt.getTime() - Date.now()) / 1000));
+      setChildOtpSecondsLeft(secs);
+      if (secs <= 0) clearInterval(interval);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [childOtpSent, childOtpExpiresAt]);
 
   // Live debounce lookup for institution code
   useEffect(() => {
@@ -532,41 +549,74 @@ export default function RegisterPage() {
   // PARENT child link step = 4
   const parentLinkStep = 4;
 
-  async function handleChildLookup() {
-    const trimmed = childLinkCode.trim();
-    if (trimmed.length !== 6) return;
+  async function handleChildEmailLookup() {
+    const trimmed = childEmail.trim();
+    if (!trimmed) return;
     setChildLookupError('');
     setFoundChild(null);
     setIsLookingUpChild(true);
     try {
-      const res = await axios.get(`/api/v1/students/link-code/${encodeURIComponent(trimmed)}`, {
+      const res = await axios.get(`/api/v1/students/lookup?email=${encodeURIComponent(trimmed)}`, {
         headers: { Authorization: `Bearer ${regToken}` },
       });
       setFoundChild(res.data);
     } catch {
-      setChildLookupError('Invalid verification code. Please ask your child or school for the correct code.');
+      setChildLookupError('No student found with that email address.');
     } finally {
       setIsLookingUpChild(false);
     }
   }
 
+  async function handleGenerateChildOtp() {
+    if (!foundChild || !step1Data || !regToken) return;
+    const parentName = [step1Data.firstName, step1Data.lastName].filter(Boolean).join(' ') || step1Data.email;
+    setIsGeneratingChildOtp(true);
+    try {
+      const res = await axios.post('/api/v1/students/link-otp/generate', {
+        studentEmail: foundChild.email,
+        parentName,
+      }, { headers: { Authorization: `Bearer ${regToken}` } });
+      setChildOtpExpiresAt(new Date(res.data.expiresAt));
+      setChildOtpSecondsLeft(300);
+      setChildOtpSent(true);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } } };
+      toast.error(err?.response?.data?.detail ?? 'Failed to generate OTP. Please try again.');
+    } finally {
+      setIsGeneratingChildOtp(false);
+    }
+  }
+
   async function handleLinkChildAndFinish() {
     if (!foundChild || !parentProfileId || !regToken) { navigate('/parent'); return; }
+    if (!childOtpSent || childOtp.length !== 6) return;
     setIsLinkingChild(true);
     try {
-      const res = await axios.get('/api/v1/centers?size=1', { headers: { Authorization: `Bearer ${regToken}` } });
-      const centers = Array.isArray(res.data) ? res.data : (res.data.content ?? []);
+      const verifyRes = await axios.post('/api/v1/students/link-otp/verify', {
+        studentEmail: foundChild.email,
+        otp: childOtp,
+      }, { headers: { Authorization: `Bearer ${regToken}` } });
+      const { studentId, studentName } = verifyRes.data;
+
+      const centersRes = await axios.get('/api/v1/centers?size=1', { headers: { Authorization: `Bearer ${regToken}` } });
+      const centers = Array.isArray(centersRes.data) ? centersRes.data : (centersRes.data.content ?? []);
       const cId = centers[0]?.id;
       await axios.post(`/api/v1/parents/${parentProfileId}/students`, {
-        studentId: foundChild.id,
-        studentName: `${foundChild.firstName} ${foundChild.lastName}`,
+        studentId,
+        studentName,
         centerId: cId ?? '00000000-0000-0000-0000-000000000000',
         relationship: childRelationship,
       }, { headers: { Authorization: `Bearer ${regToken}` } });
       toast.success(`${foundChild.firstName} linked to your account!`);
     } catch (e: unknown) {
       const err = e as { response?: { data?: { detail?: string } } };
-      toast.error(err?.response?.data?.detail ?? 'Could not link child — you can try again from your dashboard.');
+      const msg = err?.response?.data?.detail ?? '';
+      if (msg.toLowerCase().includes('otp') || msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('expired')) {
+        setChildOtpError('Incorrect or expired OTP. Please try again.');
+        setIsLinkingChild(false);
+        return;
+      }
+      toast.error(msg || 'Could not link child — you can try again from your dashboard.');
     } finally {
       setIsLinkingChild(false);
       navigate('/parent');
@@ -1210,7 +1260,7 @@ export default function RegisterPage() {
               </motion.div>
             )}
 
-            {/* ── Step 4: PARENT — Link Child ── */}
+            {/* ── Step 4: PARENT — Link Child (OTP flow) ── */}
             {step === parentLinkStep && selectedRole === 'PARENT' && (
               <motion.div
                 key="step4-link-child"
@@ -1223,55 +1273,86 @@ export default function RegisterPage() {
               >
                 <h2 className="text-2xl font-bold text-white mb-1">Link Your Child</h2>
                 <p className="text-white/40 mb-6 text-sm">
-                  Enter the 6-digit code shown on your child's Student Profile page. You can also skip this and link later from your dashboard.
+                  Securely link your child using a one-time verification code. You can also skip and link later from your dashboard.
                 </p>
 
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-white/70 mb-1.5">Child's Verification Code</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        maxLength={6}
-                        value={childLinkCode}
-                        onChange={(e) => { setChildLinkCode(e.target.value.replace(/\D/g, '')); setFoundChild(null); setChildLookupError(''); }}
-                        onKeyDown={(e) => e.key === 'Enter' && handleChildLookup()}
-                        placeholder="739251"
-                        className="flex-1 input tracking-widest text-center font-mono text-lg"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleChildLookup}
-                        disabled={isLookingUpChild || childLinkCode.length !== 6}
-                        className="btn-primary px-4 py-2.5 text-sm disabled:opacity-50"
-                      >
-                        {isLookingUpChild ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Find'}
-                      </button>
-                    </div>
-                    {childLookupError && <p className="text-xs text-red-400 mt-2">{childLookupError}</p>}
-                  </div>
+                  {!childOtpSent ? (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-white/70 mb-1.5">Child's Email Address</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="email"
+                            value={childEmail}
+                            onChange={(e) => { setChildEmail(e.target.value); setFoundChild(null); setChildLookupError(''); }}
+                            onKeyDown={(e) => e.key === 'Enter' && handleChildEmailLookup()}
+                            placeholder="child@example.com"
+                            className="flex-1 input"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleChildEmailLookup}
+                            disabled={isLookingUpChild || !childEmail.trim()}
+                            className="btn-primary px-4 py-2.5 text-sm disabled:opacity-50"
+                          >
+                            {isLookingUpChild ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Find'}
+                          </button>
+                        </div>
+                        {childLookupError && <p className="text-xs text-red-400 mt-2">{childLookupError}</p>}
+                      </div>
 
-                  {foundChild && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4 space-y-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-brand-400 font-bold text-sm">
-                            {foundChild.firstName?.[0]}{foundChild.lastName?.[0]}
+                      {foundChild && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4"
+                        >
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
+                              <span className="text-brand-400 font-bold text-sm">{foundChild.firstName?.[0]}{foundChild.lastName?.[0]}</span>
+                            </div>
+                            <div>
+                              <div className="font-semibold text-white">{foundChild.firstName} {foundChild.lastName}</div>
+                              <div className="text-xs text-white/40">
+                                {[foundChild.currentClass && `Class ${foundChild.currentClass}`, foundChild.board, foundChild.city].filter(Boolean).join(' · ')}
+                              </div>
+                            </div>
+                          </div>
+                          <p className="text-xs text-white/50">Is this your child? Click "Generate OTP" to send a verification code to their portal.</p>
+                        </motion.div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
+                        <p className="text-sm text-amber-300 font-medium mb-1">OTP sent to your child's portal</p>
+                        <p className="text-xs text-white/50">
+                          Ask <span className="text-white font-medium">{foundChild?.firstName}</span> to open their Student Portal → Settings → Parent Link Request and share the 6-digit OTP with you.
+                        </p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-xs text-white/30">Expires in</span>
+                          <span className={`text-xs font-mono font-bold ${childOtpSecondsLeft < 60 ? 'text-red-400' : 'text-amber-400'}`}>
+                            {`${Math.floor(childOtpSecondsLeft / 60)}:${String(childOtpSecondsLeft % 60).padStart(2, '0')}`}
                           </span>
                         </div>
-                        <div>
-                          <div className="font-semibold text-white">{foundChild.firstName} {foundChild.lastName}</div>
-                          <div className="text-xs text-white/40">
-                            {[foundChild.currentClass && `Class ${foundChild.currentClass}`, foundChild.board, foundChild.city].filter(Boolean).join(' · ')}
-                          </div>
-                        </div>
                       </div>
+
                       <div>
-                        <label className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-1.5 block">Your relationship</label>
+                        <label className="block text-sm font-medium text-white/70 mb-1.5">Enter OTP shared by your child</label>
+                        <input
+                          type="text"
+                          value={childOtp}
+                          maxLength={6}
+                          onChange={(e) => { setChildOtp(e.target.value.replace(/\D/g, '')); setChildOtpError(''); }}
+                          placeholder="6-digit OTP"
+                          className="w-full input tracking-[0.4em] text-center font-mono text-2xl"
+                        />
+                        {childOtpError && <p className="text-xs text-red-400 mt-2">{childOtpError}</p>}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-white/70 mb-1.5">Your relationship to {foundChild?.firstName}</label>
                         <select
                           value={childRelationship}
                           onChange={(e) => setChildRelationship(e.target.value)}
@@ -1284,7 +1365,7 @@ export default function RegisterPage() {
                           <option value="OTHER">Other</option>
                         </select>
                       </div>
-                    </motion.div>
+                    </>
                   )}
 
                   <div className="flex gap-3 pt-2">
@@ -1295,16 +1376,40 @@ export default function RegisterPage() {
                     >
                       Skip for now
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleLinkChildAndFinish}
-                      disabled={!foundChild || isLinkingChild}
-                      className="flex-1 btn-primary py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                      {isLinkingChild ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                      {isLinkingChild ? 'Linking…' : 'Link & Go to Dashboard'}
-                    </button>
+                    {!childOtpSent ? (
+                      <button
+                        type="button"
+                        onClick={handleGenerateChildOtp}
+                        disabled={!foundChild || isGeneratingChildOtp}
+                        className="flex-1 btn-primary py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {isGeneratingChildOtp ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                        {isGeneratingChildOtp ? 'Sending…' : 'Generate OTP'}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleLinkChildAndFinish}
+                        disabled={childOtp.length !== 6 || isLinkingChild || childOtpSecondsLeft <= 0}
+                        className="flex-1 btn-primary py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {isLinkingChild ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                        {isLinkingChild ? 'Linking…' : 'Verify & Link'}
+                      </button>
+                    )}
                   </div>
+                  {childOtpSent && childOtpSecondsLeft <= 0 && (
+                    <p className="text-xs text-red-400 text-center">
+                      OTP expired.{' '}
+                      <button
+                        type="button"
+                        className="underline text-brand-400"
+                        onClick={() => { setChildOtpSent(false); setChildOtp(''); setFoundChild(null); setChildEmail(''); }}
+                      >
+                        Start over
+                      </button>
+                    </p>
+                  )}
                 </div>
               </motion.div>
             )}

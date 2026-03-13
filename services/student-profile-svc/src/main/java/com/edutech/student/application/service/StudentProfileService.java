@@ -1,9 +1,16 @@
 package com.edutech.student.application.service;
 
 import com.edutech.student.application.dto.CreateStudentProfileRequest;
+import com.edutech.student.application.dto.GenerateLinkOtpRequest;
+import com.edutech.student.application.dto.GenerateLinkOtpResponse;
+import com.edutech.student.application.dto.PendingLinkResponse;
+import com.edutech.student.application.dto.StudentLookupResponse;
 import com.edutech.student.application.dto.StudentProfileResponse;
 import com.edutech.student.application.dto.UpdateStudentProfileRequest;
+import com.edutech.student.application.dto.VerifyLinkOtpRequest;
+import com.edutech.student.application.dto.VerifyLinkOtpResponse;
 import com.edutech.student.application.exception.DuplicateStudentException;
+import com.edutech.student.application.exception.InvalidLinkOtpException;
 import com.edutech.student.application.exception.StudentNotFoundException;
 import com.edutech.student.domain.event.StudentProfileCreatedEvent;
 import com.edutech.student.domain.model.StudentProfile;
@@ -127,6 +134,46 @@ public class StudentProfileService implements CreateStudentProfileUseCase,
                 .orElseThrow(() -> new StudentNotFoundException(userId));
         profile.regenerateLinkCode();
         return toResponse(profileRepository.save(profile));
+    }
+
+    @Transactional(readOnly = true)
+    public StudentLookupResponse lookupByEmail(String email) {
+        StudentProfile p = profileRepository.findByEmail(email)
+                .orElseThrow(() -> new StudentNotFoundException(null));
+        return new StudentLookupResponse(p.getId(), p.getFirstName(), p.getLastName(),
+                p.getEmail(), p.getCity(), p.getCurrentBoard() != null ? p.getCurrentBoard().name() : null, p.getCurrentClass());
+    }
+
+    public GenerateLinkOtpResponse generateLinkOtp(GenerateLinkOtpRequest request, UUID parentUserId) {
+        StudentProfile profile = profileRepository.findByEmail(request.studentEmail())
+                .orElseThrow(() -> new StudentNotFoundException(null));
+        profile.generateLinkOtp(parentUserId, request.parentName());
+        StudentProfile saved = profileRepository.save(profile);
+        log.info("Link OTP generated for student={} by parent={}", saved.getId(), parentUserId);
+        return new GenerateLinkOtpResponse(saved.getId(),
+                saved.getFirstName() + " " + saved.getLastName(),
+                saved.getLinkOtpExpiresAt());
+    }
+
+    @Transactional(readOnly = true)
+    public PendingLinkResponse getPendingLink(UUID userId) {
+        StudentProfile profile = profileRepository.findByUserId(userId)
+                .orElseThrow(() -> new StudentNotFoundException(userId));
+        if (!profile.isLinkOtpValid()) {
+            throw new StudentNotFoundException(null);
+        }
+        return new PendingLinkResponse(profile.getLinkOtp(), profile.getLinkOtpParentName(), profile.getLinkOtpExpiresAt());
+    }
+
+    public VerifyLinkOtpResponse verifyLinkOtp(VerifyLinkOtpRequest request) {
+        StudentProfile profile = profileRepository.findByEmail(request.studentEmail())
+                .orElseThrow(() -> new StudentNotFoundException(null));
+        if (!profile.isLinkOtpValid() || !profile.getLinkOtp().equals(request.otp())) {
+            throw new InvalidLinkOtpException();
+        }
+        profile.clearLinkOtp();
+        profileRepository.save(profile);
+        return new VerifyLinkOtpResponse(profile.getId(), profile.getFirstName() + " " + profile.getLastName());
     }
 
     private StudentProfileResponse toResponse(StudentProfile p) {
