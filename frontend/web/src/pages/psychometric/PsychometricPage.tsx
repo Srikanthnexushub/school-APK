@@ -321,41 +321,23 @@ export default function PsychometricPage() {
           </p>
         </motion.div>
 
-        {/* Empty state */}
+        {/* Profile not activated state */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           className="card text-center py-16 space-y-6"
         >
-          <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-violet-600/30 to-brand-600/30 flex items-center justify-center">
-            <Brain className="w-10 h-10 text-violet-400" />
+          <div className="w-20 h-20 mx-auto rounded-full bg-amber-600/20 flex items-center justify-center">
+            <Brain className="w-10 h-10 text-amber-400" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white mb-2">No Assessment Taken Yet</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">Profile Not Activated</h2>
             <p className="text-white/50 max-w-md mx-auto text-sm">
-              Take a science-backed psychometric assessment to unlock your Big Five personality profile, RIASEC career code, and personalised learning style recommendations.
+              Your psychometric profile hasn't been set up yet. Please contact your center administrator or counselor — they'll activate it so you can take the assessment.
             </p>
           </div>
-          <button
-            onClick={openModal}
-            className="btn-primary flex items-center gap-2 mx-auto"
-          >
-            <RefreshCw className="w-4 h-4" /> Take Assessment Now
-          </button>
         </motion.div>
-
-        {/* Assessment Modal — no profile */}
-        <AssessmentModal
-          isOpen={showAssessModal}
-          onClose={() => setShowAssessModal(false)}
-          hasProfile={false}
-          assessStep={assessStep}
-          quizAnswers={quizAnswers}
-          setQuizAnswers={setQuizAnswers}
-          onStartQuiz={handleStartQuiz}
-          onSubmit={handleSubmitAssessment}
-        />
       </div>
     );
   }
