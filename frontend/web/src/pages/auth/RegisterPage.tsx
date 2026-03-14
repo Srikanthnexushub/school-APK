@@ -14,6 +14,7 @@ import {
   GraduationCap,
   Users,
   Briefcase,
+  Building2,
   CheckCircle2,
   Loader2,
 } from 'lucide-react';
@@ -74,7 +75,7 @@ function calculateAge(dob: string): number {
   return age;
 }
 
-type Role = 'STUDENT' | 'PARENT' | 'TEACHER';
+type Role = 'STUDENT' | 'PARENT' | 'TEACHER' | 'INSTITUTION';
 
 const roleCards: { role: Role; label: string; description: string; Icon: React.ElementType }[] = [
   {
@@ -94,6 +95,12 @@ const roleCards: { role: Role; label: string; description: string; Icon: React.E
     label: 'Mentor',
     description: 'Coach students, conduct sessions, and track their performance analytics.',
     Icon: Briefcase,
+  },
+  {
+    role: 'INSTITUTION',
+    label: 'Institution',
+    description: 'Register your coaching centre or school and manage students, batches, and assessments.',
+    Icon: Building2,
   },
 ];
 
@@ -278,6 +285,10 @@ export default function RegisterPage() {
   async function onStep2Continue() {
     if (!selectedRole) {
       toast.error('Please select a role to continue');
+      return;
+    }
+    if (selectedRole === 'INSTITUTION') {
+      navigate('/register-institution');
       return;
     }
     if (selectedRole === 'STUDENT') {
@@ -902,7 +913,7 @@ export default function RegisterPage() {
                   </div>
                 )}
 
-                {selectedRole !== 'STUDENT' && (
+                {selectedRole !== 'STUDENT' && selectedRole !== 'INSTITUTION' && (
                   <div className="flex justify-center mb-4">
                     <CaptchaWidget onVerify={handleCaptchaVerify} />
                   </div>
@@ -915,12 +926,12 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={onStep2Continue}
-                    disabled={isRegistering || (selectedRole !== 'STUDENT' && !captchaToken)}
+                    disabled={isRegistering || (selectedRole !== 'STUDENT' && selectedRole !== 'INSTITUTION' && !captchaToken)}
                     className="btn-primary flex-1 flex items-center justify-center gap-2 py-3"
                   >
                     {isRegistering ? (
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : selectedRole === 'STUDENT' ? (
+                    ) : selectedRole === 'STUDENT' || selectedRole === 'INSTITUTION' ? (
                       <>
                         Continue <ArrowRight className="w-4 h-4" />
                       </>

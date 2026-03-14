@@ -178,6 +178,11 @@ export default function RegisterInstitutionPage() {
         phone: adminForm.phone || null,
         role: 'CENTER_ADMIN',
         captchaToken,
+        deviceFingerprint: {
+          userAgent: navigator.userAgent,
+          deviceId,
+          ipSubnet: '127.0.0',
+        },
       }, { headers: { 'X-Device-Id': deviceId } });
       setStep(2);
       toast.success('OTP sent to ' + adminForm.email);
@@ -211,7 +216,10 @@ export default function RegisterInstitutionPage() {
       setRegistrationToken(jwt);
 
       // Create pending institution registration
-      const regRes = await api.post('/api/v1/centers/register', {
+      // Use plain axios (not the shared api instance) so the auth-store interceptor
+      // cannot override our registration JWT with a stale session token.
+      const baseURL = import.meta.env.VITE_API_BASE_URL ?? '';
+      const regRes = await axios.post(`${baseURL}/api/v1/centers/register`, {
         name: instForm.name,
         institutionType: instForm.institutionType,
         board: instForm.board || null,
@@ -223,7 +231,10 @@ export default function RegisterInstitutionPage() {
         email: instForm.email,
         website: instForm.website || null,
       }, {
-        headers: { Authorization: `Bearer ${jwt}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${jwt}`,
+        },
       });
 
       if (regRes.data.warningMessage) {
