@@ -11,12 +11,9 @@ import {
   ArrowLeft,
   Eye,
   EyeOff,
-  GraduationCap,
-  Users,
-  Briefcase,
-  Building2,
   CheckCircle2,
   Loader2,
+  ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import CaptchaWidget from '../../components/CaptchaWidget';
@@ -26,7 +23,6 @@ import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../lib/utils';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
-
 
 const step1Schema = z
   .object({
@@ -75,45 +71,19 @@ function calculateAge(dob: string): number {
   return age;
 }
 
-type Role = 'STUDENT' | 'PARENT' | 'TEACHER' | 'INSTITUTION';
+type Role = 'STUDENT' | 'PARENT' | 'TEACHER' | 'CENTER_ADMIN';
 
-const roleCards: { role: Role; label: string; description: string; Icon: React.ElementType }[] = [
-  {
-    role: 'STUDENT',
-    label: 'Student',
-    description: 'Prepare for competitive exams with AI guidance and personalised study plans.',
-    Icon: GraduationCap,
-  },
-  {
-    role: 'PARENT',
-    label: 'Parent',
-    description: "Monitor your child's progress, fee payments, and receive real-time updates.",
-    Icon: Users,
-  },
-  {
-    role: 'TEACHER',
-    label: 'Mentor',
-    description: 'Coach students, conduct sessions, and track their performance analytics.',
-    Icon: Briefcase,
-  },
-  {
-    role: 'INSTITUTION',
-    label: 'Institution',
-    description: 'Register your coaching centre or school and manage students, batches, and assessments.',
-    Icon: Building2,
-  },
+const roleOptions: { role: Role; label: string; description: string }[] = [
+  { role: 'STUDENT', label: 'Student', description: 'Prepare for competitive exams with AI guidance and personalised study plans.' },
+  { role: 'PARENT', label: 'Parent', description: "Monitor your child's progress, fee payments, and receive real-time updates." },
+  { role: 'TEACHER', label: 'Teacher', description: 'Coach students, conduct sessions, and track their performance analytics.' },
+  { role: 'CENTER_ADMIN', label: 'Institution', description: 'Manage your coaching centre, batches, teachers, and student enrolments.' },
 ];
 
 const slideVariants = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? 60 : -60,
-    opacity: 0,
-  }),
+  enter: (direction: number) => ({ x: direction > 0 ? 60 : -60, opacity: 0 }),
   center: { x: 0, opacity: 1 },
-  exit: (direction: number) => ({
-    x: direction < 0 ? 60 : -60,
-    opacity: 0,
-  }),
+  exit: (direction: number) => ({ x: direction < 0 ? 60 : -60, opacity: 0 }),
 };
 
 export default function RegisterPage() {
@@ -121,6 +91,8 @@ export default function RegisterPage() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
+  const [showOtp, setShowOtp] = useState(false);
+  const [showLinkChild, setShowLinkChild] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [showPw, setShowPw] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -144,13 +116,17 @@ export default function RegisterPage() {
   const [isUnder13, setIsUnder13] = useState(false);
   const [parentEmail, setParentEmail] = useState<string | null>(null);
   const [resendsRemaining, setResendsRemaining] = useState<number | null>(null);
-  // Teacher-specific fields (collected in Step 2)
+  // Teacher-specific fields
   const [teacherInstitutionCode, setTeacherInstitutionCode] = useState('');
   const [teacherCenterId, setTeacherCenterId] = useState<string | null>(null);
   const [teacherCenterName, setTeacherCenterName] = useState<string | null>(null);
   const [teacherSubjectsInput, setTeacherSubjectsInput] = useState('');
   const [isValidatingTeacherCode, setIsValidatingTeacherCode] = useState(false);
-  // Parent-specific fields (collected in Step 2)
+  // Institution-specific fields
+  const [institutionName, setInstitutionName] = useState('');
+  const [institutionCity, setInstitutionCity] = useState('');
+  const [institutionPhone, setInstitutionPhone] = useState('');
+  // Parent-specific fields
   const [parentPhone, setParentPhone] = useState('');
   const [parentOccupation, setParentOccupation] = useState('');
   // Parent child-linking step state
@@ -230,7 +206,7 @@ export default function RegisterPage() {
     return () => clearInterval(interval);
   }, [childOtpSent, childOtpExpiresAt]);
 
-  // Live debounce lookup for institution code
+  // Live debounce lookup for institution code (student academic step)
   useEffect(() => {
     const code = watchedInstitutionCode?.trim();
     if (!code || code.length < 3) {
@@ -258,20 +234,13 @@ export default function RegisterPage() {
     special: /[^A-Za-z0-9]/.test(watchedPassword),
   };
 
+  // Steps: "Your Role" and "Verify Email" are merged into Personal Details (step 1)
   const steps =
     selectedRole === 'STUDENT'
-      ? [
-          'Personal Details',
-          'Your Role',
-          'Academic Info',
-          ...(isUnder13 ? ['Parental Consent'] : []),
-          'Create Account',
-          'Subjects',
-          'Verify Email',
-        ]
+      ? ['Personal Details', 'Academic Info', ...(isUnder13 ? ['Parental Consent'] : []), 'Subjects']
       : selectedRole === 'PARENT'
-      ? ['Personal Details', 'Your Role', 'Verify Email', 'Link Child']
-      : ['Personal Details', 'Your Role', 'Verify Email'];
+      ? ['Personal Details']
+      : ['Personal Details'];
 
   function goNext() {
     setDirection(1);
@@ -283,54 +252,46 @@ export default function RegisterPage() {
     setStep((s) => s - 1);
   }
 
+  // Step 1: unified submit — registers account then shows OTP inline
   async function onStep1Submit(data: Step1Data) {
-    setStep1Data(data);
-    goNext();
-  }
-
-  async function onStep2Continue() {
     if (!selectedRole) {
-      toast.error('Please select a role to continue');
+      toast.error('Please select your role to continue');
       return;
     }
-    if (selectedRole === 'INSTITUTION') {
-      navigate('/register-institution');
-      return;
-    }
-    if (selectedRole === 'STUDENT') {
-      goNext();
-      return;
+    setStep1Data(data);
+
+    // CENTER_ADMIN: validate institution fields
+    if (selectedRole === 'CENTER_ADMIN') {
+      if (!institutionName.trim()) { toast.error('Institution name is required'); return; }
+      if (!institutionCity.trim()) { toast.error('City is required'); return; }
+      if (!institutionPhone.trim()) { toast.error('Institution phone is required'); return; }
     }
 
-    // TEACHER: validate institution code if provided
-    if (selectedRole === 'TEACHER' && teacherInstitutionCode.trim()) {
-      if (!teacherCenterId) {
-        setIsValidatingTeacherCode(true);
-        try {
-          const resp = await api.get(`/api/v1/centers/lookup?code=${encodeURIComponent(teacherInstitutionCode.trim())}`);
-          setTeacherCenterId(resp.data.id);
-          setTeacherCenterName(resp.data.name);
-        } catch {
-          toast.error('Institution code not found. Check with your institution head.');
-          setIsValidatingTeacherCode(false);
-          return;
-        } finally {
-          setIsValidatingTeacherCode(false);
-        }
+    // TEACHER: validate institution code if provided and not yet resolved
+    if (selectedRole === 'TEACHER' && teacherInstitutionCode.trim() && !teacherCenterId) {
+      setIsValidatingTeacherCode(true);
+      try {
+        const resp = await api.get(`/api/v1/centers/lookup?code=${encodeURIComponent(teacherInstitutionCode.trim())}`);
+        setTeacherCenterId(resp.data.id);
+        setTeacherCenterName(resp.data.name);
+      } catch {
+        toast.error('Institution code not found. Check with your institution head.');
+        setIsValidatingTeacherCode(false);
+        return;
+      } finally {
+        setIsValidatingTeacherCode(false);
       }
     }
 
-    // PARENT / TEACHER: captcha + register inline
-    if (!step1Data) return;
     setIsRegistering(true);
     try {
       const deviceId = crypto.randomUUID();
       setRegDeviceId(deviceId);
       const response = await api.post('/api/v1/auth/register', {
-        firstName: step1Data.firstName,
-        lastName: step1Data.lastName,
-        email: step1Data.email,
-        password: step1Data.password,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        password: data.password,
         role: selectedRole,
         centerId: selectedRole === 'TEACHER' ? (teacherCenterId ?? undefined) : undefined,
         captchaToken: captchaToken!,
@@ -342,18 +303,16 @@ export default function RegisterPage() {
       });
       setRegToken(response.data.accessToken);
       setRegRefreshToken(response.data.refreshToken ?? null);
-      toast.success('Account created! Check your email for OTP.');
-      goNext();
+      toast.success('Account created! Check your email for the 6-digit OTP.');
+      setShowOtp(true);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number; data?: { detail?: string } } };
       if (axiosErr.response?.status === 409) {
         toast.info('Account already exists. Sending a new verification code…');
         try {
-          await api.post('/api/v1/otp/send', { email: step1Data.email, purpose: 'EMAIL_VERIFICATION', channel: 'email' });
-        } catch {
-          // non-fatal
-        }
-        goNext();
+          await api.post('/api/v1/otp/send', { email: data.email, purpose: 'EMAIL_VERIFICATION', channel: 'email' });
+        } catch { /* non-fatal */ }
+        setShowOtp(true);
       } else {
         toast.error(axiosErr.response?.data?.detail ?? 'Registration failed');
         setCaptchaToken(null);
@@ -363,18 +322,21 @@ export default function RegisterPage() {
     }
   }
 
+  // Academic Details submit (step 2 for STUDENT)
   async function onStep3Submit(data: Step3Data) {
     setIsValidatingCode(true);
     try {
-      // Re-validate only if live lookup hasn't already resolved the code
-      if (!centerName || !centerId) {
+      let resolvedCenterId = centerId;
+      if (!centerName || !resolvedCenterId) {
         const resp = await api.get(`/api/v1/centers/lookup?code=${encodeURIComponent(data.institutionCode)}`);
-        setCenterId(resp.data.id);
+        resolvedCenterId = resp.data.id;
+        setCenterId(resolvedCenterId);
         setCenterName(resp.data.name);
       }
       const age = calculateAge(data.dateOfBirth);
       setIsUnder13(age < 13);
       setStep3Data(data);
+      if (regToken && resolvedCenterId) await loadSubjects(regToken, resolvedCenterId);
       goNext();
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number } };
@@ -393,53 +355,12 @@ export default function RegisterPage() {
     goNext();
   }
 
-  async function onStep4Continue() {
-    if (!step1Data) return;
-    setIsRegistering(true);
-    try {
-      const response = await api.post('/api/v1/auth/register', {
-        firstName: step1Data.firstName,
-        lastName: step1Data.lastName,
-        email: step1Data.email,
-        password: step1Data.password,
-        role: 'STUDENT',
-        centerId: centerId || undefined,
-        captchaToken: captchaToken!,
-        deviceFingerprint: {
-          userAgent: navigator.userAgent,
-          deviceId: crypto.randomUUID(),
-          ipSubnet: '127.0.0',
-        },
-        parentEmail: parentEmail ?? undefined,
-      });
-      setRegToken(response.data.accessToken);
-      toast.success('Account created! Fetching your subjects…');
-      await loadSubjects(response.data.accessToken);
-      goNext();
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { status?: number; data?: { detail?: string } } };
-      if (axiosErr.response?.status === 409) {
-        toast.info('Account already exists. Sending a new verification code…');
-        try {
-          await api.post('/api/v1/otp/send', { email: step1Data.email, purpose: 'EMAIL_VERIFICATION', channel: 'email' });
-        } catch {
-          // non-fatal
-        }
-        goNext();
-      } else {
-        toast.error(axiosErr.response?.data?.detail ?? 'Registration failed');
-        setCaptchaToken(null);
-      }
-    } finally {
-      setIsRegistering(false);
-    }
-  }
-
-  async function loadSubjects(token: string) {
-    if (!centerId) return;
+  async function loadSubjects(token: string, cId?: string) {
+    const resolvedId = cId ?? centerId;
+    if (!resolvedId) return;
     setIsLoadingSubjects(true);
     try {
-      const { data } = await axios.get(`/api/v1/centers/${centerId}/batches?size=100`, {
+      const { data } = await axios.get(`/api/v1/centers/${resolvedId}/batches?size=100`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const batches = Array.isArray(data) ? data : (data.content ?? []);
@@ -458,12 +379,41 @@ export default function RegisterPage() {
     );
   }
 
-  function onStep5Continue() {
+  async function onSubjectsContinue() {
     if (availableSubjects.length > 0 && selectedSubjects.length === 0) {
       toast.error('Please select at least one subject');
       return;
     }
-    goNext();
+    // Create student profile after subjects are selected
+    if (step1Data && step3Data && regToken) {
+      try {
+        const payload = JSON.parse(atob(regToken.split('.')[1]));
+        const userId = payload.sub as string;
+        await axios.post(
+          '/api/v1/students',
+          {
+            userId,
+            firstName: step1Data.firstName,
+            lastName: step1Data.lastName,
+            email: step1Data.email,
+            phone: step3Data.phone || undefined,
+            gender: null,
+            dateOfBirth: step3Data.dateOfBirth,
+            city: undefined,
+            state: undefined,
+            pincode: undefined,
+            board: step3Data.board,
+            currentClass: step3Data.grade,
+            subjects: selectedSubjects,
+          },
+          { headers: { Authorization: `Bearer ${regToken}` } }
+        );
+      } catch (profileErr) {
+        console.error('Student profile creation failed (non-fatal):', profileErr);
+      }
+    }
+    toast.success('Profile complete! You can now sign in.');
+    navigate('/login');
   }
 
   async function onResendOtp() {
@@ -497,41 +447,12 @@ export default function RegisterPage() {
         purpose: 'EMAIL_VERIFICATION',
       });
 
-      if (selectedRole === 'STUDENT' && step3Data && regToken) {
-        try {
-          const payload = JSON.parse(atob(regToken.split('.')[1]));
-          const userId = payload.sub as string;
-          await axios.post(
-            '/api/v1/students',
-            {
-              userId,
-              firstName: step1Data.firstName,
-              lastName: step1Data.lastName,
-              email: step1Data.email,
-              phone: step3Data.phone || undefined,
-              gender: null,
-              dateOfBirth: step3Data.dateOfBirth,
-              city: undefined,
-              state: undefined,
-              pincode: undefined,
-              board: step3Data.board,
-              currentClass: step3Data.grade,
-              subjects: selectedSubjects,
-            },
-            { headers: { Authorization: `Bearer ${regToken}` } }
-          );
-        } catch (profileErr) {
-          console.error('Student profile creation failed (non-fatal):', profileErr);
-        }
-      }
-
       if (selectedRole === 'PARENT' && step1Data && regToken) {
         try {
           const meRes = await axios.get('/api/v1/auth/me', { headers: { Authorization: `Bearer ${regToken}` } });
           const u = meRes.data;
           const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;
           setAuth(regToken, { id: u.id, email: u.email, role: u.role, name }, regRefreshToken ?? '', regDeviceId ?? crypto.randomUUID());
-
           const profileRes = await axios.post('/api/v1/parents', {
             name,
             phone: parentPhone || undefined,
@@ -540,7 +461,8 @@ export default function RegisterPage() {
           }, { headers: { Authorization: `Bearer ${regToken}` } });
           setParentProfileId(profileRes.data.id);
           toast.success('Account verified! Optionally link your child below.');
-          goNext();
+          setShowOtp(false);
+          setShowLinkChild(true);
         } catch (parentErr) {
           console.error('Parent profile setup failed:', parentErr);
           toast.success('Email verified!');
@@ -549,7 +471,7 @@ export default function RegisterPage() {
         return;
       }
 
-      // TEACHER self-registration: create PENDING_APPROVAL record in center-svc
+      // TEACHER: self-register pending approval
       if (selectedRole === 'TEACHER' && teacherCenterId && regToken && step1Data) {
         try {
           await axios.post(
@@ -565,12 +487,45 @@ export default function RegisterPage() {
           );
           toast.success('Registration submitted! Awaiting approval from your institution coordinator.');
         } catch {
-          // Non-fatal — user can still log in later once account is verified
+          // Non-fatal
         }
         navigate('/login');
         return;
       }
 
+      // STUDENT: move to Academic Details (step 2)
+      if (selectedRole === 'STUDENT') {
+        toast.success('Email verified! Now tell us about your studies.');
+        setShowOtp(false);
+        goNext();
+        return;
+      }
+
+      // CENTER_ADMIN: create their institution in center-svc then redirect
+      if (selectedRole === 'CENTER_ADMIN') {
+        if (regToken) {
+          try {
+            await axios.post(
+              '/api/v1/centers/self-register',
+              {
+                name: institutionName.trim(),
+                city: institutionCity.trim(),
+                phone: institutionPhone.trim(),
+              },
+              { headers: { Authorization: `Bearer ${regToken}` } }
+            );
+            toast.success('Institution registered! You can now sign in.');
+          } catch {
+            toast.success('Account created! Institution details can be set up after sign-in.');
+          }
+        } else {
+          toast.success('Institution account created! You can now sign in.');
+        }
+        navigate('/login');
+        return;
+      }
+
+      // TEACHER without centerId or other cases
       toast.success('Email verified! You can now sign in.');
       navigate('/login');
     } catch (err: unknown) {
@@ -599,14 +554,10 @@ export default function RegisterPage() {
     }
   }
 
-  // Dynamic step indices for STUDENT flow (shift by 1 when under-13 consent step is inserted)
-  const consentStep   = isUnder13 ? 4 : null;
-  const createStep    = isUnder13 ? 5 : 4;
-  const subjectsStep  = isUnder13 ? 6 : 5;
-  // For STUDENT, OTP is step 7 (under-13) or step 6 (over-13); for others, step 3.
-  const otpStep = selectedRole === 'STUDENT' ? (isUnder13 ? 7 : 6) : 3;
-  // PARENT child link step = 4
-  const parentLinkStep = 4;
+  // Step indices (steps 1-based; OTP is now inline in step 1)
+  const consentStep   = isUnder13 ? 3 : null;
+  const subjectsStep  = isUnder13 ? 4 : 3;
+  const parentLinkStep = 2;
 
   async function handleChildEmailLookup() {
     const trimmed = childEmail.trim();
@@ -683,10 +634,10 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-surface flex items-center justify-center p-6">
-      <div className="w-full max-w-lg">
+    <div className="min-h-screen bg-surface flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="flex items-center gap-3 mb-8 justify-center">
+        <div className="flex items-center gap-3 mb-5 justify-center">
           <div className="p-2 rounded-xl bg-brand-600/20 border border-brand-500/30">
             <BookOpen className="w-5 h-5 text-brand-400" />
           </div>
@@ -694,7 +645,7 @@ export default function RegisterPage() {
         </div>
 
         {/* Progress bar */}
-        <div className="mb-8">
+        <div className="mb-5">
           <div className="flex items-center justify-between mb-3">
             {steps.map((label, i) => (
               <div key={label} className="flex items-center gap-2">
@@ -732,17 +683,17 @@ export default function RegisterPage() {
           <div className="h-1 bg-surface-100 rounded-full overflow-hidden">
             <motion.div
               className="h-full bg-gradient-to-r from-brand-600 to-violet-500 rounded-full"
-              animate={{ width: `${((step - 1) / (steps.length - 1)) * 100}%` }}
+              animate={{ width: `${((step - 1) / Math.max(steps.length - 1, 1)) * 100}%` }}
               transition={{ duration: 0.4, ease: 'easeOut' }}
             />
           </div>
         </div>
 
         {/* Step content */}
-        <div className="card overflow-hidden relative min-h-[420px]">
+        <div className="glass rounded-2xl p-4 overflow-hidden relative min-h-[380px]">
           <AnimatePresence custom={direction} mode="wait">
 
-            {/* ── Step 1: Personal Details ── */}
+            {/* ── Step 1: Personal Details (merged: role + details + role-specific + captcha + OTP inline) ── */}
             {step === 1 && (
               <motion.div
                 key="step1"
@@ -753,297 +704,506 @@ export default function RegisterPage() {
                 exit="exit"
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
               >
-                <h2 className="text-2xl font-bold text-white mb-1">Create your account</h2>
-                <p className="text-white/40 mb-6 text-sm">Get started with NexusEd today.</p>
+                <AnimatePresence mode="wait">
 
-                {GOOGLE_CLIENT_ID && (
-                  <div className="mb-5">
-                    <GoogleSignInButton
-                      onSuccess={handleGoogleSuccess}
-                      onError={() => toast.error('Google Sign-In was cancelled or failed.')}
-                      loading={isGoogleLoading}
-                      label="Continue with Google"
-                    />
-                    <div className="flex items-center gap-3 mt-4 mb-2">
-                      <div className="flex-1 h-px bg-white/10" />
-                      <span className="text-white/30 text-xs">or sign up with email</span>
-                      <div className="flex-1 h-px bg-white/10" />
-                    </div>
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmit(onStep1Submit)} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-white/70 mb-1.5">First Name</label>
-                      <input
-                        {...register('firstName')}
-                        type="text"
-                        placeholder="Jane"
-                        className={cn('input w-full', errors.firstName && 'border-red-500/50')}
-                      />
-                      {errors.firstName && <p className="text-red-400 text-xs mt-1">{errors.firstName.message}</p>}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-white/70 mb-1.5">Last Name</label>
-                      <input
-                        {...register('lastName')}
-                        type="text"
-                        placeholder="Smith"
-                        className={cn('input w-full', errors.lastName && 'border-red-500/50')}
-                      />
-                      {errors.lastName && <p className="text-red-400 text-xs mt-1">{errors.lastName.message}</p>}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-white/70 mb-1.5">Email</label>
-                    <input
-                      {...register('email')}
-                      type="email"
-                      placeholder="you@example.com"
-                      className={cn('input w-full', errors.email && 'border-red-500/50')}
-                    />
-                    {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-white/70 mb-1.5">Password</label>
-                    <div className="relative">
-                      <input
-                        {...register('password')}
-                        type={showPw ? 'text' : 'password'}
-                        placeholder="••••••••"
-                        className={cn('input w-full pr-10', errors.password && 'border-red-500/50')}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPw(!showPw)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors"
-                      >
-                        {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {[
-                        { key: 'length', label: '≥ 8 chars' },
-                        { key: 'upper', label: '1 uppercase' },
-                        { key: 'digit', label: '1 digit' },
-                        { key: 'special', label: '1 special char' },
-                      ].map(({ key, label }) => (
-                        <span
-                          key={key}
-                          className={cn(
-                            'text-xs px-2 py-0.5 rounded-full border transition-colors',
-                            pwChecks[key as keyof typeof pwChecks]
-                              ? 'border-green-500/50 bg-green-500/10 text-green-400'
-                              : 'border-white/10 text-white/30'
-                          )}
-                        >
-                          {label}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-white/70 mb-1.5">Confirm Password</label>
-                    <div className="relative">
-                      <input
-                        {...register('confirmPassword')}
-                        type={showConfirm ? 'text' : 'password'}
-                        placeholder="••••••••"
-                        className={cn('input w-full pr-10', errors.confirmPassword && 'border-red-500/50')}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirm(!showConfirm)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors"
-                      >
-                        {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    {errors.confirmPassword && (
-                      <p className="text-red-400 text-xs mt-1">{errors.confirmPassword.message}</p>
-                    )}
-                  </div>
-
-                  <button type="submit" className="btn-primary w-full flex items-center justify-center gap-2 py-3 mt-2">
-                    Continue <ArrowRight className="w-4 h-4" />
-                  </button>
-                </form>
-              </motion.div>
-            )}
-
-            {/* ── Step 2: Role Selection ── */}
-            {step === 2 && (
-              <motion.div
-                key="step2"
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.3, ease: 'easeInOut' }}
-              >
-                <h2 className="text-2xl font-bold text-white mb-1">Choose your role</h2>
-                <p className="text-white/40 mb-6 text-sm">Select how you&apos;ll use NexusEd.</p>
-
-                <div className="space-y-3 mb-6">
-                  {roleCards.map(({ role, label, description, Icon }) => (
-                    <button
-                      key={role}
-                      type="button"
-                      onClick={() => setSelectedRole(role)}
-                      className={cn(
-                        'w-full text-left p-4 rounded-xl border transition-all duration-200 flex items-start gap-4',
-                        selectedRole === role
-                          ? 'border-brand-500 bg-brand-500/10'
-                          : 'border-white/10 bg-surface-100/50 hover:border-white/20 hover:bg-surface-100'
-                      )}
+                  {/* Phase A: Registration Form */}
+                  {!showOtp && !showLinkChild && (
+                    <motion.div
+                      key="step1-form"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.25 }}
                     >
-                      <div
-                        className={cn(
-                          'p-2.5 rounded-lg flex-shrink-0',
-                          selectedRole === role ? 'bg-brand-600/30' : 'bg-surface-200/60'
-                        )}
-                      >
-                        <Icon
-                          className={cn(
-                            'w-5 h-5',
-                            selectedRole === role ? 'text-brand-400' : 'text-white/40'
-                          )}
-                        />
-                      </div>
-                      <div>
-                        <div
-                          className={cn(
-                            'font-semibold text-sm',
-                            selectedRole === role ? 'text-white' : 'text-white/70'
-                          )}
-                        >
-                          {label}
+                      <h2 className="text-2xl font-bold text-white mb-1">Create your account</h2>
+                      <p className="text-white/40 mb-6 text-sm">Get started with NexusEd today.</p>
+
+                      {GOOGLE_CLIENT_ID && (
+                        <div className="mb-5">
+                          <GoogleSignInButton
+                            onSuccess={handleGoogleSuccess}
+                            onError={() => toast.error('Google Sign-In was cancelled or failed.')}
+                            loading={isGoogleLoading}
+                            label="Continue with Google"
+                          />
+                          <div className="flex items-center gap-3 mt-4 mb-2">
+                            <div className="flex-1 h-px bg-white/10" />
+                            <span className="text-white/30 text-xs">or sign up with email</span>
+                            <div className="flex-1 h-px bg-white/10" />
+                          </div>
                         </div>
-                        <div className="text-xs text-white/40 mt-0.5 leading-relaxed">{description}</div>
-                      </div>
-                      {selectedRole === role && (
-                        <CheckCircle2 className="w-4 h-4 text-brand-400 flex-shrink-0 ml-auto mt-0.5" />
                       )}
-                    </button>
-                  ))}
-                </div>
 
-                {selectedRole === 'PARENT' && (
-                  <div className="space-y-3 mb-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium text-white/70 mb-1.5">Phone Number</label>
-                        <input
-                          type="tel"
-                          value={parentPhone}
-                          onChange={(e) => setParentPhone(e.target.value)}
-                          placeholder="+91 87654 32100"
-                          className="input w-full"
-                        />
+                      <form onSubmit={handleSubmit(onStep1Submit)} className="space-y-4">
+
+                        {/* Role dropdown — before first name */}
+                        <div>
+                          <label className="block text-sm font-medium text-white/70 mb-1.5">I am a</label>
+                          <div className="relative">
+                            <select
+                              value={selectedRole ?? ''}
+                              onChange={(e) => setSelectedRole((e.target.value as Role) || null)}
+                              className={cn(
+                                'input w-full appearance-none pr-10',
+                                !selectedRole && 'text-white/30'
+                              )}
+                            >
+                              <option value="" disabled>Select your role</option>
+                              {roleOptions.map(({ role, label }) => (
+                                <option key={role} value={role}>{label}</option>
+                              ))}
+                            </select>
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
+                          </div>
+                          {selectedRole && (
+                            <p className="text-white/30 text-xs mt-1.5">
+                              {roleOptions.find((r) => r.role === selectedRole)?.description}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* First Name + Last Name */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-white/70 mb-1.5">First Name</label>
+                            <input
+                              {...register('firstName')}
+                              type="text"
+                              placeholder="Jane"
+                              className={cn('input w-full', errors.firstName && 'border-red-500/50')}
+                            />
+                            {errors.firstName && <p className="text-red-400 text-xs mt-1">{errors.firstName.message}</p>}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-white/70 mb-1.5">Last Name</label>
+                            <input
+                              {...register('lastName')}
+                              type="text"
+                              placeholder="Smith"
+                              className={cn('input w-full', errors.lastName && 'border-red-500/50')}
+                            />
+                            {errors.lastName && <p className="text-red-400 text-xs mt-1">{errors.lastName.message}</p>}
+                          </div>
+                        </div>
+
+                        {/* Email */}
+                        <div>
+                          <label className="block text-sm font-medium text-white/70 mb-1.5">Email</label>
+                          <input
+                            {...register('email')}
+                            type="email"
+                            placeholder="you@example.com"
+                            className={cn('input w-full', errors.email && 'border-red-500/50')}
+                          />
+                          {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
+                        </div>
+
+                        {/* Password */}
+                        <div>
+                          <label className="block text-sm font-medium text-white/70 mb-1.5">Password</label>
+                          <div className="relative">
+                            <input
+                              {...register('password')}
+                              type={showPw ? 'text' : 'password'}
+                              placeholder="••••••••"
+                              className={cn('input w-full pr-10', errors.password && 'border-red-500/50')}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPw(!showPw)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors"
+                            >
+                              {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
+                          {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {[
+                              { key: 'length', label: '≥ 8 chars' },
+                              { key: 'upper', label: '1 uppercase' },
+                              { key: 'digit', label: '1 digit' },
+                              { key: 'special', label: '1 special char' },
+                            ].map(({ key, label }) => (
+                              <span
+                                key={key}
+                                className={cn(
+                                  'text-xs px-2 py-0.5 rounded-full border transition-colors',
+                                  pwChecks[key as keyof typeof pwChecks]
+                                    ? 'border-green-500/50 bg-green-500/10 text-green-400'
+                                    : 'border-white/10 text-white/30'
+                                )}
+                              >
+                                {label}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Confirm Password */}
+                        <div>
+                          <label className="block text-sm font-medium text-white/70 mb-1.5">Confirm Password</label>
+                          <div className="relative">
+                            <input
+                              {...register('confirmPassword')}
+                              type={showConfirm ? 'text' : 'password'}
+                              placeholder="••••••••"
+                              className={cn('input w-full pr-10', errors.confirmPassword && 'border-red-500/50')}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowConfirm(!showConfirm)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors"
+                            >
+                              {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
+                          {errors.confirmPassword && (
+                            <p className="text-red-400 text-xs mt-1">{errors.confirmPassword.message}</p>
+                          )}
+                        </div>
+
+                        {/* Role-specific fields — PARENT */}
+                        {selectedRole === 'PARENT' && (
+                          <div className="space-y-3 pt-1">
+                            <div className="h-px bg-white/5" />
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-sm font-medium text-white/70 mb-1.5">Phone Number</label>
+                                <input
+                                  type="tel"
+                                  value={parentPhone}
+                                  onChange={(e) => setParentPhone(e.target.value)}
+                                  placeholder="+91 87654 32100"
+                                  className="input w-full"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-white/70 mb-1.5">Occupation</label>
+                                <input
+                                  type="text"
+                                  value={parentOccupation}
+                                  onChange={(e) => setParentOccupation(e.target.value)}
+                                  placeholder="e.g. Marketing Manager"
+                                  className="input w-full"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Role-specific fields — TEACHER */}
+                        {selectedRole === 'TEACHER' && (
+                          <div className="space-y-3 pt-1">
+                            <div className="h-px bg-white/5" />
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">
+                                Institution Code <span className="text-white/30">(optional)</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={teacherInstitutionCode}
+                                onChange={async (e) => {
+                                  const code = e.target.value;
+                                  setTeacherInstitutionCode(code);
+                                  setTeacherCenterId(null);
+                                  setTeacherCenterName(null);
+                                  if (code.trim().length >= 3) {
+                                    try {
+                                      const resp = await api.get(`/api/v1/centers/lookup?code=${encodeURIComponent(code.trim())}`);
+                                      setTeacherCenterId(resp.data.id);
+                                      setTeacherCenterName(resp.data.name);
+                                    } catch { /* not found yet */ }
+                                  }
+                                }}
+                                placeholder="e.g. NEXUS-DPS-001"
+                                className="input w-full"
+                              />
+                              {teacherCenterName && (
+                                <p className="text-green-400 text-xs mt-1">✓ {teacherCenterName}</p>
+                              )}
+                              {teacherInstitutionCode.trim().length >= 3 && !teacherCenterName && (
+                                <p className="text-white/30 text-xs mt-1">Institution not found — you can leave this blank and add later.</p>
+                              )}
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">
+                                Subjects <span className="text-white/30">(comma-separated, optional)</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={teacherSubjectsInput}
+                                onChange={(e) => setTeacherSubjectsInput(e.target.value)}
+                                placeholder="Mathematics, Physics"
+                                className="input w-full"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Role-specific fields — INSTITUTION */}
+                        {selectedRole === 'CENTER_ADMIN' && (
+                          <div className="space-y-3 pt-1">
+                            <div className="h-px bg-white/5" />
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">
+                                Institution Name <span className="text-red-400">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={institutionName}
+                                onChange={(e) => setInstitutionName(e.target.value)}
+                                placeholder="e.g. Delhi Public Coaching Centre"
+                                className="input w-full"
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-sm font-medium text-white/70 mb-1.5">
+                                  City <span className="text-red-400">*</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  value={institutionCity}
+                                  onChange={(e) => setInstitutionCity(e.target.value)}
+                                  placeholder="e.g. Mumbai"
+                                  className="input w-full"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-white/70 mb-1.5">
+                                  Phone <span className="text-red-400">*</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  value={institutionPhone}
+                                  onChange={(e) => setInstitutionPhone(e.target.value)}
+                                  placeholder="+91 98765 43210"
+                                  className="input w-full"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Captcha — shown when role is selected */}
+                        {selectedRole && (
+                          <div className="flex justify-center pt-1">
+                            <CaptchaWidget onVerify={handleCaptchaVerify} />
+                          </div>
+                        )}
+
+                        <button
+                          type="submit"
+                          disabled={!selectedRole || !captchaToken || isRegistering || isValidatingTeacherCode}
+                          className="btn-primary w-full flex items-center justify-center gap-2 py-3 mt-2 disabled:opacity-50"
+                        >
+                          {isRegistering || isValidatingTeacherCode ? (
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          ) : (
+                            <>Create Account <ArrowRight className="w-4 h-4" /></>
+                          )}
+                        </button>
+                      </form>
+                    </motion.div>
+                  )}
+
+                  {/* Phase C: Link Child (PARENT — inline after OTP verification) */}
+                  {showLinkChild && selectedRole === 'PARENT' && (
+                    <motion.div
+                      key="step1-link-child"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.25 }}
+                    >
+                      <h2 className="text-2xl font-bold text-white mb-1">Link Your Child</h2>
+                      <p className="text-white/40 mb-6 text-sm">
+                        Securely link your child using a one-time verification code. You can also skip and link later from your dashboard.
+                      </p>
+
+                      <div className="space-y-4">
+                        {!childOtpSent ? (
+                          <>
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Child's Email Address</label>
+                              <div className="flex gap-2">
+                                <input
+                                  type="email"
+                                  value={childEmail}
+                                  onChange={(e) => { setChildEmail(e.target.value); setFoundChild(null); setChildLookupError(''); }}
+                                  onKeyDown={(e) => e.key === 'Enter' && handleChildEmailLookup()}
+                                  placeholder="child@example.com"
+                                  className="flex-1 input"
+                                />
+                                <button type="button" onClick={handleChildEmailLookup} disabled={isLookingUpChild || !childEmail.trim()} className="btn-primary px-4 py-2.5 text-sm disabled:opacity-50">
+                                  {isLookingUpChild ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Find'}
+                                </button>
+                              </div>
+                              {childLookupError && <p className="text-xs text-red-400 mt-2">{childLookupError}</p>}
+                            </div>
+                            {foundChild && (
+                              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4">
+                                <div className="flex items-center gap-3 mb-3">
+                                  <div className="w-10 h-10 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
+                                    <span className="text-brand-400 font-bold text-sm">{foundChild.firstName?.[0]}{foundChild.lastName?.[0]}</span>
+                                  </div>
+                                  <div>
+                                    <div className="font-semibold text-white">{foundChild.firstName} {foundChild.lastName}</div>
+                                    <div className="text-xs text-white/40">{[foundChild.currentClass && `Class ${foundChild.currentClass}`, foundChild.board, foundChild.city].filter(Boolean).join(' · ')}</div>
+                                  </div>
+                                </div>
+                                <p className="text-xs text-white/50">Is this your child? Click "Generate OTP" to send a verification code to their portal.</p>
+                              </motion.div>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
+                              <p className="text-sm text-amber-300 font-medium mb-1">OTP sent to your child's portal</p>
+                              <p className="text-xs text-white/50">Ask <span className="text-white font-medium">{foundChild?.firstName}</span> to open their Student Portal → Settings → Parent Link Request and share the 6-digit OTP with you.</p>
+                              <div className="mt-2 flex items-center gap-2">
+                                <span className="text-xs text-white/30">Expires in</span>
+                                <span className={`text-xs font-mono font-bold ${childOtpSecondsLeft < 60 ? 'text-red-400' : 'text-amber-400'}`}>
+                                  {`${Math.floor(childOtpSecondsLeft / 60)}:${String(childOtpSecondsLeft % 60).padStart(2, '0')}`}
+                                </span>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Enter OTP shared by your child</label>
+                              <input type="text" value={childOtp} maxLength={6} onChange={(e) => { setChildOtp(e.target.value.replace(/\D/g, '')); setChildOtpError(''); }} placeholder="6-digit OTP" className="w-full input tracking-[0.4em] text-center font-mono text-2xl" />
+                              {childOtpError && <p className="text-xs text-red-400 mt-2">{childOtpError}</p>}
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Your relationship to {foundChild?.firstName}</label>
+                              <select value={childRelationship} onChange={(e) => setChildRelationship(e.target.value)} className="w-full input">
+                                <option value="MOTHER">Mother</option>
+                                <option value="FATHER">Father</option>
+                                <option value="GUARDIAN">Guardian</option>
+                                <option value="GRANDPARENT">Grandparent</option>
+                                <option value="OTHER">Other</option>
+                              </select>
+                            </div>
+                          </>
+                        )}
+
+                        <div className="flex gap-3 pt-2">
+                          <button type="button" onClick={() => navigate('/parent')} className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-colors">
+                            Skip for now
+                          </button>
+                          {!childOtpSent ? (
+                            <button type="button" onClick={handleGenerateChildOtp} disabled={!foundChild || isGeneratingChildOtp} className="flex-1 btn-primary py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50">
+                              {isGeneratingChildOtp ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                              {isGeneratingChildOtp ? 'Sending…' : 'Generate OTP'}
+                            </button>
+                          ) : (
+                            <button type="button" onClick={handleLinkChildAndFinish} disabled={childOtp.length !== 6 || isLinkingChild || childOtpSecondsLeft <= 0} className="flex-1 btn-primary py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50">
+                              {isLinkingChild ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                              {isLinkingChild ? 'Linking…' : 'Verify & Link'}
+                            </button>
+                          )}
+                        </div>
+                        {childOtpSent && childOtpSecondsLeft <= 0 && (
+                          <p className="text-xs text-red-400 text-center">
+                            OTP expired.{' '}
+                            <button type="button" className="underline text-brand-400" onClick={() => { setChildOtpSent(false); setChildOtp(''); setFoundChild(null); setChildEmail(''); }}>
+                              Start over
+                            </button>
+                          </p>
+                        )}
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-white/70 mb-1.5">Occupation</label>
-                        <input
-                          type="text"
-                          value={parentOccupation}
-                          onChange={(e) => setParentOccupation(e.target.value)}
-                          placeholder="e.g. Marketing Manager"
-                          className="input w-full"
-                        />
+                    </motion.div>
+                  )}
+
+                  {/* Phase B: Verify Email (inline OTP — same step 1) */}
+                  {showOtp && (
+                    <motion.div
+                      key="step1-otp"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.25 }}
+                      className="text-center"
+                    >
+                      <div className="flex justify-center mb-4">
+                        <div className="p-4 rounded-2xl bg-brand-600/20 border border-brand-500/30">
+                          <CheckCircle2 className="w-8 h-8 text-brand-400" />
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                )}
+                      <h2 className="text-2xl font-bold text-white mb-1">Verify your email</h2>
+                      <p className="text-white/40 mb-2 text-sm">
+                        We sent a 6-digit code to{' '}
+                        <span className="text-white/60 font-medium">{step1Data?.email}</span>
+                      </p>
+                      <p className="text-white/30 text-xs mb-8">Check your inbox and spam folder.</p>
 
-                {selectedRole === 'TEACHER' && (
-                  <div className="space-y-3 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-white/70 mb-1.5">
-                        Institution Code <span className="text-white/30">(optional)</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={teacherInstitutionCode}
-                        onChange={async (e) => {
-                          const code = e.target.value;
-                          setTeacherInstitutionCode(code);
-                          setTeacherCenterId(null);
-                          setTeacherCenterName(null);
-                          if (code.trim().length >= 3) {
-                            try {
-                              const resp = await api.get(`/api/v1/centers/lookup?code=${encodeURIComponent(code.trim())}`);
-                              setTeacherCenterId(resp.data.id);
-                              setTeacherCenterName(resp.data.name);
-                            } catch { /* not found yet */ }
-                          }
-                        }}
-                        placeholder="e.g. NEXUS-DPS-001"
-                        className="input w-full"
-                      />
-                      {teacherCenterName && (
-                        <p className="text-green-400 text-xs mt-1">✓ {teacherCenterName}</p>
-                      )}
-                      {teacherInstitutionCode.trim().length >= 3 && !teacherCenterName && (
-                        <p className="text-white/30 text-xs mt-1">Institution not found — you can leave this blank and add later.</p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-white/70 mb-1.5">
-                        Subjects <span className="text-white/30">(comma-separated, optional)</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={teacherSubjectsInput}
-                        onChange={(e) => setTeacherSubjectsInput(e.target.value)}
-                        placeholder="Mathematics, Physics"
-                        className="input w-full"
-                      />
-                    </div>
-                  </div>
-                )}
+                      <div className="flex justify-center gap-3 mb-8">
+                        {otpValues.map((val, i) => (
+                          <input
+                            key={i}
+                            id={`otp-${i}`}
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={1}
+                            value={val}
+                            onChange={(e) => handleOtpChange(i, e.target.value)}
+                            onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                            className="w-11 h-14 text-center text-xl font-bold bg-surface-100 border border-white/10 rounded-xl text-white focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+                          />
+                        ))}
+                      </div>
 
-                {selectedRole !== 'STUDENT' && selectedRole !== 'INSTITUTION' && (
-                  <div className="flex justify-center mb-4">
-                    <CaptchaWidget onVerify={handleCaptchaVerify} />
-                  </div>
-                )}
+                      <button
+                        type="button"
+                        onClick={onVerifyOtp}
+                        disabled={isVerifying || otpValues.some((v) => !v)}
+                        className="btn-primary w-full flex items-center justify-center gap-2 py-3 mb-4"
+                      >
+                        {isVerifying ? (
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                          'Verify & Continue'
+                        )}
+                      </button>
 
-                <div className="flex gap-3">
-                  <button type="button" onClick={goBack} className="btn-ghost flex items-center gap-2 py-3 px-4">
-                    <ArrowLeft className="w-4 h-4" /> Back
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onStep2Continue}
-                    disabled={isRegistering || isValidatingTeacherCode || (selectedRole !== 'STUDENT' && selectedRole !== 'INSTITUTION' && !captchaToken)}
-                    className="btn-primary flex-1 flex items-center justify-center gap-2 py-3"
-                  >
-                    {isRegistering || isValidatingTeacherCode ? (
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : selectedRole === 'STUDENT' || selectedRole === 'INSTITUTION' ? (
-                      <>
-                        Continue <ArrowRight className="w-4 h-4" />
-                      </>
-                    ) : (
-                      <>
-                        Create Account <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                </div>
+                      <div className="flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => setShowOtp(false)}
+                          className="text-xs text-white/30 hover:text-white/60 transition-colors"
+                        >
+                          <ArrowLeft className="w-3 h-3 inline mr-1" />
+                          Go back
+                        </button>
+                        <div className="flex flex-col items-end gap-0.5">
+                          <button
+                            type="button"
+                            onClick={onResendOtp}
+                            disabled={isResending || resendsRemaining === 0}
+                            className="text-xs text-brand-400 hover:text-brand-300 transition-colors disabled:opacity-50"
+                          >
+                            {isResending ? 'Sending…' : 'Resend code'}
+                          </button>
+                          {resendsRemaining !== null && (
+                            <span className={cn(
+                              'text-xs',
+                              resendsRemaining === 0 ? 'text-red-400' : 'text-white/30'
+                            )}>
+                              {resendsRemaining === 0 ? 'Limit reached' : `${resendsRemaining} resend${resendsRemaining === 1 ? '' : 's'} left`}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                </AnimatePresence>
               </motion.div>
             )}
 
-            {/* ── Step 3: Academic Details (STUDENT only) ── */}
-            {step === 3 && selectedRole === 'STUDENT' && (
+            {/* ── Step 2 (STUDENT): Academic Details ── */}
+            {step === 2 && selectedRole === 'STUDENT' && (
               <motion.div
-                key="step3-academic"
+                key="step2-academic"
                 custom={direction}
                 variants={slideVariants}
                 initial="enter"
@@ -1133,9 +1293,7 @@ export default function RegisterPage() {
                       {isValidatingCode ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
                       ) : (
-                        <>
-                          Continue <ArrowRight className="w-4 h-4" />
-                        </>
+                        <>Continue <ArrowRight className="w-4 h-4" /></>
                       )}
                     </button>
                   </div>
@@ -1143,7 +1301,7 @@ export default function RegisterPage() {
               </motion.div>
             )}
 
-            {/* ── Step 3.5: Parental Consent (STUDENT under-13 only) ── */}
+            {/* ── Parental Consent (STUDENT under-13) ── */}
             {step === consentStep && selectedRole === 'STUDENT' && isUnder13 && (
               <motion.div
                 key="step-consent"
@@ -1185,50 +1343,10 @@ export default function RegisterPage() {
               </motion.div>
             )}
 
-            {/* ── Step 4 / 5: Captcha + Create Account (STUDENT only) ── */}
-            {step === createStep && selectedRole === 'STUDENT' && (
-              <motion.div
-                key="step4-register"
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.3, ease: 'easeInOut' }}
-              >
-                <h2 className="text-2xl font-bold text-white mb-1">Create your account</h2>
-                <p className="text-white/40 mb-6 text-sm">Complete the security check to register.</p>
-
-                <div className="flex justify-center mb-6">
-                  <CaptchaWidget onVerify={handleCaptchaVerify} />
-                </div>
-
-                <div className="flex gap-3">
-                  <button type="button" onClick={goBack} className="btn-ghost flex items-center gap-2 py-3 px-4">
-                    <ArrowLeft className="w-4 h-4" /> Back
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onStep4Continue}
-                    disabled={isRegistering || !captchaToken}
-                    className="btn-primary flex-1 flex items-center justify-center gap-2 py-3"
-                  >
-                    {isRegistering ? (
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        Create Account <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* ── Step 5 / 6: Subject Selection (STUDENT only) ── */}
+            {/* ── Subjects (STUDENT) ── */}
             {step === subjectsStep && selectedRole === 'STUDENT' && (
               <motion.div
-                key="step5-subjects"
+                key="step-subjects"
                 custom={direction}
                 variants={slideVariants}
                 initial="enter"
@@ -1273,249 +1391,11 @@ export default function RegisterPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={onStep5Continue}
+                    onClick={onSubjectsContinue}
                     className="btn-primary flex-1 flex items-center justify-center gap-2 py-3"
                   >
-                    Continue <ArrowRight className="w-4 h-4" />
+                    Finish <ArrowRight className="w-4 h-4" />
                   </button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* ── OTP Verify (step 3 for non-STUDENT, step 6 for STUDENT) ── */}
-            {step === otpStep && (
-              <motion.div
-                key="step-otp"
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.3, ease: 'easeInOut' }}
-                className="text-center"
-              >
-                <div className="flex justify-center mb-4">
-                  <div className="p-4 rounded-2xl bg-brand-600/20 border border-brand-500/30">
-                    <CheckCircle2 className="w-8 h-8 text-brand-400" />
-                  </div>
-                </div>
-                <h2 className="text-2xl font-bold text-white mb-1">Verify your email</h2>
-                <p className="text-white/40 mb-2 text-sm">
-                  We sent a 6-digit code to{' '}
-                  <span className="text-white/60 font-medium">{step1Data?.email}</span>
-                </p>
-                <p className="text-white/30 text-xs mb-8">Check your inbox and spam folder.</p>
-
-                <div className="flex justify-center gap-3 mb-8">
-                  {otpValues.map((val, i) => (
-                    <input
-                      key={i}
-                      id={`otp-${i}`}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={val}
-                      onChange={(e) => handleOtpChange(i, e.target.value)}
-                      onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                      className="w-11 h-14 text-center text-xl font-bold bg-surface-100 border border-white/10 rounded-xl text-white focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
-                    />
-                  ))}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={onVerifyOtp}
-                  disabled={isVerifying || otpValues.some((v) => !v)}
-                  className="btn-primary w-full flex items-center justify-center gap-2 py-3 mb-4"
-                >
-                  {isVerifying ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    'Verify & Continue'
-                  )}
-                </button>
-
-                <div className="flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={goBack}
-                    className="text-xs text-white/30 hover:text-white/60 transition-colors"
-                  >
-                    <ArrowLeft className="w-3 h-3 inline mr-1" />
-                    Go back
-                  </button>
-                  <div className="flex flex-col items-end gap-0.5">
-                    <button
-                      type="button"
-                      onClick={onResendOtp}
-                      disabled={isResending || resendsRemaining === 0}
-                      className="text-xs text-brand-400 hover:text-brand-300 transition-colors disabled:opacity-50"
-                    >
-                      {isResending ? 'Sending…' : 'Resend code'}
-                    </button>
-                    {resendsRemaining !== null && (
-                      <span className={cn(
-                        'text-xs',
-                        resendsRemaining === 0 ? 'text-red-400' : 'text-white/30'
-                      )}>
-                        {resendsRemaining === 0 ? 'Limit reached' : `${resendsRemaining} resend${resendsRemaining === 1 ? '' : 's'} left`}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* ── Step 4: PARENT — Link Child (OTP flow) ── */}
-            {step === parentLinkStep && selectedRole === 'PARENT' && (
-              <motion.div
-                key="step4-link-child"
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.3, ease: 'easeInOut' }}
-              >
-                <h2 className="text-2xl font-bold text-white mb-1">Link Your Child</h2>
-                <p className="text-white/40 mb-6 text-sm">
-                  Securely link your child using a one-time verification code. You can also skip and link later from your dashboard.
-                </p>
-
-                <div className="space-y-4">
-                  {!childOtpSent ? (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium text-white/70 mb-1.5">Child's Email Address</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="email"
-                            value={childEmail}
-                            onChange={(e) => { setChildEmail(e.target.value); setFoundChild(null); setChildLookupError(''); }}
-                            onKeyDown={(e) => e.key === 'Enter' && handleChildEmailLookup()}
-                            placeholder="child@example.com"
-                            className="flex-1 input"
-                          />
-                          <button
-                            type="button"
-                            onClick={handleChildEmailLookup}
-                            disabled={isLookingUpChild || !childEmail.trim()}
-                            className="btn-primary px-4 py-2.5 text-sm disabled:opacity-50"
-                          >
-                            {isLookingUpChild ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Find'}
-                          </button>
-                        </div>
-                        {childLookupError && <p className="text-xs text-red-400 mt-2">{childLookupError}</p>}
-                      </div>
-
-                      {foundChild && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4"
-                        >
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
-                              <span className="text-brand-400 font-bold text-sm">{foundChild.firstName?.[0]}{foundChild.lastName?.[0]}</span>
-                            </div>
-                            <div>
-                              <div className="font-semibold text-white">{foundChild.firstName} {foundChild.lastName}</div>
-                              <div className="text-xs text-white/40">
-                                {[foundChild.currentClass && `Class ${foundChild.currentClass}`, foundChild.board, foundChild.city].filter(Boolean).join(' · ')}
-                              </div>
-                            </div>
-                          </div>
-                          <p className="text-xs text-white/50">Is this your child? Click "Generate OTP" to send a verification code to their portal.</p>
-                        </motion.div>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
-                        <p className="text-sm text-amber-300 font-medium mb-1">OTP sent to your child's portal</p>
-                        <p className="text-xs text-white/50">
-                          Ask <span className="text-white font-medium">{foundChild?.firstName}</span> to open their Student Portal → Settings → Parent Link Request and share the 6-digit OTP with you.
-                        </p>
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className="text-xs text-white/30">Expires in</span>
-                          <span className={`text-xs font-mono font-bold ${childOtpSecondsLeft < 60 ? 'text-red-400' : 'text-amber-400'}`}>
-                            {`${Math.floor(childOtpSecondsLeft / 60)}:${String(childOtpSecondsLeft % 60).padStart(2, '0')}`}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-white/70 mb-1.5">Enter OTP shared by your child</label>
-                        <input
-                          type="text"
-                          value={childOtp}
-                          maxLength={6}
-                          onChange={(e) => { setChildOtp(e.target.value.replace(/\D/g, '')); setChildOtpError(''); }}
-                          placeholder="6-digit OTP"
-                          className="w-full input tracking-[0.4em] text-center font-mono text-2xl"
-                        />
-                        {childOtpError && <p className="text-xs text-red-400 mt-2">{childOtpError}</p>}
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-white/70 mb-1.5">Your relationship to {foundChild?.firstName}</label>
-                        <select
-                          value={childRelationship}
-                          onChange={(e) => setChildRelationship(e.target.value)}
-                          className="w-full input"
-                        >
-                          <option value="MOTHER">Mother</option>
-                          <option value="FATHER">Father</option>
-                          <option value="GUARDIAN">Guardian</option>
-                          <option value="GRANDPARENT">Grandparent</option>
-                          <option value="OTHER">Other</option>
-                        </select>
-                      </div>
-                    </>
-                  )}
-
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => navigate('/parent')}
-                      className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-colors"
-                    >
-                      Skip for now
-                    </button>
-                    {!childOtpSent ? (
-                      <button
-                        type="button"
-                        onClick={handleGenerateChildOtp}
-                        disabled={!foundChild || isGeneratingChildOtp}
-                        className="flex-1 btn-primary py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                      >
-                        {isGeneratingChildOtp ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                        {isGeneratingChildOtp ? 'Sending…' : 'Generate OTP'}
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleLinkChildAndFinish}
-                        disabled={childOtp.length !== 6 || isLinkingChild || childOtpSecondsLeft <= 0}
-                        className="flex-1 btn-primary py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                      >
-                        {isLinkingChild ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                        {isLinkingChild ? 'Linking…' : 'Verify & Link'}
-                      </button>
-                    )}
-                  </div>
-                  {childOtpSent && childOtpSecondsLeft <= 0 && (
-                    <p className="text-xs text-red-400 text-center">
-                      OTP expired.{' '}
-                      <button
-                        type="button"
-                        className="underline text-brand-400"
-                        onClick={() => { setChildOtpSent(false); setChildOtp(''); setFoundChild(null); setChildEmail(''); }}
-                      >
-                        Start over
-                      </button>
-                    </p>
-                  )}
                 </div>
               </motion.div>
             )}
