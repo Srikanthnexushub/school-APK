@@ -75,9 +75,18 @@ export default function OtpPage() {
     }
     setIsVerifying(true);
     try {
-      await api.post('/api/v1/auth/verify-otp', { email, otp, purpose });
-      toast.success('Email verified successfully!');
-      navigate('/login', { replace: true });
+      if (purpose === 'PASSWORD_RESET') {
+        // Password reset OTP — returns a short-lived resetToken
+        const res = await api.post('/api/v1/auth/verify-reset-otp', { email, otp });
+        const { resetToken } = res.data as { resetToken: string };
+        toast.success('OTP verified! Set your new password.');
+        navigate('/reset-password', { replace: true, state: { email, resetToken } });
+      } else {
+        // EMAIL_VERIFICATION — activates account and returns token pair
+        await api.post('/api/v1/otp/verify', { email, otp, purpose });
+        toast.success('Email verified successfully!');
+        navigate('/login', { replace: true });
+      }
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { detail?: string } } };
       toast.error(axiosErr.response?.data?.detail ?? 'Invalid or expired OTP');
@@ -92,7 +101,7 @@ export default function OtpPage() {
     if (!canResend || !email) return;
     setIsResending(true);
     try {
-      await api.post('/api/v1/auth/resend-otp', { email, purpose });
+      await api.post('/api/v1/otp/send', { email, purpose, channel: 'email' });
       toast.success('New OTP sent to your email!');
       setCountdown(60);
       setCanResend(false);

@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { BookOpen, Sparkles, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { BookOpen, Sparkles, ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import CaptchaWidget from '../../components/CaptchaWidget';
 import GoogleSignInButton from '../../components/GoogleSignInButton';
@@ -28,6 +28,14 @@ export default function LoginPage() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const handleCaptchaVerify = useCallback((token: string | null) => setCaptchaToken(token), []);
+
+  // MFA step state — populated when server returns 202 mfaRequired
+  const [mfaStep, setMfaStep] = useState<{
+    pendingMfaToken: string;
+    deviceId: string;
+  } | null>(null);
+  const [totpCode, setTotpCode] = useState('');
+  const [isMfaSubmitting, setIsMfaSubmitting] = useState(false);
   const {
     register,
     handleSubmit,
@@ -60,6 +68,20 @@ export default function LoginPage() {
     }
   }
 
+  async function finishLogin(accessToken: string, refreshToken: string, deviceId: string) {
+    const meRes = await api.get('/api/v1/auth/me', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const u = meRes.data;
+    const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;
+    setAuth(accessToken, { id: u.id, email: u.email, role: u.role, name, centerId: u.centerId ?? undefined }, refreshToken, deviceId);
+    toast.success('Welcome back!');
+    if (u.role === 'CENTER_ADMIN' || u.role === 'SUPER_ADMIN') navigate('/admin');
+    else if (u.role === 'PARENT') navigate('/parent');
+    else if (u.role === 'TEACHER') navigate('/mentor-portal');
+    else navigate('/dashboard');
+  }
+
   async function onSubmit(data: FormData) {
     try {
       const deviceId = crypto.randomUUID();
@@ -73,24 +95,43 @@ export default function LoginPage() {
           ipSubnet: '127.0.0',
         },
       });
+
+      // 202 Accepted → MFA required
+      if (loginRes.status === 202 && loginRes.data.mfaRequired) {
+        setMfaStep({ pendingMfaToken: loginRes.data.pendingMfaToken, deviceId });
+        return;
+      }
+
       const { accessToken, refreshToken } = loginRes.data;
-
-      const meRes = await api.get('/api/v1/auth/me', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const u = meRes.data;
-      const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;
-      setAuth(accessToken, { id: u.id, email: u.email, role: u.role, name, centerId: u.centerId ?? undefined }, refreshToken, deviceId);
-
-      toast.success('Welcome back!');
-      if (u.role === 'CENTER_ADMIN' || u.role === 'SUPER_ADMIN') navigate('/admin');
-      else if (u.role === 'PARENT') navigate('/parent');
-      else if (u.role === 'TEACHER') navigate('/mentor-portal');
-      else navigate('/dashboard');
+      await finishLogin(accessToken, refreshToken, deviceId);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { detail?: string; title?: string } } };
       toast.error(axiosErr.response?.data?.detail ?? axiosErr.response?.data?.title ?? 'Login failed');
       setCaptchaToken(null);
+    }
+  }
+
+  async function handleMfaVerify(e: React.FormEvent) {
+    e.preventDefault();
+    if (!mfaStep || totpCode.length !== 6) return;
+    setIsMfaSubmitting(true);
+    try {
+      const res = await api.post('/api/v1/auth/mfa/verify', {
+        pendingMfaToken: mfaStep.pendingMfaToken,
+        totpCode,
+        deviceFingerprint: {
+          userAgent: navigator.userAgent,
+          deviceId: mfaStep.deviceId,
+          ipSubnet: '127.0.0',
+        },
+      });
+      const { accessToken, refreshToken } = res.data;
+      await finishLogin(accessToken, refreshToken, mfaStep.deviceId);
+    } catch {
+      toast.error('Invalid authenticator code. Please try again.');
+      setTotpCode('');
+    } finally {
+      setIsMfaSubmitting(false);
     }
   }
 
@@ -153,6 +194,57 @@ export default function LoginPage() {
             <span className="font-bold text-lg text-white">NexusEd</span>
           </div>
 
+          {/* MFA step — replaces normal form after credentials are verified */}
+          {mfaStep ? (
+            <>
+              <div className="flex justify-center mb-5">
+                <div className="p-4 rounded-2xl bg-brand-600/20 border border-brand-500/30">
+                  <ShieldCheck className="w-8 h-8 text-brand-400" />
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Two-factor verification</h2>
+              <p className="text-white/50 mb-8">
+                Enter the 6-digit code from your authenticator app.
+              </p>
+              <form onSubmit={handleMfaVerify} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-white/70 mb-1.5">
+                    Authenticator code
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={totpCode}
+                    onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="000000"
+                    className="input w-full text-center text-2xl tracking-widest font-mono"
+                    autoFocus
+                    disabled={isMfaSubmitting}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isMfaSubmitting || totpCode.length !== 6}
+                  className="btn-primary w-full flex items-center justify-center gap-2 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isMfaSubmitting ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    'Verify & Sign in'
+                  )}
+                </button>
+              </form>
+              <button
+                type="button"
+                onClick={() => { setMfaStep(null); setTotpCode(''); setCaptchaToken(null); }}
+                className="mt-4 w-full text-center text-white/40 hover:text-white/70 text-sm transition-colors"
+              >
+                ← Back to login
+              </button>
+            </>
+          ) : (
+            <>
           <h2 className="text-3xl font-bold text-white mb-2">Welcome back</h2>
           <p className="text-white/50 mb-8">Sign in to continue your learning journey.</p>
 
@@ -260,6 +352,8 @@ export default function LoginPage() {
           <p className="mt-10 text-center text-white/15 text-xs">
             © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
           </p>
+          </>
+          )}
         </motion.div>
       </div>
     </div>

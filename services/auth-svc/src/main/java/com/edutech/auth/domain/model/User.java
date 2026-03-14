@@ -84,6 +84,12 @@ public class User {
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified;
 
+    @Column(name = "mfa_enabled", nullable = false)
+    private boolean mfaEnabled;
+
+    @Column(name = "totp_secret", length = 64)
+    private String totpSecret;
+
     // Required by JPA — not for application use
     protected User() {}
 
@@ -185,6 +191,18 @@ public class User {
         this.updatedAt = Instant.now();
     }
 
+    public void enableMfa(String totpSecret) {
+        this.totpSecret = totpSecret;
+        this.mfaEnabled = true;
+        this.updatedAt = Instant.now();
+    }
+
+    public void disableMfa() {
+        this.totpSecret = null;
+        this.mfaEnabled = false;
+        this.updatedAt = Instant.now();
+    }
+
     /** Links an OAuth provider to an existing email/password account. */
     public void linkOAuthProvider(String provider, String providerId) {
         this.provider = provider;
@@ -209,6 +227,10 @@ public class User {
         return this.status == UserStatus.PENDING_VERIFICATION;
     }
 
+    public boolean isMfaEnabled() {
+        return this.mfaEnabled;
+    }
+
     // -------------------------------------------------------------------------
     // Read-only accessors — no setters exposed
     // -------------------------------------------------------------------------
@@ -230,4 +252,5 @@ public class User {
     public String getProvider() { return provider; }
     public String getProviderId() { return providerId; }
     public boolean isEmailVerified() { return emailVerified; }
+    public String getTotpSecret() { return totpSecret; }
 }

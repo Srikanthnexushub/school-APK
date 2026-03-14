@@ -178,3 +178,9 @@ auth:
   cleanup:
     cron: "0 0 * * * *"          # every hour
     retention-hours: 72
+
+# MFA / TOTP (RFC 6238)
+mfa:
+  issuer: ${MFA_ISSUER:EduTech}
+  pending-token-ttl-seconds: ${MFA_PENDING_TOKEN_TTL_SECONDS:300}
+  reset-token-ttl-seconds: ${MFA_RESET_TOKEN_TTL_SECONDS:300}

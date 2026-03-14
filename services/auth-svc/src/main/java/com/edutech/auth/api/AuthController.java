@@ -2,10 +2,14 @@
 package com.edutech.auth.api;
 
 import com.edutech.auth.application.dto.AuthPrincipal;
+import com.edutech.auth.application.dto.ChangePasswordRequest;
+import com.edutech.auth.application.dto.ForgotPasswordRequest;
 import com.edutech.auth.application.dto.GoogleAuthRequest;
 import com.edutech.auth.application.dto.LoginRequest;
+import com.edutech.auth.application.dto.PasswordResetOtpVerifyResponse;
 import com.edutech.auth.application.dto.RefreshTokenRequest;
 import com.edutech.auth.application.dto.RegisterRequest;
+import com.edutech.auth.application.dto.ResetPasswordRequest;
 import com.edutech.auth.application.dto.TokenPair;
 import com.edutech.auth.application.dto.UpdateNameRequest;
 import com.edutech.auth.application.dto.UserResponse;
@@ -13,7 +17,9 @@ import com.edutech.auth.api.mapper.AuthMapper;
 import com.edutech.auth.application.service.GoogleOAuthService;
 import com.edutech.auth.domain.model.User;
 import com.edutech.auth.domain.port.in.AuthenticateUserUseCase;
+import com.edutech.auth.domain.port.in.ChangePasswordUseCase;
 import com.edutech.auth.domain.port.in.LogoutUseCase;
+import com.edutech.auth.domain.port.in.PasswordResetUseCase;
 import com.edutech.auth.domain.port.in.RefreshTokenUseCase;
 import com.edutech.auth.domain.port.in.RegisterUserUseCase;
 import com.edutech.auth.domain.port.out.UserRepository;
@@ -44,6 +50,8 @@ public class AuthController {
     private final AuthenticateUserUseCase authenticateUserUseCase;
     private final RefreshTokenUseCase refreshTokenUseCase;
     private final LogoutUseCase logoutUseCase;
+    private final ChangePasswordUseCase changePasswordUseCase;
+    private final PasswordResetUseCase passwordResetUseCase;
     private final UserRepository userRepository;
     private final AuthMapper authMapper;
     private final TrustedProxyValidator trustedProxyValidator;
@@ -53,6 +61,8 @@ public class AuthController {
                           AuthenticateUserUseCase authenticateUserUseCase,
                           RefreshTokenUseCase refreshTokenUseCase,
                           LogoutUseCase logoutUseCase,
+                          ChangePasswordUseCase changePasswordUseCase,
+                          PasswordResetUseCase passwordResetUseCase,
                           UserRepository userRepository,
                           AuthMapper authMapper,
                           TrustedProxyValidator trustedProxyValidator,
@@ -61,6 +71,8 @@ public class AuthController {
         this.authenticateUserUseCase = authenticateUserUseCase;
         this.refreshTokenUseCase = refreshTokenUseCase;
         this.logoutUseCase = logoutUseCase;
+        this.changePasswordUseCase = changePasswordUseCase;
+        this.passwordResetUseCase = passwordResetUseCase;
         this.userRepository = userRepository;
         this.authMapper = authMapper;
         this.trustedProxyValidator = trustedProxyValidator;
@@ -134,6 +146,39 @@ public class AuthController {
         user.updateName(request.firstName(), request.lastName());
         userRepository.save(user);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/change-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @SecurityRequirement(name = "BearerAuth")
+    @Operation(summary = "Change password — requires current password; invalidates all other sessions")
+    public void changePassword(@AuthenticationPrincipal AuthPrincipal principal,
+                               @Valid @RequestBody ChangePasswordRequest request) {
+        changePasswordUseCase.changePassword(
+            principal.userId(), request.currentPassword(), request.newPassword());
+    }
+
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Initiate password reset — sends a 6-digit OTP to the registered email")
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetUseCase.sendPasswordResetOtp(request.email());
+    }
+
+    @PostMapping("/verify-reset-otp")
+    @Operation(summary = "Verify password reset OTP — returns a short-lived reset token")
+    public PasswordResetOtpVerifyResponse verifyResetOtp(@Valid @RequestBody
+                                                         com.edutech.auth.application.dto.OtpVerifyRequest request) {
+        String resetToken = passwordResetUseCase.verifyPasswordResetOtp(request.email(), request.otp());
+        return new PasswordResetOtpVerifyResponse(resetToken);
+    }
+
+    @PostMapping("/reset-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Complete password reset using the token from verify-reset-otp; invalidates all sessions")
+    public void resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetUseCase.resetPassword(
+            request.email(), request.resetToken(), request.newPassword());
     }
 
     @GetMapping("/users/lookup")

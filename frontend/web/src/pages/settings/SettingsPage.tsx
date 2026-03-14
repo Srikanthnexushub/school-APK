@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
@@ -569,11 +570,25 @@ function AppearanceTab() {
 function SecurityTab() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
-  const [twoFAEnabled, setTwoFAEnabled] = useState(false);
+
+  // MFA state
+  const [mfaEnabled, setMfaEnabled] = useState<boolean | null>(null);
+  const [mfaSetup, setMfaSetup] = useState<{ secret: string; qrCodeUri: string } | null>(null);
+  const [mfaConfirmCode, setMfaConfirmCode] = useState('');
+  const [mfaDisableCode, setMfaDisableCode] = useState('');
+  const [showDisableInput, setShowDisableInput] = useState(false);
+  const [isMfaLoading, setIsMfaLoading] = useState(false);
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<PasswordForm>({
     resolver: zodResolver(passwordSchema),
   });
+
+  // Load MFA status on mount
+  useEffect(() => {
+    api.get('/api/v1/auth/mfa/status')
+      .then((r) => setMfaEnabled((r.data as { enabled: boolean }).enabled))
+      .catch(() => setMfaEnabled(false));
+  }, []);
 
   const passwordMutation = useMutation({
     mutationFn: (data: PasswordForm) =>
@@ -582,11 +597,65 @@ function SecurityTab() {
         newPassword: data.newPassword,
       }),
     onSuccess: () => {
-      toast.success('Password changed successfully!');
+      toast.success('Password changed successfully! Please log in again on other devices.');
       reset();
     },
-    onError: () => toast.error('Failed to change password. Check your current password.'),
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      const detail = axiosErr.response?.data?.detail;
+      toast.error(detail ?? 'Failed to change password. Check your current password.');
+    },
   });
+
+  async function handleMfaToggle(enable: boolean) {
+    if (enable) {
+      setIsMfaLoading(true);
+      try {
+        const r = await api.post('/api/v1/auth/mfa/setup');
+        setMfaSetup(r.data as { secret: string; qrCodeUri: string });
+      } catch {
+        toast.error('Failed to initiate 2FA setup.');
+      } finally {
+        setIsMfaLoading(false);
+      }
+    } else {
+      setShowDisableInput(true);
+    }
+  }
+
+  async function handleMfaConfirm() {
+    if (!mfaSetup || mfaConfirmCode.length !== 6) return;
+    setIsMfaLoading(true);
+    try {
+      await api.post('/api/v1/auth/mfa/setup/confirm', { totpCode: mfaConfirmCode });
+      setMfaEnabled(true);
+      setMfaSetup(null);
+      setMfaConfirmCode('');
+      toast.success('Two-factor authentication enabled!');
+    } catch {
+      toast.error('Invalid code. Please try again.');
+      setMfaConfirmCode('');
+    } finally {
+      setIsMfaLoading(false);
+    }
+  }
+
+  async function handleMfaDisable() {
+    if (mfaDisableCode.length !== 6) return;
+    setIsMfaLoading(true);
+    try {
+      await api.delete('/api/v1/auth/mfa/setup', { data: { totpCode: mfaDisableCode } });
+      setMfaEnabled(false);
+      setShowDisableInput(false);
+      setMfaDisableCode('');
+      toast.success('Two-factor authentication disabled.');
+    } catch {
+      toast.error('Invalid code. Please try again.');
+      setMfaDisableCode('');
+    } finally {
+      setIsMfaLoading(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -654,23 +723,114 @@ function SecurityTab() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-base font-semibold text-white">Two-Factor Authentication</h3>
-            <p className="text-white/40 text-sm mt-0.5">Add an extra layer of security to your account</p>
+            <p className="text-white/40 text-sm mt-0.5">
+              {mfaEnabled ? 'Your account is protected with an authenticator app.' : 'Add an extra layer of security to your account'}
+            </p>
           </div>
-          <Toggle
-            checked={twoFAEnabled}
-            onChange={(v) => { setTwoFAEnabled(v); toast.info('2FA setup coming soon!'); }}
-          />
+          {mfaEnabled !== null && (
+            <Toggle
+              checked={mfaEnabled}
+              onChange={handleMfaToggle}
+            />
+          )}
         </div>
-        {twoFAEnabled && (
+
+        {/* MFA Setup Flow */}
+        {mfaSetup && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
-            className="mt-4 p-3 bg-brand-600/10 border border-brand-600/20 rounded-xl"
+            className="mt-5 space-y-4"
           >
-            <p className="text-brand-300 text-sm flex items-center gap-2">
-              <Smartphone className="w-4 h-4" />
-              2FA setup will be available in the next release.
+            <div className="p-4 bg-surface-100 rounded-xl border border-white/10">
+              <p className="text-white/60 text-sm mb-3">
+                1. Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)
+              </p>
+              {/* QR code rendered client-side — secret never leaves the browser */}
+              <div className="flex justify-center mb-3 p-3 bg-white rounded-xl">
+                <QRCodeSVG value={mfaSetup.qrCodeUri} size={180} />
+              </div>
+              <p className="text-white/40 text-xs text-center mb-1">Or enter this code manually:</p>
+              <p className="text-brand-300 font-mono text-sm text-center break-all select-all">
+                {mfaSetup.secret}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-white/60 text-sm mb-2">
+                2. Enter the 6-digit code from your app to confirm setup
+              </p>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={mfaConfirmCode}
+                onChange={(e) => setMfaConfirmCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="000000"
+                className="input w-full text-center text-xl tracking-widest font-mono mb-3"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleMfaConfirm}
+                  disabled={mfaConfirmCode.length !== 6 || isMfaLoading}
+                  className="btn-primary flex-1 flex items-center justify-center gap-2"
+                >
+                  {isMfaLoading ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Smartphone className="w-4 h-4" />
+                  )}
+                  Enable 2FA
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMfaSetup(null); setMfaConfirmCode(''); }}
+                  className="px-4 py-2 rounded-xl border border-white/10 text-white/50 hover:text-white/70 text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* MFA Disable Flow */}
+        {showDisableInput && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="mt-4 space-y-3"
+          >
+            <p className="text-white/60 text-sm">
+              Enter your authenticator code to disable 2FA:
             </p>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={mfaDisableCode}
+              onChange={(e) => setMfaDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="000000"
+              className="input w-full text-center text-xl tracking-widest font-mono"
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleMfaDisable}
+                disabled={mfaDisableCode.length !== 6 || isMfaLoading}
+                className="px-4 py-2 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 text-sm disabled:opacity-50"
+              >
+                Disable 2FA
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowDisableInput(false); setMfaDisableCode(''); }}
+                className="px-4 py-2 rounded-xl border border-white/10 text-white/50 hover:text-white/70 text-sm"
+              >
+                Cancel
+              </button>
+            </div>
           </motion.div>
         )}
       </div>

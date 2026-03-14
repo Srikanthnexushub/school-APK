@@ -148,6 +148,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- TOTP / HOTP — RFC 6238 implementation for MFA/2FA -->
+        <dependency>
+            <groupId>dev.samstevens.totp</groupId>
+            <artifactId>totp-spring-boot-starter</artifactId>
+            <version>1.7.1</version>
+        </dependency>
+
         <!-- Internal shared libs -->
         <dependency>
             <groupId>com.edutech</groupId>

@@ -1,12 +1,20 @@
 // src/main/java/com/edutech/auth/api/GlobalExceptionHandler.java
 package com.edutech.auth.api;
 
+import com.edutech.auth.application.dto.MfaRequiredResponse;
 import com.edutech.auth.application.exception.AccountLockedException;
 import com.edutech.auth.application.exception.AccountNotVerifiedException;
 import com.edutech.auth.application.exception.CaptchaVerificationException;
 import com.edutech.auth.application.exception.EmailAlreadyExistsException;
+import com.edutech.auth.application.exception.IncorrectCurrentPasswordException;
 import com.edutech.auth.application.exception.InvalidCredentialsException;
+import com.edutech.auth.application.exception.InvalidMfaCodeException;
+import com.edutech.auth.application.exception.InvalidPendingMfaTokenException;
+import com.edutech.auth.application.exception.InvalidResetTokenException;
 import com.edutech.auth.application.exception.InvalidTokenException;
+import com.edutech.auth.application.exception.MfaAlreadyEnabledException;
+import com.edutech.auth.application.exception.MfaNotEnabledException;
+import com.edutech.auth.application.exception.MfaRequiredException;
 import com.edutech.auth.application.exception.OtpExpiredException;
 import com.edutech.auth.application.exception.OtpMaxAttemptsExceededException;
 import com.edutech.auth.application.exception.OtpMaxResendsExceededException;
@@ -16,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -93,6 +102,42 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UserNotFoundException.class)
     public ProblemDetail handleUserNotFound(UserNotFoundException ex) {
         return problem(HttpStatus.NOT_FOUND, "user-not-found", ex.getMessage());
+    }
+
+    @ExceptionHandler(MfaRequiredException.class)
+    public ResponseEntity<MfaRequiredResponse> handleMfaRequired(MfaRequiredException ex) {
+        return ResponseEntity.accepted()
+            .body(new MfaRequiredResponse(ex.getPendingMfaToken()));
+    }
+
+    @ExceptionHandler(InvalidMfaCodeException.class)
+    public ProblemDetail handleInvalidMfaCode(InvalidMfaCodeException ex) {
+        return problem(HttpStatus.UNPROCESSABLE_ENTITY, "invalid-mfa-code", ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidPendingMfaTokenException.class)
+    public ProblemDetail handleInvalidPendingMfaToken(InvalidPendingMfaTokenException ex) {
+        return problem(HttpStatus.UNAUTHORIZED, "invalid-mfa-session", ex.getMessage());
+    }
+
+    @ExceptionHandler(MfaAlreadyEnabledException.class)
+    public ProblemDetail handleMfaAlreadyEnabled(MfaAlreadyEnabledException ex) {
+        return problem(HttpStatus.CONFLICT, "mfa-already-enabled", ex.getMessage());
+    }
+
+    @ExceptionHandler(MfaNotEnabledException.class)
+    public ProblemDetail handleMfaNotEnabled(MfaNotEnabledException ex) {
+        return problem(HttpStatus.CONFLICT, "mfa-not-enabled", ex.getMessage());
+    }
+
+    @ExceptionHandler(IncorrectCurrentPasswordException.class)
+    public ProblemDetail handleIncorrectCurrentPassword(IncorrectCurrentPasswordException ex) {
+        return problem(HttpStatus.UNPROCESSABLE_ENTITY, "incorrect-current-password", ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidResetTokenException.class)
+    public ProblemDetail handleInvalidResetToken(InvalidResetTokenException ex) {
+        return problem(HttpStatus.GONE, "invalid-reset-token", ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

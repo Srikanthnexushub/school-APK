@@ -7,6 +7,7 @@ import com.edutech.auth.application.exception.AccountLockedException;
 import com.edutech.auth.application.exception.AccountNotVerifiedException;
 import com.edutech.auth.application.exception.CaptchaVerificationException;
 import com.edutech.auth.application.exception.InvalidCredentialsException;
+import com.edutech.auth.application.exception.MfaRequiredException;
 import com.edutech.auth.domain.event.UserAuthenticatedEvent;
 import com.edutech.auth.domain.model.User;
 import com.edutech.auth.domain.port.in.AuthenticateUserUseCase;
@@ -29,17 +30,20 @@ public class AuthenticationService implements AuthenticateUserUseCase {
     private final CaptchaVerifier captchaVerifier;
     private final TokenService tokenService;
     private final AuditEventPublisher auditEventPublisher;
+    private final MfaService mfaService;
 
     public AuthenticationService(UserRepository userRepository,
                                  PasswordHasher passwordHasher,
                                  CaptchaVerifier captchaVerifier,
                                  TokenService tokenService,
-                                 AuditEventPublisher auditEventPublisher) {
+                                 AuditEventPublisher auditEventPublisher,
+                                 MfaService mfaService) {
         this.userRepository = userRepository;
         this.passwordHasher = passwordHasher;
         this.captchaVerifier = captchaVerifier;
         this.tokenService = tokenService;
         this.auditEventPublisher = auditEventPublisher;
+        this.mfaService = mfaService;
     }
 
     @Override
@@ -75,6 +79,13 @@ public class AuthenticationService implements AuthenticateUserUseCase {
         auditEventPublisher.publish(new UserAuthenticatedEvent(
             user.getId(), user.getEmail(), ipAddress, userAgent
         ));
+
+        // If MFA is enabled, issue a short-lived pending token instead of a full JWT
+        if (user.isMfaEnabled()) {
+            String pendingToken = mfaService.issuePendingMfaToken(user.getId());
+            log.info("MFA required for userId={} ip={}", user.getId(), ipAddress);
+            throw new MfaRequiredException(pendingToken);
+        }
 
         log.info("Successful login: userId={} ip={}", user.getId(), ipAddress);
         return tokenService.issueTokenPair(user, request.deviceFingerprint());

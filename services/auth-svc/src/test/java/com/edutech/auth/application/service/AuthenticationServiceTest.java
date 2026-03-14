@@ -40,6 +40,7 @@ class AuthenticationServiceTest {
     @Mock CaptchaVerifier captchaVerifier;
     @Mock TokenService tokenService;
     @Mock AuditEventPublisher auditEventPublisher;
+    @Mock MfaService mfaService;
 
     AuthenticationService service;
 
@@ -52,7 +53,7 @@ class AuthenticationServiceTest {
     void setUp() {
         service = new AuthenticationService(
             userRepository, passwordHasher, captchaVerifier,
-            tokenService, auditEventPublisher
+            tokenService, auditEventPublisher, mfaService
         );
     }
 
