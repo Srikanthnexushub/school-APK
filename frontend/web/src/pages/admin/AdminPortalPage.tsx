@@ -2,7 +2,7 @@
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  LayoutDashboard, Building2, Users, ClipboardList, Clock, XCircle,
+  LayoutDashboard, Building2, Users, ClipboardList, Clock, XCircle, Upload, UserCheck,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuthStore } from '../../stores/authStore';
@@ -13,6 +13,8 @@ import AdminCentersPage from './AdminCentersPage';
 import AdminBatchesPage from './AdminBatchesPage';
 import AdminAssessmentsPage from './AdminAssessmentsPage';
 import AdminPendingRegistrationsPage from './AdminPendingRegistrationsPage';
+import AdminBulkImportTeachersPage from './AdminBulkImportTeachersPage';
+import AdminPendingTeachersPage from './AdminPendingTeachersPage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -68,21 +70,24 @@ function RejectedScreen({ name, reason }: { name: string; reason?: string }) {
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
 
-type TabId = 'overview' | 'centers' | 'batches' | 'assessments' | 'pending';
+type TabId = 'overview' | 'centers' | 'batches' | 'assessments' | 'pending' | 'teacher-import' | 'teacher-pending';
 
 interface Tab {
   id: TabId;
   label: string;
   icon: React.ElementType;
   superAdminOnly?: boolean;
+  centerAdminOnly?: boolean;
 }
 
 const TABS: Tab[] = [
-  { id: 'overview',     label: 'Overview',     icon: LayoutDashboard },
-  { id: 'centers',      label: 'Centers',      icon: Building2 },
-  { id: 'batches',      label: 'Batches',      icon: Users },
-  { id: 'assessments',  label: 'Assessments',  icon: ClipboardList },
-  { id: 'pending',      label: 'Pending',      icon: Clock, superAdminOnly: true },
+  { id: 'overview',         label: 'Overview',          icon: LayoutDashboard },
+  { id: 'centers',          label: 'Centers',            icon: Building2 },
+  { id: 'batches',          label: 'Batches',            icon: Users },
+  { id: 'assessments',      label: 'Assessments',        icon: ClipboardList },
+  { id: 'teacher-import',   label: 'Bulk Import',        icon: Upload, centerAdminOnly: true },
+  { id: 'teacher-pending',  label: 'Teacher Approvals',  icon: UserCheck, centerAdminOnly: true },
+  { id: 'pending',          label: 'Pending',            icon: Clock, superAdminOnly: true },
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -110,7 +115,10 @@ export default function AdminPortalPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const visibleTabs = TABS.filter(t => !t.superAdminOnly || isSuperAdmin);
+  const visibleTabs = TABS.filter(t =>
+    (!t.superAdminOnly || isSuperAdmin) &&
+    (!t.centerAdminOnly || isCenterAdmin || isSuperAdmin)
+  );
 
   // CENTER_ADMIN with pending/rejected registration — show status screen
   if (isCenterAdmin && !isSuperAdmin) {
@@ -173,11 +181,13 @@ export default function AdminPortalPage() {
         transition={{ duration: 0.18 }}
         className="flex-1"
       >
-        {activeTab === 'overview'    && <AdminDashboardPage />}
-        {activeTab === 'centers'     && <AdminCentersPage />}
-        {activeTab === 'batches'     && <AdminBatchesPage />}
-        {activeTab === 'assessments' && <AdminAssessmentsPage />}
-        {activeTab === 'pending'     && isSuperAdmin && <AdminPendingRegistrationsPage />}
+        {activeTab === 'overview'        && <AdminDashboardPage />}
+        {activeTab === 'centers'         && <AdminCentersPage />}
+        {activeTab === 'batches'         && <AdminBatchesPage />}
+        {activeTab === 'assessments'     && <AdminAssessmentsPage />}
+        {activeTab === 'teacher-import'  && <AdminBulkImportTeachersPage />}
+        {activeTab === 'teacher-pending' && <AdminPendingTeachersPage />}
+        {activeTab === 'pending'         && isSuperAdmin && <AdminPendingRegistrationsPage />}
       </motion.div>
     </div>
   );

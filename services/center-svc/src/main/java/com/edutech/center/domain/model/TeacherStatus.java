@@ -3,5 +3,7 @@ package com.edutech.center.domain.model;
 
 public enum TeacherStatus {
     ACTIVE,
-    INACTIVE
+    INACTIVE,
+    PENDING_APPROVAL,
+    INVITATION_SENT
 }

@@ -27,7 +27,7 @@ public class Teacher {
     @Column(name = "center_id", updatable = false, nullable = false)
     private UUID centerId;
 
-    @Column(name = "user_id", updatable = false, nullable = false)
+    @Column(name = "user_id")
     private UUID userId;
 
     @Column(name = "first_name", nullable = false, length = 100)
@@ -44,6 +44,15 @@ public class Teacher {
 
     @Column(length = 500)
     private String subjects;
+
+    @Column(name = "employee_id", length = 50)
+    private String employeeId;
+
+    @Column(name = "invitation_token", length = 255)
+    private String invitationToken;
+
+    @Column(name = "invitation_token_expires_at")
+    private Instant invitationTokenExpiresAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -67,7 +76,8 @@ public class Teacher {
     protected Teacher() {}
 
     private Teacher(UUID id, UUID centerId, UUID userId, String firstName,
-                    String lastName, String email, String phoneNumber, String subjects) {
+                    String lastName, String email, String phoneNumber,
+                    String subjects, String employeeId, TeacherStatus status) {
         this.id = id;
         this.centerId = centerId;
         this.userId = userId;
@@ -76,17 +86,37 @@ public class Teacher {
         this.email = email;
         this.phoneNumber = phoneNumber;
         this.subjects = subjects;
-        this.status = TeacherStatus.ACTIVE;
+        this.employeeId = employeeId;
+        this.status = status;
         this.joinedAt = Instant.now();
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }
 
+    /** Standard assignment — user already exists in auth-svc. */
     public static Teacher create(UUID centerId, UUID userId, String firstName,
                                  String lastName, String email,
                                  String phoneNumber, String subjects) {
         return new Teacher(UUID.randomUUID(), centerId, userId,
-                firstName, lastName, email, phoneNumber, subjects);
+                firstName, lastName, email, phoneNumber, subjects, null, TeacherStatus.ACTIVE);
+    }
+
+    /** Bulk-import stub — invitation sent, userId unknown until teacher accepts. */
+    public static Teacher createInvitationStub(UUID centerId, String firstName, String lastName,
+                                               String email, String phoneNumber, String subjects,
+                                               String employeeId, String token, Instant tokenExpiry) {
+        Teacher t = new Teacher(UUID.randomUUID(), centerId, null,
+                firstName, lastName, email, phoneNumber, subjects, employeeId, TeacherStatus.INVITATION_SENT);
+        t.invitationToken = token;
+        t.invitationTokenExpiresAt = tokenExpiry;
+        return t;
+    }
+
+    /** Self-registration — teacher registered independently, needs coordinator approval. */
+    public static Teacher createPending(UUID centerId, UUID userId, String firstName,
+                                        String lastName, String email, String phoneNumber, String subjects) {
+        return new Teacher(UUID.randomUUID(), centerId, userId,
+                firstName, lastName, email, phoneNumber, subjects, null, TeacherStatus.PENDING_APPROVAL);
     }
 
     public void updateSubjects(String subjects) {
@@ -106,6 +136,37 @@ public class Teacher {
         this.updatedAt = Instant.now();
     }
 
+    /** Invitation accepted — link to auth-svc user and activate. */
+    public void acceptInvitation(UUID userId) {
+        if (this.status != TeacherStatus.INVITATION_SENT) {
+            throw new IllegalStateException("Invitation already used or invalid");
+        }
+        this.userId = userId;
+        this.status = TeacherStatus.ACTIVE;
+        this.invitationToken = null;
+        this.invitationTokenExpiresAt = null;
+        this.updatedAt = Instant.now();
+    }
+
+    /** Coordinator approves a self-registered teacher. */
+    public void approve() {
+        if (this.status != TeacherStatus.PENDING_APPROVAL) {
+            throw new IllegalStateException("Teacher is not pending approval");
+        }
+        this.status = TeacherStatus.ACTIVE;
+        this.updatedAt = Instant.now();
+    }
+
+    /** Coordinator rejects a self-registered teacher. */
+    public void reject() {
+        if (this.status != TeacherStatus.PENDING_APPROVAL) {
+            throw new IllegalStateException("Teacher is not pending approval");
+        }
+        this.status = TeacherStatus.INACTIVE;
+        this.deletedAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
+
     public boolean isActive() { return this.status == TeacherStatus.ACTIVE && this.deletedAt == null; }
 
     public UUID getId() { return id; }
@@ -116,6 +177,9 @@ public class Teacher {
     public String getEmail() { return email; }
     public String getPhoneNumber() { return phoneNumber; }
     public String getSubjects() { return subjects; }
+    public String getEmployeeId() { return employeeId; }
+    public String getInvitationToken() { return invitationToken; }
+    public Instant getInvitationTokenExpiresAt() { return invitationTokenExpiresAt; }
     public TeacherStatus getStatus() { return status; }
     public Instant getJoinedAt() { return joinedAt; }
     public Instant getCreatedAt() { return createdAt; }

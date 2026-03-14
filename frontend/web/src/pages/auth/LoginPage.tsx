@@ -47,7 +47,7 @@ export default function LoginPage() {
       });
       const u = meRes.data;
       const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;
-      setAuth(jwt, { id: u.id, email: u.email, role: u.role, name }, refreshToken, deviceId);
+      setAuth(jwt, { id: u.id, email: u.email, role: u.role, name, centerId: u.centerId ?? undefined }, refreshToken, deviceId);
       toast.success('Signed in with Google!');
       if (u.role === 'CENTER_ADMIN' || u.role === 'SUPER_ADMIN') navigate('/admin');
       else if (u.role === 'PARENT') navigate('/parent');
@@ -80,7 +80,7 @@ export default function LoginPage() {
       });
       const u = meRes.data;
       const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;
-      setAuth(accessToken, { id: u.id, email: u.email, role: u.role, name }, refreshToken, deviceId);
+      setAuth(accessToken, { id: u.id, email: u.email, role: u.role, name, centerId: u.centerId ?? undefined }, refreshToken, deviceId);
 
       toast.success('Welcome back!');
       if (u.role === 'CENTER_ADMIN' || u.role === 'SUPER_ADMIN') navigate('/admin');

@@ -44,11 +44,15 @@ public class ContentService implements UploadContentUseCase {
         this.teacherRepository = teacherRepository;
     }
 
-    /** True if principal is super-admin, center owner, an assigned teacher, or a student (read-only). */
+    /** True if principal is super-admin, center owner/admin, an assigned teacher, or a student (read-only). */
     private boolean hasAccess(AuthPrincipal principal, UUID centerId) {
-        return principal.belongsToCenter(centerId)
-                || teacherRepository.existsByUserIdAndCenterId(principal.userId(), centerId)
-                || principal.isStudent();
+        if (principal.belongsToCenter(centerId)) return true;
+        if (teacherRepository.existsByUserIdAndCenterId(principal.userId(), centerId)) return true;
+        if (principal.isStudent()) return true;
+        // Allow CENTER_ADMINs whose JWT centerId is still null (Kafka sync pending).
+        return centerRepository.findById(centerId)
+                .map(c -> principal.belongsToCenter(centerId, c.getAdminUserId()))
+                .orElse(false);
     }
 
     @Override

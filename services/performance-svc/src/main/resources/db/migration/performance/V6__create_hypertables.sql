@@ -1,24 +1,32 @@
 -- V6: Activate TimescaleDB hypertables for time-series performance data.
--- TimescaleDB requires all unique indexes (incl. PK) to include the time partition column.
--- We recreate PKs as composite (id, time_col) before calling create_hypertable.
+-- TimescaleDB is optional — skipped gracefully when not available (e.g. local dev).
 
--- readiness_scores: drop single-column PK, recreate with computed_at
-ALTER TABLE performance_schema.readiness_scores DROP CONSTRAINT IF EXISTS pk_readiness_scores;
-ALTER TABLE performance_schema.readiness_scores
-    ADD CONSTRAINT pk_readiness_scores PRIMARY KEY (id, computed_at);
-
-SELECT create_hypertable(
-    'performance_schema.readiness_scores',
-    'computed_at',
-    if_not_exists => TRUE,
-    migrate_data => TRUE
-);
-
--- weak_area_records: check if PK exists and includes detected_at
--- (weak_area_records PK may vary — add detected_at if needed)
 DO $$
+DECLARE
+    timescale_installed BOOLEAN;
 BEGIN
-    -- Drop PK if it exists without the time column
+    SELECT EXISTS (
+        SELECT 1 FROM pg_extension WHERE extname = 'timescaledb'
+    ) INTO timescale_installed;
+
+    IF NOT timescale_installed THEN
+        RAISE NOTICE 'timescaledb not installed — skipping hypertable creation';
+        RETURN;
+    END IF;
+
+    -- readiness_scores: drop single-column PK, recreate with computed_at
+    ALTER TABLE performance_schema.readiness_scores DROP CONSTRAINT IF EXISTS pk_readiness_scores;
+    ALTER TABLE performance_schema.readiness_scores
+        ADD CONSTRAINT pk_readiness_scores PRIMARY KEY (id, computed_at);
+
+    PERFORM create_hypertable(
+        'performance_schema.readiness_scores',
+        'computed_at',
+        if_not_exists => TRUE,
+        migrate_data => TRUE
+    );
+
+    -- weak_area_records: drop PK if exists without time column
     IF EXISTS (
         SELECT 1 FROM information_schema.table_constraints
         WHERE table_schema = 'performance_schema'
@@ -27,11 +35,7 @@ BEGIN
     ) THEN
         ALTER TABLE performance_schema.weak_area_records DROP CONSTRAINT IF EXISTS pk_weak_area_records;
     END IF;
-END $$;
 
--- Only create hypertable if detected_at column exists
-DO $$
-BEGIN
     IF EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_schema = 'performance_schema'

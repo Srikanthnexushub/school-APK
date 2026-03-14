@@ -41,10 +41,23 @@ public class TeacherService implements AssignTeacherUseCase {
         this.eventPublisher = eventPublisher;
     }
 
+    /**
+     * Returns true if the principal may act on the given centerId.
+     * Fetches the center once so that the adminUserId comparison is available,
+     * covering CENTER_ADMINs whose JWT still has centerId=null (Kafka not yet synced).
+     */
+    private boolean hasAccessToCenter(AuthPrincipal principal, UUID centerId) {
+        if (principal.isSuperAdmin()) return true;
+        if (principal.belongsToCenter(centerId)) return true;
+        return centerRepository.findById(centerId)
+                .map(c -> principal.belongsToCenter(centerId, c.getAdminUserId()))
+                .orElse(false);
+    }
+
     @Override
     @Transactional
     public TeacherResponse assignTeacher(UUID centerId, AssignTeacherRequest request, AuthPrincipal principal) {
-        if (!principal.belongsToCenter(centerId)) {
+        if (!hasAccessToCenter(principal, centerId)) {
             throw new CenterAccessDeniedException();
         }
         centerRepository.findById(centerId)
@@ -68,7 +81,7 @@ public class TeacherService implements AssignTeacherUseCase {
 
     @Transactional(readOnly = true)
     public List<TeacherResponse> listTeachers(UUID centerId, AuthPrincipal principal) {
-        if (!principal.belongsToCenter(centerId)) {
+        if (!hasAccessToCenter(principal, centerId)) {
             throw new CenterAccessDeniedException();
         }
         return teacherRepository.findByCenterId(centerId).stream().map(this::toResponse).toList();
@@ -76,7 +89,7 @@ public class TeacherService implements AssignTeacherUseCase {
 
     @Transactional(readOnly = true)
     public Page<TeacherResponse> listTeachers(UUID centerId, AuthPrincipal principal, Pageable pageable) {
-        if (!principal.belongsToCenter(centerId)) {
+        if (!hasAccessToCenter(principal, centerId)) {
             throw new CenterAccessDeniedException();
         }
         List<TeacherResponse> all = teacherRepository.findByCenterId(centerId).stream()
@@ -89,6 +102,7 @@ public class TeacherService implements AssignTeacherUseCase {
     private TeacherResponse toResponse(Teacher t) {
         return new TeacherResponse(t.getId(), t.getCenterId(), t.getUserId(),
                 t.getFirstName(), t.getLastName(), t.getEmail(),
-                t.getPhoneNumber(), t.getSubjects(), t.getStatus(), t.getJoinedAt());
+                t.getPhoneNumber(), t.getSubjects(), t.getEmployeeId(),
+                t.getStatus(), t.getJoinedAt());
     }
 }

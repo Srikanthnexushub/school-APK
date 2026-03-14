@@ -16,8 +16,15 @@ CREATE TABLE performance_schema.performance_snapshots (
     CONSTRAINT pk_performance_snapshots PRIMARY KEY (id, snapshot_at)
 );
 
--- Convert to TimescaleDB hypertable partitioned by snapshot_at
-SELECT create_hypertable('performance_schema.performance_snapshots', 'snapshot_at');
+-- Convert to TimescaleDB hypertable partitioned by snapshot_at (only if available)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'timescaledb') THEN
+        PERFORM create_hypertable('performance_schema.performance_snapshots', 'snapshot_at');
+    ELSE
+        RAISE NOTICE 'timescaledb not installed — skipping hypertable for performance_snapshots';
+    END IF;
+END $$;
 
 -- BRIN index for time-range queries on hypertable
 CREATE INDEX brin_performance_snapshots_snapshot_at

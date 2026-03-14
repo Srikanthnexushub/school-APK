@@ -35,15 +35,25 @@ public class FeeService implements CreateFeeStructureUseCase {
         this.centerRepository = centerRepository;
     }
 
+    /** True if the principal may manage fees for the given center. */
+    private boolean hasAccess(AuthPrincipal principal, UUID centerId) {
+        if (principal.belongsToCenter(centerId)) return true;
+        // Allow CENTER_ADMINs whose JWT centerId is still null (Kafka sync pending).
+        return centerRepository.findById(centerId)
+                .map(c -> principal.belongsToCenter(centerId, c.getAdminUserId()))
+                .orElse(false);
+    }
+
     @Override
     @Transactional
     public FeeStructureResponse createFeeStructure(UUID centerId, CreateFeeStructureRequest request,
                                                    AuthPrincipal principal) {
-        if (!principal.belongsToCenter(centerId)) {
+        // Load center first (needed for both existence check and adminUserId comparison).
+        var center = centerRepository.findById(centerId)
+            .orElseThrow(() -> new CenterNotFoundException(centerId));
+        if (!principal.belongsToCenter(centerId, center.getAdminUserId())) {
             throw new CenterAccessDeniedException();
         }
-        centerRepository.findById(centerId)
-            .orElseThrow(() -> new CenterNotFoundException(centerId));
 
         FeeStructure fee = FeeStructure.create(centerId, request.name(), request.description(),
                 request.amount(), request.currency(), request.frequency(),
@@ -56,7 +66,7 @@ public class FeeService implements CreateFeeStructureUseCase {
 
     @Transactional(readOnly = true)
     public List<FeeStructureResponse> listFeeStructures(UUID centerId, AuthPrincipal principal) {
-        if (!principal.belongsToCenter(centerId)) {
+        if (!hasAccess(principal, centerId)) {
             throw new CenterAccessDeniedException();
         }
         return feeStructureRepository.findByCenterId(centerId).stream().map(this::toResponse).toList();
@@ -64,7 +74,7 @@ public class FeeService implements CreateFeeStructureUseCase {
 
     @Transactional(readOnly = true)
     public Page<FeeStructureResponse> listFeeStructures(UUID centerId, AuthPrincipal principal, Pageable pageable) {
-        if (!principal.belongsToCenter(centerId)) {
+        if (!hasAccess(principal, centerId)) {
             throw new CenterAccessDeniedException();
         }
         List<FeeStructureResponse> all = feeStructureRepository.findByCenterId(centerId).stream()

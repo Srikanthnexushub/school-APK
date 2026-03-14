@@ -27,6 +27,7 @@ import ParentQuestionBankPage from './pages/parent/ParentQuestionBankPage';
 import ParentLibraryPage from './pages/parent/ParentLibraryPage';
 import AdminPortalPage from './pages/admin/AdminPortalPage';
 import RegisterInstitutionPage from './pages/auth/RegisterInstitutionPage';
+import AcceptInvitationPage from './pages/auth/AcceptInvitationPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminBatchesPage from './pages/admin/AdminBatchesPage';
 import AdminAssessmentsPage from './pages/admin/AdminAssessmentsPage';
@@ -55,6 +56,10 @@ export const router = createBrowserRouter([
   {
     path: '/register-institution',
     element: <RegisterInstitutionPage />,
+  },
+  {
+    path: '/accept-invitation',
+    element: <AcceptInvitationPage />,
   },
   {
     path: '/',

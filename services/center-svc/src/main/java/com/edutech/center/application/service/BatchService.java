@@ -50,8 +50,14 @@ public class BatchService implements CreateBatchUseCase, UpdateBatchUseCase {
     }
 
     private boolean hasAccess(AuthPrincipal principal, UUID centerId) {
-        return principal.belongsToCenter(centerId)
-                || teacherRepository.existsByUserIdAndCenterId(principal.userId(), centerId);
+        if (principal.belongsToCenter(centerId)) return true;
+        if (teacherRepository.existsByUserIdAndCenterId(principal.userId(), centerId)) return true;
+        // Cover CENTER_ADMINs whose JWT still has centerId=null because the Kafka sync from
+        // center-svc → auth-svc has not fired yet (e.g. Kafka unavailable in local dev).
+        // We look up the center and allow access if the principal's userId is the adminUserId.
+        return centerRepository.findById(centerId)
+                .map(c -> principal.belongsToCenter(centerId, c.getAdminUserId()))
+                .orElse(false);
     }
 
     @Override

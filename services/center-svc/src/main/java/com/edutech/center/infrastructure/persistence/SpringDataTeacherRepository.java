@@ -14,12 +14,24 @@ interface SpringDataTeacherRepository extends JpaRepository<Teacher, UUID> {
     @Query("SELECT t FROM Teacher t WHERE t.centerId = :centerId AND t.deletedAt IS NULL")
     List<Teacher> findByCenterIdActive(UUID centerId);
 
+    @Query("SELECT t FROM Teacher t WHERE t.centerId = :centerId AND t.status = 'PENDING_APPROVAL' AND t.deletedAt IS NULL")
+    List<Teacher> findPendingByCenterIdActive(UUID centerId);
+
     @Query("SELECT t FROM Teacher t WHERE t.id = :id AND t.centerId = :centerId AND t.deletedAt IS NULL")
     Optional<Teacher> findByIdAndCenterIdActive(UUID id, UUID centerId);
 
     @Query("SELECT COUNT(t) > 0 FROM Teacher t WHERE t.userId = :userId AND t.centerId = :centerId AND t.deletedAt IS NULL")
     boolean existsByUserIdAndCenterId(UUID userId, UUID centerId);
 
+    @Query("SELECT COUNT(t) > 0 FROM Teacher t WHERE t.email = :email AND t.centerId = :centerId AND t.deletedAt IS NULL")
+    boolean existsByEmailAndCenterId(String email, UUID centerId);
+
+    @Query("SELECT COUNT(t) > 0 FROM Teacher t WHERE t.email = :email AND t.deletedAt IS NULL")
+    boolean existsByEmail(String email);
+
     @Query("SELECT t FROM Teacher t WHERE t.userId = :userId AND t.deletedAt IS NULL")
     List<Teacher> findByUserIdActive(UUID userId);
+
+    @Query("SELECT t FROM Teacher t WHERE t.invitationToken = :token AND t.deletedAt IS NULL")
+    Optional<Teacher> findByInvitationToken(String token);
 }

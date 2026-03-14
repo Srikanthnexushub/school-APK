@@ -144,6 +144,12 @@ export default function RegisterPage() {
   const [isUnder13, setIsUnder13] = useState(false);
   const [parentEmail, setParentEmail] = useState<string | null>(null);
   const [resendsRemaining, setResendsRemaining] = useState<number | null>(null);
+  // Teacher-specific fields (collected in Step 2)
+  const [teacherInstitutionCode, setTeacherInstitutionCode] = useState('');
+  const [teacherCenterId, setTeacherCenterId] = useState<string | null>(null);
+  const [teacherCenterName, setTeacherCenterName] = useState<string | null>(null);
+  const [teacherSubjectsInput, setTeacherSubjectsInput] = useState('');
+  const [isValidatingTeacherCode, setIsValidatingTeacherCode] = useState(false);
   // Parent-specific fields (collected in Step 2)
   const [parentPhone, setParentPhone] = useState('');
   const [parentOccupation, setParentOccupation] = useState('');
@@ -295,6 +301,25 @@ export default function RegisterPage() {
       goNext();
       return;
     }
+
+    // TEACHER: validate institution code if provided
+    if (selectedRole === 'TEACHER' && teacherInstitutionCode.trim()) {
+      if (!teacherCenterId) {
+        setIsValidatingTeacherCode(true);
+        try {
+          const resp = await api.get(`/api/v1/centers/lookup?code=${encodeURIComponent(teacherInstitutionCode.trim())}`);
+          setTeacherCenterId(resp.data.id);
+          setTeacherCenterName(resp.data.name);
+        } catch {
+          toast.error('Institution code not found. Check with your institution head.');
+          setIsValidatingTeacherCode(false);
+          return;
+        } finally {
+          setIsValidatingTeacherCode(false);
+        }
+      }
+    }
+
     // PARENT / TEACHER: captcha + register inline
     if (!step1Data) return;
     setIsRegistering(true);
@@ -307,6 +332,7 @@ export default function RegisterPage() {
         email: step1Data.email,
         password: step1Data.password,
         role: selectedRole,
+        centerId: selectedRole === 'TEACHER' ? (teacherCenterId ?? undefined) : undefined,
         captchaToken: captchaToken!,
         deviceFingerprint: {
           userAgent: navigator.userAgent,
@@ -520,6 +546,28 @@ export default function RegisterPage() {
           toast.success('Email verified!');
           navigate('/parent');
         }
+        return;
+      }
+
+      // TEACHER self-registration: create PENDING_APPROVAL record in center-svc
+      if (selectedRole === 'TEACHER' && teacherCenterId && regToken && step1Data) {
+        try {
+          await axios.post(
+            `/api/v1/centers/${teacherCenterId}/teachers/self-register`,
+            {
+              firstName: step1Data.firstName,
+              lastName: step1Data.lastName,
+              email: step1Data.email,
+              phoneNumber: step1Data.phone || undefined,
+              subjects: teacherSubjectsInput.trim() || undefined,
+            },
+            { headers: { Authorization: `Bearer ${regToken}` } }
+          );
+          toast.success('Registration submitted! Awaiting approval from your institution coordinator.');
+        } catch {
+          // Non-fatal — user can still log in later once account is verified
+        }
+        navigate('/login');
         return;
       }
 
@@ -913,6 +961,53 @@ export default function RegisterPage() {
                   </div>
                 )}
 
+                {selectedRole === 'TEACHER' && (
+                  <div className="space-y-3 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-white/70 mb-1.5">
+                        Institution Code <span className="text-white/30">(optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={teacherInstitutionCode}
+                        onChange={async (e) => {
+                          const code = e.target.value;
+                          setTeacherInstitutionCode(code);
+                          setTeacherCenterId(null);
+                          setTeacherCenterName(null);
+                          if (code.trim().length >= 3) {
+                            try {
+                              const resp = await api.get(`/api/v1/centers/lookup?code=${encodeURIComponent(code.trim())}`);
+                              setTeacherCenterId(resp.data.id);
+                              setTeacherCenterName(resp.data.name);
+                            } catch { /* not found yet */ }
+                          }
+                        }}
+                        placeholder="e.g. NEXUS-DPS-001"
+                        className="input w-full"
+                      />
+                      {teacherCenterName && (
+                        <p className="text-green-400 text-xs mt-1">✓ {teacherCenterName}</p>
+                      )}
+                      {teacherInstitutionCode.trim().length >= 3 && !teacherCenterName && (
+                        <p className="text-white/30 text-xs mt-1">Institution not found — you can leave this blank and add later.</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-white/70 mb-1.5">
+                        Subjects <span className="text-white/30">(comma-separated, optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={teacherSubjectsInput}
+                        onChange={(e) => setTeacherSubjectsInput(e.target.value)}
+                        placeholder="Mathematics, Physics"
+                        className="input w-full"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {selectedRole !== 'STUDENT' && selectedRole !== 'INSTITUTION' && (
                   <div className="flex justify-center mb-4">
                     <CaptchaWidget onVerify={handleCaptchaVerify} />
@@ -926,10 +1021,10 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={onStep2Continue}
-                    disabled={isRegistering || (selectedRole !== 'STUDENT' && selectedRole !== 'INSTITUTION' && !captchaToken)}
+                    disabled={isRegistering || isValidatingTeacherCode || (selectedRole !== 'STUDENT' && selectedRole !== 'INSTITUTION' && !captchaToken)}
                     className="btn-primary flex-1 flex items-center justify-center gap-2 py-3"
                   >
-                    {isRegistering ? (
+                    {isRegistering || isValidatingTeacherCode ? (
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : selectedRole === 'STUDENT' || selectedRole === 'INSTITUTION' ? (
                       <>

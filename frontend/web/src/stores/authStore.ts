@@ -6,6 +6,7 @@ interface User {
   email: string;
   role: 'STUDENT' | 'CENTER_ADMIN' | 'SUPER_ADMIN' | 'TEACHER' | 'PARENT' | 'GUEST';
   name: string;
+  centerId?: string;
   avatarUrl?: string;
 }
 

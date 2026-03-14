@@ -15,6 +15,7 @@ public record TeacherResponse(
     String email,
     String phoneNumber,
     String subjects,
+    String employeeId,
     TeacherStatus status,
     Instant joinedAt
 ) {}

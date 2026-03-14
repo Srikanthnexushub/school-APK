@@ -12,6 +12,11 @@ public interface TeacherRepository {
     Optional<Teacher> findById(UUID id);
     Optional<Teacher> findByIdAndCenterId(UUID id, UUID centerId);
     List<Teacher> findByCenterId(UUID centerId);
+    List<Teacher> findPendingByCenterId(UUID centerId);
     boolean existsByUserIdAndCenterId(UUID userId, UUID centerId);
+    boolean existsByEmailAndCenterId(String email, UUID centerId);
+    boolean existsByEmail(String email);
     List<Teacher> findByUserId(UUID userId);
+    Optional<Teacher> findByInvitationToken(String token);
+    void saveAll(List<Teacher> teachers);
 }

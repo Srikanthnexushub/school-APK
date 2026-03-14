@@ -24,4 +24,15 @@ public record AuthPrincipal(
     public boolean belongsToCenter(UUID targetCenterId) {
         return isSuperAdmin() || (centerId != null && centerId.equals(targetCenterId));
     }
+
+    /**
+     * Extended check that also grants access when the requesting user is the center's
+     * designated admin (adminUserId).  This covers the case where a CENTER_ADMIN's JWT
+     * still carries centerId=null because the Kafka-based sync from center-svc → auth-svc
+     * has not fired yet (e.g. Kafka unavailable in local dev).
+     */
+    public boolean belongsToCenter(UUID targetCenterId, UUID centerAdminUserId) {
+        return belongsToCenter(targetCenterId)
+                || (isCenterAdmin() && userId != null && userId.equals(centerAdminUserId));
+    }
 }
