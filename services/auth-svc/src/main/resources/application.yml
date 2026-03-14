@@ -45,6 +45,7 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.add.type.headers: false
+        max.block.ms: 2000
     consumer:
       group-id: ${AUTH_SVC_KAFKA_CONSUMER_GROUP}
       auto-offset-reset: earliest

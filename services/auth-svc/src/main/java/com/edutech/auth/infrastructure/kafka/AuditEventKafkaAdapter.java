@@ -34,19 +34,25 @@ public class AuditEventKafkaAdapter implements AuditEventPublisher {
     @Override
     public void publish(Object event) {
         String topic = topicProperties.auditImmutable();
-        CompletableFuture<SendResult<String, Object>> future =
-            kafkaTemplate.send(topic, event);
+        try {
+            CompletableFuture<SendResult<String, Object>> future =
+                kafkaTemplate.send(topic, event);
 
-        future.whenComplete((result, ex) -> {
-            if (ex != null) {
-                log.error("Failed to publish audit event type={} topic={}",
-                    event.getClass().getSimpleName(), topic, ex);
-            } else {
-                log.debug("Audit event published type={} partition={} offset={}",
-                    event.getClass().getSimpleName(),
-                    result.getRecordMetadata().partition(),
-                    result.getRecordMetadata().offset());
-            }
-        });
+            future.whenComplete((result, ex) -> {
+                if (ex != null) {
+                    log.error("Failed to publish audit event type={} topic={}",
+                        event.getClass().getSimpleName(), topic, ex);
+                } else {
+                    log.debug("Audit event published type={} partition={} offset={}",
+                        event.getClass().getSimpleName(),
+                        result.getRecordMetadata().partition(),
+                        result.getRecordMetadata().offset());
+                }
+            });
+        } catch (Exception e) {
+            // Kafka unavailable — log and continue; audit events are best-effort
+            log.warn("Audit event dropped (Kafka unavailable) type={} topic={} reason={}",
+                event.getClass().getSimpleName(), topic, e.getMessage());
+        }
     }
 }

@@ -201,15 +201,11 @@ export default function RegisterInstitutionPage() {
     setErrors({});
     try {
       const deviceId = crypto.randomUUID();
-      // Verify OTP and get JWT
+      // Verify OTP — activates account and returns JWT directly
       const verifyRes = await api.post('/api/v1/otp/verify', {
         email: adminForm.email,
         otp: otpCode,
-        deviceFingerprint: {
-          userAgent: navigator.userAgent,
-          deviceId,
-          ipSubnet: '127.0.0',
-        },
+        purpose: 'EMAIL_VERIFICATION',
       });
       const jwt: string = verifyRes.data.accessToken;
       setRegistrationToken(jwt);

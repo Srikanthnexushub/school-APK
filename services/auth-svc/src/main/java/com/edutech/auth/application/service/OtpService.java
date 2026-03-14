@@ -1,7 +1,9 @@
 // src/main/java/com/edutech/auth/application/service/OtpService.java
 package com.edutech.auth.application.service;
 
+import com.edutech.auth.application.dto.DeviceFingerprint;
 import com.edutech.auth.application.dto.OtpSendResponse;
+import com.edutech.auth.application.dto.TokenPair;
 import com.edutech.auth.application.dto.OtpVerifyRequest;
 import com.edutech.auth.application.exception.OtpExpiredException;
 import com.edutech.auth.application.exception.OtpMaxAttemptsExceededException;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.util.Optional;
 
 @Service
 public class OtpService implements VerifyOtpUseCase {
@@ -33,17 +36,20 @@ public class OtpService implements VerifyOtpUseCase {
     private final UserRepository userRepository;
     private final AuditEventPublisher auditEventPublisher;
     private final OtpProperties otpProperties;
+    private final TokenService tokenService;
 
     public OtpService(OtpStore otpStore,
                       NotificationSender notificationSender,
                       UserRepository userRepository,
                       AuditEventPublisher auditEventPublisher,
-                      OtpProperties otpProperties) {
+                      OtpProperties otpProperties,
+                      TokenService tokenService) {
         this.otpStore = otpStore;
         this.notificationSender = notificationSender;
         this.userRepository = userRepository;
         this.auditEventPublisher = auditEventPublisher;
         this.otpProperties = otpProperties;
+        this.tokenService = tokenService;
     }
 
     @Override
@@ -78,7 +84,7 @@ public class OtpService implements VerifyOtpUseCase {
 
     @Override
     @Transactional
-    public void verifyOtp(OtpVerifyRequest request) {
+    public java.util.Optional<TokenPair> verifyOtp(OtpVerifyRequest request) {
         String key = buildKey(request.email(), request.purpose());
 
         int attempts = otpStore.getAttempts(key);
@@ -97,14 +103,17 @@ public class OtpService implements VerifyOtpUseCase {
         // Consumed — delete immediately (single-use)
         otpStore.delete(key);
 
-        // If this was an email verification OTP, activate the user
+        // If this was an email verification OTP, activate the user and issue a JWT
         if ("EMAIL_VERIFICATION".equals(request.purpose())) {
             User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new UserNotFoundException(request.email()));
             user.activate();
             userRepository.save(user);
             log.info("Account activated: email={}", request.email());
+            DeviceFingerprint fp = new DeviceFingerprint("registration-verify", null, null);
+            return Optional.of(tokenService.issueTokenPair(user, fp));
         }
+        return Optional.empty();
     }
 
     private String generateOtp(int length) {

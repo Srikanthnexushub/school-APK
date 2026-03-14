@@ -4,11 +4,12 @@ package com.edutech.auth.api;
 import com.edutech.auth.application.dto.OtpSendRequest;
 import com.edutech.auth.application.dto.OtpSendResponse;
 import com.edutech.auth.application.dto.OtpVerifyRequest;
+import com.edutech.auth.application.dto.TokenPair;
 import com.edutech.auth.domain.port.in.VerifyOtpUseCase;
+import org.springframework.http.ResponseEntity;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,9 +34,10 @@ public class OtpController {
     }
 
     @PostMapping("/verify")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Verify OTP — activates account if purpose is EMAIL_VERIFICATION")
-    public void verify(@Valid @RequestBody OtpVerifyRequest request) {
-        verifyOtpUseCase.verifyOtp(request);
+    @Operation(summary = "Verify OTP — activates account if purpose is EMAIL_VERIFICATION; returns JWT on activation")
+    public ResponseEntity<TokenPair> verify(@Valid @RequestBody OtpVerifyRequest request) {
+        return verifyOtpUseCase.verifyOtp(request)
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.noContent().build());
     }
 }
