@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Plus, Trash2, Edit2, Save, X, ChevronDown, ChevronUp,
   Loader2, School, Calendar, BookOpen, Hash, ArrowRight, ArrowLeft,
-  CheckCircle2, UserPlus, Eye, EyeOff, User,
+  CheckCircle2, UserPlus, Eye, EyeOff, Search, Sparkles,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Avatar } from '../../components/ui/Avatar';
@@ -38,6 +38,22 @@ interface StudentLinkResponse {
   createdAt: string;
 }
 
+interface CenterOption {
+  id: string;
+  name: string;
+  city?: string;
+  code?: string;
+}
+
+interface StudentLookupResult {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  city?: string;
+  board?: string;
+  currentClass?: number;
+}
 
 interface EditSchoolForm {
   dateOfBirth: string;
@@ -48,6 +64,7 @@ interface EditSchoolForm {
 }
 
 type AddChildStep = 'personal' | 'academic' | 'subjects' | 'done';
+type ModalMode = 'create' | 'ai-find';
 
 interface PersonalForm {
   firstName: string;
@@ -58,11 +75,11 @@ interface PersonalForm {
   phone: string;
   gender: string;
   relationship: string;
+  dateOfBirth: string;
 }
 
 interface AcademicForm {
-  dateOfBirth: string;
-  institutionCode: string;
+  institutionId: string;
   board: string;
   currentClass: string;
 }
@@ -139,6 +156,294 @@ function StepBar({ current }: { current: 0 | 1 | 2 }) {
   );
 }
 
+// ─── Institution Selector ─────────────────────────────────────────────────────
+
+function InstitutionSelector({
+  value,
+  onChange,
+  centers,
+  loading,
+}: {
+  value: string;
+  onChange: (id: string, name: string) => void;
+  centers: CenterOption[];
+  loading: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+  const selected = centers.find((c) => c.id === value);
+
+  const filtered = search.trim()
+    ? centers.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()) || (c.city ?? '').toLowerCase().includes(search.toLowerCase()))
+    : centers;
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((p) => !p)}
+        className="input w-full flex items-center justify-between text-left"
+      >
+        <span className={cn(selected ? 'text-white' : 'text-white/30')}>
+          {loading ? 'Loading institutions…' : selected ? selected.name : '— Select institution (optional) —'}
+        </span>
+        <ChevronDown className={cn('w-4 h-4 text-white/30 flex-shrink-0 transition-transform', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 w-full mt-1 bg-surface-200 border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+          {/* Search */}
+          <div className="p-2 border-b border-white/5">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+              <input
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name or city…"
+                className="w-full bg-white/5 border border-white/10 rounded-lg pl-8 pr-3 py-1.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-brand-500/50"
+              />
+            </div>
+          </div>
+          {/* Clear option */}
+          <div className="max-h-48 overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => { onChange('', ''); setOpen(false); setSearch(''); }}
+              className="w-full text-left px-3 py-2 text-sm text-white/40 hover:bg-white/5 transition-colors"
+            >
+              — None —
+            </button>
+            {loading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="w-4 h-4 animate-spin text-white/30" />
+              </div>
+            ) : filtered.length === 0 ? (
+              <p className="text-center text-white/30 text-sm py-4">No institutions found</p>
+            ) : (
+              filtered.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => { onChange(c.id, c.name); setOpen(false); setSearch(''); }}
+                  className={cn(
+                    'w-full text-left px-3 py-2.5 text-sm transition-colors hover:bg-white/5',
+                    c.id === value ? 'bg-brand-500/10 text-brand-300' : 'text-white/70'
+                  )}
+                >
+                  <div className="font-medium">{c.name}</div>
+                  {c.city && <div className="text-xs text-white/30">{c.city}</div>}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── AI Smart Match ───────────────────────────────────────────────────────────
+
+function AISmartFind({
+  profileId,
+  onLinked,
+  onClose,
+}: {
+  profileId: string;
+  onLinked: () => void;
+  onClose: () => void;
+}) {
+  const [email, setEmail] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [found, setFound] = useState<StudentLookupResult | null>(null);
+  const [notFound, setNotFound] = useState(false);
+  const [relationship, setRelationship] = useState('MOTHER');
+  const [linking, setLinking] = useState(false);
+  const [linked, setLinked] = useState(false);
+
+  async function handleSearch() {
+    const trimmed = email.trim();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      toast.error('Enter a valid email address');
+      return;
+    }
+    setSearching(true);
+    setFound(null);
+    setNotFound(false);
+    try {
+      const res = await api.get(`/api/v1/students/lookup?email=${encodeURIComponent(trimmed)}`);
+      setFound(res.data as StudentLookupResult);
+    } catch {
+      setNotFound(true);
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  async function handleLink() {
+    if (!found) return;
+    setLinking(true);
+    try {
+      await api.post(`/api/v1/parents/${profileId}/students`, {
+        studentId: found.id,
+        studentName: `${found.firstName} ${found.lastName}`,
+        centerId: '00000000-0000-0000-0000-000000000000',
+        relationship,
+        board: found.board ?? undefined,
+        standard: found.currentClass ? `Class ${found.currentClass}` : undefined,
+      });
+      setLinked(true);
+      onLinked();
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } }; message?: string };
+      toast.error(err?.response?.data?.detail ?? err?.message ?? 'Failed to link child.');
+    } finally {
+      setLinking(false);
+    }
+  }
+
+  if (linked) {
+    return (
+      <div className="text-center py-6 space-y-4">
+        <div className="w-16 h-16 rounded-full bg-emerald-500/15 flex items-center justify-center mx-auto">
+          <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-white mb-1">{found?.firstName} {found?.lastName}</h3>
+          <p className="text-white/50 text-sm">Successfully linked to your parent profile.</p>
+        </div>
+        <button onClick={onClose} className="w-full btn-primary py-2.5 text-sm">Done</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* AI banner */}
+      <div className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-r from-violet-500/10 to-brand-500/10 border border-violet-500/20">
+        <Sparkles className="w-4 h-4 text-violet-400 flex-shrink-0 mt-0.5" />
+        <p className="text-xs text-white/60 leading-relaxed">
+          If your child already has an account on NexusEd, enter their email below.
+          We'll find their profile instantly and link them to you — no form filling needed.
+        </p>
+      </div>
+
+      {/* Email search */}
+      <div>
+        <label className="block text-xs font-medium text-white/60 mb-1.5">Child's Email Address</label>
+        <div className="flex gap-2">
+          <input
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); setFound(null); setNotFound(false); }}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            type="email"
+            placeholder="child@example.com"
+            className="input flex-1"
+          />
+          <button
+            onClick={handleSearch}
+            disabled={searching || !email.trim()}
+            className="btn-primary px-4 flex items-center gap-2 disabled:opacity-50 flex-shrink-0"
+          >
+            {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+            Find
+          </button>
+        </div>
+      </div>
+
+      {/* Not found */}
+      {notFound && (
+        <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+          <span className="text-amber-400 text-lg">✗</span>
+          <div>
+            <p className="text-sm text-amber-300 font-medium">No student found</p>
+            <p className="text-xs text-white/40 mt-0.5">This email isn't registered. Use "Create Account" tab to add your child.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Found student card */}
+      {found && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-4"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-sm flex-shrink-0">
+              {found.firstName[0]}{found.lastName[0]}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-semibold text-white">{found.firstName} {found.lastName}</p>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">Found</span>
+              </div>
+              <p className="text-xs text-white/40 mt-0.5">{found.email}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-xs">
+            {found.currentClass && (
+              <div className="text-center p-2 rounded-lg bg-white/5">
+                <div className="text-white/40 mb-0.5">Class</div>
+                <div className="text-white font-medium">{found.currentClass}</div>
+              </div>
+            )}
+            {found.board && (
+              <div className="text-center p-2 rounded-lg bg-white/5">
+                <div className="text-white/40 mb-0.5">Board</div>
+                <div className="text-white font-medium">{found.board}</div>
+              </div>
+            )}
+            {found.city && (
+              <div className="text-center p-2 rounded-lg bg-white/5">
+                <div className="text-white/40 mb-0.5">City</div>
+                <div className="text-white font-medium">{found.city}</div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-white/60 mb-1.5">Your Relationship <span className="text-red-400">*</span></label>
+            <select
+              value={relationship}
+              onChange={(e) => setRelationship(e.target.value)}
+              className="input w-full"
+            >
+              {RELATIONSHIP_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+
+          <button
+            onClick={handleLink}
+            disabled={linking}
+            className="w-full btn-primary py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {linking ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+            {linking ? 'Linking…' : 'Yes, this is my child — Link Now'}
+          </button>
+        </motion.div>
+      )}
+
+      <button
+        onClick={onClose}
+        className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-colors"
+      >
+        <X className="w-4 h-4" /> Cancel
+      </button>
+    </div>
+  );
+}
+
 // ─── Add Child Modal ───────────────────────────────────────────────────────────
 
 function AddChildModal({
@@ -152,54 +457,46 @@ function AddChildModal({
   onClose: () => void;
   onAdded: () => void;
 }) {
+  const [mode, setMode] = useState<ModalMode>('create');
   const [step, setStep] = useState<AddChildStep>('personal');
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [centerName, setCenterName] = useState<string | null>(null);
-  const [centerId, setCenterId] = useState<string | null>(null);
-  const [codeValidating, setCodeValidating] = useState(false);
+  const [centerName, setCenterName] = useState('');
   const [subjects, setSubjects] = useState<string[]>([]);
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [loadingSubjects, setLoadingSubjects] = useState(false);
   const [createdStudentId, setCreatedStudentId] = useState<string | null>(null);
   const [createdStudentName, setCreatedStudentName] = useState('');
 
+  // Fetch institution list
+  const { data: centers = [], isLoading: centersLoading } = useQuery<CenterOption[]>({
+    queryKey: ['centers-list'],
+    queryFn: () =>
+      api.get('/api/v1/centers?size=100').then((r) => {
+        const d = r.data;
+        const list = Array.isArray(d) ? d : (d.content ?? []);
+        return list.map((c: { id: string; name: string; city?: string; code?: string }) => ({
+          id: c.id, name: c.name, city: c.city, code: c.code,
+        }));
+      }),
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Personal form state
   const [personal, setPersonal] = useState<PersonalForm>({
     firstName: '', lastName: '', email: '',
     password: '', confirmPassword: '',
     phone: '', gender: '', relationship: 'MOTHER',
+    dateOfBirth: '',
   });
   const [personalErrors, setPersonalErrors] = useState<Partial<PersonalForm>>({});
 
   // Academic form state
   const [academic, setAcademic] = useState<AcademicForm>({
-    dateOfBirth: '', institutionCode: '', board: '', currentClass: '10',
+    institutionId: '', board: '', currentClass: '10',
   });
   const [academicErrors, setAcademicErrors] = useState<Partial<AcademicForm>>({});
-
-  // Debounced institution code lookup
-  useEffect(() => {
-    const code = academic.institutionCode.trim();
-    if (code.length < 3) { setCenterName(null); setCenterId(null); return; }
-    const timer = setTimeout(async () => {
-      setCodeValidating(true);
-      try {
-        const res = await api.get(`/api/v1/centers/lookup?code=${encodeURIComponent(code)}`);
-        setCenterId(res.data.id);
-        setCenterName(res.data.name);
-      } catch {
-        setCenterId(null);
-        setCenterName(null);
-      } finally {
-        setCodeValidating(false);
-      }
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [academic.institutionCode]);
-
-
 
   // ── Personal details validation ──────────────────────────────────────────────
 
@@ -220,7 +517,6 @@ function AddChildModal({
 
   function validateAcademic(): boolean {
     const errors: Partial<AcademicForm> = {};
-    if (!academic.dateOfBirth) errors.dateOfBirth = 'Required';
     if (!academic.board) errors.board = 'Required';
     if (!academic.currentClass) errors.currentClass = 'Required';
     setAcademicErrors(errors);
@@ -232,28 +528,10 @@ function AddChildModal({
   async function handleAcademicNext() {
     if (!validateAcademic()) return;
 
-    // Resolve center if code entered
-    if (academic.institutionCode.trim() && !centerId) {
-      setCodeValidating(true);
-      try {
-        const res = await api.get(`/api/v1/centers/lookup?code=${encodeURIComponent(academic.institutionCode.trim())}`);
-        setCenterId(res.data.id);
-        setCenterName(res.data.name);
-      } catch {
-        toast.error('Institution code not found. You can skip this field.');
-        setAcademicErrors((e) => ({ ...e, institutionCode: 'Code not found' }));
-        setCodeValidating(false);
-        return;
-      } finally {
-        setCodeValidating(false);
-      }
-    }
-
-    // Load subjects if we have a center
-    if (centerId) {
+    if (academic.institutionId) {
       setLoadingSubjects(true);
       try {
-        const { data } = await api.get(`/api/v1/centers/${centerId}/batches?size=100`);
+        const { data } = await api.get(`/api/v1/centers/${academic.institutionId}/batches?size=100`);
         const batches = Array.isArray(data) ? data : (data.content ?? []);
         const found = [...new Set(batches.map((b: { subject?: string }) => b.subject as string).filter(Boolean))].sort() as string[];
         setSubjects(found);
@@ -290,7 +568,7 @@ function AddChildModal({
         email: personal.email,
         phone: personal.phone || undefined,
         gender: personal.gender || undefined,
-        dateOfBirth: academic.dateOfBirth,
+        dateOfBirth: personal.dateOfBirth || undefined,
         board: academic.board || undefined,
         currentClass: academic.currentClass ? parseInt(academic.currentClass) : undefined,
         subjects: selectedSubjects,
@@ -302,9 +580,9 @@ function AddChildModal({
       await api.post(`/api/v1/parents/${profileId}/students`, {
         studentId: studentProfileId,
         studentName,
-        centerId: centerId ?? '00000000-0000-0000-0000-000000000000',
+        centerId: academic.institutionId || '00000000-0000-0000-0000-000000000000',
         relationship: personal.relationship,
-        dateOfBirth: academic.dateOfBirth || undefined,
+        dateOfBirth: personal.dateOfBirth || undefined,
         board: academic.board || undefined,
         standard: academic.currentClass ? `Class ${academic.currentClass}` : undefined,
       });
@@ -371,11 +649,11 @@ function AddChildModal({
                 {step === 'done' ? 'Child Added!' : 'Add Your Child'}
               </h2>
               <p className="text-xs text-white/40">
-                {step === 'personal' ? 'Step 1 of 3 — Personal details' :
+                {mode === 'ai-find' ? 'Smart find — link existing student account' :
+                 step === 'personal' ? 'Step 1 of 3 — Personal details' :
                  step === 'academic' ? 'Step 2 of 3 — Academic info' :
                  step === 'subjects' ? 'Step 3 of 3 — Subjects' :
-                 step === 'done' ? 'Successfully linked to your account' :
-                 'Create an account and link your child'}
+                 'Successfully linked to your account'}
               </p>
             </div>
           </div>
@@ -384,11 +662,52 @@ function AddChildModal({
           </button>
         </div>
 
+        {/* Mode tabs — only show when not done */}
+        {step !== 'done' && (
+          <div className="flex gap-1 p-3 pb-0 px-6">
+            <button
+              onClick={() => setMode('create')}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium transition-colors',
+                mode === 'create'
+                  ? 'bg-brand-500/15 text-brand-400 border border-brand-500/30'
+                  : 'text-white/40 hover:text-white/60 hover:bg-white/5'
+              )}
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              Create Account
+            </button>
+            <button
+              onClick={() => setMode('ai-find')}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium transition-colors',
+                mode === 'ai-find'
+                  ? 'bg-violet-500/15 text-violet-400 border border-violet-500/30'
+                  : 'text-white/40 hover:text-white/60 hover:bg-white/5'
+              )}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              AI Smart Find
+            </button>
+          </div>
+        )}
+
         <div className="p-6">
           <AnimatePresence mode="wait">
 
+            {/* ── AI Smart Find mode ──────────────────────────────────── */}
+            {mode === 'ai-find' && (
+              <motion.div key="ai-find" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+                <AISmartFind
+                  profileId={profileId}
+                  onLinked={onAdded}
+                  onClose={onClose}
+                />
+              </motion.div>
+            )}
+
             {/* ── Step 1: Personal Details ────────────────────────────── */}
-            {step === 'personal' && (
+            {mode === 'create' && step === 'personal' && (
               <motion.div key="personal" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
                 <StepBar current={0} />
 
@@ -457,6 +776,22 @@ function AddChildModal({
                   {personalErrors.confirmPassword && <p className="text-xs text-red-400 mt-1">{personalErrors.confirmPassword}</p>}
                 </div>
 
+                {/* DOB moved here from Academic */}
+                <div>
+                  <label className="block text-xs font-medium text-white/60 mb-1.5">
+                    Date of Birth <span className="text-white/30 font-normal">(optional)</span>
+                  </label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
+                    <input
+                      {...pField('dateOfBirth')}
+                      type="date"
+                      max={new Date().toISOString().split('T')[0]}
+                      className="input w-full pl-9"
+                    />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-white/60 mb-1.5">Phone (optional)</label>
@@ -494,35 +829,29 @@ function AddChildModal({
             )}
 
             {/* ── Step 2: Academic Details ────────────────────────────── */}
-            {step === 'academic' && (
+            {mode === 'create' && step === 'academic' && (
               <motion.div key="academic" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
                 <StepBar current={1} />
 
                 <div>
-                  <label className="block text-xs font-medium text-white/60 mb-1.5">Date of Birth <span className="text-red-400">*</span></label>
-                  <input {...aField('dateOfBirth')} type="date" max={new Date().toISOString().split('T')[0]} className={cn('input w-full', academicErrors.dateOfBirth && 'border-red-500/50')} />
-                  {academicErrors.dateOfBirth && <p className="text-xs text-red-400 mt-1">{academicErrors.dateOfBirth}</p>}
-                </div>
-
-                <div>
                   <label className="block text-xs font-medium text-white/60 mb-1.5">
-                    Institution Code <span className="text-white/30 font-normal">(optional)</span>
+                    Institution <span className="text-white/30 font-normal">(optional)</span>
                   </label>
-                  <div className="relative">
-                    <input
-                      {...aField('institutionCode')}
-                      placeholder="e.g. NEXED-2024"
-                      className={cn('input w-full', academicErrors.institutionCode && 'border-red-500/50')}
-                    />
-                    {codeValidating && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-white/40" />}
-                  </div>
-                  {centerName && (
+                  <InstitutionSelector
+                    value={academic.institutionId}
+                    onChange={(id, name) => {
+                      setAcademic((p) => ({ ...p, institutionId: id }));
+                      setCenterName(name);
+                    }}
+                    centers={centers}
+                    loading={centersLoading}
+                  />
+                  {academic.institutionId && centerName && (
                     <div className="flex items-center gap-1.5 mt-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-xs text-emerald-400">{centerName}</span>
+                      <span className="text-xs text-emerald-400">{centerName} selected</span>
                     </div>
                   )}
-                  {academicErrors.institutionCode && <p className="text-xs text-red-400 mt-1">{academicErrors.institutionCode}</p>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -550,10 +879,8 @@ function AddChildModal({
                   </button>
                   <button
                     onClick={handleAcademicNext}
-                    disabled={codeValidating}
-                    className="flex-1 btn-primary py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="flex-1 btn-primary py-2.5 text-sm flex items-center justify-center gap-2"
                   >
-                    {codeValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                     Next: Subjects <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -561,7 +888,7 @@ function AddChildModal({
             )}
 
             {/* ── Step 3: Subjects ────────────────────────────────────── */}
-            {step === 'subjects' && (
+            {mode === 'create' && step === 'subjects' && (
               <motion.div key="subjects" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
                 <StepBar current={2} />
 
@@ -571,7 +898,7 @@ function AddChildModal({
                   </div>
                 ) : subjects.length > 0 ? (
                   <>
-                    <p className="text-sm text-white/50">Select the subjects your child will study at {centerName ?? 'the institution'}.</p>
+                    <p className="text-sm text-white/50">Select the subjects your child will study at {centerName || 'the institution'}.</p>
                     <div className="flex flex-wrap gap-2">
                       {subjects.map((s) => (
                         <button
@@ -592,7 +919,7 @@ function AddChildModal({
                 ) : (
                   <div className="text-center py-8">
                     <BookOpen className="w-10 h-10 text-white/15 mx-auto mb-3" />
-                    <p className="text-white/40 text-sm">No subjects found{centerId ? ' for this institution' : ' — no institution linked'}.</p>
+                    <p className="text-white/40 text-sm">No subjects found{academic.institutionId ? ' for this institution' : ' — no institution linked'}.</p>
                     <p className="text-white/30 text-xs mt-1">You can add subjects later from your child's profile.</p>
                   </div>
                 )}
@@ -605,6 +932,7 @@ function AddChildModal({
                     <div><span className="text-white/40">Class:</span> <span className="text-white ml-1">{academic.currentClass ? `Class ${academic.currentClass}` : '—'}</span></div>
                     <div><span className="text-white/40">Board:</span> <span className="text-white ml-1">{academic.board || '—'}</span></div>
                     <div><span className="text-white/40">Relationship:</span> <span className="text-white ml-1">{personal.relationship}</span></div>
+                    {personal.dateOfBirth && <div><span className="text-white/40">DOB:</span> <span className="text-white ml-1">{formatDate(personal.dateOfBirth)}</span></div>}
                     {centerName && <div className="col-span-2"><span className="text-white/40">Institution:</span> <span className="text-white ml-1">{centerName}</span></div>}
                   </div>
                 </div>
