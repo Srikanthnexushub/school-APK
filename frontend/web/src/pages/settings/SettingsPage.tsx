@@ -8,7 +8,7 @@ import { z } from 'zod';
 import {
   User, Bell, Palette, Shield, Camera, Check, AlertTriangle,
   Smartphone, Monitor, Eye, EyeOff, GraduationCap, Calendar, MapPin, BookOpen,
-  ShieldCheck, Clock,
+  ShieldCheck, Clock, Plus, Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
@@ -17,6 +17,7 @@ import { cn } from '../../lib/utils';
 import { Toggle } from '../../components/ui/Toggle';
 import { Avatar } from '../../components/ui/Avatar';
 import { Modal } from '../../components/ui/Modal';
+import { suggestStates, suggestDistricts } from '../../utils/indiaLocations';
 
 type Tab = 'profile' | 'notifications' | 'appearance' | 'security';
 
@@ -74,6 +75,8 @@ interface StudentProfile {
   dateOfBirth?: string;
   city?: string;
   state?: string;
+  district?: string;
+  country?: string;
   board?: string;
   currentClass?: number;
   stream?: string;
@@ -111,6 +114,8 @@ const profileSchema = z.object({
   gender: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
+  district: z.string().optional(),
+  country: z.string().optional(),
   stream: z.string().optional(),
   targetYear: z.number().int().min(2024).max(2035).optional().or(z.nan()).transform(v => isNaN(v as number) ? undefined : v),
 });
@@ -126,6 +131,44 @@ const passwordSchema = z.object({
 
 type ProfileForm = z.infer<typeof profileSchema>;
 type PasswordForm = z.infer<typeof passwordSchema>;
+
+function LocationInput({
+  label, value, onChange, suggestions,
+}: {
+  label: string; value: string;
+  onChange: (v: string) => void;
+  suggestions: string[];
+}) {
+  const [show, setShow] = useState(false);
+  const filtered = suggestions.filter(s => s.toLowerCase().includes(value.toLowerCase())).slice(0, 8);
+  return (
+    <div className="relative">
+      <label className="block text-sm font-medium text-white/70 mb-1.5">{label}</label>
+      <input
+        value={value}
+        onChange={e => { onChange(e.target.value); setShow(true); }}
+        onFocus={() => setShow(true)}
+        onBlur={() => setTimeout(() => setShow(false), 150)}
+        placeholder={label}
+        className="input w-full"
+      />
+      {show && filtered.length > 0 && value.length > 0 && (
+        <div className="absolute z-50 mt-1 w-full bg-surface-100 border border-white/10 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+          {filtered.map(s => (
+            <button
+              key={s}
+              type="button"
+              onMouseDown={() => { onChange(s); setShow(false); }}
+              className="w-full text-left px-3 py-2 text-sm text-white/80 hover:bg-white/5 hover:text-white transition-colors"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function InfoBadge({ label, value, icon: Icon }: { label: string; value?: string | number | null; icon: React.ElementType }) {
   return (
@@ -155,6 +198,30 @@ function ProfileTab() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [showAddParentModal, setShowAddParentModal] = useState(false);
+  const [addParentEmail, setAddParentEmail] = useState('');
+  const [addParentSending, setAddParentSending] = useState(false);
+
+  async function handleAddParent() {
+    if (!addParentEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addParentEmail)) {
+      toast.error('Enter a valid parent email');
+      return;
+    }
+    setAddParentSending(true);
+    try {
+      await api.post('/api/v1/parents/request-link', { parentEmail: addParentEmail.trim() });
+      toast.success('Link request sent! Your parent will be notified.');
+      setShowAddParentModal(false);
+      setAddParentEmail('');
+      fetchPendingLink(true);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string; detail?: string } } };
+      const msg = err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Failed to send request';
+      toast.error(msg);
+    } finally {
+      setAddParentSending(false);
+    }
+  }
 
   const { data: profile } = useQuery<StudentProfile>({
     queryKey: ['student-profile-me'],
@@ -215,13 +282,15 @@ function ProfileTab() {
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { name: user?.name ?? '', phone: '', gender: '', city: '', state: '', stream: '', targetYear: undefined },
+    defaultValues: { name: user?.name ?? '', phone: '', gender: '', city: '', state: '', district: '', country: '', stream: '', targetYear: undefined },
     values: profile ? {
       name: user?.name ?? '',
       phone: profile.phone ?? '',
       gender: profile.gender ?? '',
       city: profile.city ?? '',
       state: profile.state ?? '',
+      district: profile.district ?? '',
+      country: profile.country ?? '',
       stream: profile.stream ?? '',
       targetYear: profile.targetYear,
     } : undefined,
@@ -241,6 +310,8 @@ function ProfileTab() {
           gender: data.gender || undefined,
           city: data.city || undefined,
           state: data.state || undefined,
+          district: data.district || undefined,
+          country: data.country || undefined,
           stream: data.stream || undefined,
           targetYear: data.targetYear || undefined,
         }),
@@ -305,6 +376,19 @@ function ProfileTab() {
 
   return (
     <div className="space-y-6">
+      {/* Header row — Add Parent button for students */}
+      {user?.role === 'STUDENT' && (
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium text-white/40 uppercase tracking-wider">Profile</h2>
+          <button
+            onClick={() => setShowAddParentModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-500/15 border border-brand-500/30 text-brand-400 hover:bg-brand-500/25 text-xs font-medium transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add Parent
+          </button>
+        </div>
+      )}
+
       {/* Profile completion */}
       <div className="card">
         <div className="flex items-center justify-between mb-2">
@@ -363,6 +447,8 @@ function ProfileTab() {
             <InfoBadge label="Target Year" value={profile.targetYear} icon={Calendar} />
             <InfoBadge label="City" value={profile.city} icon={MapPin} />
             <InfoBadge label="State" value={profile.state} icon={MapPin} />
+            {profile.district && <InfoBadge label="District" value={profile.district} icon={MapPin} />}
+            {profile.country && <InfoBadge label="Country" value={profile.country} icon={MapPin} />}
           </div>
         </div>
       )}
@@ -455,11 +541,24 @@ function ProfileTab() {
             </div>
             <div>
               <label className="block text-sm font-medium text-white/70 mb-1.5">State</label>
-              <input {...register('state')} placeholder="Maharashtra" className="input w-full" />
+              <input {...register('state')} list="india-states-list" placeholder="Maharashtra" className="input w-full" />
+              <datalist id="india-states-list">
+                {suggestStates('').map(s => <option key={s} value={s} />)}
+              </datalist>
             </div>
             <div>
               <label className="block text-sm font-medium text-white/70 mb-1.5">Target Year</label>
               <input {...register('targetYear', { valueAsNumber: true })} type="number" placeholder="2026" className="input w-full" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">District</label>
+              <input {...register('district')} placeholder="District" className="input w-full" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">Country</label>
+              <input {...register('country')} placeholder="India" className="input w-full" />
             </div>
           </div>
           <button
@@ -548,18 +647,12 @@ function ProfileTab() {
       )}
 
       {/* Danger Zone */}
-      <div className="card border border-red-500/20">
-        <div className="flex items-center gap-2 mb-3">
-          <AlertTriangle className="w-4 h-4 text-red-400" />
-          <h3 className="text-base font-semibold text-red-400">Danger Zone</h3>
-        </div>
-        <p className="text-white/50 text-sm mb-4">
-          Permanently delete your account and all associated data. This action cannot be undone.
-        </p>
+      <div className="pt-1">
         <button
           onClick={() => setShowDeleteModal(true)}
-          className="px-4 py-2 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-600/10 transition-all text-sm"
+          className="flex items-center gap-2 text-red-400/50 hover:text-red-400 text-xs transition-colors"
         >
+          <AlertTriangle className="w-3.5 h-3.5" />
           Delete Account
         </button>
       </div>
@@ -599,6 +692,47 @@ function ProfileTab() {
           </div>
         </div>
       </Modal>
+
+      {/* Add Parent modal */}
+      {showAddParentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-surface-100 border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl"
+          >
+            <h3 className="text-lg font-bold text-white mb-1">Add Parent</h3>
+            <p className="text-sm text-white/50 mb-5">Enter your parent's registered email to send them a link request.</p>
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-white/60 mb-1.5">Parent's Email</label>
+              <input
+                type="email"
+                value={addParentEmail}
+                onChange={(e) => setAddParentEmail(e.target.value)}
+                placeholder="parent@example.com"
+                className="input w-full"
+                onKeyDown={(e) => { if (e.key === 'Enter') handleAddParent(); }}
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowAddParentModal(false); setAddParentEmail(''); }}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddParent}
+                disabled={addParentSending}
+                className="flex-1 btn-primary py-2.5 text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {addParentSending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send Request'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

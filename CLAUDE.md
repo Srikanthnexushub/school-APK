@@ -92,6 +92,11 @@ JWT expired (15 min TTL). Re-login. If login itself fails → CAPTCHA issue (see
 ### auth-svc health shows `DOWN`
 Usually means Redis is unreachable. Fix Redis first (see above), then auth-svc recovers automatically.
 
+### Frontend `ERR_CONNECTION_REFUSED` on localhost:3000
+**Symptom:** Browser or Playwright cannot connect to `http://localhost:3000` even though Vite is running.
+**Cause:** Vite was binding only to IPv6 `[::1]:3000`, not IPv4 `127.0.0.1:3000`. `localhost` resolves to IPv4 on many systems, so the connection was refused.
+**Fixed permanently** in `vite.config.ts` by adding `host: true` to the server block — Vite now binds to `0.0.0.0` (all interfaces). Also fixed `start-all.sh` to print `http://localhost:3000` (was wrongly showing `5173`).
+
 ### `mvn test-compile` fails
 Check for Java compilation errors in test files. Run: `mvn test-compile --no-transfer-progress 2>&1 | grep ERROR`
 
@@ -119,8 +124,16 @@ Check for Java compilation errors in test files. Run: `mvn test-compile --no-tra
 | Teacher onboarding + bulk import | `center-svc`, `AdminPendingTeachersPage.tsx` | 8bd6075 |
 | Real-time notifications (SSE + SMS) | `notification-svc`, `AppLayout.tsx` | 275e718 |
 | Google Sign-In | `LoginPage.tsx`, `RegisterPage.tsx` | 944f801 |
+| District/state/country autocomplete (all roles) | `indiaLocations.ts`, `ParentProfilePage.tsx`, `SettingsPage.tsx`, `RegisterPage.tsx` | see frozen-fixes |
+| Copilot psychometric fix (real data, no hallucination) | `CopilotService.java` | see frozen-fixes |
+| Adaptive psychometric questions (board/class/gender/stream) | `PsychometricPage.tsx` | see frozen-fixes |
+| + Add Parent button (student Settings, top of Profile tab) | `SettingsPage.tsx` | see frozen-fixes |
+| AI Project Lab `/lab` (student portal) | `ProjectLabPage.tsx`, `router.tsx`, `AppLayout.tsx` | see frozen-fixes |
+| Institution name in Add Child + Register (optional free-text) | `ParentChildrenPage.tsx`, `RegisterPage.tsx` | see frozen-fixes |
+| center-svc branch/board fields + V11 migration | `CoachingCenter.java`, `CenterService.java`, `RegisterPage.tsx` | see frozen-fixes |
+| Danger Zone → single Delete Account button (all roles) | `SettingsPage.tsx` | see frozen-fixes |
 
-Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (40 fixes as of b54547a)
+Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (49 fixes)
 
 ---
 
