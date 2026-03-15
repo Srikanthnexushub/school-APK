@@ -128,6 +128,12 @@ fi
 if $DO_BUILD; then
   section "Maven Build (skip tests)"
   cd "${ROOT_DIR}"
+  # Validate test-compile first — catches void-stub / import errors before the full build
+  if ! mvn test-compile --no-transfer-progress -q 2>/dev/null; then
+    error "Test compilation failed. Fix test errors before starting services."
+    mvn test-compile --no-transfer-progress 2>&1 | grep "ERROR" | head -20
+    exit 1
+  fi
   mvn clean package -DskipTests --no-transfer-progress -q
   info "Build complete."
 fi

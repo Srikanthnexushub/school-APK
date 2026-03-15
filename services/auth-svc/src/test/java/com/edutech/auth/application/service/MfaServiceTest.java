@@ -22,8 +22,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -55,7 +55,7 @@ class MfaServiceTest {
     @DisplayName("initSetup — user without MFA — returns secret and QR URI")
     void initSetup_noMfa_returnsSecretAndQrUri() {
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
-        when(valueOps.set(anyString(), anyString(), any())).then(inv -> null);
+        doNothing().when(valueOps).set(anyString(), anyString(), any());
 
         var response = mfaService.initSetup(userId);
 
@@ -86,7 +86,7 @@ class MfaServiceTest {
     @Test
     @DisplayName("issuePendingMfaToken — stores token in Redis and returns it")
     void issuePendingMfaToken_storesAndReturns() {
-        when(valueOps.set(anyString(), anyString(), any())).then(inv -> null);
+        doNothing().when(valueOps).set(anyString(), anyString(), any());
 
         String token = mfaService.issuePendingMfaToken(userId);
 

@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export function isJwtExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp * 1000 < Date.now();
+  } catch {
+    return true;
+  }
+}
+
 interface User {
   id: string;
   email: string;
@@ -36,6 +45,16 @@ export const useAuthStore = create<AuthState>()(
       updateUser: (partial) => set((state) => ({ user: state.user ? { ...state.user, ...partial } : null })),
       logout: () => set({ token: null, refreshToken: null, deviceId: null, user: null, isAuthenticated: false }),
     }),
-    { name: 'edupath-auth' }
+    {
+      name: 'edupath-auth',
+      onRehydrateStorage: () => (state) => {
+        // On startup: if the access token is expired and there is no refresh
+        // token to silently rotate it, wipe the persisted session immediately
+        // so ProtectedRoute always starts from a clean unauthenticated state.
+        if (state?.token && isJwtExpired(state.token) && !state.refreshToken) {
+          state.logout();
+        }
+      },
+    }
   )
 );

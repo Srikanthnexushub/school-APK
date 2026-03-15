@@ -2,9 +2,7 @@
 package com.edutech.center.domain.model;
 
 public enum CenterStatus {
-    PENDING_VERIFICATION,
     ACTIVE,
     SUSPENDED,
-    CLOSED,
-    REJECTED
+    CLOSED
 }
