@@ -18,6 +18,7 @@ interface ParentProfileResponse {
   name: string;
   phone: string;
   email?: string;
+  gender?: string;
   relationshipType?: string;
   address?: string;
   city?: string;
@@ -32,6 +33,7 @@ interface UpdateProfileRequest {
   name: string;
   phone: string;
   email: string;
+  gender: string;
   relationshipType: string;
   address: string;
   city: string;
@@ -75,7 +77,7 @@ export default function ParentProfilePage() {
   const updateUser = useAuthStore((s) => s.updateUser);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<UpdateProfileRequest>({
-    name: '', phone: '', email: '', relationshipType: 'PARENT',
+    name: '', phone: '', email: '', gender: '', relationshipType: 'PARENT',
     address: '', city: '', state: '', pincode: '',
   });
 
@@ -90,6 +92,7 @@ export default function ParentProfilePage() {
       name: profile.name ?? '',
       phone: profile.phone ?? '',
       email: profile.email ?? '',
+      gender: profile.gender ?? '',
       relationshipType: profile.relationshipType ?? 'PARENT',
       address: profile.address ?? '',
       city: profile.city ?? '',
@@ -154,7 +157,7 @@ export default function ParentProfilePage() {
     );
   }
 
-  const profileFields = [profile.name, profile.phone, profile.email, profile.relationshipType, profile.address, profile.city, profile.state, profile.pincode];
+  const profileFields = [profile.name, profile.phone, profile.email, profile.gender, profile.relationshipType, profile.address, profile.city, profile.state, profile.pincode];
   const profilePct = Math.round((profileFields.filter(Boolean).length / profileFields.length) * 100);
 
   return (
@@ -241,6 +244,7 @@ export default function ParentProfilePage() {
             <InfoRow label="Full Name" value={profile.name} icon={User} />
             <InfoRow label="Phone Number" value={profile.phone} icon={Phone} />
             <InfoRow label="Email Address" value={profile.email ?? ''} icon={Mail} />
+            <InfoRow label="Gender" value={profile.gender ?? ''} icon={User} />
             <InfoRow label="Relationship" value={profile.relationshipType ?? ''} icon={User} />
             <InfoRow label="Address" value={profile.address ?? ''} icon={MapPin} />
             <InfoRow label="City" value={profile.city ?? ''} icon={MapPin} />
@@ -268,10 +272,20 @@ export default function ParentProfilePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-medium text-white/60 mb-1.5">Email Address</label>
                 <input {...field('email')} type="email" placeholder="you@example.com" className="input w-full" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-white/60 mb-1.5">Gender</label>
+                <select {...field('gender')} className="input w-full">
+                  <option value="">— Select —</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                  <option value="OTHER">Other</option>
+                  <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-white/60 mb-1.5">Relationship Type</label>

@@ -87,6 +87,7 @@ interface ParentProfileMin {
   name?: string;
   phone?: string;
   email?: string;
+  gender?: string;
   relationshipType?: string;
   address?: string;
   city?: string;
@@ -101,11 +102,13 @@ interface MentorProfileMin {
   specializations?: string | string[];
   yearsOfExperience?: number;
   hourlyRate?: number;
+  gender?: string;
 }
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   phone: z.string().optional(),
+  gender: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
   stream: z.string().optional(),
@@ -212,10 +215,11 @@ function ProfileTab() {
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { name: user?.name ?? '', phone: '', city: '', state: '', stream: '', targetYear: undefined },
+    defaultValues: { name: user?.name ?? '', phone: '', gender: '', city: '', state: '', stream: '', targetYear: undefined },
     values: profile ? {
       name: user?.name ?? '',
       phone: profile.phone ?? '',
+      gender: profile.gender ?? '',
       city: profile.city ?? '',
       state: profile.state ?? '',
       stream: profile.stream ?? '',
@@ -234,6 +238,7 @@ function ProfileTab() {
           firstName,
           lastName,
           phone: data.phone || undefined,
+          gender: data.gender || undefined,
           city: data.city || undefined,
           state: data.state || undefined,
           stream: data.stream || undefined,
@@ -251,14 +256,47 @@ function ProfileTab() {
     onError: () => toast.error('Failed to save profile.'),
   });
 
+  const [teacherForm, setTeacherForm] = useState({
+    bio: '', specializations: '', yearsOfExperience: 0, hourlyRate: '', gender: '',
+  });
+  const teacherFormInitialized = useRef(false);
+  useEffect(() => {
+    if (mentorProfile && !teacherFormInitialized.current) {
+      setTeacherForm({
+        bio: mentorProfile.bio ?? '',
+        specializations: typeof mentorProfile.specializations === 'string' ? mentorProfile.specializations : (mentorProfile.specializations ?? []).join(', '),
+        yearsOfExperience: mentorProfile.yearsOfExperience ?? 0,
+        hourlyRate: mentorProfile.hourlyRate != null ? String(mentorProfile.hourlyRate) : '',
+        gender: mentorProfile.gender ?? '',
+      });
+      teacherFormInitialized.current = true;
+    }
+  }, [mentorProfile]);
+
+  const teacherSaveMutation = useMutation({
+    mutationFn: (form: typeof teacherForm) =>
+      api.patch('/api/v1/mentors/me', {
+        bio: form.bio || undefined,
+        specializations: form.specializations || undefined,
+        yearsOfExperience: form.yearsOfExperience || undefined,
+        hourlyRate: form.hourlyRate ? parseFloat(form.hourlyRate) : undefined,
+        gender: form.gender || undefined,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mentor-profile-me'] });
+      toast.success('Profile updated successfully!');
+    },
+    onError: () => toast.error('Failed to save profile.'),
+  });
+
   const allFields = (() => {
     if (!user) return null;
     if (user.role === 'STUDENT' && profile)
       return [user.name, user.email, user.avatarUrl, profile.phone, profile.gender, profile.dateOfBirth, profile.city, profile.stream];
     if (user.role === 'PARENT' && parentProfile)
-      return [parentProfile.name, parentProfile.phone, parentProfile.email, parentProfile.relationshipType, parentProfile.address, parentProfile.city, parentProfile.state, parentProfile.pincode];
+      return [parentProfile.name, parentProfile.phone, parentProfile.email, parentProfile.gender, parentProfile.relationshipType, parentProfile.address, parentProfile.city, parentProfile.state, parentProfile.pincode];
     if (user.role === 'TEACHER' && mentorProfile)
-      return [mentorProfile.fullName, mentorProfile.email, user.avatarUrl, mentorProfile.bio, mentorProfile.specializations, mentorProfile.yearsOfExperience, mentorProfile.hourlyRate];
+      return [mentorProfile.fullName, mentorProfile.email, user.avatarUrl, mentorProfile.bio, mentorProfile.specializations, mentorProfile.yearsOfExperience, mentorProfile.hourlyRate, mentorProfile.gender];
     if (user.role === 'CENTER_ADMIN' || user.role === 'SUPER_ADMIN')
       return [user.name, user.email, user.avatarUrl];
     return null;
@@ -383,10 +421,20 @@ function ProfileTab() {
             <input value={user?.email ?? ''} readOnly className="input w-full opacity-50 cursor-not-allowed" />
             <p className="text-white/30 text-xs mt-1">Email cannot be changed.</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-white/70 mb-1.5">Phone Number</label>
               <input {...register('phone')} placeholder="+91 98765 43210" className="input w-full" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">Gender</label>
+              <select {...register('gender')} className="input w-full">
+                <option value="">— Select —</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option>
+                <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-white/70 mb-1.5">Stream</label>
@@ -428,6 +476,76 @@ function ProfileTab() {
           </button>
         </form>
       </div>}
+
+      {/* Edit Info — teachers only */}
+      {user?.role === 'TEACHER' && mentorProfile && (
+        <div className="card">
+          <h3 className="text-base font-semibold text-white mb-4">Edit Profile</h3>
+          <form
+            onSubmit={(e) => { e.preventDefault(); teacherSaveMutation.mutate(teacherForm); }}
+            className="space-y-4"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1.5">Gender</label>
+                <select
+                  value={teacherForm.gender}
+                  onChange={(e) => setTeacherForm((p) => ({ ...p, gender: e.target.value }))}
+                  className="input w-full"
+                >
+                  <option value="">— Select —</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                  <option value="OTHER">Other</option>
+                  <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1.5">Years of Experience</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={teacherForm.yearsOfExperience}
+                  onChange={(e) => setTeacherForm((p) => ({ ...p, yearsOfExperience: parseInt(e.target.value) || 0 }))}
+                  className="input w-full"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">Specializations</label>
+              <input
+                type="text"
+                value={teacherForm.specializations}
+                onChange={(e) => setTeacherForm((p) => ({ ...p, specializations: e.target.value }))}
+                placeholder="e.g. Mathematics, Physics"
+                className="input w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">Bio</label>
+              <textarea
+                value={teacherForm.bio}
+                onChange={(e) => setTeacherForm((p) => ({ ...p, bio: e.target.value }))}
+                placeholder="Tell students about yourself..."
+                rows={3}
+                className="input w-full resize-none"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={teacherSaveMutation.isPending}
+              className="btn-primary flex items-center gap-2"
+            >
+              {teacherSaveMutation.isPending ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
+              Save Changes
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Danger Zone */}
       <div className="card border border-red-500/20">

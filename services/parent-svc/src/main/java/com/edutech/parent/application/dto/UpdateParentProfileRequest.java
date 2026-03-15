@@ -10,5 +10,6 @@ public record UpdateParentProfileRequest(
         String state,
         String pincode,
         String relationshipType,
-        String occupation
+        String occupation,
+        String gender
 ) {}

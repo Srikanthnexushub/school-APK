@@ -136,6 +136,20 @@ public class User {
     }
 
     /**
+     * Factory for parent-created child accounts.
+     * These users are immediately ACTIVE — parent vouches for the email.
+     */
+    public static User createActive(String email, String passwordHash, Role role,
+                                    String firstName, String lastName, String phoneNumber) {
+        User u = new User(
+            UUID.randomUUID(), email, passwordHash, role,
+            UserStatus.ACTIVE, null, firstName, lastName, phoneNumber, null
+        );
+        u.emailVerified = true;
+        return u;
+    }
+
+    /**
      * Factory for OAuth2 sign-in (Google, etc.).
      * These users are immediately ACTIVE (email already verified by OAuth provider).
      */

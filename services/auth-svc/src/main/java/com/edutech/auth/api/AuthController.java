@@ -3,6 +3,8 @@ package com.edutech.auth.api;
 
 import com.edutech.auth.application.dto.AuthPrincipal;
 import com.edutech.auth.application.dto.ChangePasswordRequest;
+import com.edutech.auth.application.dto.RegisterChildRequest;
+import com.edutech.auth.application.dto.RegisterChildResponse;
 import com.edutech.auth.application.dto.ForgotPasswordRequest;
 import com.edutech.auth.application.dto.GoogleAuthRequest;
 import com.edutech.auth.application.dto.LoginRequest;
@@ -21,6 +23,7 @@ import com.edutech.auth.domain.port.in.ChangePasswordUseCase;
 import com.edutech.auth.domain.port.in.LogoutUseCase;
 import com.edutech.auth.domain.port.in.PasswordResetUseCase;
 import com.edutech.auth.domain.port.in.RefreshTokenUseCase;
+import com.edutech.auth.application.service.UserRegistrationService;
 import com.edutech.auth.domain.port.in.RegisterUserUseCase;
 import com.edutech.auth.domain.port.out.UserRepository;
 import com.edutech.auth.infrastructure.security.TrustedProxyValidator;
@@ -56,6 +59,7 @@ public class AuthController {
     private final AuthMapper authMapper;
     private final TrustedProxyValidator trustedProxyValidator;
     private final GoogleOAuthService googleOAuthService;
+    private final UserRegistrationService userRegistrationService;
 
     public AuthController(RegisterUserUseCase registerUserUseCase,
                           AuthenticateUserUseCase authenticateUserUseCase,
@@ -66,7 +70,8 @@ public class AuthController {
                           UserRepository userRepository,
                           AuthMapper authMapper,
                           TrustedProxyValidator trustedProxyValidator,
-                          GoogleOAuthService googleOAuthService) {
+                          GoogleOAuthService googleOAuthService,
+                          UserRegistrationService userRegistrationService) {
         this.registerUserUseCase = registerUserUseCase;
         this.authenticateUserUseCase = authenticateUserUseCase;
         this.refreshTokenUseCase = refreshTokenUseCase;
@@ -77,6 +82,7 @@ public class AuthController {
         this.authMapper = authMapper;
         this.trustedProxyValidator = trustedProxyValidator;
         this.googleOAuthService = googleOAuthService;
+        this.userRegistrationService = userRegistrationService;
     }
 
     @PostMapping("/register")
@@ -89,6 +95,15 @@ public class AuthController {
             getClientIp(servletRequest),
             servletRequest.getHeader("User-Agent")
         );
+    }
+
+    @PostMapping("/register-child")
+    @ResponseStatus(HttpStatus.CREATED)
+    @SecurityRequirement(name = "BearerAuth")
+    @Operation(summary = "Register a child account — authenticated parents only, no captcha required")
+    public RegisterChildResponse registerChild(@Valid @RequestBody RegisterChildRequest request,
+                                               @AuthenticationPrincipal AuthPrincipal principal) {
+        return userRegistrationService.registerChild(request);
     }
 
     @PostMapping("/login")

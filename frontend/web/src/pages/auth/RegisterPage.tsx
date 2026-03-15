@@ -38,6 +38,7 @@ const step1Schema = z
     confirmPassword: z.string(),
     phone: z.string().max(20).optional().or(z.literal('')),
     occupation: z.string().max(100).optional().or(z.literal('')),
+    dateOfBirth: z.string().optional().or(z.literal('')),
   })
   .refine((d) => d.password === d.confirmPassword, {
     message: 'Passwords do not match',
@@ -47,8 +48,6 @@ const step1Schema = z
 type Step1Data = z.infer<typeof step1Schema>;
 
 const step3Schema = z.object({
-  phone: z.string().max(20).optional().or(z.literal('')),
-  dateOfBirth: z.string().min(1, 'Date of birth is required'),
   institutionCode: z.string().min(1, 'Institution code is required'),
   board: z.enum(['CBSE', 'ICSE', 'STATE_BOARD', 'IB', 'IGCSE'], { required_error: 'Select a board' }),
   grade: z.coerce.number().min(10).max(12),
@@ -92,7 +91,6 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
   const [showOtp, setShowOtp] = useState(false);
-  const [showLinkChild, setShowLinkChild] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [showPw, setShowPw] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -129,20 +127,7 @@ export default function RegisterPage() {
   // Parent-specific fields
   const [parentPhone, setParentPhone] = useState('');
   const [parentOccupation, setParentOccupation] = useState('');
-  // Parent child-linking step state
-  const [parentProfileId, setParentProfileId] = useState<string | null>(null);
-  const [childEmail, setChildEmail] = useState('');
-  const [childRelationship, setChildRelationship] = useState('MOTHER');
-  const [foundChild, setFoundChild] = useState<{ id: string; firstName: string; lastName: string; email: string; currentClass?: number; board?: string; city?: string } | null>(null);
-  const [childLookupError, setChildLookupError] = useState('');
-  const [isLookingUpChild, setIsLookingUpChild] = useState(false);
-  const [isLinkingChild, setIsLinkingChild] = useState(false);
-  const [childOtpSent, setChildOtpSent] = useState(false);
-  const [childOtp, setChildOtp] = useState('');
-  const [childOtpExpiresAt, setChildOtpExpiresAt] = useState<Date | null>(null);
-  const [childOtpSecondsLeft, setChildOtpSecondsLeft] = useState(300);
-  const [childOtpError, setChildOtpError] = useState('');
-  const [isGeneratingChildOtp, setIsGeneratingChildOtp] = useState(false);
+  const [selectedGender, setSelectedGender] = useState('');
 
   const handleCaptchaVerify = useCallback((token: string | null) => setCaptchaToken(token), []);
 
@@ -194,17 +179,6 @@ export default function RegisterPage() {
 
   const watchedPassword = watch('password', '');
   const watchedInstitutionCode = watch3('institutionCode', '');
-
-  // Child OTP countdown
-  useEffect(() => {
-    if (!childOtpSent || !childOtpExpiresAt) return;
-    const interval = setInterval(() => {
-      const secs = Math.max(0, Math.round((childOtpExpiresAt.getTime() - Date.now()) / 1000));
-      setChildOtpSecondsLeft(secs);
-      if (secs <= 0) clearInterval(interval);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [childOtpSent, childOtpExpiresAt]);
 
   // Live debounce lookup for institution code (student academic step)
   useEffect(() => {
@@ -258,6 +232,17 @@ export default function RegisterPage() {
       toast.error('Please select your role to continue');
       return;
     }
+
+    // STUDENT: DOB is required and drives the under-13 consent flow
+    if (selectedRole === 'STUDENT') {
+      if (!data.dateOfBirth) {
+        toast.error('Date of birth is required');
+        return;
+      }
+      const age = calculateAge(data.dateOfBirth);
+      setIsUnder13(age < 13);
+    }
+
     setStep1Data(data);
 
     // CENTER_ADMIN: validate institution fields
@@ -333,8 +318,6 @@ export default function RegisterPage() {
         setCenterId(resolvedCenterId);
         setCenterName(resp.data.name);
       }
-      const age = calculateAge(data.dateOfBirth);
-      setIsUnder13(age < 13);
       setStep3Data(data);
       if (regToken && resolvedCenterId) await loadSubjects(regToken, resolvedCenterId);
       goNext();
@@ -396,9 +379,9 @@ export default function RegisterPage() {
             firstName: step1Data.firstName,
             lastName: step1Data.lastName,
             email: step1Data.email,
-            phone: step3Data.phone || undefined,
-            gender: null,
-            dateOfBirth: step3Data.dateOfBirth,
+            phone: step1Data.phone || undefined,
+            gender: selectedGender || undefined,
+            dateOfBirth: step1Data.dateOfBirth!,
             city: undefined,
             state: undefined,
             pincode: undefined,
@@ -453,21 +436,19 @@ export default function RegisterPage() {
           const u = meRes.data;
           const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;
           setAuth(regToken, { id: u.id, email: u.email, role: u.role, name }, regRefreshToken ?? '', regDeviceId ?? crypto.randomUUID());
-          const profileRes = await axios.post('/api/v1/parents', {
+          await axios.post('/api/v1/parents', {
             name,
             phone: parentPhone || undefined,
             email: step1Data.email,
             occupation: parentOccupation || undefined,
+            gender: selectedGender || undefined,
           }, { headers: { Authorization: `Bearer ${regToken}` } });
-          setParentProfileId(profileRes.data.id);
-          toast.success('Account verified! Optionally link your child below.');
-          setShowOtp(false);
-          setShowLinkChild(true);
+          toast.success('Account created! Welcome to NexusEd.');
         } catch (parentErr) {
           console.error('Parent profile setup failed:', parentErr);
           toast.success('Email verified!');
-          navigate('/parent');
         }
+        navigate('/parent');
         return;
       }
 
@@ -557,81 +538,6 @@ export default function RegisterPage() {
   // Step indices (steps 1-based; OTP is now inline in step 1)
   const consentStep   = isUnder13 ? 3 : null;
   const subjectsStep  = isUnder13 ? 4 : 3;
-  const parentLinkStep = 2;
-
-  async function handleChildEmailLookup() {
-    const trimmed = childEmail.trim();
-    if (!trimmed) return;
-    setChildLookupError('');
-    setFoundChild(null);
-    setIsLookingUpChild(true);
-    try {
-      const res = await axios.get(`/api/v1/students/lookup?email=${encodeURIComponent(trimmed)}`, {
-        headers: { Authorization: `Bearer ${regToken}` },
-      });
-      setFoundChild(res.data);
-    } catch {
-      setChildLookupError('No student found with that email address.');
-    } finally {
-      setIsLookingUpChild(false);
-    }
-  }
-
-  async function handleGenerateChildOtp() {
-    if (!foundChild || !step1Data || !regToken) return;
-    const parentName = [step1Data.firstName, step1Data.lastName].filter(Boolean).join(' ') || step1Data.email;
-    setIsGeneratingChildOtp(true);
-    try {
-      const res = await axios.post('/api/v1/students/link-otp/generate', {
-        studentEmail: foundChild.email,
-        parentName,
-      }, { headers: { Authorization: `Bearer ${regToken}` } });
-      setChildOtpExpiresAt(new Date(res.data.expiresAt));
-      setChildOtpSecondsLeft(300);
-      setChildOtpSent(true);
-    } catch (e: unknown) {
-      const err = e as { response?: { data?: { detail?: string } } };
-      toast.error(err?.response?.data?.detail ?? 'Failed to generate OTP. Please try again.');
-    } finally {
-      setIsGeneratingChildOtp(false);
-    }
-  }
-
-  async function handleLinkChildAndFinish() {
-    if (!foundChild || !parentProfileId || !regToken) { navigate('/parent'); return; }
-    if (!childOtpSent || childOtp.length !== 6) return;
-    setIsLinkingChild(true);
-    try {
-      const verifyRes = await axios.post('/api/v1/students/link-otp/verify', {
-        studentEmail: foundChild.email,
-        otp: childOtp,
-      }, { headers: { Authorization: `Bearer ${regToken}` } });
-      const { studentId, studentName } = verifyRes.data;
-
-      const centersRes = await axios.get('/api/v1/centers?size=1', { headers: { Authorization: `Bearer ${regToken}` } });
-      const centers = Array.isArray(centersRes.data) ? centersRes.data : (centersRes.data.content ?? []);
-      const cId = centers[0]?.id;
-      await axios.post(`/api/v1/parents/${parentProfileId}/students`, {
-        studentId,
-        studentName,
-        centerId: cId ?? '00000000-0000-0000-0000-000000000000',
-        relationship: childRelationship,
-      }, { headers: { Authorization: `Bearer ${regToken}` } });
-      toast.success(`${foundChild.firstName} linked to your account!`);
-    } catch (e: unknown) {
-      const err = e as { response?: { data?: { detail?: string } } };
-      const msg = err?.response?.data?.detail ?? '';
-      if (msg.toLowerCase().includes('otp') || msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('expired')) {
-        setChildOtpError('Incorrect or expired OTP. Please try again.');
-        setIsLinkingChild(false);
-        return;
-      }
-      toast.error(msg || 'Could not link child — you can try again from your dashboard.');
-    } finally {
-      setIsLinkingChild(false);
-      navigate('/parent');
-    }
-  }
 
   return (
     <div className="min-h-screen bg-surface flex items-center justify-center p-4">
@@ -707,7 +613,7 @@ export default function RegisterPage() {
                 <AnimatePresence mode="wait">
 
                   {/* Phase A: Registration Form */}
-                  {!showOtp && !showLinkChild && (
+                  {!showOtp && (
                     <motion.div
                       key="step1-form"
                       initial={{ opacity: 0, x: 20 }}
@@ -862,6 +768,34 @@ export default function RegisterPage() {
                           )}
                         </div>
 
+                        {/* Role-specific fields — STUDENT */}
+                        {selectedRole === 'STUDENT' && (
+                          <div className="space-y-3 pt-1">
+                            <div className="h-px bg-white/5" />
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-sm font-medium text-white/70 mb-1.5">Phone <span className="text-white/30">(optional)</span></label>
+                                <input
+                                  {...register('phone')}
+                                  type="tel"
+                                  placeholder="+91 98765 43210"
+                                  className={cn('input w-full', errors.phone && 'border-red-500/50')}
+                                />
+                                {errors.phone && <p className="text-red-400 text-xs mt-1">{errors.phone.message}</p>}
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-white/70 mb-1.5">Date of Birth <span className="text-red-400">*</span></label>
+                                <input
+                                  {...register('dateOfBirth')}
+                                  type="date"
+                                  className={cn('input w-full', errors.dateOfBirth && 'border-red-500/50')}
+                                />
+                                {errors.dateOfBirth && <p className="text-red-400 text-xs mt-1">{errors.dateOfBirth.message}</p>}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Role-specific fields — PARENT */}
                         {selectedRole === 'PARENT' && (
                           <div className="space-y-3 pt-1">
@@ -888,6 +822,20 @@ export default function RegisterPage() {
                                 />
                               </div>
                             </div>
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Gender</label>
+                              <select
+                                value={selectedGender}
+                                onChange={(e) => setSelectedGender(e.target.value)}
+                                className="input w-full"
+                              >
+                                <option value="">— Select (optional) —</option>
+                                <option value="MALE">Male</option>
+                                <option value="FEMALE">Female</option>
+                                <option value="OTHER">Other</option>
+                                <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
+                              </select>
+                            </div>
                           </div>
                         )}
 
@@ -895,6 +843,20 @@ export default function RegisterPage() {
                         {selectedRole === 'TEACHER' && (
                           <div className="space-y-3 pt-1">
                             <div className="h-px bg-white/5" />
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Gender <span className="text-white/30">(optional)</span></label>
+                              <select
+                                value={selectedGender}
+                                onChange={(e) => setSelectedGender(e.target.value)}
+                                className="input w-full"
+                              >
+                                <option value="">— Select —</option>
+                                <option value="MALE">Male</option>
+                                <option value="FEMALE">Female</option>
+                                <option value="OTHER">Other</option>
+                                <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
+                              </select>
+                            </div>
                             <div>
                               <label className="block text-sm font-medium text-white/70 mb-1.5">
                                 Institution Code <span className="text-white/30">(optional)</span>
@@ -1007,113 +969,6 @@ export default function RegisterPage() {
                     </motion.div>
                   )}
 
-                  {/* Phase C: Link Child (PARENT — inline after OTP verification) */}
-                  {showLinkChild && selectedRole === 'PARENT' && (
-                    <motion.div
-                      key="step1-link-child"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      transition={{ duration: 0.25 }}
-                    >
-                      <h2 className="text-2xl font-bold text-white mb-1">Link Your Child</h2>
-                      <p className="text-white/40 mb-6 text-sm">
-                        Securely link your child using a one-time verification code. You can also skip and link later from your dashboard.
-                      </p>
-
-                      <div className="space-y-4">
-                        {!childOtpSent ? (
-                          <>
-                            <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Child's Email Address</label>
-                              <div className="flex gap-2">
-                                <input
-                                  type="email"
-                                  value={childEmail}
-                                  onChange={(e) => { setChildEmail(e.target.value); setFoundChild(null); setChildLookupError(''); }}
-                                  onKeyDown={(e) => e.key === 'Enter' && handleChildEmailLookup()}
-                                  placeholder="child@example.com"
-                                  className="flex-1 input"
-                                />
-                                <button type="button" onClick={handleChildEmailLookup} disabled={isLookingUpChild || !childEmail.trim()} className="btn-primary px-4 py-2.5 text-sm disabled:opacity-50">
-                                  {isLookingUpChild ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Find'}
-                                </button>
-                              </div>
-                              {childLookupError && <p className="text-xs text-red-400 mt-2">{childLookupError}</p>}
-                            </div>
-                            {foundChild && (
-                              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4">
-                                <div className="flex items-center gap-3 mb-3">
-                                  <div className="w-10 h-10 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
-                                    <span className="text-brand-400 font-bold text-sm">{foundChild.firstName?.[0]}{foundChild.lastName?.[0]}</span>
-                                  </div>
-                                  <div>
-                                    <div className="font-semibold text-white">{foundChild.firstName} {foundChild.lastName}</div>
-                                    <div className="text-xs text-white/40">{[foundChild.currentClass && `Class ${foundChild.currentClass}`, foundChild.board, foundChild.city].filter(Boolean).join(' · ')}</div>
-                                  </div>
-                                </div>
-                                <p className="text-xs text-white/50">Is this your child? Click "Generate OTP" to send a verification code to their portal.</p>
-                              </motion.div>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
-                              <p className="text-sm text-amber-300 font-medium mb-1">OTP sent to your child's portal</p>
-                              <p className="text-xs text-white/50">Ask <span className="text-white font-medium">{foundChild?.firstName}</span> to open their Student Portal → Settings → Parent Link Request and share the 6-digit OTP with you.</p>
-                              <div className="mt-2 flex items-center gap-2">
-                                <span className="text-xs text-white/30">Expires in</span>
-                                <span className={`text-xs font-mono font-bold ${childOtpSecondsLeft < 60 ? 'text-red-400' : 'text-amber-400'}`}>
-                                  {`${Math.floor(childOtpSecondsLeft / 60)}:${String(childOtpSecondsLeft % 60).padStart(2, '0')}`}
-                                </span>
-                              </div>
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Enter OTP shared by your child</label>
-                              <input type="text" value={childOtp} maxLength={6} onChange={(e) => { setChildOtp(e.target.value.replace(/\D/g, '')); setChildOtpError(''); }} placeholder="6-digit OTP" className="w-full input tracking-[0.4em] text-center font-mono text-2xl" />
-                              {childOtpError && <p className="text-xs text-red-400 mt-2">{childOtpError}</p>}
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Your relationship to {foundChild?.firstName}</label>
-                              <select value={childRelationship} onChange={(e) => setChildRelationship(e.target.value)} className="w-full input">
-                                <option value="MOTHER">Mother</option>
-                                <option value="FATHER">Father</option>
-                                <option value="GUARDIAN">Guardian</option>
-                                <option value="GRANDPARENT">Grandparent</option>
-                                <option value="OTHER">Other</option>
-                              </select>
-                            </div>
-                          </>
-                        )}
-
-                        <div className="flex gap-3 pt-2">
-                          <button type="button" onClick={() => navigate('/parent')} className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-colors">
-                            Skip for now
-                          </button>
-                          {!childOtpSent ? (
-                            <button type="button" onClick={handleGenerateChildOtp} disabled={!foundChild || isGeneratingChildOtp} className="flex-1 btn-primary py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50">
-                              {isGeneratingChildOtp ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                              {isGeneratingChildOtp ? 'Sending…' : 'Generate OTP'}
-                            </button>
-                          ) : (
-                            <button type="button" onClick={handleLinkChildAndFinish} disabled={childOtp.length !== 6 || isLinkingChild || childOtpSecondsLeft <= 0} className="flex-1 btn-primary py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50">
-                              {isLinkingChild ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                              {isLinkingChild ? 'Linking…' : 'Verify & Link'}
-                            </button>
-                          )}
-                        </div>
-                        {childOtpSent && childOtpSecondsLeft <= 0 && (
-                          <p className="text-xs text-red-400 text-center">
-                            OTP expired.{' '}
-                            <button type="button" className="underline text-brand-400" onClick={() => { setChildOtpSent(false); setChildOtp(''); setFoundChild(null); setChildEmail(''); }}>
-                              Start over
-                            </button>
-                          </p>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-
                   {/* Phase B: Verify Email (inline OTP — same step 1) */}
                   {showOtp && (
                     <motion.div
@@ -1216,27 +1071,6 @@ export default function RegisterPage() {
 
                 <form onSubmit={handleSubmit3(onStep3Submit)} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-white/70 mb-1.5">Phone (optional)</label>
-                    <input
-                      {...register3('phone')}
-                      type="tel"
-                      placeholder="+91 98765 43210"
-                      className={cn('input w-full', errors3.phone && 'border-red-500/50')}
-                    />
-                    {errors3.phone && <p className="text-red-400 text-xs mt-1">{errors3.phone.message}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-white/70 mb-1.5">Date of Birth</label>
-                    <input
-                      {...register3('dateOfBirth')}
-                      type="date"
-                      className={cn('input w-full', errors3.dateOfBirth && 'border-red-500/50')}
-                    />
-                    {errors3.dateOfBirth && <p className="text-red-400 text-xs mt-1">{errors3.dateOfBirth.message}</p>}
-                  </div>
-
-                  <div>
                     <label className="block text-sm font-medium text-white/70 mb-1.5">Institution Code</label>
                     <input
                       {...register3('institutionCode')}
@@ -1279,6 +1113,21 @@ export default function RegisterPage() {
                       <option value={12}>Grade 12</option>
                     </select>
                     {errors3.grade && <p className="text-red-400 text-xs mt-1">{errors3.grade.message}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-1.5">Gender (optional)</label>
+                    <select
+                      value={selectedGender}
+                      onChange={(e) => setSelectedGender(e.target.value)}
+                      className="input w-full"
+                    >
+                      <option value="">— Select —</option>
+                      <option value="MALE">Male</option>
+                      <option value="FEMALE">Female</option>
+                      <option value="OTHER">Other</option>
+                      <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
+                    </select>
                   </div>
 
                   <div className="flex gap-3 pt-2">

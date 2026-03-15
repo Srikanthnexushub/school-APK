@@ -3,5 +3,6 @@ package com.edutech.student.domain.model;
 public enum Gender {
     MALE,
     FEMALE,
-    OTHER
+    OTHER,
+    PREFER_NOT_TO_SAY
 }

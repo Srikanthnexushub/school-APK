@@ -108,6 +108,7 @@ public class StudentProfileService implements CreateStudentProfileUseCase,
 
         profile.updateName(request.firstName(), request.lastName());
         profile.updatePhone(request.phone());
+        profile.updateGender(request.gender());
         profile.updateLocation(request.city(), request.state());
 
         if (request.stream() != null) {

@@ -2,12 +2,14 @@ package com.edutech.mentorsvc.application.service;
 
 import com.edutech.mentorsvc.application.dto.MentorProfileResponse;
 import com.edutech.mentorsvc.application.dto.RegisterMentorRequest;
+import com.edutech.mentorsvc.application.dto.UpdateMentorProfileRequest;
 import com.edutech.mentorsvc.application.exception.MentorNotFoundException;
 import com.edutech.mentorsvc.application.exception.MentorSvcException;
 import com.edutech.mentorsvc.domain.model.MentorProfile;
 import com.edutech.mentorsvc.domain.port.in.GetMentorProfileUseCase;
 import com.edutech.mentorsvc.domain.port.in.RegisterMentorUseCase;
 import com.edutech.mentorsvc.domain.port.in.UpdateMentorAvailabilityUseCase;
+import com.edutech.mentorsvc.domain.port.in.UpdateMentorProfileUseCase;
 import com.edutech.mentorsvc.domain.port.out.MentorEventPublisher;
 import com.edutech.mentorsvc.domain.port.out.MentorProfileRepository;
 import org.springframework.stereotype.Service;
@@ -20,7 +22,7 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class MentorProfileService implements RegisterMentorUseCase, GetMentorProfileUseCase,
-        UpdateMentorAvailabilityUseCase {
+        UpdateMentorAvailabilityUseCase, UpdateMentorProfileUseCase {
 
     private final MentorProfileRepository mentorProfileRepository;
     private final MentorEventPublisher mentorEventPublisher;
@@ -80,6 +82,17 @@ public class MentorProfileService implements RegisterMentorUseCase, GetMentorPro
     }
 
     @Override
+    public MentorProfileResponse updateProfile(UUID userId, UpdateMentorProfileRequest request) {
+        MentorProfile profile = mentorProfileRepository.findByUserId(userId)
+                .filter(p -> p.getDeletedAt() == null)
+                .orElseThrow(() -> new MentorNotFoundException(userId));
+        profile.update(request.fullName(), request.bio(), request.specializations(),
+                request.yearsOfExperience(), request.hourlyRate(), request.gender());
+        MentorProfile saved = mentorProfileRepository.save(profile);
+        return toResponse(saved);
+    }
+
+    @Override
     public void updateAvailability(UUID mentorId, boolean isAvailable) {
         MentorProfile profile = mentorProfileRepository.findById(mentorId)
                 .filter(p -> p.getDeletedAt() == null)
@@ -101,6 +114,7 @@ public class MentorProfileService implements RegisterMentorUseCase, GetMentorPro
                 profile.isAvailable(),
                 profile.getAverageRating(),
                 profile.getTotalSessions(),
+                profile.getGender(),
                 profile.getCreatedAt(),
                 profile.getUpdatedAt()
         );

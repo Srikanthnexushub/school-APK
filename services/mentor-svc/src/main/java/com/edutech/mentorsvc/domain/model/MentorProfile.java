@@ -61,6 +61,9 @@ public class MentorProfile {
     @Column(name = "deleted_at", columnDefinition = "TIMESTAMPTZ")
     private OffsetDateTime deletedAt;
 
+    @Column(name = "gender", length = 20)
+    private String gender;
+
     protected MentorProfile() {
     }
 
@@ -129,4 +132,21 @@ public class MentorProfile {
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
     public OffsetDateTime getDeletedAt() { return deletedAt; }
+    public String getGender() { return gender; }
+
+    public void updateGender(String gender) {
+        this.gender = gender;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
+    public void update(String fullName, String bio, String specializations,
+                       Integer yearsOfExperience, java.math.BigDecimal hourlyRate, String gender) {
+        if (fullName != null && !fullName.isBlank()) this.fullName = fullName;
+        if (bio != null) this.bio = bio;
+        if (specializations != null) this.specializations = specializations;
+        if (yearsOfExperience != null) this.yearsOfExperience = yearsOfExperience;
+        if (hourlyRate != null) this.hourlyRate = hourlyRate;
+        if (gender != null) this.gender = gender;
+        this.updatedAt = OffsetDateTime.now();
+    }
 }

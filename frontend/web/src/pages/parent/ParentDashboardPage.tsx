@@ -383,7 +383,7 @@ export default function ParentDashboardPage() {
             className="btn-primary flex items-center gap-2 px-4 py-2.5 text-sm flex-shrink-0"
           >
             <Plus className="w-4 h-4" />
-            Link Child
+            Add Child
           </button>
         )}
       </div>
@@ -426,13 +426,13 @@ export default function ParentDashboardPage() {
         <div className="card text-center py-12">
           <Bot className="w-10 h-10 text-white/20 mx-auto mb-3" />
           <p className="text-white/50 text-sm">No children linked yet.</p>
-          <p className="text-white/30 text-xs mt-1 mb-4">Go to My Children to link your child using their 6-digit verification code.</p>
+          <p className="text-white/30 text-xs mt-1 mb-4">Go to My Children to add or link your child's account.</p>
           <button
             onClick={() => navigate('/parent/children')}
             className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm"
           >
             <Plus className="w-4 h-4" />
-            Go to My Children
+            Add Child
           </button>
         </div>
       )}

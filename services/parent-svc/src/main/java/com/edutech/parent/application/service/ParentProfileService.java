@@ -70,7 +70,8 @@ public class ParentProfileService implements CreateParentProfileUseCase, UpdateP
                 request.state(),
                 request.pincode(),
                 request.relationshipType(),
-                request.occupation()
+                request.occupation(),
+                request.gender()
         );
         return toResponse(profileRepository.save(profile));
     }
@@ -105,6 +106,7 @@ public class ParentProfileService implements CreateParentProfileUseCase, UpdateP
                 p.getPincode(),
                 p.getRelationshipType(),
                 p.getOccupation(),
+                p.getGender(),
                 p.isVerified(),
                 p.getStatus(),
                 p.getCreatedAt()

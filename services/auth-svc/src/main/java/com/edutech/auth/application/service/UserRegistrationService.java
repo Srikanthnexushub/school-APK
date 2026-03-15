@@ -1,11 +1,14 @@
 // src/main/java/com/edutech/auth/application/service/UserRegistrationService.java
 package com.edutech.auth.application.service;
 
+import com.edutech.auth.application.dto.RegisterChildRequest;
+import com.edutech.auth.application.dto.RegisterChildResponse;
 import com.edutech.auth.application.dto.RegisterRequest;
 import com.edutech.auth.application.dto.TokenPair;
 import com.edutech.auth.application.exception.CaptchaVerificationException;
 import com.edutech.auth.application.exception.EmailAlreadyExistsException;
 import com.edutech.auth.domain.event.UserRegisteredEvent;
+import com.edutech.auth.domain.model.Role;
 import com.edutech.auth.domain.model.User;
 import com.edutech.auth.domain.port.in.RegisterUserUseCase;
 import com.edutech.auth.domain.port.out.AuditEventPublisher;
@@ -94,5 +97,33 @@ public class UserRegistrationService implements RegisterUserUseCase {
                  savedUser.getEmail(), savedUser.getRole());
 
         return tokenService.issueTokenPair(savedUser, request.deviceFingerprint());
+    }
+
+    /**
+     * Registers a child account on behalf of an authenticated parent.
+     * No captcha, no device fingerprint, no email OTP — the parent vouches for the account.
+     * The child is created ACTIVE with emailVerified=true immediately.
+     */
+    @Transactional
+    public RegisterChildResponse registerChild(RegisterChildRequest request) {
+        if (userRepository.existsByEmail(request.email())) {
+            throw new EmailAlreadyExistsException(request.email());
+        }
+
+        String passwordHash = passwordHasher.hash(request.password());
+
+        User user = User.createActive(
+            request.email(),
+            passwordHash,
+            Role.STUDENT,
+            request.firstName(),
+            request.lastName(),
+            request.phoneNumber()
+        );
+
+        User saved = userRepository.save(user);
+        log.info("Child account created by parent: id={} email={}", saved.getId(), saved.getEmail());
+
+        return new RegisterChildResponse(saved.getId(), saved.getEmail());
     }
 }

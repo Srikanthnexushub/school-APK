@@ -52,6 +52,9 @@ public class ParentProfile {
     @Column
     private String occupation;
 
+    @Column
+    private String gender;
+
     @Column(nullable = false)
     private boolean verified;
 
@@ -77,6 +80,13 @@ public class ParentProfile {
                                        String email, String address, String city,
                                        String state, String pincode, String relationshipType,
                                        String occupation) {
+        return create(userId, name, phone, email, address, city, state, pincode, relationshipType, occupation, null);
+    }
+
+    public static ParentProfile create(UUID userId, String name, String phone,
+                                       String email, String address, String city,
+                                       String state, String pincode, String relationshipType,
+                                       String occupation, String gender) {
         ParentProfile profile = new ParentProfile();
         profile.userId = userId;
         profile.name = name;
@@ -88,6 +98,7 @@ public class ParentProfile {
         profile.pincode = pincode;
         profile.relationshipType = (relationshipType != null) ? relationshipType : "PARENT";
         profile.occupation = occupation;
+        profile.gender = gender;
         profile.verified = false;
         profile.status = ParentStatus.ACTIVE;
         profile.createdAt = Instant.now();
@@ -98,6 +109,12 @@ public class ParentProfile {
     public void update(String name, String phone, String email, String address,
                        String city, String state, String pincode, String relationshipType,
                        String occupation) {
+        update(name, phone, email, address, city, state, pincode, relationshipType, occupation, null);
+    }
+
+    public void update(String name, String phone, String email, String address,
+                       String city, String state, String pincode, String relationshipType,
+                       String occupation, String gender) {
         if (name != null) {
             this.name = name;
         }
@@ -124,6 +141,9 @@ public class ParentProfile {
         }
         if (occupation != null) {
             this.occupation = occupation;
+        }
+        if (gender != null) {
+            this.gender = gender;
         }
         this.updatedAt = Instant.now();
     }
@@ -191,6 +211,10 @@ public class ParentProfile {
 
     public String getOccupation() {
         return occupation;
+    }
+
+    public String getGender() {
+        return gender;
     }
 
     public boolean isVerified() {

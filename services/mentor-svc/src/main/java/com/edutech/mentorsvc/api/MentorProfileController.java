@@ -3,9 +3,11 @@ package com.edutech.mentorsvc.api;
 import com.edutech.mentorsvc.application.dto.MentorProfileResponse;
 import com.edutech.mentorsvc.application.dto.RegisterMentorRequest;
 import com.edutech.mentorsvc.application.dto.UpdateMentorAvailabilityRequest;
+import com.edutech.mentorsvc.application.dto.UpdateMentorProfileRequest;
 import com.edutech.mentorsvc.domain.port.in.GetMentorProfileUseCase;
 import com.edutech.mentorsvc.domain.port.in.RegisterMentorUseCase;
 import com.edutech.mentorsvc.domain.port.in.UpdateMentorAvailabilityUseCase;
+import com.edutech.mentorsvc.domain.port.in.UpdateMentorProfileUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -35,13 +37,16 @@ public class MentorProfileController {
     private final RegisterMentorUseCase registerMentorUseCase;
     private final GetMentorProfileUseCase getMentorProfileUseCase;
     private final UpdateMentorAvailabilityUseCase updateMentorAvailabilityUseCase;
+    private final UpdateMentorProfileUseCase updateMentorProfileUseCase;
 
     public MentorProfileController(RegisterMentorUseCase registerMentorUseCase,
                                    GetMentorProfileUseCase getMentorProfileUseCase,
-                                   UpdateMentorAvailabilityUseCase updateMentorAvailabilityUseCase) {
+                                   UpdateMentorAvailabilityUseCase updateMentorAvailabilityUseCase,
+                                   UpdateMentorProfileUseCase updateMentorProfileUseCase) {
         this.registerMentorUseCase = registerMentorUseCase;
         this.getMentorProfileUseCase = getMentorProfileUseCase;
         this.updateMentorAvailabilityUseCase = updateMentorAvailabilityUseCase;
+        this.updateMentorProfileUseCase = updateMentorProfileUseCase;
     }
 
     @PostMapping
@@ -75,6 +80,14 @@ public class MentorProfileController {
         int start = (int) pageRequest.getOffset();
         int end = Math.min(start + pageRequest.getPageSize(), all.size());
         return ResponseEntity.ok(new PageImpl<>(start < all.size() ? all.subList(start, end) : List.of(), pageRequest, all.size()));
+    }
+
+    @PatchMapping("/me")
+    @Operation(summary = "Update own mentor profile (bio, specializations, gender, etc.)")
+    public ResponseEntity<MentorProfileResponse> updateMyProfile(
+            @RequestHeader("X-User-Id") UUID userId,
+            @Valid @RequestBody UpdateMentorProfileRequest request) {
+        return ResponseEntity.ok(updateMentorProfileUseCase.updateProfile(userId, request));
     }
 
     @PatchMapping("/{mentorId}/availability")

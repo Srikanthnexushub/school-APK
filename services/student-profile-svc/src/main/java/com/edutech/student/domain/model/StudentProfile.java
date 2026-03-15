@@ -164,6 +164,13 @@ public class StudentProfile {
         this.updatedAt = Instant.now();
     }
 
+    public void updateGender(Gender gender) {
+        if (gender != null) {
+            this.gender = gender;
+        }
+        this.updatedAt = Instant.now();
+    }
+
     public void updateLocation(String city, String state) {
         if (city != null) {
             this.city = city;

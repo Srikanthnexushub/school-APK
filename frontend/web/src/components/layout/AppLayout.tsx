@@ -458,10 +458,10 @@ export default function AppLayout() {
       const f = [user.name, user.email, user.avatarUrl, studentProfile.phone, studentProfile.gender, studentProfile.dateOfBirth, studentProfile.city, studentProfile.stream];
       profilePct = Math.round(f.filter(Boolean).length / f.length * 100);
     } else if (user.role === 'PARENT' && parentProfile) {
-      const f = [parentProfile.name, parentProfile.phone, parentProfile.email, parentProfile.relationshipType, parentProfile.address, parentProfile.city, parentProfile.state, parentProfile.pincode];
+      const f = [parentProfile.name, parentProfile.phone, parentProfile.email, (parentProfile as { gender?: string }).gender, parentProfile.relationshipType, parentProfile.address, parentProfile.city, parentProfile.state, parentProfile.pincode];
       profilePct = Math.round(f.filter(Boolean).length / f.length * 100);
     } else if (user.role === 'TEACHER' && mentorProfile) {
-      const f = [mentorProfile.fullName, mentorProfile.email, user.avatarUrl, mentorProfile.bio, mentorProfile.specializations, mentorProfile.yearsOfExperience, mentorProfile.hourlyRate];
+      const f = [mentorProfile.fullName, mentorProfile.email, user.avatarUrl, mentorProfile.bio, mentorProfile.specializations, mentorProfile.yearsOfExperience, mentorProfile.hourlyRate, (mentorProfile as { gender?: string }).gender];
       profilePct = Math.round(f.filter(Boolean).length / f.length * 100);
     } else if (user.role === 'CENTER_ADMIN' || user.role === 'SUPER_ADMIN') {
       const f = [!!user.name, !!user.email, !!user.avatarUrl];
