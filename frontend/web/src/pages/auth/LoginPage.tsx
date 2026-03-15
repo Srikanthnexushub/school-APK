@@ -286,7 +286,7 @@ export default function LoginPage() {
                   {...register('password')}
                   type={showPw ? 'text' : 'password'}
                   placeholder="••••••••"
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   className={cn('input w-full pr-10', errors.password && 'border-red-500/50')}
                 />
                 <button
