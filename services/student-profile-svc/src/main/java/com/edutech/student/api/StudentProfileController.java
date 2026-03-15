@@ -121,7 +121,8 @@ public class StudentProfileController {
     @GetMapping("/me/pending-link")
     public ResponseEntity<PendingLinkResponse> getPendingLink(
             @RequestHeader("X-User-Id") UUID userId) {
-        return ResponseEntity.ok(studentProfileService.getPendingLink(userId));
+        PendingLinkResponse response = studentProfileService.getPendingLink(userId);
+        return response != null ? ResponseEntity.ok(response) : ResponseEntity.noContent().build();
     }
 
     /** Parent verifies the OTP shared by their child. Returns studentId/name for the parent-svc link call. */

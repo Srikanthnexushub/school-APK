@@ -160,7 +160,7 @@ public class StudentProfileService implements CreateStudentProfileUseCase,
         StudentProfile profile = profileRepository.findByUserId(userId)
                 .orElseThrow(() -> new StudentNotFoundException(userId));
         if (!profile.isLinkOtpValid()) {
-            throw new StudentNotFoundException(null);
+            return null;
         }
         return new PendingLinkResponse(profile.getLinkOtp(), profile.getLinkOtpParentName(), profile.getLinkOtpExpiresAt());
     }

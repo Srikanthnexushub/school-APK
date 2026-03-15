@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -128,6 +128,7 @@ function formatDob(dob?: string): string {
 function ProfileTab() {
   const user = useAuthStore((s) => s.user);
   const updateUser = useAuthStore((s) => s.updateUser);
+  const queryClient = useQueryClient();
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
@@ -140,11 +141,12 @@ function ProfileTab() {
 
   interface PendingLink { otp: string; parentName: string; expiresAt: string; }
   const [pendingLink, setPendingLink] = useState<PendingLink | null>(null);
-  const [pendingLinkLoading, setPendingLinkLoading] = useState(false);
+  const [pendingLinkLoading, setPendingLinkLoading] = useState(true);
   const [otpSecondsLeft, setOtpSecondsLeft] = useState(0);
+  const pendingLinkInitialized = useRef(false);
 
-  async function fetchPendingLink() {
-    setPendingLinkLoading(true);
+  async function fetchPendingLink(showSpinner = false) {
+    if (showSpinner) setPendingLinkLoading(true);
     try {
       const res = await api.get('/api/v1/students/me/pending-link');
       setPendingLink(res.data as PendingLink);
@@ -152,14 +154,18 @@ function ProfileTab() {
     } catch {
       setPendingLink(null);
     } finally {
-      setPendingLinkLoading(false);
+      if (showSpinner) setPendingLinkLoading(false);
+      if (!pendingLinkInitialized.current) {
+        setPendingLinkLoading(false);
+        pendingLinkInitialized.current = true;
+      }
     }
   }
 
-  useEffect(() => { fetchPendingLink(); }, []);
+  useEffect(() => { fetchPendingLink(true); }, []);
 
   useEffect(() => {
-    const interval = setInterval(fetchPendingLink, 10000);
+    const interval = setInterval(() => fetchPendingLink(false), 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -182,6 +188,7 @@ function ProfileTab() {
       stream: profile.stream ?? '',
       targetYear: profile.targetYear,
     } : undefined,
+    resetOptions: { keepDirtyValues: true },
   });
 
   const saveMutation = useMutation({
@@ -205,6 +212,7 @@ function ProfileTab() {
     },
     onSuccess: (name) => {
       updateUser({ name });
+      queryClient.invalidateQueries({ queryKey: ['student-profile-me'] });
       toast.success('Profile updated successfully!');
     },
     onError: () => toast.error('Failed to save profile.'),
