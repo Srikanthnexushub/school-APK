@@ -264,13 +264,14 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" autoComplete="off">
             <div>
               <label className="block text-sm font-medium text-white/70 mb-1.5">Email</label>
               <input
                 {...register('email')}
                 type="email"
                 placeholder="you@example.com"
+                autoComplete="email"
                 className={cn('input w-full', errors.email && 'border-red-500/50')}
               />
               {errors.email && (
@@ -285,6 +286,7 @@ export default function LoginPage() {
                   {...register('password')}
                   type={showPw ? 'text' : 'password'}
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   className={cn('input w-full pr-10', errors.password && 'border-red-500/50')}
                 />
                 <button
@@ -336,16 +338,6 @@ export default function LoginPage() {
               className="text-brand-400 hover:text-brand-300 font-medium transition-colors"
             >
               Create one
-            </Link>
-          </p>
-
-          <p className="mt-3 text-center text-white/25 text-sm">
-            Registering an institution?{' '}
-            <Link
-              to="/register-institution"
-              className="text-brand-400/70 hover:text-brand-400 font-medium transition-colors"
-            >
-              Apply here
             </Link>
           </p>
 
