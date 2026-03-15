@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Bot, ClipboardList, BarChart3, Target, Brain,
   Users, Calendar, Settings, LogOut, BookOpen, Menu, X, ChevronLeft,
   Bell, Search, ChevronRight, BookOpenCheck, Library, Award,
-  CreditCard,
+  CreditCard, Beaker,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '../../stores/authStore';
@@ -34,6 +34,7 @@ const studentNav: NavItem[] = [
   { icon: Users,           label: 'Mentors',      to: '/mentors' },
   { icon: Calendar,        label: 'Exam Tracker', to: '/exam-tracker' },
   { icon: Library,         label: 'Library',      to: '/library' },
+  { icon: Beaker,          label: 'AI Lab',       to: '/lab' },
 ];
 
 const adminNav: NavItem[] = [

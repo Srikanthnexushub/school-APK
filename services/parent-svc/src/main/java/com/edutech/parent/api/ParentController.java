@@ -4,8 +4,11 @@ package com.edutech.parent.api;
 import com.edutech.parent.application.dto.AuthPrincipal;
 import com.edutech.parent.application.dto.CreateParentProfileRequest;
 import com.edutech.parent.application.dto.ParentProfileResponse;
+import com.edutech.parent.application.dto.RequestParentLinkRequest;
+import com.edutech.parent.application.dto.StudentLinkResponse;
 import com.edutech.parent.application.dto.UpdateParentProfileRequest;
 import com.edutech.parent.application.service.ParentProfileService;
+import com.edutech.parent.application.service.StudentLinkService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,9 +33,12 @@ import java.util.UUID;
 public class ParentController {
 
     private final ParentProfileService parentProfileService;
+    private final StudentLinkService studentLinkService;
 
-    public ParentController(ParentProfileService parentProfileService) {
+    public ParentController(ParentProfileService parentProfileService,
+                            StudentLinkService studentLinkService) {
         this.parentProfileService = parentProfileService;
+        this.studentLinkService = studentLinkService;
     }
 
     @PostMapping
@@ -65,5 +71,14 @@ public class ParentController {
             @Valid @RequestBody UpdateParentProfileRequest request,
             @AuthenticationPrincipal AuthPrincipal principal) {
         return parentProfileService.updateProfile(profileId, request, principal);
+    }
+
+    @PostMapping("/request-link")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Request a parent link (called by a student to link themselves to a parent by parent email)")
+    public StudentLinkResponse requestLink(
+            @Valid @RequestBody RequestParentLinkRequest request,
+            @AuthenticationPrincipal AuthPrincipal principal) {
+        return studentLinkService.requestLinkFromStudent(request.parentEmail(), principal.userId());
     }
 }

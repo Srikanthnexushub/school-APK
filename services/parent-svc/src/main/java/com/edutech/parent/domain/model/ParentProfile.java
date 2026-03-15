@@ -44,6 +44,12 @@ public class ParentProfile {
     private String state;
 
     @Column
+    private String district;
+
+    @Column
+    private String country;
+
+    @Column
     private String pincode;
 
     @Column(name = "relationship_type")
@@ -80,12 +86,20 @@ public class ParentProfile {
                                        String email, String address, String city,
                                        String state, String pincode, String relationshipType,
                                        String occupation) {
-        return create(userId, name, phone, email, address, city, state, pincode, relationshipType, occupation, null);
+        return create(userId, name, phone, email, address, city, null, state, null, pincode, relationshipType, occupation, null);
     }
 
     public static ParentProfile create(UUID userId, String name, String phone,
                                        String email, String address, String city,
                                        String state, String pincode, String relationshipType,
+                                       String occupation, String gender) {
+        return create(userId, name, phone, email, address, city, null, state, null, pincode, relationshipType, occupation, gender);
+    }
+
+    public static ParentProfile create(UUID userId, String name, String phone,
+                                       String email, String address, String city,
+                                       String district, String state, String country,
+                                       String pincode, String relationshipType,
                                        String occupation, String gender) {
         ParentProfile profile = new ParentProfile();
         profile.userId = userId;
@@ -94,7 +108,9 @@ public class ParentProfile {
         profile.email = email;
         profile.address = address;
         profile.city = city;
+        profile.district = district;
         profile.state = state;
+        profile.country = country;
         profile.pincode = pincode;
         profile.relationshipType = (relationshipType != null) ? relationshipType : "PARENT";
         profile.occupation = occupation;
@@ -109,12 +125,18 @@ public class ParentProfile {
     public void update(String name, String phone, String email, String address,
                        String city, String state, String pincode, String relationshipType,
                        String occupation) {
-        update(name, phone, email, address, city, state, pincode, relationshipType, occupation, null);
+        update(name, phone, email, address, city, null, state, null, pincode, relationshipType, occupation, null);
     }
 
     public void update(String name, String phone, String email, String address,
                        String city, String state, String pincode, String relationshipType,
                        String occupation, String gender) {
+        update(name, phone, email, address, city, null, state, null, pincode, relationshipType, occupation, gender);
+    }
+
+    public void update(String name, String phone, String email, String address,
+                       String city, String district, String state, String country,
+                       String pincode, String relationshipType, String occupation, String gender) {
         if (name != null) {
             this.name = name;
         }
@@ -130,8 +152,14 @@ public class ParentProfile {
         if (city != null) {
             this.city = city;
         }
+        if (district != null) {
+            this.district = district;
+        }
         if (state != null) {
             this.state = state;
+        }
+        if (country != null) {
+            this.country = country;
         }
         if (pincode != null) {
             this.pincode = pincode;
@@ -199,6 +227,14 @@ public class ParentProfile {
 
     public String getState() {
         return state;
+    }
+
+    public String getDistrict() {
+        return district;
+    }
+
+    public String getCountry() {
+        return country;
     }
 
     public String getPincode() {

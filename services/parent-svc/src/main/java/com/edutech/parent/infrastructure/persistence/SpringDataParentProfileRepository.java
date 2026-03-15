@@ -19,4 +19,7 @@ interface SpringDataParentProfileRepository extends JpaRepository<ParentProfile,
 
     @Query("SELECT p FROM ParentProfile p WHERE p.id = :id AND p.deletedAt IS NULL")
     Optional<ParentProfile> findByIdActive(@Param("id") UUID id);
+
+    @Query("SELECT p FROM ParentProfile p WHERE p.email = :email AND p.deletedAt IS NULL")
+    Optional<ParentProfile> findByEmailActive(@Param("email") String email);
 }

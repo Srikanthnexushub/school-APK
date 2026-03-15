@@ -9,6 +9,7 @@ import { Avatar } from '../../components/ui/Avatar';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
+import { suggestStates, suggestDistricts } from '../../utils/indiaLocations';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -23,6 +24,8 @@ interface ParentProfileResponse {
   address?: string;
   city?: string;
   state?: string;
+  district?: string;
+  country?: string;
   pincode?: string;
   verified: boolean;
   status: string;
@@ -38,7 +41,49 @@ interface UpdateProfileRequest {
   address: string;
   city: string;
   state: string;
+  district: string;
+  country: string;
   pincode: string;
+}
+
+// ─── Location Autocomplete ────────────────────────────────────────────────────
+
+function LocationInput({
+  label, value, onChange, suggestions,
+}: {
+  label: string; value: string;
+  onChange: (v: string) => void;
+  suggestions: string[];
+}) {
+  const [show, setShow] = useState(false);
+  const filtered = suggestions.filter(s => s.toLowerCase().includes(value.toLowerCase())).slice(0, 8);
+  return (
+    <div className="relative">
+      <label className="block text-xs font-medium text-white/60 mb-1.5">{label}</label>
+      <input
+        value={value}
+        onChange={e => { onChange(e.target.value); setShow(true); }}
+        onFocus={() => setShow(true)}
+        onBlur={() => setTimeout(() => setShow(false), 150)}
+        placeholder={label}
+        className="input w-full"
+      />
+      {show && filtered.length > 0 && value.length > 0 && (
+        <div className="absolute z-50 mt-1 w-full bg-surface-100 border border-white/10 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+          {filtered.map(s => (
+            <button
+              key={s}
+              type="button"
+              onMouseDown={() => { onChange(s); setShow(false); }}
+              className="w-full text-left px-3 py-2 text-sm text-white/80 hover:bg-white/5 hover:text-white transition-colors"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -78,7 +123,7 @@ export default function ParentProfilePage() {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<UpdateProfileRequest>({
     name: '', phone: '', email: '', gender: '', relationshipType: 'PARENT',
-    address: '', city: '', state: '', pincode: '',
+    address: '', city: '', state: '', district: '', country: 'India', pincode: '',
   });
 
   const { data: profile, isLoading } = useQuery<ParentProfileResponse>({
@@ -97,6 +142,8 @@ export default function ParentProfilePage() {
       address: profile.address ?? '',
       city: profile.city ?? '',
       state: profile.state ?? '',
+      district: profile.district ?? '',
+      country: profile.country ?? 'India',
       pincode: profile.pincode ?? '',
     });
     setEditing(true);
@@ -249,6 +296,8 @@ export default function ParentProfilePage() {
             <InfoRow label="Address" value={profile.address ?? ''} icon={MapPin} />
             <InfoRow label="City" value={profile.city ?? ''} icon={MapPin} />
             <InfoRow label="State" value={profile.state ?? ''} icon={MapPin} />
+            <InfoRow label="District" value={profile.district ?? ''} icon={MapPin} />
+            <InfoRow label="Country" value={profile.country ?? 'India'} icon={MapPin} />
             <InfoRow label="Pincode" value={profile.pincode ?? ''} icon={MapPin} />
           </div>
         )}
@@ -304,15 +353,31 @@ export default function ParentProfilePage() {
               <input {...field('address')} placeholder="Street address" className="input w-full" />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-white/60 mb-1.5">City</label>
                 <input {...field('city')} placeholder="Mumbai" className="input w-full" />
               </div>
+              <LocationInput
+                label="State"
+                value={form.state}
+                onChange={(v) => setForm(p => ({ ...p, state: v, district: '' }))}
+                suggestions={suggestStates(form.state)}
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <LocationInput
+                label="District"
+                value={form.district}
+                onChange={(v) => setForm(p => ({ ...p, district: v }))}
+                suggestions={suggestDistricts(form.state, form.district)}
+              />
               <div>
-                <label className="block text-xs font-medium text-white/60 mb-1.5">State</label>
-                <input {...field('state')} placeholder="Maharashtra" className="input w-full" />
+                <label className="block text-xs font-medium text-white/60 mb-1.5">Country</label>
+                <input {...field('country')} placeholder="India" className="input w-full" />
               </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-white/60 mb-1.5">Pincode</label>
                 <input {...field('pincode')} placeholder="400001" className="input w-full" />

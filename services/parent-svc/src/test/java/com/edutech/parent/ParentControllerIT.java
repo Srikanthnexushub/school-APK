@@ -146,9 +146,12 @@ class ParentControllerIT {
                 "suresh@test.com",
                 "12 Main Street",
                 "Bengaluru",
+                null,
                 "Karnataka",
+                null,
                 "560001",
                 "PARENT",
+                null,
                 null
         );
 
@@ -183,7 +186,7 @@ class ParentControllerIT {
         CreateParentProfileRequest req = new CreateParentProfileRequest(
                 "",           // blank name — must fail @NotBlank
                 "+919000000099",
-                null, null, null, null, null, null, null
+                null, null, null, null, null, null, null, null, null, null
         );
 
         ResponseEntity<Map> response = restTemplate.exchange(
@@ -210,7 +213,7 @@ class ParentControllerIT {
 
         CreateParentProfileRequest createReq = new CreateParentProfileRequest(
                 "Fresh User", "+919000000011", "fresh@test.com",
-                null, "Mumbai", "Maharashtra", "400001", "MOTHER", null
+                null, "Mumbai", null, "Maharashtra", null, "400001", "MOTHER", null, null
         );
         restTemplate.exchange("/api/v1/parents", HttpMethod.POST,
                 new HttpEntity<>(createReq, authHeaders()), ParentProfileResponse.class);
@@ -241,7 +244,7 @@ class ParentControllerIT {
 
         CreateParentProfileRequest createReq = new CreateParentProfileRequest(
                 "Before Update", "+919000000022", "before@test.com",
-                null, "Delhi", "Delhi", "110001", "PARENT", null
+                null, "Delhi", null, "Delhi", null, "110001", "PARENT", null, null
         );
         ResponseEntity<ParentProfileResponse> created = restTemplate.exchange(
                 "/api/v1/parents", HttpMethod.POST,
@@ -253,7 +256,7 @@ class ParentControllerIT {
         // Update the profile
         UpdateParentProfileRequest updateReq = new UpdateParentProfileRequest(
                 "After Update", "+919000000023", "after@test.com",
-                "456 New Street", "Chennai", "Tamil Nadu", "600001", "GUARDIAN", null, null
+                "456 New Street", "Chennai", null, "Tamil Nadu", null, "600001", "GUARDIAN", null, null
         );
         ResponseEntity<ParentProfileResponse> updated = restTemplate.exchange(
                 "/api/v1/parents/" + profileId,
@@ -307,7 +310,7 @@ class ParentControllerIT {
 
         CreateParentProfileRequest createReq = new CreateParentProfileRequest(
                 "Link Parent", "+919000000033", "link@test.com",
-                null, null, null, null, "PARENT", null
+                null, null, null, null, null, null, "PARENT", null, null
         );
         ResponseEntity<ParentProfileResponse> created = restTemplate.exchange(
                 "/api/v1/parents", HttpMethod.POST,
@@ -361,7 +364,7 @@ class ParentControllerIT {
 
         CreateParentProfileRequest createReq = new CreateParentProfileRequest(
                 "Dup Parent", "+919000000044", "dup@test.com",
-                null, null, null, null, "PARENT", null
+                null, null, null, null, null, null, "PARENT", null, null
         );
         ResponseEntity<ParentProfileResponse> created = restTemplate.exchange(
                 "/api/v1/parents", HttpMethod.POST,
@@ -405,7 +408,7 @@ class ParentControllerIT {
         // Create parent profile
         CreateParentProfileRequest createReq = new CreateParentProfileRequest(
                 "List Parent", "+919000000055", "list@test.com",
-                null, null, null, null, "PARENT", null
+                null, null, null, null, null, null, "PARENT", null, null
         );
         ResponseEntity<ParentProfileResponse> created = restTemplate.exchange(
                 "/api/v1/parents", HttpMethod.POST,

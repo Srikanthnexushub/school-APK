@@ -80,6 +80,7 @@ interface PersonalForm {
 
 interface AcademicForm {
   institutionId: string;
+  institutionName: string;  // free-text name for unlisted institutions
   board: string;
   currentClass: string;
 }
@@ -494,7 +495,7 @@ function AddChildModal({
 
   // Academic form state
   const [academic, setAcademic] = useState<AcademicForm>({
-    institutionId: '', board: '', currentClass: '10',
+    institutionId: '', institutionName: '', board: '', currentClass: '10',
   });
   const [academicErrors, setAcademicErrors] = useState<Partial<AcademicForm>>({});
 
@@ -585,6 +586,7 @@ function AddChildModal({
         dateOfBirth: personal.dateOfBirth || undefined,
         board: academic.board || undefined,
         standard: academic.currentClass ? `Class ${academic.currentClass}` : undefined,
+        schoolName: centerName || academic.institutionName || undefined,
       });
 
       setCreatedStudentId(studentProfileId);
@@ -854,6 +856,20 @@ function AddChildModal({
                   )}
                 </div>
 
+                {!academic.institutionId && (
+                  <div>
+                    <label className="block text-xs font-medium text-white/60 mb-1.5">
+                      Institution Name <span className="text-white/30 font-normal">(if not listed above, type it here)</span>
+                    </label>
+                    <input
+                      value={academic.institutionName}
+                      onChange={(e) => setAcademic(p => ({ ...p, institutionName: e.target.value }))}
+                      placeholder="e.g. DPS Noida, St. Xavier's School"
+                      className="input w-full"
+                    />
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-white/60 mb-1.5">Board <span className="text-red-400">*</span></label>
@@ -933,7 +949,7 @@ function AddChildModal({
                     <div><span className="text-white/40">Board:</span> <span className="text-white ml-1">{academic.board || '—'}</span></div>
                     <div><span className="text-white/40">Relationship:</span> <span className="text-white ml-1">{personal.relationship}</span></div>
                     {personal.dateOfBirth && <div><span className="text-white/40">DOB:</span> <span className="text-white ml-1">{formatDate(personal.dateOfBirth)}</span></div>}
-                    {centerName && <div className="col-span-2"><span className="text-white/40">Institution:</span> <span className="text-white ml-1">{centerName}</span></div>}
+                    {(centerName || academic.institutionName) && <div className="col-span-2"><span className="text-white/40">Institution:</span> <span className="text-white ml-1">{centerName || academic.institutionName}</span></div>}
                   </div>
                 </div>
 

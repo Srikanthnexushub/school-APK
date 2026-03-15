@@ -79,7 +79,8 @@ class StudentProfileSubjectsTest {
                 "110001",
                 Board.CBSE,
                 11,
-                subjectList
+                subjectList,
+                null
         );
 
         StudentProfile savedProfile = buildSavedProfile(subjectList);
@@ -113,6 +114,7 @@ class StudentProfileSubjectsTest {
                 "110001",
                 Board.CBSE,
                 11,
+                null,
                 null
         );
 

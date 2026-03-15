@@ -44,10 +44,13 @@ public class ParentProfileService implements CreateParentProfileUseCase, UpdateP
                 request.email(),
                 request.address(),
                 request.city(),
+                request.district(),
                 request.state(),
+                request.country(),
                 request.pincode(),
                 request.relationshipType(),
-                request.occupation()
+                request.occupation(),
+                request.gender()
         );
         ParentProfile saved = profileRepository.save(profile);
         log.info("Parent profile created: id={} userId={}", saved.getId(), ownerId);
@@ -67,7 +70,9 @@ public class ParentProfileService implements CreateParentProfileUseCase, UpdateP
                 request.email(),
                 request.address(),
                 request.city(),
+                request.district(),
                 request.state(),
+                request.country(),
                 request.pincode(),
                 request.relationshipType(),
                 request.occupation(),
@@ -102,7 +107,9 @@ public class ParentProfileService implements CreateParentProfileUseCase, UpdateP
                 p.getEmail(),
                 p.getAddress(),
                 p.getCity(),
+                p.getDistrict(),
                 p.getState(),
+                p.getCountry(),
                 p.getPincode(),
                 p.getRelationshipType(),
                 p.getOccupation(),

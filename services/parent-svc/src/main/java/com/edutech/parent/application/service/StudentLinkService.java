@@ -144,6 +144,29 @@ public class StudentLinkService implements LinkStudentUseCase, RevokeStudentLink
         return toResponse(linkRepository.save(link));
     }
 
+    public StudentLinkResponse requestLinkFromStudent(String parentEmail, UUID studentUserId) {
+        ParentProfile parent = profileRepository.findByEmail(parentEmail)
+                .orElseThrow(() -> new ParentProfileNotFoundException(null));
+        linkRepository.findByParentIdAndStudentId(parent.getId(), studentUserId)
+                .ifPresent(existing -> {
+                    if (existing.getStatus() != LinkStatus.REVOKED) {
+                        throw new DuplicateStudentLinkException(studentUserId);
+                    }
+                });
+        long activeChildCount = linkRepository.findActiveByParentId(parent.getId()).size();
+        if (activeChildCount >= 5) {
+            throw new TooManyChildrenException();
+        }
+        long activeParentCount = linkRepository.findActiveByStudentId(studentUserId).size();
+        if (activeParentCount >= 2) {
+            throw new TooManyParentsException();
+        }
+        StudentLink link = StudentLink.create(parent.getId(), studentUserId, null, null, "PARENT");
+        StudentLink saved = linkRepository.save(link);
+        eventPublisher.publish(new StudentLinkedEvent(saved.getId(), parent.getId(), studentUserId, null));
+        return toResponse(saved);
+    }
+
     private StudentLinkResponse toResponse(StudentLink l) {
         return new StudentLinkResponse(
                 l.getId(),

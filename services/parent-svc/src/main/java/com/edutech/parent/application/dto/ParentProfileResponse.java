@@ -7,19 +7,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record ParentProfileResponse(
-        UUID id,
-        UUID userId,
-        String name,
-        String phone,
-        String email,
-        String address,
-        String city,
-        String state,
-        String pincode,
-        String relationshipType,
-        String occupation,
-        String gender,
-        boolean verified,
-        ParentStatus status,
-        Instant createdAt
+        UUID id, UUID userId, String name, String phone, String email,
+        String address, String city, String district, String state, String country, String pincode,
+        String relationshipType, String occupation, String gender,
+        boolean verified, ParentStatus status, Instant createdAt
 ) {}

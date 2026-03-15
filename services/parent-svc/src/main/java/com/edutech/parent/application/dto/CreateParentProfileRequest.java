@@ -10,8 +10,11 @@ public record CreateParentProfileRequest(
         String email,
         String address,
         String city,
+        String district,
         String state,
+        String country,
         String pincode,
         String relationshipType,
-        String occupation
+        String occupation,
+        String gender
 ) {}

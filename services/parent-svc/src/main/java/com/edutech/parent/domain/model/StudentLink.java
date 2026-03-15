@@ -29,10 +29,10 @@ public class StudentLink {
     @Column(name = "student_id", nullable = false, updatable = false)
     private UUID studentId;
 
-    @Column(name = "student_name", nullable = false)
+    @Column(name = "student_name")
     private String studentName;
 
-    @Column(name = "center_id", nullable = false, updatable = false)
+    @Column(name = "center_id", updatable = false)
     private UUID centerId;
 
     @Enumerated(EnumType.STRING)

@@ -33,6 +33,11 @@ class ParentProfilePersistenceAdapter implements ParentProfileRepository {
     }
 
     @Override
+    public Optional<ParentProfile> findByEmail(String email) {
+        return repository.findByEmailActive(email);
+    }
+
+    @Override
     public boolean existsByUserId(UUID userId) {
         return repository.existsByUserId(userId);
     }

@@ -122,9 +122,12 @@ class ParentProfileIT {
                 "suresh@test.com",
                 "12 Main Street",
                 "Bengaluru",
+                null,
                 "Karnataka",
+                null,
                 "560001",
                 "PARENT",
+                null,
                 null
         );
 
@@ -157,7 +160,7 @@ class ParentProfileIT {
                 "Priya Verma",
                 "+919000000001",
                 "priya@test.com",
-                null, null, null, null, "MOTHER", null
+                null, null, null, null, null, null, "MOTHER", null, null
         ), ownerPrincipal());
 
         LinkStudentRequest linkRequest = new LinkStudentRequest(
@@ -200,7 +203,7 @@ class ParentProfileIT {
                 "Rajesh Kumar",
                 "+919000000002",
                 "rajesh@test.com",
-                null, null, null, null, "PARENT", null
+                null, null, null, null, null, null, "PARENT", null, null
         ), ownerPrincipal());
 
         UUID batchId = UUID.randomUUID();
@@ -246,7 +249,7 @@ class ParentProfileIT {
                 "Anita Singh",
                 "+919000000003",
                 "anita@test.com",
-                null, null, null, null, null, null
+                null, null, null, null, null, null, null, null, null
         ), ownerPrincipal());
 
         RecordFeePaymentRequest request = new RecordFeePaymentRequest(
@@ -273,9 +276,9 @@ class ParentProfileIT {
         var response = parentProfileService.createProfile(new CreateParentProfileRequest(
                 "Default Relation",
                 "+919000000004",
-                null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 null, // no relationship type
-                null
+                null, null
         ), ownerPrincipal());
 
         assertThat(response.relationshipType()).isEqualTo("PARENT");

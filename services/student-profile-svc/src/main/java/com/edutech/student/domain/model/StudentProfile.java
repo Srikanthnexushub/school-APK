@@ -58,6 +58,15 @@ public class StudentProfile {
     @Column
     private String pincode;
 
+    @Column
+    private String district;
+
+    @Column
+    private String country;
+
+    @Column(name = "institution_name")
+    private String institutionName;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "current_board", nullable = false)
     private Board currentBoard;
@@ -121,6 +130,25 @@ public class StudentProfile {
                                         String pincode,
                                         Board board,
                                         Integer currentClass) {
+        return create(userId, firstName, lastName, email, phone, gender, dateOfBirth,
+                city, state, pincode, null, null, null, board, currentClass);
+    }
+
+    public static StudentProfile create(UUID userId,
+                                        String firstName,
+                                        String lastName,
+                                        String email,
+                                        String phone,
+                                        Gender gender,
+                                        LocalDate dateOfBirth,
+                                        String city,
+                                        String state,
+                                        String pincode,
+                                        String district,
+                                        String country,
+                                        String institutionName,
+                                        Board board,
+                                        Integer currentClass) {
         StudentProfile profile = new StudentProfile();
         profile.userId = userId;
         profile.firstName = firstName;
@@ -132,6 +160,9 @@ public class StudentProfile {
         profile.city = city;
         profile.state = state;
         profile.pincode = pincode;
+        profile.district = district;
+        profile.country = country;
+        profile.institutionName = institutionName;
         profile.currentBoard = board;
         profile.currentClass = currentClass;
         profile.status = ProfileStatus.ACTIVE;
@@ -172,11 +203,21 @@ public class StudentProfile {
     }
 
     public void updateLocation(String city, String state) {
+        updateLocation(city, state, null, null);
+    }
+
+    public void updateLocation(String city, String state, String district, String country) {
         if (city != null) {
             this.city = city;
         }
         if (state != null) {
             this.state = state;
+        }
+        if (district != null) {
+            this.district = district;
+        }
+        if (country != null) {
+            this.country = country;
         }
         this.updatedAt = Instant.now();
     }
@@ -239,6 +280,18 @@ public class StudentProfile {
 
     public String getPincode() {
         return pincode;
+    }
+
+    public String getDistrict() {
+        return district;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public String getInstitutionName() {
+        return institutionName;
     }
 
     public Board getCurrentBoard() {

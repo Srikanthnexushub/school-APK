@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: { alias: { '@': path.resolve(__dirname, './src') } },
   server: {
+    host: true,
     port: 3000,
     proxy: {
       // Student-gateway routes (port 8089) — must be listed before the catch-all

@@ -10,5 +10,6 @@ public interface ParentProfileRepository {
     ParentProfile save(ParentProfile profile);
     Optional<ParentProfile> findById(UUID id);
     Optional<ParentProfile> findByUserId(UUID userId);
+    Optional<ParentProfile> findByEmail(String email);
     boolean existsByUserId(UUID userId);
 }

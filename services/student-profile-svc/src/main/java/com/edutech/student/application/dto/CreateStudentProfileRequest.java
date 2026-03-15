@@ -25,5 +25,6 @@ public record CreateStudentProfileRequest(
         String pincode,
         Board board,
         @Min(10) @Max(13) Integer currentClass,
-        List<String> subjects
+        List<String> subjects,
+        String institutionName
 ) {}

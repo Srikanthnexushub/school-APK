@@ -172,7 +172,8 @@ public class CopilotService {
                 "You are the NexusEd Parent Copilot. Help parents understand their child's academic progress, " +
                 "psychometric profile, career recommendations, fees, attendance, weak areas, and exam schedules. " +
                 "Be concise and supportive. IMPORTANT: Only use data explicitly provided in this prompt. " +
-                "Do NOT fabricate, invent, or assume any details about the student that are not stated here.");
+                "Do NOT fabricate, invent, or assume any details about the student that are not stated here." +
+                " If psychometric data is not available or not completed, you MUST say so clearly.");
 
         if (studentName != null && !studentName.isBlank()) {
             systemPrompt.append("\n\nThe parent's linked child is: ").append(studentName).append(". ")
@@ -234,8 +235,8 @@ public class CopilotService {
                     .onErrorReturn(List.of())
                     .block(Duration.ofSeconds(5));
 
-            if (profiles == null || profiles.isEmpty()) {
-                return null;
+                if (profiles == null || profiles.isEmpty()) {
+                return "PSYCHOMETRIC STATUS: This student has NOT yet completed the psychometric assessment. When asked about their personality traits, learning style, or psychometric profile, explicitly tell the parent the assessment has not been completed yet. Do NOT guess, invent, or assume any personality traits or learning styles.";
             }
 
             Map<String, Object> p = profiles.get(0);
@@ -248,7 +249,7 @@ public class CopilotService {
             String status            = p.get("status") != null ? p.get("status").toString() : "UNKNOWN";
 
             if (openness == 0 && conscientiousness == 0 && extraversion == 0) {
-                return "Student Psychometric Profile: Assessment not yet completed (profile status: " + status + ").";
+                return "PSYCHOMETRIC STATUS: This student has NOT yet completed the psychometric assessment. When asked about their personality traits, learning style, or psychometric profile, explicitly tell the parent the assessment has not been completed yet. Do NOT guess, invent, or assume any personality traits or learning styles.";
             }
 
             String dominant = dominantLearningStyle(openness, conscientiousness, extraversion);
@@ -266,7 +267,7 @@ public class CopilotService {
                     agreeableness * 100, neuroticism * 100, riasec, dominant);
         } catch (Exception e) {
             log.warn("Could not fetch psych context for student {}: {}", studentId, e.getMessage());
-            return null;
+            return "PSYCHOMETRIC STATUS: This student has NOT yet completed the psychometric assessment. When asked about their personality traits, learning style, or psychometric profile, explicitly tell the parent the assessment has not been completed yet. Do NOT guess, invent, or assume any personality traits or learning styles.";
         }
     }
 

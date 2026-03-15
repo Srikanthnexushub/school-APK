@@ -60,18 +60,44 @@ const RIASEC_CAREERS: Record<string, string[]> = {
   'E-S-C': ['Business Manager', 'HR Specialist', 'Entrepreneur'],
 };
 
-const ASSESSMENT_QUESTIONS = [
-  { id: 0, trait: 'openness',          text: 'I enjoy exploring new ideas and learning about different subjects.' },
-  { id: 1, trait: 'openness',          text: 'I often think about abstract concepts and creative possibilities.' },
-  { id: 2, trait: 'conscientiousness', text: 'I complete my study tasks on time and stick to a plan.' },
-  { id: 3, trait: 'conscientiousness', text: 'I keep my notes and study space well organised.' },
-  { id: 4, trait: 'extraversion',      text: 'I feel energised after studying or working in groups.' },
-  { id: 5, trait: 'extraversion',      text: 'I enjoy participating in class discussions and presentations.' },
-  { id: 6, trait: 'agreeableness',     text: 'I enjoy helping classmates understand difficult topics.' },
-  { id: 7, trait: 'agreeableness',     text: 'I try to be considerate and empathetic in group settings.' },
-  { id: 8, trait: 'neuroticism',       text: 'I often feel anxious or stressed about upcoming exams.' },
-  { id: 9, trait: 'neuroticism',       text: 'Small setbacks during study sessions can disrupt my focus.' },
-];
+function getAdaptiveQuestions(board?: string, currentClass?: number, gender?: string, stream?: string) {
+  const isClass10 = currentClass === 10;
+  const isScience = stream === 'PCM' || stream === 'PCB';
+  const isCommerce = stream === 'COMMERCE';
+  const isCBSE = board === 'CBSE';
+
+  const baseQuestions = [
+    // Openness - 2 questions
+    { id: 0, trait: 'openness', text: isClass10
+      ? 'I enjoy exploring different subjects and learning new concepts at school.'
+      : 'I actively seek out new ideas beyond my syllabus and explore interdisciplinary topics.' },
+    { id: 1, trait: 'openness', text: isScience
+      ? 'I enjoy solving unfamiliar problems and thinking about scientific possibilities beyond what I\'ve studied.'
+      : isCommerce
+      ? 'I find it exciting to analyse business trends and think creatively about economic challenges.'
+      : 'I often think about abstract concepts and enjoy creative expression in my learning.' },
+    // Conscientiousness - 2 questions
+    { id: 2, trait: 'conscientiousness', text: isCBSE
+      ? 'I follow the CBSE study schedule diligently and complete NCERT exercises on time.'
+      : 'I complete my study tasks on time and maintain a consistent study routine.' },
+    { id: 3, trait: 'conscientiousness', text: 'I keep my notes, study materials, and assignments well organised.' },
+    // Extraversion - 2 questions
+    { id: 4, trait: 'extraversion', text: 'I feel energised after participating in group study sessions or classroom discussions.' },
+    { id: 5, trait: 'extraversion', text: isClass10
+      ? 'I enjoy presenting my ideas in class and participating in school activities.'
+      : 'I proactively seek mentors, peers, or online communities to deepen my knowledge.' },
+    // Agreeableness - 2 questions
+    { id: 6, trait: 'agreeableness', text: 'I enjoy helping my classmates understand difficult topics when they struggle.' },
+    { id: 7, trait: 'agreeableness', text: 'I try to understand different perspectives in group projects and respect others\' opinions.' },
+    // Neuroticism - 2 questions
+    { id: 8, trait: 'neuroticism', text: isClass10
+      ? 'I feel anxious or stressed about board exams and perform poorly under pressure.'
+      : 'Competitive pressure from entrance exam preparation significantly affects my focus and wellbeing.' },
+    { id: 9, trait: 'neuroticism', text: 'Small setbacks in my studies—like a poor test score—can disrupt my focus for several days.' },
+  ];
+
+  return baseQuestions;
+}
 
 
 const LEARNING_TABS = [
@@ -134,6 +160,20 @@ export default function PsychometricPage() {
   const [assessStep, setAssessStep] = useState<'info' | 'quiz' | 'submitting'>('info');
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
 
+  const { data: studentProfile } = useQuery({
+    queryKey: ['student-profile-me'],
+    queryFn: () => api.get('/api/v1/students/me').then(r => r.data),
+    enabled: !!user?.id,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const adaptiveQuestions = getAdaptiveQuestions(
+    studentProfile?.board,
+    studentProfile?.currentClass,
+    studentProfile?.gender,
+    studentProfile?.stream
+  );
+
   const openModal = () => {
     setAssessStep('info');
     setQuizAnswers({});
@@ -144,7 +184,7 @@ export default function PsychometricPage() {
 
   const handleSubmitAssessment = async () => {
     if (!profile?.id) return;
-    const allAnswered = ASSESSMENT_QUESTIONS.every((q) => quizAnswers[q.id] !== undefined);
+    const allAnswered = adaptiveQuestions.every((q) => quizAnswers[q.id] !== undefined);
     if (!allAnswered) { toast.error('Please answer all questions before submitting.'); return; }
 
     setAssessStep('submitting');
@@ -156,7 +196,7 @@ export default function PsychometricPage() {
       const sessionId = sessRes.data.id;
 
       const traitAvg = (traitKey: string) => {
-        const qs = ASSESSMENT_QUESTIONS.filter((q) => q.trait === traitKey);
+        const qs = adaptiveQuestions.filter((q) => q.trait === traitKey);
         const sum = qs.reduce((acc, q) => acc + (quizAnswers[q.id] ?? 3), 0);
         return parseFloat((sum / qs.length / 5.0).toFixed(4));
       };
@@ -604,6 +644,8 @@ export default function PsychometricPage() {
         setQuizAnswers={setQuizAnswers}
         onStartQuiz={handleStartQuiz}
         onSubmit={handleSubmitAssessment}
+        adaptiveQuestions={adaptiveQuestions}
+        studentProfile={studentProfile}
       />
     </div>
   );
@@ -619,11 +661,13 @@ interface AssessmentModalProps {
   setQuizAnswers: React.Dispatch<React.SetStateAction<Record<number, number>>>;
   onStartQuiz: () => void;
   onSubmit: () => void;
+  adaptiveQuestions: { id: number; trait: string; text: string }[];
+  studentProfile?: { board?: string; currentClass?: number; stream?: string } | null;
 }
 
-function AssessmentModal({ isOpen, onClose, hasProfile, assessStep, quizAnswers, setQuizAnswers, onStartQuiz, onSubmit }: AssessmentModalProps) {
+function AssessmentModal({ isOpen, onClose, hasProfile, assessStep, quizAnswers, setQuizAnswers, onStartQuiz, onSubmit, adaptiveQuestions, studentProfile }: AssessmentModalProps) {
   const answeredCount = Object.keys(quizAnswers).length;
-  const allAnswered = answeredCount === ASSESSMENT_QUESTIONS.length;
+  const allAnswered = answeredCount === adaptiveQuestions.length;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Discover Your Learning DNA">
@@ -647,6 +691,12 @@ function AssessmentModal({ isOpen, onClose, hasProfile, assessStep, quizAnswers,
           <p className="text-white/50 text-sm leading-relaxed">
             10 science-backed questions measuring your personality across five dimensions. Takes about 5 minutes. Results update your profile and learning recommendations.
           </p>
+          {studentProfile?.board && (
+            <div className="mb-4 p-3 bg-brand-500/10 border border-brand-500/20 rounded-lg text-xs text-brand-300">
+              Questions personalised for {studentProfile.board} · Class {studentProfile.currentClass}
+              {studentProfile.stream ? ` · ${studentProfile.stream}` : ''}
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-3 text-center">
             {[{ value: '5 min', label: 'Duration' }, { value: '10', label: 'Questions' }, { value: 'Big Five', label: 'Framework' }].map((stat) => (
               <div key={stat.label} className="glass rounded-xl p-3">
@@ -667,13 +717,13 @@ function AssessmentModal({ isOpen, onClose, hasProfile, assessStep, quizAnswers,
       ) : (
         <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-1">
           <div className="flex items-center justify-between sticky top-0 bg-surface-800 pb-2 border-b border-white/5">
-            <p className="text-white/60 text-sm">{answeredCount} / {ASSESSMENT_QUESTIONS.length} answered</p>
+            <p className="text-white/60 text-sm">{answeredCount} / {adaptiveQuestions.length} answered</p>
             <div className="h-1.5 w-32 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${(answeredCount / ASSESSMENT_QUESTIONS.length) * 100}%` }} />
+              <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${(answeredCount / adaptiveQuestions.length) * 100}%` }} />
             </div>
           </div>
 
-          {ASSESSMENT_QUESTIONS.map((q) => (
+          {adaptiveQuestions.map((q) => (
             <div key={q.id} className="space-y-3">
               <p className="text-white text-sm font-medium leading-relaxed">
                 <span className="text-white/30 mr-2">{q.id + 1}.</span>{q.text}
@@ -706,7 +756,7 @@ function AssessmentModal({ isOpen, onClose, hasProfile, assessStep, quizAnswers,
             onClick={onSubmit}
             disabled={!allAnswered}
           >
-            {allAnswered ? 'Submit Assessment' : `Answer all questions (${ASSESSMENT_QUESTIONS.length - answeredCount} remaining)`}
+            {allAnswered ? 'Submit Assessment' : `Answer all questions (${adaptiveQuestions.length - answeredCount} remaining)`}
           </button>
         </div>
       )}

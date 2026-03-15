@@ -40,6 +40,7 @@ import MentorPortalExamsPage from './pages/mentor-portal/MentorPortalExamsPage';
 import MentorPortalPerformancePage from './pages/mentor-portal/MentorPortalPerformancePage';
 import MentorPortalLibraryPage from './pages/mentor-portal/MentorPortalLibraryPage';
 import StudentLibraryPage from './pages/library/StudentLibraryPage';
+import ProjectLabPage from './pages/lab/ProjectLabPage';
 
 export const router = createBrowserRouter([
   {
@@ -89,6 +90,7 @@ export const router = createBrowserRouter([
       { path: 'mentors/:id', element: <MentorProfilePage /> },
       { path: 'exam-tracker', element: <ExamTrackerPage /> },
       { path: 'library', element: <StudentLibraryPage /> },
+      { path: 'lab', element: <ProjectLabPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'study-plan', element: <Navigate to="/ai-mentor" replace /> },
       { path: 'doubts', element: <Navigate to="/ai-mentor" replace /> },

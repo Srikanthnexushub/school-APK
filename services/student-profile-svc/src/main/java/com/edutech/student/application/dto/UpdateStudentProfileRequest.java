@@ -10,6 +10,8 @@ public record UpdateStudentProfileRequest(
         Gender gender,
         String city,
         String state,
+        String district,
+        String country,
         Stream stream,
         Integer targetYear
 ) {}

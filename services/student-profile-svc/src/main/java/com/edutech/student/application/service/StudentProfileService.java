@@ -62,6 +62,9 @@ public class StudentProfileService implements CreateStudentProfileUseCase,
                 request.city(),
                 request.state(),
                 request.pincode(),
+                null,
+                null,
+                request.institutionName(),
                 request.board(),
                 request.currentClass()
         );
@@ -109,7 +112,7 @@ public class StudentProfileService implements CreateStudentProfileUseCase,
         profile.updateName(request.firstName(), request.lastName());
         profile.updatePhone(request.phone());
         profile.updateGender(request.gender());
-        profile.updateLocation(request.city(), request.state());
+        profile.updateLocation(request.city(), request.state(), request.district(), request.country());
 
         if (request.stream() != null) {
             profile.selectStream(request.stream());
