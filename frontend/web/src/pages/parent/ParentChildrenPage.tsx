@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Plus, Trash2, Edit2, Save, X, ChevronDown, ChevronUp,
-  Loader2, School, Calendar, BookOpen, Hash, Mail, ArrowRight, ArrowLeft,
-  CheckCircle2, UserPlus, Link2, Eye, EyeOff, User,
+  Loader2, School, Calendar, BookOpen, Hash, ArrowRight, ArrowLeft,
+  CheckCircle2, UserPlus, Eye, EyeOff, User,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Avatar } from '../../components/ui/Avatar';
@@ -38,15 +38,6 @@ interface StudentLinkResponse {
   createdAt: string;
 }
 
-interface StudentLookupResponse {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  city?: string;
-  board?: string;
-  currentClass?: number;
-}
 
 interface EditSchoolForm {
   dateOfBirth: string;
@@ -56,7 +47,7 @@ interface EditSchoolForm {
   rollNumber: string;
 }
 
-type AddChildStep = 'email-check' | 'personal' | 'academic' | 'subjects' | 'done';
+type AddChildStep = 'personal' | 'academic' | 'subjects' | 'done';
 
 interface PersonalForm {
   firstName: string;
@@ -161,11 +152,7 @@ function AddChildModal({
   onClose: () => void;
   onAdded: () => void;
 }) {
-  const [step, setStep] = useState<AddChildStep>('email-check');
-  const [emailInput, setEmailInput] = useState('');
-  const [looking, setLooking] = useState(false);
-  const [existingStudent, setExistingStudent] = useState<StudentLookupResponse | null>(null);
-  const [emailChecked, setEmailChecked] = useState(false);
+  const [step, setStep] = useState<AddChildStep>('personal');
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -212,103 +199,7 @@ function AddChildModal({
     return () => clearTimeout(timer);
   }, [academic.institutionCode]);
 
-  // OTP-based link state (for "existing student" suggestion)
-  const [otpStep, setOtpStep] = useState<'lookup' | 'otp-sent'>('lookup');
-  const [generating, setGenerating] = useState(false);
-  const [otp, setOtp] = useState('');
-  const [otpError, setOtpError] = useState('');
-  const [verifying, setVerifying] = useState(false);
-  const [otpExpiresAt, setOtpExpiresAt] = useState<Date | null>(null);
-  const [secondsLeft, setSecondsLeft] = useState(300);
 
-  useEffect(() => {
-    if (otpStep !== 'otp-sent' || !otpExpiresAt) return;
-    const interval = setInterval(() => {
-      const secs = Math.max(0, Math.round((otpExpiresAt.getTime() - Date.now()) / 1000));
-      setSecondsLeft(secs);
-      if (secs <= 0) clearInterval(interval);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [otpStep, otpExpiresAt]);
-
-  const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-
-  // ── Email check ─────────────────────────────────────────────────────────────
-
-  async function handleEmailCheck() {
-    const email = emailInput.trim().toLowerCase();
-    if (!email) return;
-    setLooking(true);
-    setExistingStudent(null);
-    setEmailChecked(false);
-    try {
-      const res = await api.get(`/api/v1/students/lookup?email=${encodeURIComponent(email)}`);
-      setExistingStudent(res.data as StudentLookupResponse);
-    } catch {
-      setExistingStudent(null);
-    } finally {
-      setLooking(false);
-      setEmailChecked(true);
-    }
-  }
-
-  function proceedToCreate() {
-    setPersonal((p) => ({ ...p, email: emailInput.trim().toLowerCase() }));
-    setStep('personal');
-  }
-
-  // ── OTP-based link for existing student ─────────────────────────────────────
-
-  async function handleGenerateOtp() {
-    if (!existingStudent) return;
-    setGenerating(true);
-    try {
-      const res = await api.post('/api/v1/students/link-otp/generate', {
-        studentEmail: existingStudent.email,
-        parentName,
-      });
-      setOtpExpiresAt(new Date(res.data.expiresAt));
-      setSecondsLeft(300);
-      setOtpStep('otp-sent');
-    } catch (e: unknown) {
-      const err = e as { response?: { data?: { detail?: string } } };
-      toast.error(err?.response?.data?.detail ?? 'Failed to send OTP. Try again.');
-    } finally {
-      setGenerating(false);
-    }
-  }
-
-  async function handleVerifyOtpAndLink() {
-    if (!existingStudent || otp.length !== 6) return;
-    setOtpError('');
-    setVerifying(true);
-    try {
-      const verifyRes = await api.post('/api/v1/students/link-otp/verify', {
-        studentEmail: existingStudent.email,
-        otp,
-      });
-      const verifyData = verifyRes.data;
-      await api.post(`/api/v1/parents/${profileId}/students`, {
-        studentId: verifyData.studentId,
-        studentName: verifyData.studentName,
-        centerId: '00000000-0000-0000-0000-000000000000',
-        relationship: personal.relationship || 'PARENT',
-      });
-      toast.success(`${verifyData.studentName} linked to your account!`);
-      onAdded();
-      onClose();
-    } catch (e: unknown) {
-      const err = e as { response?: { data?: { detail?: string; message?: string } }; message?: string };
-      const msg = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? '';
-      if (msg.toLowerCase().includes('otp') || msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('expired')) {
-        setOtpError('Incorrect or expired OTP. Try again.');
-      } else {
-        toast.error(msg || 'Failed to link child.');
-      }
-    } finally {
-      setVerifying(false);
-    }
-  }
 
   // ── Personal details validation ──────────────────────────────────────────────
 
@@ -480,11 +371,11 @@ function AddChildModal({
                 {step === 'done' ? 'Child Added!' : 'Add Your Child'}
               </h2>
               <p className="text-xs text-white/40">
-                {step === 'email-check' ? 'Create an account and link your child' :
-                 step === 'personal' ? 'Step 1 of 3 — Personal details' :
+                {step === 'personal' ? 'Step 1 of 3 — Personal details' :
                  step === 'academic' ? 'Step 2 of 3 — Academic info' :
                  step === 'subjects' ? 'Step 3 of 3 — Subjects' :
-                 'Successfully linked to your account'}
+                 step === 'done' ? 'Successfully linked to your account' :
+                 'Create an account and link your child'}
               </p>
             </div>
           </div>
@@ -495,144 +386,6 @@ function AddChildModal({
 
         <div className="p-6">
           <AnimatePresence mode="wait">
-
-            {/* ── Email check ──────────────────────────────────────────── */}
-            {step === 'email-check' && (
-              <motion.div key="email-check" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
-                <p className="text-sm text-white/50">
-                  Enter your child's email address. We'll check if they already have an account so you don't create a duplicate.
-                </p>
-
-                <div>
-                  <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">
-                    <Mail className="w-3.5 h-3.5 inline mr-1" />
-                    Child's Email Address
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="email"
-                      value={emailInput}
-                      onChange={(e) => { setEmailInput(e.target.value); setEmailChecked(false); setExistingStudent(null); }}
-                      onKeyDown={(e) => e.key === 'Enter' && handleEmailCheck()}
-                      placeholder="child@example.com"
-                      className="input flex-1"
-                    />
-                    <button
-                      onClick={handleEmailCheck}
-                      disabled={looking || !emailInput.trim()}
-                      className="btn-primary px-4 py-2.5 text-sm flex items-center gap-1.5 disabled:opacity-50 whitespace-nowrap"
-                    >
-                      {looking ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Check'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Existing student found */}
-                {emailChecked && existingStudent && (
-                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
-                      <p className="text-sm text-amber-300 font-semibold mb-1">Account already exists</p>
-                      <div className="flex items-center gap-3 mt-2">
-                        <div className="w-9 h-9 rounded-full bg-brand-500/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-brand-400 font-bold text-xs">{existingStudent.firstName?.[0]}{existingStudent.lastName?.[0]}</span>
-                        </div>
-                        <div>
-                          <div className="font-semibold text-white text-sm">{existingStudent.firstName} {existingStudent.lastName}</div>
-                          <div className="text-xs text-white/40">
-                            {[existingStudent.currentClass && `Class ${existingStudent.currentClass}`, existingStudent.board, existingStudent.city].filter(Boolean).join(' · ')}
-                          </div>
-                        </div>
-                      </div>
-                      <p className="text-xs text-white/50 mt-3">
-                        A student with this email is already registered. You can link them to your account using OTP verification, or enter a different email to create a new account.
-                      </p>
-                    </div>
-
-                    {otpStep === 'lookup' ? (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-1.5">Your relationship to {existingStudent.firstName}</label>
-                          <select
-                            value={personal.relationship}
-                            onChange={(e) => setPersonal((p) => ({ ...p, relationship: e.target.value }))}
-                            className="input w-full"
-                          >
-                            {RELATIONSHIP_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                          </select>
-                        </div>
-                        <button
-                          onClick={handleGenerateOtp}
-                          disabled={generating}
-                          className="w-full btn-primary py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                        >
-                          {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
-                          {generating ? 'Sending OTP…' : 'Link Existing Child (OTP)'}
-                        </button>
-                        <button
-                          onClick={() => { setEmailChecked(false); setExistingStudent(null); setEmailInput(''); }}
-                          className="w-full px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-colors"
-                        >
-                          Use a Different Email
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4 text-sm">
-                          <p className="text-brand-300 font-medium mb-1">OTP sent to student's portal</p>
-                          <p className="text-xs text-white/50">
-                            Ask <span className="text-white">{existingStudent.firstName}</span> to check Settings → Parent Link Request and share the 6-digit code.
-                          </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <span className="text-xs text-white/30">Expires in</span>
-                            <span className={`text-xs font-mono font-bold ${secondsLeft < 60 ? 'text-red-400' : 'text-brand-400'}`}>{fmtTime(secondsLeft)}</span>
-                          </div>
-                        </div>
-                        <input
-                          type="text"
-                          value={otp}
-                          maxLength={6}
-                          onChange={(e) => { setOtp(e.target.value.replace(/\D/g, '')); setOtpError(''); }}
-                          placeholder="6-digit OTP"
-                          className="input w-full text-center font-mono text-2xl tracking-[0.4em]"
-                        />
-                        {otpError && <p className="text-xs text-red-400">{otpError}</p>}
-                        <div className="flex gap-3">
-                          <button onClick={() => setOtpStep('lookup')} className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white transition-colors">Back</button>
-                          <button
-                            onClick={handleVerifyOtpAndLink}
-                            disabled={otp.length !== 6 || verifying || secondsLeft <= 0}
-                            className="flex-1 btn-primary py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                          >
-                            {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify & Link'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-
-                {/* Email not found — show proceed button */}
-                {emailChecked && !existingStudent && (
-                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-start gap-3">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-emerald-300">Email available. Let's create an account for your child.</p>
-                    </div>
-                    <button onClick={proceedToCreate} className="w-full btn-primary py-2.5 text-sm flex items-center justify-center gap-2">
-                      Create Account <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </motion.div>
-                )}
-
-                {!emailChecked && (
-                  <div className="flex gap-3 pt-1">
-                    <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-colors">
-                      Cancel
-                    </button>
-                  </div>
-                )}
-              </motion.div>
-            )}
 
             {/* ── Step 1: Personal Details ────────────────────────────── */}
             {step === 'personal' && (
@@ -727,8 +480,8 @@ function AddChildModal({
                 </div>
 
                 <div className="flex gap-3 pt-2">
-                  <button onClick={() => setStep('email-check')} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-colors">
-                    <ArrowLeft className="w-4 h-4" /> Back
+                  <button onClick={onClose} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-colors">
+                    <X className="w-4 h-4" /> Cancel
                   </button>
                   <button
                     onClick={() => { if (validatePersonal()) setStep('academic'); }}
