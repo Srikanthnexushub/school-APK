@@ -392,7 +392,7 @@ function AddChildModal({
       const { userId } = registerRes.data as { userId: string; email: string };
 
       // 2. Create student profile
-      await api.post('/api/v1/students', {
+      const profileRes = await api.post('/api/v1/students', {
         userId,
         firstName: personal.firstName,
         lastName: personal.lastName,
@@ -404,11 +404,12 @@ function AddChildModal({
         currentClass: academic.currentClass ? parseInt(academic.currentClass) : undefined,
         subjects: selectedSubjects,
       });
+      const studentProfileId = (profileRes.data as { id: string }).id;
 
       // 3. Link student to parent
       const studentName = `${personal.firstName} ${personal.lastName}`;
       await api.post(`/api/v1/parents/${profileId}/students`, {
-        studentId: userId,
+        studentId: studentProfileId,
         studentName,
         centerId: centerId ?? '00000000-0000-0000-0000-000000000000',
         relationship: personal.relationship,
@@ -417,7 +418,7 @@ function AddChildModal({
         standard: academic.currentClass ? `Class ${academic.currentClass}` : undefined,
       });
 
-      setCreatedStudentId(userId);
+      setCreatedStudentId(studentProfileId);
       setCreatedStudentName(studentName);
       setStep('done');
     } catch (e: unknown) {

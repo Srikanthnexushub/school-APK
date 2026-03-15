@@ -72,7 +72,7 @@ class StudentLinkServiceTest {
     }
 
     private LinkStudentRequest linkRequest() {
-        return new LinkStudentRequest(UUID.randomUUID(), "Test Student", CENTER_ID, null, null, null, null, null);
+        return new LinkStudentRequest(UUID.randomUUID(), "Test Student", CENTER_ID, null, null, null, null, null, null);
     }
 
     // -------------------------------------------------------------------------
@@ -153,7 +153,7 @@ class StudentLinkServiceTest {
     @DisplayName("revokeLink_success: valid link found, parent owns it → link is REVOKED and event published")
     void revokeLink_success() {
         // arrange — use a real StudentLink created via the factory method
-        StudentLink link = StudentLink.create(PROFILE_ID, UUID.randomUUID(), "Student", CENTER_ID);
+        StudentLink link = StudentLink.create(PROFILE_ID, UUID.randomUUID(), "Student", CENTER_ID, null);
 
         ParentProfile parent = parentProfile();
         when(linkRepository.findById(link.getId())).thenReturn(Optional.of(link));

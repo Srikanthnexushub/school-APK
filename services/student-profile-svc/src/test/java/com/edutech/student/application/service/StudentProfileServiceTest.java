@@ -183,6 +183,7 @@ class StudentProfileServiceTest {
                 null,
                 null,
                 "8888888888",
+                null,
                 "Mumbai",
                 "Maharashtra",
                 Stream.PCM,
@@ -205,7 +206,7 @@ class StudentProfileServiceTest {
     void updateProfile_notFound() {
         // arrange
         UpdateStudentProfileRequest request = new UpdateStudentProfileRequest(
-                null, null, "8888888888", null, null, null, null
+                null, null, "8888888888", null, null, null, null, null
         );
         when(profileRepository.findById(STUDENT_ID)).thenReturn(Optional.empty());
 
