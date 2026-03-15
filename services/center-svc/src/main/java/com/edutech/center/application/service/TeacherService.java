@@ -102,7 +102,7 @@ public class TeacherService implements AssignTeacherUseCase {
     private TeacherResponse toResponse(Teacher t) {
         return new TeacherResponse(t.getId(), t.getCenterId(), t.getUserId(),
                 t.getFirstName(), t.getLastName(), t.getEmail(),
-                t.getPhoneNumber(), t.getSubjects(), t.getEmployeeId(),
+                t.getPhoneNumber(), t.getSubjects(), t.getDistrict(), t.getEmployeeId(),
                 t.getStatus(), t.getJoinedAt());
     }
 }
