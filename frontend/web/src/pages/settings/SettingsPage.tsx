@@ -83,6 +83,26 @@ interface StudentProfile {
   parentLinkCode?: string;
 }
 
+interface ParentProfileMin {
+  name?: string;
+  phone?: string;
+  email?: string;
+  relationshipType?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+}
+
+interface MentorProfileMin {
+  fullName?: string;
+  email?: string;
+  bio?: string;
+  specializations?: string | string[];
+  yearsOfExperience?: number;
+  hourlyRate?: number;
+}
+
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   phone: z.string().optional(),
@@ -136,7 +156,19 @@ function ProfileTab() {
   const { data: profile } = useQuery<StudentProfile>({
     queryKey: ['student-profile-me'],
     queryFn: () => api.get('/api/v1/students/me').then((r) => r.data),
-    enabled: !!user,
+    enabled: !!user && user.role === 'STUDENT',
+  });
+
+  const { data: parentProfile } = useQuery<ParentProfileMin>({
+    queryKey: ['parent-profile'],
+    queryFn: () => api.get('/api/v1/parents/me').then((r) => r.data),
+    enabled: !!user && user.role === 'PARENT',
+  });
+
+  const { data: mentorProfile } = useQuery<MentorProfileMin>({
+    queryKey: ['mentor-profile-me'],
+    queryFn: () => api.get('/api/v1/mentors/me').then((r) => r.data),
+    enabled: !!user && user.role === 'TEACHER',
   });
 
   interface PendingLink { otp: string; parentName: string; expiresAt: string; }
@@ -162,12 +194,13 @@ function ProfileTab() {
     }
   }
 
-  useEffect(() => { fetchPendingLink(true); }, []);
+  useEffect(() => { if (user?.role === 'STUDENT') fetchPendingLink(true); }, [user?.role]);
 
   useEffect(() => {
+    if (user?.role !== 'STUDENT') return;
     const interval = setInterval(() => fetchPendingLink(false), 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user?.role]);
 
   useEffect(() => {
     if (!pendingLink) return;
@@ -218,9 +251,18 @@ function ProfileTab() {
     onError: () => toast.error('Failed to save profile.'),
   });
 
-  const allFields = profile
-    ? [user?.name, user?.email, user?.avatarUrl, profile.phone, profile.gender, profile.dateOfBirth, profile.city, profile.stream]
-    : null;
+  const allFields = (() => {
+    if (!user) return null;
+    if (user.role === 'STUDENT' && profile)
+      return [user.name, user.email, user.avatarUrl, profile.phone, profile.gender, profile.dateOfBirth, profile.city, profile.stream];
+    if (user.role === 'PARENT' && parentProfile)
+      return [parentProfile.name, parentProfile.phone, parentProfile.email, parentProfile.relationshipType, parentProfile.address, parentProfile.city, parentProfile.state, parentProfile.pincode];
+    if (user.role === 'TEACHER' && mentorProfile)
+      return [mentorProfile.fullName, mentorProfile.email, user.avatarUrl, mentorProfile.bio, mentorProfile.specializations, mentorProfile.yearsOfExperience, mentorProfile.hourlyRate];
+    if (user.role === 'CENTER_ADMIN' || user.role === 'SUPER_ADMIN')
+      return [user.name, user.email, user.avatarUrl];
+    return null;
+  })();
   const profilePct = allFields ? Math.round(allFields.filter(Boolean).length / allFields.length * 100) : null;
 
   return (
@@ -271,7 +313,7 @@ function ProfileTab() {
       </div>
 
       {/* Academic & personal details — read only */}
-      {profile && (
+      {user?.role === 'STUDENT' && profile && (
         <div className="card">
           <h3 className="text-base font-semibold text-white mb-2">Academic Details</h3>
           <div>
@@ -287,46 +329,48 @@ function ProfileTab() {
         </div>
       )}
 
-      {/* Parent Link Request (OTP) */}
-      <div className="card">
-        <div className="flex items-center gap-2 mb-3">
-          <ShieldCheck className="w-4 h-4 text-brand-400" />
-          <h3 className="text-base font-semibold text-white">Parent Link Request</h3>
-        </div>
-        {pendingLinkLoading && !pendingLink ? (
-          <div className="h-20 flex items-center justify-center">
-            <div className="w-5 h-5 border-2 border-white/20 border-t-brand-400 rounded-full animate-spin" />
+      {/* Parent Link Request (OTP) — students only */}
+      {user?.role === 'STUDENT' && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-3">
+            <ShieldCheck className="w-4 h-4 text-brand-400" />
+            <h3 className="text-base font-semibold text-white">Parent Link Request</h3>
           </div>
-        ) : pendingLink && otpSecondsLeft > 0 ? (
-          <>
-            <p className="text-sm text-white/50 mb-4">
-              <span className="text-white font-medium">{pendingLink.parentName}</span> wants to link to your account. Share the code below with them.
-            </p>
-            <div className="bg-brand-500/10 border border-brand-500/20 rounded-xl px-5 py-4 text-center mb-3">
-              <span className="font-mono text-4xl font-bold text-brand-400 tracking-[0.4em]">
-                {pendingLink.otp}
-              </span>
+          {pendingLinkLoading && !pendingLink ? (
+            <div className="h-20 flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-white/20 border-t-brand-400 rounded-full animate-spin" />
             </div>
-            <div className="flex items-center justify-center gap-2 text-sm">
-              <Clock className="w-4 h-4 text-amber-400" />
-              <span className={`font-mono font-bold ${otpSecondsLeft < 60 ? 'text-red-400' : 'text-amber-400'}`}>
-                {`${Math.floor(otpSecondsLeft / 60)}:${String(otpSecondsLeft % 60).padStart(2, '0')}`}
-              </span>
-              <span className="text-white/30 text-xs">remaining</span>
-            </div>
-            <p className="text-xs text-white/30 mt-3 text-center">
-              This OTP expires automatically. If you don't recognize this request, ignore it.
+          ) : pendingLink && otpSecondsLeft > 0 ? (
+            <>
+              <p className="text-sm text-white/50 mb-4">
+                <span className="text-white font-medium">{pendingLink.parentName}</span> wants to link to your account. Share the code below with them.
+              </p>
+              <div className="bg-brand-500/10 border border-brand-500/20 rounded-xl px-5 py-4 text-center mb-3">
+                <span className="font-mono text-4xl font-bold text-brand-400 tracking-[0.4em]">
+                  {pendingLink.otp}
+                </span>
+              </div>
+              <div className="flex items-center justify-center gap-2 text-sm">
+                <Clock className="w-4 h-4 text-amber-400" />
+                <span className={`font-mono font-bold ${otpSecondsLeft < 60 ? 'text-red-400' : 'text-amber-400'}`}>
+                  {`${Math.floor(otpSecondsLeft / 60)}:${String(otpSecondsLeft % 60).padStart(2, '0')}`}
+                </span>
+                <span className="text-white/30 text-xs">remaining</span>
+              </div>
+              <p className="text-xs text-white/30 mt-3 text-center">
+                This OTP expires automatically. If you don't recognize this request, ignore it.
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-white/40">
+              No active link request. When your parent clicks "Link Child" and finds your account, a one-time verification code will appear here for you to share with them.
             </p>
-          </>
-        ) : (
-          <p className="text-sm text-white/40">
-            No active link request. When your parent clicks "Link Child" and finds your account, a one-time verification code will appear here for you to share with them.
-          </p>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
-      {/* Edit Info */}
-      <div className="card">
+      {/* Edit Info — students only */}
+      {user?.role === 'STUDENT' && <div className="card">
         <h3 className="text-base font-semibold text-white mb-4">Edit Information</h3>
         <form onSubmit={handleSubmit((d) => saveMutation.mutate(d))} className="space-y-4">
           <div>
@@ -383,7 +427,7 @@ function ProfileTab() {
             Save Changes
           </button>
         </form>
-      </div>
+      </div>}
 
       {/* Danger Zone */}
       <div className="card border border-red-500/20">
