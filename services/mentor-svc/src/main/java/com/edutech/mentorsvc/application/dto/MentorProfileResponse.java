@@ -17,6 +17,7 @@ public record MentorProfileResponse(
         BigDecimal averageRating,
         int totalSessions,
         String gender,
+        String district,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) {

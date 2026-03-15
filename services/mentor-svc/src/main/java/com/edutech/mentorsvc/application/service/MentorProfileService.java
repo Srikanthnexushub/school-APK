@@ -87,7 +87,7 @@ public class MentorProfileService implements RegisterMentorUseCase, GetMentorPro
                 .filter(p -> p.getDeletedAt() == null)
                 .orElseThrow(() -> new MentorNotFoundException(userId));
         profile.update(request.fullName(), request.bio(), request.specializations(),
-                request.yearsOfExperience(), request.hourlyRate(), request.gender());
+                request.yearsOfExperience(), request.hourlyRate(), request.gender(), request.district());
         MentorProfile saved = mentorProfileRepository.save(profile);
         return toResponse(saved);
     }
@@ -115,6 +115,7 @@ public class MentorProfileService implements RegisterMentorUseCase, GetMentorPro
                 profile.getAverageRating(),
                 profile.getTotalSessions(),
                 profile.getGender(),
+                profile.getDistrict(),
                 profile.getCreatedAt(),
                 profile.getUpdatedAt()
         );

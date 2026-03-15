@@ -12,6 +12,7 @@ public record UpdateMentorProfileRequest(
         @Size(max = 500) String specializations,
         @Min(value = 0) Integer yearsOfExperience,
         @DecimalMin(value = "0.0", inclusive = true) BigDecimal hourlyRate,
-        @Size(max = 20) String gender
+        @Size(max = 20) String gender,
+        @Size(max = 100) String district
 ) {
 }

@@ -45,6 +45,9 @@ public class Teacher {
     @Column(length = 500)
     private String subjects;
 
+    @Column(name = "district", length = 100)
+    private String district;
+
     @Column(name = "employee_id", length = 50)
     private String employeeId;
 
@@ -77,7 +80,7 @@ public class Teacher {
 
     private Teacher(UUID id, UUID centerId, UUID userId, String firstName,
                     String lastName, String email, String phoneNumber,
-                    String subjects, String employeeId, TeacherStatus status) {
+                    String subjects, String district, String employeeId, TeacherStatus status) {
         this.id = id;
         this.centerId = centerId;
         this.userId = userId;
@@ -86,6 +89,7 @@ public class Teacher {
         this.email = email;
         this.phoneNumber = phoneNumber;
         this.subjects = subjects;
+        this.district = district;
         this.employeeId = employeeId;
         this.status = status;
         this.joinedAt = Instant.now();
@@ -98,7 +102,7 @@ public class Teacher {
                                  String lastName, String email,
                                  String phoneNumber, String subjects) {
         return new Teacher(UUID.randomUUID(), centerId, userId,
-                firstName, lastName, email, phoneNumber, subjects, null, TeacherStatus.ACTIVE);
+                firstName, lastName, email, phoneNumber, subjects, null, null, TeacherStatus.ACTIVE);
     }
 
     /** Bulk-import stub — invitation sent, userId unknown until teacher accepts. */
@@ -106,7 +110,7 @@ public class Teacher {
                                                String email, String phoneNumber, String subjects,
                                                String employeeId, String token, Instant tokenExpiry) {
         Teacher t = new Teacher(UUID.randomUUID(), centerId, null,
-                firstName, lastName, email, phoneNumber, subjects, employeeId, TeacherStatus.INVITATION_SENT);
+                firstName, lastName, email, phoneNumber, subjects, null, employeeId, TeacherStatus.INVITATION_SENT);
         t.invitationToken = token;
         t.invitationTokenExpiresAt = tokenExpiry;
         return t;
@@ -114,9 +118,10 @@ public class Teacher {
 
     /** Self-registration — teacher registered independently, needs coordinator approval. */
     public static Teacher createPending(UUID centerId, UUID userId, String firstName,
-                                        String lastName, String email, String phoneNumber, String subjects) {
+                                        String lastName, String email, String phoneNumber,
+                                        String subjects, String district) {
         return new Teacher(UUID.randomUUID(), centerId, userId,
-                firstName, lastName, email, phoneNumber, subjects, null, TeacherStatus.PENDING_APPROVAL);
+                firstName, lastName, email, phoneNumber, subjects, district, null, TeacherStatus.PENDING_APPROVAL);
     }
 
     public void updateSubjects(String subjects) {
@@ -177,6 +182,7 @@ public class Teacher {
     public String getEmail() { return email; }
     public String getPhoneNumber() { return phoneNumber; }
     public String getSubjects() { return subjects; }
+    public String getDistrict() { return district; }
     public String getEmployeeId() { return employeeId; }
     public String getInvitationToken() { return invitationToken; }
     public Instant getInvitationTokenExpiresAt() { return invitationTokenExpiresAt; }

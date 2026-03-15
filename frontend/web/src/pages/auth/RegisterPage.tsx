@@ -143,6 +143,13 @@ function calculateAge(dob: string): number {
 
 type Role = 'STUDENT' | 'PARENT' | 'TEACHER' | 'CENTER_ADMIN';
 
+const TEACHER_SUBJECTS = [
+  'Mathematics', 'Physics', 'Chemistry', 'Biology', 'English', 'Hindi',
+  'History', 'Geography', 'Economics', 'Political Science', 'Computer Science',
+  'Accountancy', 'Business Studies', 'Sanskrit', 'Science', 'Social Studies',
+  'Physical Education', 'Art', 'Music',
+];
+
 const roleOptions: { role: Role; label: string; description: string }[] = [
   { role: 'STUDENT', label: 'Student', description: 'Prepare for competitive exams with AI guidance and personalised study plans.' },
   { role: 'PARENT', label: 'Parent', description: "Monitor your child's progress, fee payments, and receive real-time updates." },
@@ -186,11 +193,16 @@ export default function RegisterPage() {
   const [parentEmail, setParentEmail] = useState<string | null>(null);
   const [resendsRemaining, setResendsRemaining] = useState<number | null>(null);
   // Teacher-specific fields
-  const [teacherInstitutionCode, setTeacherInstitutionCode] = useState('');
   const [teacherCenterId, setTeacherCenterId] = useState<string | null>(null);
   const [teacherCenterName, setTeacherCenterName] = useState<string | null>(null);
-  const [teacherSubjectsInput, setTeacherSubjectsInput] = useState('');
-  const [isValidatingTeacherCode, setIsValidatingTeacherCode] = useState(false);
+  const [teacherCentersList, setTeacherCentersList] = useState<{ id: string; name: string }[]>([]);
+  const [teacherCentersLoading, setTeacherCentersLoading] = useState(false);
+  const [teacherSubjectsArr, setTeacherSubjectsArr] = useState<string[]>([]);
+  const [teacherSubjectsOpen, setTeacherSubjectsOpen] = useState(false);
+  const [teacherAddress, setTeacherAddress] = useState('');
+  const [teacherCity, setTeacherCity] = useState('');
+  const [teacherStateVal, setTeacherStateVal] = useState('');
+  const [teacherDistrict, setTeacherDistrict] = useState('');
   // Institution-specific fields
   const [institutionName, setInstitutionName] = useState('');
   const [institutionCity, setInstitutionCity] = useState('');
@@ -209,6 +221,11 @@ export default function RegisterPage() {
   const [instBranch, setInstBranch] = useState('');
   const [instBoard, setInstBoard] = useState('');
   const [instAddress, setInstAddress] = useState('');
+  const [instCountry, setInstCountry] = useState('India');
+  // Country fields for other roles
+  const [studentCountry, setStudentCountry] = useState('India');
+  const [parentCountry, setParentCountry] = useState('India');
+  const [teacherCountry, setTeacherCountry] = useState('India');
 
   const handleCaptchaVerify = useCallback((token: string | null) => setCaptchaToken(token), []);
 
@@ -260,6 +277,20 @@ export default function RegisterPage() {
 
   const watchedPassword = watch('password', '');
   const watchedInstitutionCode = watch3('institutionCode', '');
+
+  // Fetch centers list when Teacher role is selected
+  useEffect(() => {
+    if (selectedRole !== 'TEACHER') return;
+    setTeacherCentersLoading(true);
+    api.get('/api/v1/centers?size=200')
+      .then((r) => {
+        const data = r.data;
+        const list = Array.isArray(data) ? data : (data.content ?? []);
+        setTeacherCentersList(list.map((c: { id: string; name: string }) => ({ id: c.id, name: c.name })));
+      })
+      .catch(() => setTeacherCentersList([]))
+      .finally(() => setTeacherCentersLoading(false));
+  }, [selectedRole]);
 
   // Live debounce lookup for institution code (student academic step)
   useEffect(() => {
@@ -337,22 +368,6 @@ export default function RegisterPage() {
       if (!institutionName.trim()) { toast.error('Institution name is required'); return; }
       if (!institutionCity.trim()) { toast.error('City is required'); return; }
       if (!institutionPhone.trim()) { toast.error('Institution phone is required'); return; }
-    }
-
-    // TEACHER: validate institution code if provided and not yet resolved
-    if (selectedRole === 'TEACHER' && teacherInstitutionCode.trim() && !teacherCenterId) {
-      setIsValidatingTeacherCode(true);
-      try {
-        const resp = await api.get(`/api/v1/centers/lookup?code=${encodeURIComponent(teacherInstitutionCode.trim())}`);
-        setTeacherCenterId(resp.data.id);
-        setTeacherCenterName(resp.data.name);
-      } catch {
-        toast.error('Institution code not found. Check with your institution head.');
-        setIsValidatingTeacherCode(false);
-        return;
-      } finally {
-        setIsValidatingTeacherCode(false);
-      }
     }
 
     setIsRegistering(true);
@@ -479,6 +494,7 @@ export default function RegisterPage() {
             dateOfBirth: step1Data.dateOfBirth!,
             city: studentCity || undefined,
             state: studentStateVal || undefined,
+            country: studentCountry || undefined,
             pincode: undefined,
             institutionName: centerName || manualInstitutionName || undefined,
             board: step3Data.board,
@@ -538,6 +554,7 @@ export default function RegisterPage() {
             email: step1Data.email,
             occupation: parentOccupation || undefined,
             gender: selectedGender || undefined,
+            country: parentCountry || undefined,
           }, { headers: { Authorization: `Bearer ${regToken}` } });
           toast.success('Account created! Welcome to NexusEd.');
         } catch (parentErr) {
@@ -558,7 +575,8 @@ export default function RegisterPage() {
               lastName: step1Data.lastName,
               email: step1Data.email,
               phoneNumber: step1Data.phone || undefined,
-              subjects: teacherSubjectsInput.trim() || undefined,
+              subjects: teacherSubjectsArr.length > 0 ? teacherSubjectsArr.join(', ') : undefined,
+              district: teacherDistrict || undefined,
             },
             { headers: { Authorization: `Bearer ${regToken}` } }
           );
@@ -592,6 +610,7 @@ export default function RegisterPage() {
                 address: instAddress.trim() || undefined,
                 branch: instBranch.trim() || undefined,
                 board: instBoard || undefined,
+                country: instCountry.trim() || undefined,
               },
               { headers: { Authorization: `Bearer ${regToken}` } }
             );
@@ -740,7 +759,7 @@ export default function RegisterPage() {
                         </div>
                       )}
 
-                      <form onSubmit={handleSubmit(onStep1Submit)} className="space-y-4">
+                      <form onSubmit={handleSubmit(onStep1Submit)} className="space-y-4" autoComplete="off">
 
                         {/* Role dropdown — before first name */}
                         <div>
@@ -801,6 +820,7 @@ export default function RegisterPage() {
                             {...register('email')}
                             type="email"
                             placeholder="you@example.com"
+                            autoComplete="new-password"
                             className={cn('input w-full', errors.email && 'border-red-500/50')}
                           />
                           {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
@@ -814,6 +834,7 @@ export default function RegisterPage() {
                               {...register('password')}
                               type={showPw ? 'text' : 'password'}
                               placeholder="••••••••"
+                              autoComplete="new-password"
                               className={cn('input w-full pr-10', errors.password && 'border-red-500/50')}
                             />
                             <button
@@ -855,6 +876,7 @@ export default function RegisterPage() {
                               {...register('confirmPassword')}
                               type={showConfirm ? 'text' : 'password'}
                               placeholder="••••••••"
+                              autoComplete="new-password"
                               className={cn('input w-full pr-10', errors.confirmPassword && 'border-red-500/50')}
                             />
                             <button
@@ -914,6 +936,16 @@ export default function RegisterPage() {
                                 />
                               </div>
                             </div>
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Country <span className="text-white/30">(optional)</span></label>
+                              <input
+                                type="text"
+                                value={studentCountry}
+                                onChange={(e) => setStudentCountry(e.target.value)}
+                                placeholder="e.g. India"
+                                className="input w-full"
+                              />
+                            </div>
                           </div>
                         )}
 
@@ -957,6 +989,16 @@ export default function RegisterPage() {
                                 <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
                               </select>
                             </div>
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Country <span className="text-white/30">(optional)</span></label>
+                              <input
+                                type="text"
+                                value={parentCountry}
+                                onChange={(e) => setParentCountry(e.target.value)}
+                                placeholder="e.g. India"
+                                className="input w-full"
+                              />
+                            </div>
                           </div>
                         )}
 
@@ -978,47 +1020,120 @@ export default function RegisterPage() {
                                 <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
                               </select>
                             </div>
+                            {/* Institution dropdown */}
                             <div>
                               <label className="block text-sm font-medium text-white/70 mb-1.5">
-                                Institution Code <span className="text-white/30">(optional)</span>
+                                Institution <span className="text-white/30">(optional)</span>
                               </label>
-                              <input
-                                type="text"
-                                value={teacherInstitutionCode}
-                                onChange={async (e) => {
-                                  const code = e.target.value;
-                                  setTeacherInstitutionCode(code);
-                                  setTeacherCenterId(null);
-                                  setTeacherCenterName(null);
-                                  if (code.trim().length >= 3) {
-                                    try {
-                                      const resp = await api.get(`/api/v1/centers/lookup?code=${encodeURIComponent(code.trim())}`);
-                                      setTeacherCenterId(resp.data.id);
-                                      setTeacherCenterName(resp.data.name);
-                                    } catch { /* not found yet */ }
-                                  }
-                                }}
-                                placeholder="e.g. NEXUS-DPS-001"
-                                className="input w-full"
-                              />
+                              <div className="relative">
+                                <select
+                                  value={teacherCenterId ?? ''}
+                                  onChange={(e) => {
+                                    const selected = teacherCentersList.find(c => c.id === e.target.value);
+                                    setTeacherCenterId(selected?.id ?? null);
+                                    setTeacherCenterName(selected?.name ?? null);
+                                  }}
+                                  className="input w-full appearance-none pr-10"
+                                  disabled={teacherCentersLoading}
+                                >
+                                  <option value="">{teacherCentersLoading ? 'Loading institutions…' : '— Select institution —'}</option>
+                                  {teacherCentersList.map((c) => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                  ))}
+                                </select>
+                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
+                              </div>
                               {teacherCenterName && (
                                 <p className="text-green-400 text-xs mt-1">✓ {teacherCenterName}</p>
                               )}
-                              {teacherInstitutionCode.trim().length >= 3 && !teacherCenterName && (
-                                <p className="text-white/30 text-xs mt-1">Institution not found — you can leave this blank and add later.</p>
-                              )}
                             </div>
+                            {/* Subjects collapsed dropdown */}
                             <div>
                               <label className="block text-sm font-medium text-white/70 mb-1.5">
-                                Subjects <span className="text-white/30">(comma-separated, optional)</span>
+                                Subjects <span className="text-white/30">(optional)</span>
                               </label>
+                              <div className="relative">
+                                <button
+                                  type="button"
+                                  onClick={() => setTeacherSubjectsOpen((o) => !o)}
+                                  className="input w-full text-left flex items-center justify-between"
+                                >
+                                  <span className={teacherSubjectsArr.length === 0 ? 'text-white/30' : 'text-white/80 text-sm'}>
+                                    {teacherSubjectsArr.length === 0
+                                      ? 'Select subjects…'
+                                      : teacherSubjectsArr.join(', ')}
+                                  </span>
+                                  <ChevronDown className={cn('w-4 h-4 text-white/30 transition-transform flex-shrink-0', teacherSubjectsOpen && 'rotate-180')} />
+                                </button>
+                                {teacherSubjectsOpen && (
+                                  <div className="absolute z-50 mt-1 w-full bg-surface-100 border border-white/10 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-white/5">
+                                    {TEACHER_SUBJECTS.map((subj) => (
+                                      <label key={subj} className="flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={teacherSubjectsArr.includes(subj)}
+                                          onChange={() => setTeacherSubjectsArr((prev) =>
+                                            prev.includes(subj) ? prev.filter((s) => s !== subj) : [...prev, subj]
+                                          )}
+                                          className="w-4 h-4 accent-brand-500 cursor-pointer"
+                                        />
+                                        <span className="text-sm text-white/80">{subj}</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address <span className="text-white/30">(optional)</span></label>
                               <input
                                 type="text"
-                                value={teacherSubjectsInput}
-                                onChange={(e) => setTeacherSubjectsInput(e.target.value)}
-                                placeholder="Mathematics, Physics"
+                                value={teacherAddress}
+                                onChange={(e) => setTeacherAddress(e.target.value)}
+                                placeholder="e.g. 45 MG Road, Apartment 3B"
                                 className="input w-full"
                               />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-sm font-medium text-white/70 mb-1.5">City <span className="text-white/30">(optional)</span></label>
+                                <input
+                                  type="text"
+                                  value={teacherCity}
+                                  onChange={(e) => setTeacherCity(e.target.value)}
+                                  placeholder="e.g. Mumbai"
+                                  className="input w-full"
+                                />
+                              </div>
+                              <LocationInput
+                                label="State (optional)"
+                                value={teacherStateVal}
+                                onChange={setTeacherStateVal}
+                                suggestions={suggestStates(teacherStateVal)}
+                                placeholder="e.g. Maharashtra"
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-sm font-medium text-white/70 mb-1.5">District <span className="text-white/30">(optional)</span></label>
+                                <input
+                                  type="text"
+                                  value={teacherDistrict}
+                                  onChange={(e) => setTeacherDistrict(e.target.value)}
+                                  placeholder="e.g. Andheri"
+                                  className="input w-full"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-white/70 mb-1.5">Country <span className="text-white/30">(optional)</span></label>
+                                <input
+                                  type="text"
+                                  value={teacherCountry}
+                                  onChange={(e) => setTeacherCountry(e.target.value)}
+                                  placeholder="e.g. India"
+                                  className="input w-full"
+                                />
+                              </div>
                             </div>
                           </div>
                         )}
@@ -1111,6 +1226,16 @@ export default function RegisterPage() {
                               suggestions={suggestStates(instStateVal)}
                               placeholder="e.g. Maharashtra"
                             />
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Country <span className="text-white/30">(optional)</span></label>
+                              <input
+                                type="text"
+                                value={instCountry}
+                                onChange={(e) => setInstCountry(e.target.value)}
+                                placeholder="e.g. India"
+                                className="input w-full"
+                              />
+                            </div>
                           </div>
                         )}
 
@@ -1123,10 +1248,10 @@ export default function RegisterPage() {
 
                         <button
                           type="submit"
-                          disabled={!selectedRole || !captchaToken || isRegistering || isValidatingTeacherCode}
+                          disabled={!selectedRole || !captchaToken || isRegistering}
                           className="btn-primary w-full flex items-center justify-center gap-2 py-3 mt-2 disabled:opacity-50"
                         >
-                          {isRegistering || isValidatingTeacherCode ? (
+                          {isRegistering ? (
                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                           ) : (
                             <>Create Account <ArrowRight className="w-4 h-4" /></>
