@@ -21,13 +21,84 @@ import GoogleSignInButton from '../../components/GoogleSignInButton';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../lib/utils';
+import { suggestStates } from '../../utils/indiaLocations';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
 
+// ─── Location Autocomplete Input ────────────────────────────────────────────
+
+function LocationInput({ label, value, onChange, suggestions, placeholder }: {
+  label: string; value: string; onChange: (v: string) => void;
+  suggestions: string[]; placeholder?: string;
+}) {
+  const [show, setShow] = useState(false);
+  const filtered = suggestions.filter(s => s.toLowerCase().includes(value.toLowerCase())).slice(0, 8);
+  return (
+    <div className="relative">
+      <label className="block text-sm font-medium text-white/70 mb-1.5">{label}</label>
+      <input
+        value={value}
+        onChange={e => { onChange(e.target.value); setShow(true); }}
+        onFocus={() => setShow(true)}
+        onBlur={() => setTimeout(() => setShow(false), 150)}
+        placeholder={placeholder || label}
+        className="input w-full"
+      />
+      {show && filtered.length > 0 && value.length > 0 && (
+        <div className="absolute z-50 mt-1 w-full bg-surface-100 border border-white/10 rounded-xl shadow-xl max-h-40 overflow-y-auto">
+          {filtered.map(s => (
+            <button key={s} type="button"
+              onMouseDown={() => { onChange(s); setShow(false); }}
+              className="w-full text-left px-3 py-2 text-sm text-white/80 hover:bg-white/5 hover:text-white"
+            >{s}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Creatable Input (dropdown with add-new option) ─────────────────────────
+
+function CreatableInput({ label, value, onChange, placeholder, required }: {
+  label: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; required?: boolean;
+}) {
+  const [show, setShow] = useState(false);
+  const trimmed = value.trim();
+  return (
+    <div className="relative">
+      <label className="block text-sm font-medium text-white/70 mb-1.5">
+        {label}{required && <span className="text-red-400"> *</span>}
+      </label>
+      <input
+        value={value}
+        onChange={e => { onChange(e.target.value); setShow(true); }}
+        onFocus={() => setShow(true)}
+        onBlur={() => setTimeout(() => setShow(false), 150)}
+        placeholder={placeholder || label}
+        className="input w-full"
+      />
+      {show && trimmed && (
+        <div className="absolute z-50 left-0 right-0 mt-1 rounded-lg border border-white/10 bg-gray-900/95 backdrop-blur-sm shadow-xl overflow-hidden">
+          <button
+            type="button"
+            onMouseDown={() => { onChange(trimmed); setShow(false); }}
+            className="w-full text-left px-3 py-2.5 text-sm text-brand-300 hover:bg-white/5 transition-colors flex items-center gap-2"
+          >
+            <span className="text-brand-400 font-bold">+</span>
+            <span>Create &ldquo;{trimmed}&rdquo;</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const step1Schema = z
   .object({
-    firstName: z.string().min(1, 'First name is required').max(100),
-    lastName: z.string().min(1, 'Last name is required').max(100),
+    firstName: z.string().max(100).optional().or(z.literal('')),
+    lastName: z.string().max(100).optional().or(z.literal('')),
     email: z.string().email('Invalid email address'),
     password: z
       .string()
@@ -48,7 +119,7 @@ const step1Schema = z
 type Step1Data = z.infer<typeof step1Schema>;
 
 const step3Schema = z.object({
-  institutionCode: z.string().min(1, 'Institution code is required'),
+  institutionCode: z.string().optional().or(z.literal('')),
   board: z.enum(['CBSE', 'ICSE', 'STATE_BOARD', 'IB', 'IGCSE'], { required_error: 'Select a board' }),
   grade: z.coerce.number().min(10).max(12),
 });
@@ -128,6 +199,16 @@ export default function RegisterPage() {
   const [parentPhone, setParentPhone] = useState('');
   const [parentOccupation, setParentOccupation] = useState('');
   const [selectedGender, setSelectedGender] = useState('');
+  // Student location fields
+  const [studentCity, setStudentCity] = useState('');
+  const [studentStateVal, setStudentStateVal] = useState('');
+  // Manual institution name (when no code resolved)
+  const [manualInstitutionName, setManualInstitutionName] = useState('');
+  // Institution (CENTER_ADMIN) state field
+  const [instStateVal, setInstStateVal] = useState('');
+  const [instBranch, setInstBranch] = useState('');
+  const [instBoard, setInstBoard] = useState('');
+  const [instAddress, setInstAddress] = useState('');
 
   const handleCaptchaVerify = useCallback((token: string | null) => setCaptchaToken(token), []);
 
@@ -245,6 +326,12 @@ export default function RegisterPage() {
 
     setStep1Data(data);
 
+    // Validate firstName/lastName for non-CENTER_ADMIN roles (schema allows optional)
+    if (selectedRole !== 'CENTER_ADMIN') {
+      if (!data.firstName?.trim()) { toast.error('First name is required'); return; }
+      if (!data.lastName?.trim()) { toast.error('Last name is required'); return; }
+    }
+
     // CENTER_ADMIN: validate institution fields
     if (selectedRole === 'CENTER_ADMIN') {
       if (!institutionName.trim()) { toast.error('Institution name is required'); return; }
@@ -272,9 +359,10 @@ export default function RegisterPage() {
     try {
       const deviceId = crypto.randomUUID();
       setRegDeviceId(deviceId);
+      const instWords = selectedRole === 'CENTER_ADMIN' ? institutionName.trim().split(/\s+/) : [];
       const response = await api.post('/api/v1/auth/register', {
-        firstName: data.firstName,
-        lastName: data.lastName,
+        firstName: selectedRole === 'CENTER_ADMIN' ? (instWords[0] || institutionName.trim()) : data.firstName,
+        lastName: selectedRole === 'CENTER_ADMIN' ? (instWords.slice(1).join(' ') || instWords[0] || '-') : data.lastName,
         email: data.email,
         password: data.password,
         role: selectedRole,
@@ -309,27 +397,34 @@ export default function RegisterPage() {
 
   // Academic Details submit (step 2 for STUDENT)
   async function onStep3Submit(data: Step3Data) {
-    setIsValidatingCode(true);
-    try {
-      let resolvedCenterId = centerId;
-      if (!centerName || !resolvedCenterId) {
-        const resp = await api.get(`/api/v1/centers/lookup?code=${encodeURIComponent(data.institutionCode)}`);
-        resolvedCenterId = resp.data.id;
-        setCenterId(resolvedCenterId);
-        setCenterName(resp.data.name);
+    const code = data.institutionCode?.trim();
+    if (code && code.length >= 3) {
+      setIsValidatingCode(true);
+      try {
+        let resolvedCenterId = centerId;
+        if (!centerName || !resolvedCenterId) {
+          const resp = await api.get(`/api/v1/centers/lookup?code=${encodeURIComponent(code)}`);
+          resolvedCenterId = resp.data.id;
+          setCenterId(resolvedCenterId);
+          setCenterName(resp.data.name);
+        }
+        setStep3Data(data);
+        if (regToken && resolvedCenterId) await loadSubjects(regToken, resolvedCenterId);
+        goNext();
+      } catch (err: unknown) {
+        const axiosErr = err as { response?: { status?: number } };
+        if (axiosErr.response?.status === 404) {
+          toast.error('Institution code not found. Please check with your school.');
+        } else {
+          toast.error('Failed to validate institution code. Please try again.');
+        }
+      } finally {
+        setIsValidatingCode(false);
       }
+    } else {
+      // No code provided — use manual institution name, skip lookup
       setStep3Data(data);
-      if (regToken && resolvedCenterId) await loadSubjects(regToken, resolvedCenterId);
       goNext();
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { status?: number } };
-      if (axiosErr.response?.status === 404) {
-        toast.error('Institution code not found. Please check with your school.');
-      } else {
-        toast.error('Failed to validate institution code. Please try again.');
-      }
-    } finally {
-      setIsValidatingCode(false);
     }
   }
 
@@ -382,9 +477,10 @@ export default function RegisterPage() {
             phone: step1Data.phone || undefined,
             gender: selectedGender || undefined,
             dateOfBirth: step1Data.dateOfBirth!,
-            city: undefined,
-            state: undefined,
+            city: studentCity || undefined,
+            state: studentStateVal || undefined,
             pincode: undefined,
+            institutionName: centerName || manualInstitutionName || undefined,
             board: step3Data.board,
             currentClass: step3Data.grade,
             subjects: selectedSubjects,
@@ -492,6 +588,10 @@ export default function RegisterPage() {
                 name: institutionName.trim(),
                 city: institutionCity.trim(),
                 phone: institutionPhone.trim(),
+                state: instStateVal || undefined,
+                address: instAddress.trim() || undefined,
+                branch: instBranch.trim() || undefined,
+                board: instBoard || undefined,
               },
               { headers: { Authorization: `Bearer ${regToken}` } }
             );
@@ -668,29 +768,31 @@ export default function RegisterPage() {
                           )}
                         </div>
 
-                        {/* First Name + Last Name */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-sm font-medium text-white/70 mb-1.5">First Name</label>
-                            <input
-                              {...register('firstName')}
-                              type="text"
-                              placeholder="Jane"
-                              className={cn('input w-full', errors.firstName && 'border-red-500/50')}
-                            />
-                            {errors.firstName && <p className="text-red-400 text-xs mt-1">{errors.firstName.message}</p>}
+                        {/* First Name + Last Name — hidden for CENTER_ADMIN (derived from institution name) */}
+                        {selectedRole !== 'CENTER_ADMIN' && (
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">First Name</label>
+                              <input
+                                {...register('firstName')}
+                                type="text"
+                                placeholder="Jane"
+                                className={cn('input w-full', errors.firstName && 'border-red-500/50')}
+                              />
+                              {errors.firstName && <p className="text-red-400 text-xs mt-1">{errors.firstName.message}</p>}
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Last Name</label>
+                              <input
+                                {...register('lastName')}
+                                type="text"
+                                placeholder="Smith"
+                                className={cn('input w-full', errors.lastName && 'border-red-500/50')}
+                              />
+                              {errors.lastName && <p className="text-red-400 text-xs mt-1">{errors.lastName.message}</p>}
+                            </div>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-white/70 mb-1.5">Last Name</label>
-                            <input
-                              {...register('lastName')}
-                              type="text"
-                              placeholder="Smith"
-                              className={cn('input w-full', errors.lastName && 'border-red-500/50')}
-                            />
-                            {errors.lastName && <p className="text-red-400 text-xs mt-1">{errors.lastName.message}</p>}
-                          </div>
-                        </div>
+                        )}
 
                         {/* Email */}
                         <div>
@@ -791,6 +893,25 @@ export default function RegisterPage() {
                                   className={cn('input w-full', errors.dateOfBirth && 'border-red-500/50')}
                                 />
                                 {errors.dateOfBirth && <p className="text-red-400 text-xs mt-1">{errors.dateOfBirth.message}</p>}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <LocationInput
+                                label="State (optional)"
+                                value={studentStateVal}
+                                onChange={setStudentStateVal}
+                                suggestions={suggestStates(studentStateVal)}
+                                placeholder="e.g. Maharashtra"
+                              />
+                              <div>
+                                <label className="block text-sm font-medium text-white/70 mb-1.5">City (optional)</label>
+                                <input
+                                  type="text"
+                                  value={studentCity}
+                                  onChange={(e) => setStudentCity(e.target.value)}
+                                  placeholder="e.g. Mumbai"
+                                  className="input w-full"
+                                />
                               </div>
                             </div>
                           </div>
@@ -906,15 +1027,54 @@ export default function RegisterPage() {
                         {selectedRole === 'CENTER_ADMIN' && (
                           <div className="space-y-3 pt-1">
                             <div className="h-px bg-white/5" />
+                            <CreatableInput
+                              label="Institution Name"
+                              value={institutionName}
+                              onChange={setInstitutionName}
+                              placeholder="e.g. Delhi Public Coaching Centre"
+                              required
+                            />
                             <div>
                               <label className="block text-sm font-medium text-white/70 mb-1.5">
-                                Institution Name <span className="text-red-400">*</span>
+                                Branch <span className="text-red-400">*</span>
                               </label>
                               <input
                                 type="text"
-                                value={institutionName}
-                                onChange={(e) => setInstitutionName(e.target.value)}
-                                placeholder="e.g. Delhi Public Coaching Centre"
+                                value={instBranch}
+                                onChange={(e) => setInstBranch(e.target.value)}
+                                placeholder="e.g. Andheri West Branch"
+                                className="input w-full"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">
+                                Board <span className="text-red-400">*</span>
+                              </label>
+                              <div className="relative">
+                                <select
+                                  value={instBoard}
+                                  onChange={(e) => setInstBoard(e.target.value)}
+                                  className="input w-full appearance-none pr-10"
+                                >
+                                  <option value="">Select board</option>
+                                  <option value="CBSE">CBSE</option>
+                                  <option value="ICSE">ICSE</option>
+                                  <option value="STATE_BOARD">State Board</option>
+                                  <option value="IB">IB</option>
+                                  <option value="IGCSE">IGCSE</option>
+                                </select>
+                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">
+                                Address
+                              </label>
+                              <input
+                                type="text"
+                                value={instAddress}
+                                onChange={(e) => setInstAddress(e.target.value)}
+                                placeholder="e.g. 123 Main Road, Andheri West"
                                 className="input w-full"
                               />
                             </div>
@@ -944,6 +1104,13 @@ export default function RegisterPage() {
                                 />
                               </div>
                             </div>
+                            <LocationInput
+                              label="State"
+                              value={instStateVal}
+                              onChange={setInstStateVal}
+                              suggestions={suggestStates(instStateVal)}
+                              placeholder="e.g. Maharashtra"
+                            />
                           </div>
                         )}
 
@@ -1071,7 +1238,7 @@ export default function RegisterPage() {
 
                 <form onSubmit={handleSubmit3(onStep3Submit)} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-white/70 mb-1.5">Institution Code</label>
+                    <label className="block text-sm font-medium text-white/70 mb-1.5">Institution Code <span className="text-white/30">(optional)</span></label>
                     <input
                       {...register3('institutionCode')}
                       type="text"
@@ -1085,6 +1252,21 @@ export default function RegisterPage() {
                       <p className="text-green-400 text-xs mt-1">✓ {centerName}</p>
                     )}
                   </div>
+
+                  {!centerName && (
+                    <div>
+                      <label className="block text-sm font-medium text-white/70 mb-1.5">
+                        Institution Name <span className="text-white/30">(if you don't have a code)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={manualInstitutionName}
+                        onChange={(e) => setManualInstitutionName(e.target.value)}
+                        placeholder="e.g. DPS School, St. Xavier's"
+                        className="input w-full"
+                      />
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-white/70 mb-1.5">Board</label>

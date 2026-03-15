@@ -101,7 +101,7 @@ public class CenterService implements CreateCenterUseCase, UpdateCenterUseCase {
             request.name(), request.city(), request.phone(),
             principal.email(),
             request.address(), request.state(), request.pincode(),
-            principal.userId()
+            principal.userId(), request.branch(), request.board()
         );
         CoachingCenter saved = centerRepository.save(center);
         log.info("Center self-registered: id={} owner={}", saved.getId(), principal.userId());
@@ -161,6 +161,6 @@ public class CenterService implements CreateCenterUseCase, UpdateCenterUseCase {
         return new CenterResponse(c.getId(), c.getName(), c.getCode(), c.getAddress(),
                 c.getCity(), c.getState(), c.getPincode(), c.getPhone(), c.getEmail(),
                 c.getWebsite(), c.getLogoUrl(), c.getStatus(), c.getOwnerId(),
-                c.getCreatedAt(), c.getUpdatedAt());
+                c.getCreatedAt(), c.getUpdatedAt(), c.getBranch(), c.getBoard());
     }
 }

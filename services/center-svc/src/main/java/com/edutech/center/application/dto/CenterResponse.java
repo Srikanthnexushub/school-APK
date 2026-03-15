@@ -21,5 +21,7 @@ public record CenterResponse(
     CenterStatus status,
     UUID ownerId,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    String branch,
+    String board
 ) {}

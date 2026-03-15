@@ -79,6 +79,12 @@ public class CoachingCenter {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(length = 200)
+    private String branch;
+
+    @Column(name = "board", length = 100)
+    private String board;
+
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
@@ -90,7 +96,8 @@ public class CoachingCenter {
     private CoachingCenter(UUID id, String name, String code, String address,
                            String city, String state, String pincode,
                            String phone, String email, String website,
-                           String logoUrl, UUID ownerId, String registrationSource) {
+                           String logoUrl, UUID ownerId, String registrationSource,
+                           String branch, String board) {
         this.id = id;
         this.name = name;
         this.code = code;
@@ -105,6 +112,8 @@ public class CoachingCenter {
         this.status = CenterStatus.ACTIVE;
         this.ownerId = ownerId;
         this.registrationSource = registrationSource;
+        this.branch = branch;
+        this.board = board;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }
@@ -115,19 +124,19 @@ public class CoachingCenter {
                                         String phone, String email, String website,
                                         String logoUrl, UUID ownerId) {
         return new CoachingCenter(UUID.randomUUID(), name, code, address,
-                city, state, pincode, phone, email, website, logoUrl, ownerId, "ADMIN_CREATED");
+                city, state, pincode, phone, email, website, logoUrl, ownerId, "ADMIN_CREATED", null, null);
     }
 
     /** CENTER_ADMIN self-registers their institution — immediately ACTIVE, code assigned later by SUPER_ADMIN. */
     public static CoachingCenter selfRegister(String name, String city, String phone,
                                               String email, String address, String state,
-                                              String pincode, UUID ownerId) {
+                                              String pincode, UUID ownerId, String branch, String board) {
         return new CoachingCenter(UUID.randomUUID(), name, null,
                 address != null && !address.isBlank() ? address : "-",
                 city,
                 state != null && !state.isBlank() ? state : "-",
                 pincode != null && !pincode.isBlank() ? pincode : "000000",
-                phone, email, null, null, ownerId, "SELF_REGISTERED");
+                phone, email, null, null, ownerId, "SELF_REGISTERED", branch, board);
     }
 
     public void update(String name, String address, String city, String state,
@@ -188,4 +197,6 @@ public class CoachingCenter {
     public Instant getUpdatedAt() { return updatedAt; }
     public Instant getDeletedAt() { return deletedAt; }
     public Long getVersion() { return version; }
+    public String getBranch() { return branch; }
+    public String getBoard() { return board; }
 }

@@ -9,5 +9,7 @@ public record InstitutionSelfRegisterRequest(
     @NotBlank @Size(max = 20) String phone,
     @Size(max = 500) String address,
     @Size(max = 100) String state,
-    @Size(max = 10) String pincode
+    @Size(max = 10) String pincode,
+    @Size(max = 200) String branch,
+    @Size(max = 100) String board
 ) {}
