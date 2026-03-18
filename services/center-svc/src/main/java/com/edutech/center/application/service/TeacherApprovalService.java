@@ -109,6 +109,8 @@ public class TeacherApprovalService {
         return new TeacherResponse(t.getId(), t.getCenterId(), t.getUserId(),
             t.getFirstName(), t.getLastName(), t.getEmail(),
             t.getPhoneNumber(), t.getSubjects(), t.getDistrict(), t.getEmployeeId(),
-            t.getStatus(), t.getJoinedAt());
+            t.getStatus(), t.getJoinedAt(),
+            t.getRoleType(), t.getQualification(), t.getYearsOfExperience(),
+            t.getDesignation(), t.getBio());
     }
 }

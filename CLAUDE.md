@@ -132,8 +132,14 @@ Check for Java compilation errors in test files. Run: `mvn test-compile --no-tra
 | Institution name in Add Child + Register (optional free-text) | `ParentChildrenPage.tsx`, `RegisterPage.tsx` | see frozen-fixes |
 | center-svc branch/board fields + V11 migration | `CoachingCenter.java`, `CenterService.java`, `RegisterPage.tsx` | see frozen-fixes |
 | Danger Zone → single Delete Account button (all roles) | `SettingsPage.tsx` | see frozen-fixes |
+| Teacher reg: institution dropdown, subjects dropdown, district + country | `RegisterPage.tsx`, center-svc, mentor-svc | 5d86803 |
+| Country field on all Register roles (Student/Parent/Teacher/Institution) | `RegisterPage.tsx` | 5d86803 |
+| Register autofill blocked (autoComplete="new-password" email+password) | `RegisterPage.tsx` | 5d86803 |
+| center-svc V12: district on teachers table | `V12__add_district_to_teachers.sql`, `Teacher.java` | 5d86803 |
+| mentor-svc V6: district on mentor_profiles table | `V6__add_district_to_mentor_profiles.sql`, `MentorProfile.java` | 5d86803 |
+| Staff Portal (CENTER_ADMIN) — full role-based staff management + AI | `AdminStaffPage.tsx`, `CreateStaffModal.tsx`, `staffConstants.ts`, `useStaffAI.ts`, `StaffController.java`, `StaffService.java`, `StaffRoleType.java`, `V13__add_staff_profile_fields.sql` | see frozen-fixes |
 
-Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (49 fixes)
+Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (55+ fixes)
 
 ---
 

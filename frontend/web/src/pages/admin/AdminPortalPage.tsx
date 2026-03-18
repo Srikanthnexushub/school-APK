@@ -2,7 +2,7 @@
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  LayoutDashboard, Building2, Users, ClipboardList, Upload, UserCheck,
+  LayoutDashboard, Building2, Users, ClipboardList, Upload, UserCheck, UserCog,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuthStore } from '../../stores/authStore';
@@ -12,10 +12,11 @@ import AdminBatchesPage from './AdminBatchesPage';
 import AdminAssessmentsPage from './AdminAssessmentsPage';
 import AdminBulkImportTeachersPage from './AdminBulkImportTeachersPage';
 import AdminPendingTeachersPage from './AdminPendingTeachersPage';
+import AdminStaffPage from './AdminStaffPage';
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
 
-type TabId = 'overview' | 'centers' | 'batches' | 'assessments' | 'teacher-import' | 'teacher-pending';
+type TabId = 'overview' | 'centers' | 'batches' | 'assessments' | 'teacher-import' | 'teacher-pending' | 'staff';
 
 interface Tab {
   id: TabId;
@@ -32,6 +33,7 @@ const TABS: Tab[] = [
   { id: 'assessments',      label: 'Assessments',        icon: ClipboardList },
   { id: 'teacher-import',   label: 'Bulk Import',        icon: Upload, centerAdminOnly: true },
   { id: 'teacher-pending',  label: 'Teacher Approvals',  icon: UserCheck, centerAdminOnly: true },
+  { id: 'staff',            label: 'Staff',              icon: UserCog, centerAdminOnly: true },
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -101,6 +103,7 @@ export default function AdminPortalPage() {
         {activeTab === 'assessments'     && <AdminAssessmentsPage />}
         {activeTab === 'teacher-import'  && <AdminBulkImportTeachersPage />}
         {activeTab === 'teacher-pending' && <AdminPendingTeachersPage />}
+        {activeTab === 'staff'           && <AdminStaffPage />}
       </motion.div>
     </div>
   );

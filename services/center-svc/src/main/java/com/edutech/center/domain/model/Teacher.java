@@ -51,6 +51,24 @@ public class Teacher {
     @Column(name = "employee_id", length = 50)
     private String employeeId;
 
+    // ── Staff profile fields (V13 migration) ──────────────────────────────────
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role_type", length = 30)
+    private StaffRoleType roleType;
+
+    @Column(length = 500)
+    private String qualification;
+
+    @Column(name = "years_of_experience")
+    private Integer yearsOfExperience;
+
+    @Column(length = 200)
+    private String designation;
+
+    @Column(columnDefinition = "TEXT")
+    private String bio;
+
     @Column(name = "invitation_token", length = 255)
     private String invitationToken;
 
@@ -116,6 +134,29 @@ public class Teacher {
         return t;
     }
 
+    /**
+     * Admin-initiated single staff invitation — richer profile than bulk-import stub.
+     * Includes role type, qualification, experience, designation, and bio.
+     */
+    public static Teacher createStaffInvitation(UUID centerId, String firstName, String lastName,
+                                                String email, String phoneNumber, String subjects,
+                                                String district, String employeeId,
+                                                StaffRoleType roleType, String qualification,
+                                                Integer yearsOfExperience, String designation,
+                                                String bio, String token, Instant tokenExpiry) {
+        Teacher t = new Teacher(UUID.randomUUID(), centerId, null,
+                firstName, lastName, email, phoneNumber, subjects, district, employeeId,
+                TeacherStatus.INVITATION_SENT);
+        t.roleType = roleType;
+        t.qualification = qualification;
+        t.yearsOfExperience = yearsOfExperience;
+        t.designation = designation;
+        t.bio = bio;
+        t.invitationToken = token;
+        t.invitationTokenExpiresAt = tokenExpiry;
+        return t;
+    }
+
     /** Self-registration — teacher registered independently, needs coordinator approval. */
     public static Teacher createPending(UUID centerId, UUID userId, String firstName,
                                         String lastName, String email, String phoneNumber,
@@ -126,6 +167,26 @@ public class Teacher {
 
     public void updateSubjects(String subjects) {
         this.subjects = subjects;
+        this.updatedAt = Instant.now();
+    }
+
+    /**
+     * Partial profile update (PATCH semantics) — only non-null parameters are applied.
+     */
+    public void updateProfile(String firstName, String lastName, String phoneNumber,
+                              StaffRoleType roleType, String designation, String subjects,
+                              String district, String qualification, Integer yearsOfExperience,
+                              String bio) {
+        if (firstName    != null) this.firstName          = firstName;
+        if (lastName     != null) this.lastName           = lastName;
+        if (phoneNumber  != null) this.phoneNumber        = phoneNumber;
+        if (roleType     != null) this.roleType           = roleType;
+        if (designation  != null) this.designation        = designation;
+        if (subjects     != null) this.subjects           = subjects;
+        if (district     != null) this.district           = district;
+        if (qualification!= null) this.qualification      = qualification;
+        if (yearsOfExperience != null) this.yearsOfExperience = yearsOfExperience;
+        if (bio          != null) this.bio                = bio;
         this.updatedAt = Instant.now();
     }
 
@@ -192,4 +253,11 @@ public class Teacher {
     public Instant getUpdatedAt() { return updatedAt; }
     public Instant getDeletedAt() { return deletedAt; }
     public Long getVersion() { return version; }
+
+    // ── Staff profile getters ──────────────────────────────────────────────────
+    public StaffRoleType getRoleType()         { return roleType; }
+    public String getQualification()           { return qualification; }
+    public Integer getYearsOfExperience()      { return yearsOfExperience; }
+    public String getDesignation()             { return designation; }
+    public String getBio()                     { return bio; }
 }

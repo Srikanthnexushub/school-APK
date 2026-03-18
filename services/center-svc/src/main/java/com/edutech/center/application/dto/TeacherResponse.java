@@ -1,6 +1,7 @@
 // src/main/java/com/edutech/center/application/dto/TeacherResponse.java
 package com.edutech.center.application.dto;
 
+import com.edutech.center.domain.model.StaffRoleType;
 import com.edutech.center.domain.model.TeacherStatus;
 
 import java.time.Instant;
@@ -18,5 +19,11 @@ public record TeacherResponse(
     String district,
     String employeeId,
     TeacherStatus status,
-    Instant joinedAt
+    Instant joinedAt,
+    // ── Staff profile fields (V13) ────────────────────────────────────────────
+    StaffRoleType roleType,
+    String qualification,
+    Integer yearsOfExperience,
+    String designation,
+    String bio
 ) {}

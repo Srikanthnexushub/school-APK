@@ -7,10 +7,13 @@ import com.edutech.center.application.dto.BulkImportConfirmResponse;
 import com.edutech.center.application.dto.BulkImportPreviewResponse;
 import com.edutech.center.application.dto.CenterResponse;
 import com.edutech.center.application.dto.CreateCenterRequest;
+import com.edutech.center.application.dto.CreateStaffRequest;
 import com.edutech.center.application.dto.InvitationLookupResponse;
 import com.edutech.center.application.dto.TeacherResponse;
 import com.edutech.center.application.dto.TeacherSelfRegisterRequest;
+import com.edutech.center.application.dto.UpdateStaffRequest;
 import com.edutech.center.domain.model.Role;
+import com.edutech.center.domain.model.StaffRoleType;
 import com.edutech.center.domain.model.TeacherStatus;
 import com.edutech.center.domain.port.out.TeacherRepository;
 import com.edutech.center.infrastructure.security.JwtTokenValidator;
@@ -572,5 +575,226 @@ class TeacherControllerIT {
                 String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    // =========================================================================
+    // 10. POST /centers/{id}/staff — create staff with profile fields
+    // =========================================================================
+
+    @Test
+    @DisplayName("POST /centers/{id}/staff — returns 201 with INVITATION_SENT and staff profile fields")
+    void createStaff_returns201WithInvitationSentAndProfileFields() {
+        mockAuth(superAdminPrincipal);
+        UUID centerId = createCenter("STF01");
+        AuthPrincipal admin = new AuthPrincipal(OWNER_ID, "admin@stf01.com",
+                Role.CENTER_ADMIN, centerId, "fp");
+        mockAuth(admin);
+
+        CreateStaffRequest req = new CreateStaffRequest(
+                "Priya", "Sharma", "priya.stf01@school.com", "+919876543210",
+                "EMP-101", StaffRoleType.HOD,
+                "Head of Mathematics Department",
+                "Mathematics,Physics", "Bengaluru",
+                "M.Sc Mathematics, B.Ed", 8,
+                "Dr. Priya Sharma is an accomplished educator specialising in Mathematics.");
+
+        ResponseEntity<TeacherResponse> response = restTemplate.exchange(
+                "/api/v1/centers/" + centerId + "/staff",
+                HttpMethod.POST, authEntity(req), TeacherResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        TeacherResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.firstName()).isEqualTo("Priya");
+        assertThat(body.status()).isEqualTo(TeacherStatus.INVITATION_SENT);
+        assertThat(body.roleType()).isEqualTo(StaffRoleType.HOD);
+        assertThat(body.designation()).isEqualTo("Head of Mathematics Department");
+        assertThat(body.qualification()).isEqualTo("M.Sc Mathematics, B.Ed");
+        assertThat(body.yearsOfExperience()).isEqualTo(8);
+        assertThat(body.bio()).isNotBlank();
+        assertThat(body.employeeId()).isEqualTo("EMP-101");
+    }
+
+    // =========================================================================
+    // 11. POST /centers/{id}/staff — duplicate email is rejected with 409
+    // =========================================================================
+
+    @Test
+    @DisplayName("POST /centers/{id}/staff — duplicate email in same center returns 409")
+    void createStaff_duplicateEmail_returns409() {
+        mockAuth(superAdminPrincipal);
+        UUID centerId = createCenter("STF02");
+        AuthPrincipal admin = new AuthPrincipal(OWNER_ID, "admin@stf02.com",
+                Role.CENTER_ADMIN, centerId, "fp");
+        mockAuth(admin);
+
+        CreateStaffRequest req = new CreateStaffRequest(
+                "Amit", "Verma", "amit.stf02@school.com", null,
+                null, StaffRoleType.TEACHER, "Senior Teacher",
+                "Biology", null, "B.Sc Biology, B.Ed", 3, null);
+
+        // First creation — should succeed
+        restTemplate.exchange("/api/v1/centers/" + centerId + "/staff",
+                HttpMethod.POST, authEntity(req), TeacherResponse.class);
+
+        // Duplicate — same email, same center
+        ResponseEntity<String> dupe = restTemplate.exchange(
+                "/api/v1/centers/" + centerId + "/staff",
+                HttpMethod.POST, authEntity(req), String.class);
+
+        assertThat(dupe.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    // =========================================================================
+    // 12. PATCH /centers/{id}/staff/{sid} — partial profile update
+    // =========================================================================
+
+    @Test
+    @DisplayName("PATCH /centers/{id}/staff/{sid} — updates only supplied fields, leaves others unchanged")
+    void updateStaff_partialUpdate_appliesOnlyNonNullFields() {
+        mockAuth(superAdminPrincipal);
+        UUID centerId = createCenter("STF03");
+        AuthPrincipal admin = new AuthPrincipal(OWNER_ID, "admin@stf03.com",
+                Role.CENTER_ADMIN, centerId, "fp");
+        mockAuth(admin);
+
+        // Create
+        CreateStaffRequest create = new CreateStaffRequest(
+                "Lakshmi", "Nair", "lakshmi.stf03@school.com", "+911234567890",
+                "EMP-202", StaffRoleType.COORDINATOR, "Academic Coordinator",
+                "English,History", "Chennai", "MA English, B.Ed", 5, "A dedicated educator.");
+
+        TeacherResponse created = restTemplate.exchange(
+                "/api/v1/centers/" + centerId + "/staff",
+                HttpMethod.POST, authEntity(create), TeacherResponse.class).getBody();
+        assertThat(created).isNotNull();
+
+        // Patch — update designation and yearsOfExperience only
+        UpdateStaffRequest patch = new UpdateStaffRequest(
+                null, null, null,
+                null, "Senior Academic Coordinator",
+                null, null, null, 6, null);
+
+        ResponseEntity<TeacherResponse> updated = restTemplate.exchange(
+                "/api/v1/centers/" + centerId + "/staff/" + created.id(),
+                HttpMethod.PATCH, authEntity(patch), TeacherResponse.class);
+
+        assertThat(updated.getStatusCode()).isEqualTo(HttpStatus.OK);
+        TeacherResponse body = updated.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.designation()).isEqualTo("Senior Academic Coordinator");
+        assertThat(body.yearsOfExperience()).isEqualTo(6);
+        // Unchanged fields must be preserved
+        assertThat(body.firstName()).isEqualTo("Lakshmi");
+        assertThat(body.qualification()).isEqualTo("MA English, B.Ed");
+        assertThat(body.roleType()).isEqualTo(StaffRoleType.COORDINATOR);
+    }
+
+    // =========================================================================
+    // 13. DELETE /centers/{id}/staff/{sid} — deactivate (soft delete)
+    // =========================================================================
+
+    @Test
+    @DisplayName("DELETE /centers/{id}/staff/{sid} — returns 200 with INACTIVE status")
+    void deactivateStaff_returns200WithInactiveStatus() {
+        mockAuth(superAdminPrincipal);
+        UUID centerId = createCenter("STF04");
+        AuthPrincipal admin = new AuthPrincipal(OWNER_ID, "admin@stf04.com",
+                Role.CENTER_ADMIN, centerId, "fp");
+        mockAuth(admin);
+
+        CreateStaffRequest create = new CreateStaffRequest(
+                "Rahul", "Gupta", "rahul.stf04@school.com", null,
+                "EMP-303", StaffRoleType.LAB_ASSISTANT, "Chemistry Lab Assistant",
+                "Chemistry", "Mumbai", "B.Sc Chemistry", 2, null);
+
+        TeacherResponse created = restTemplate.exchange(
+                "/api/v1/centers/" + centerId + "/staff",
+                HttpMethod.POST, authEntity(create), TeacherResponse.class).getBody();
+        assertThat(created).isNotNull();
+
+        ResponseEntity<TeacherResponse> deactivated = restTemplate.exchange(
+                "/api/v1/centers/" + centerId + "/staff/" + created.id(),
+                HttpMethod.DELETE, authEntity(), TeacherResponse.class);
+
+        assertThat(deactivated.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(deactivated.getBody()).isNotNull();
+        assertThat(deactivated.getBody().status()).isEqualTo(TeacherStatus.INACTIVE);
+    }
+
+    // =========================================================================
+    // 14. GET /centers/{id}/staff?roleType=HOD — filter by role type
+    // =========================================================================
+
+    @Test
+    @DisplayName("GET /centers/{id}/staff?roleType=HOD — returns only HOD staff")
+    void listStaff_filterByRoleType_returnsMatchingOnly() {
+        mockAuth(superAdminPrincipal);
+        UUID centerId = createCenter("STF05");
+        AuthPrincipal admin = new AuthPrincipal(OWNER_ID, "admin@stf05.com",
+                Role.CENTER_ADMIN, centerId, "fp");
+        mockAuth(admin);
+
+        // Create one HOD and one TEACHER
+        restTemplate.exchange("/api/v1/centers/" + centerId + "/staff", HttpMethod.POST,
+                authEntity(new CreateStaffRequest("Anita", "Reddy", "anita.stf05@school.com",
+                        null, null, StaffRoleType.HOD, "HOD Chemistry",
+                        "Chemistry", null, "M.Sc Chemistry", 12, null)),
+                TeacherResponse.class);
+
+        restTemplate.exchange("/api/v1/centers/" + centerId + "/staff", HttpMethod.POST,
+                authEntity(new CreateStaffRequest("Kiran", "Rao", "kiran.stf05@school.com",
+                        null, null, StaffRoleType.TEACHER, "Physics Teacher",
+                        "Physics", null, "M.Sc Physics", 4, null)),
+                TeacherResponse.class);
+
+        ResponseEntity<TeacherResponse[]> response = restTemplate.exchange(
+                "/api/v1/centers/" + centerId + "/staff?roleType=HOD",
+                HttpMethod.GET, authEntity(), TeacherResponse[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getBody()[0].roleType()).isEqualTo(StaffRoleType.HOD);
+        assertThat(response.getBody()[0].firstName()).isEqualTo("Anita");
+    }
+
+    // =========================================================================
+    // 15. GET /centers/{id}/staff?status=INVITATION_SENT — filter by status
+    // =========================================================================
+
+    @Test
+    @DisplayName("GET /centers/{id}/staff?status=INVITATION_SENT — returns only pending-invite staff")
+    void listStaff_filterByStatus_returnsMatchingOnly() {
+        mockAuth(superAdminPrincipal);
+        UUID centerId = createCenter("STF06");
+        AuthPrincipal admin = new AuthPrincipal(OWNER_ID, "admin@stf06.com",
+                Role.CENTER_ADMIN, centerId, "fp");
+        mockAuth(admin);
+
+        // Create two staff via invitation
+        restTemplate.exchange("/api/v1/centers/" + centerId + "/staff", HttpMethod.POST,
+                authEntity(new CreateStaffRequest("Meena", "Pillai", "meena.stf06@school.com",
+                        null, null, StaffRoleType.COUNSELOR, "Career Counselor",
+                        null, null, "M.A Psychology", 6, null)),
+                TeacherResponse.class);
+
+        restTemplate.exchange("/api/v1/centers/" + centerId + "/staff", HttpMethod.POST,
+                authEntity(new CreateStaffRequest("Deepa", "Nambiar", "deepa.stf06@school.com",
+                        null, null, StaffRoleType.LIBRARIAN, "Senior Librarian",
+                        null, null, "M.Lib Science", 10, null)),
+                TeacherResponse.class);
+
+        // All should be INVITATION_SENT since no one accepted yet
+        ResponseEntity<TeacherResponse[]> response = restTemplate.exchange(
+                "/api/v1/centers/" + centerId + "/staff?status=INVITATION_SENT",
+                HttpMethod.GET, authEntity(), TeacherResponse[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody()).hasSize(2);
+        for (TeacherResponse r : response.getBody()) {
+            assertThat(r.status()).isEqualTo(TeacherStatus.INVITATION_SENT);
+        }
     }
 }

@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Bot, ClipboardList, BarChart3, Target, Brain,
   Users, Calendar, Settings, LogOut, BookOpen, Menu, X, ChevronLeft,
   Bell, Search, ChevronRight, BookOpenCheck, Library, Award,
-  CreditCard, Beaker,
+  CreditCard, Beaker, UserCog,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '../../stores/authStore';
@@ -42,6 +42,7 @@ const adminNav: NavItem[] = [
   { icon: Users,            label: 'Centers',     to: '/admin?tab=centers' },
   { icon: BookOpenCheck,    label: 'Batches',     to: '/admin?tab=batches' },
   { icon: ClipboardList,    label: 'Assessments', to: '/admin?tab=assessments' },
+  { icon: UserCog,          label: 'Staff',       to: '/admin?tab=staff' },
 ];
 
 const parentNav: NavItem[] = [
