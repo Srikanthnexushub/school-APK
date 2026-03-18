@@ -9,7 +9,6 @@ import com.edutech.center.application.exception.CenterAccessDeniedException;
 import com.edutech.center.application.exception.CenterNotFoundException;
 import com.edutech.center.application.exception.TeacherAlreadyAssignedException;
 import com.edutech.center.application.exception.TeacherNotFoundException;
-import com.edutech.center.domain.event.TeacherInvitationEvent;
 import com.edutech.center.domain.model.CoachingCenter;
 import com.edutech.center.domain.model.StaffRoleType;
 import com.edutech.center.domain.model.Teacher;
@@ -23,7 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,8 +36,6 @@ import java.util.UUID;
 public class StaffService {
 
     private static final Logger log = LoggerFactory.getLogger(StaffService.class);
-    private static final long INVITATION_TOKEN_VALIDITY_DAYS = 7;
-
     private final TeacherRepository teacherRepository;
     private final CenterRepository  centerRepository;
     private final CenterEventPublisher eventPublisher;
@@ -55,10 +51,8 @@ public class StaffService {
     // ─── Create ───────────────────────────────────────────────────────────────
 
     /**
-     * Admin creates a staff member by invitation — generates an invitation token
-     * and publishes a {@link TeacherInvitationEvent} so the notification service
-     * sends an email.  The staff record starts in {@code INVITATION_SENT} status
-     * and transitions to {@code ACTIVE} when the staff member accepts.
+     * Admin creates a staff member directly — the record is immediately set to
+     * {@code ACTIVE} status with no email invitation required.
      */
     @Transactional
     public TeacherResponse createStaff(UUID centerId, CreateStaffRequest req, AuthPrincipal principal) {
@@ -70,25 +64,18 @@ public class StaffService {
             throw new TeacherAlreadyAssignedException(req.email(), centerId);
         }
 
-        String token      = UUID.randomUUID().toString();
-        Instant tokenExpiry = Instant.now().plus(INVITATION_TOKEN_VALIDITY_DAYS, ChronoUnit.DAYS);
-
         Teacher staff = Teacher.createStaffInvitation(
                 centerId,
                 req.firstName(), req.lastName(), req.email(), req.phoneNumber(),
                 req.subjects(), req.district(), req.employeeId(),
                 req.roleType(), req.qualification(), req.yearsOfExperience(),
                 req.designation(), req.bio(),
-                token, tokenExpiry);
+                null, null);
+        staff.reactivate(); // activate directly — no invitation email
 
         Teacher saved = teacherRepository.save(staff);
 
-        eventPublisher.publish(new TeacherInvitationEvent(
-                saved.getId(), centerId, center.getName(),
-                saved.getEmail(), saved.getFirstName(), saved.getLastName(),
-                saved.getInvitationToken()));
-
-        log.info("Staff invitation created: staffId={} centerId={} roleType={}",
+        log.info("Staff member created (direct): staffId={} centerId={} roleType={}",
                 saved.getId(), centerId, req.roleType());
         return toResponse(saved);
     }

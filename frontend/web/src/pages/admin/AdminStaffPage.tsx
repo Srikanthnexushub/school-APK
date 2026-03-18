@@ -432,7 +432,13 @@ export default function AdminStaffPage() {
               </p>
             </div>
             <button
-              onClick={() => setShowCreate(true)}
+              onClick={() => {
+                if (!centerId) {
+                  toast.error('Your account is not linked to a centre. Please sign out and sign in again.');
+                  return;
+                }
+                setShowCreate(true);
+              }}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-brand-600 hover:bg-brand-500 text-white transition-colors flex-shrink-0"
             >
               <UserPlus className="w-4 h-4" /> + Create Staff

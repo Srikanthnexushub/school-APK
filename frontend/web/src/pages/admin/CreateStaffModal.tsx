@@ -160,7 +160,7 @@ export default function CreateStaffModal({ centerId, onClose, onCreated }: Creat
         yearsOfExperience: form.yearsOfExperience !== '' ? parseInt(form.yearsOfExperience) : null,
         bio:               form.bio.trim() || null,
       });
-      toast.success(`Invitation sent to ${form.firstName} ${form.lastName}`);
+      toast.success(`${form.firstName} ${form.lastName} added to staff`);
       onCreated();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } };
@@ -192,7 +192,7 @@ export default function CreateStaffModal({ centerId, onClose, onCreated }: Creat
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
           <div>
             <h2 className="text-base font-semibold text-white">Create Staff Member</h2>
-            <p className="text-xs text-white/40 mt-0.5">Invitation will be sent via email</p>
+            <p className="text-xs text-white/40 mt-0.5">Staff member will be activated immediately</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/8 text-white/40 hover:text-white transition-colors">
             <X className="w-4 h-4" />
@@ -467,11 +467,10 @@ export default function CreateStaffModal({ centerId, onClose, onCreated }: Creat
                     )}
                   </div>
 
-                  <div className="bg-amber-500/5 border border-amber-500/15 rounded-xl p-3">
-                    <p className="text-xs text-amber-300/80">
-                      <strong className="text-amber-300">Invitation email</strong> will be sent to{' '}
-                      <span className="text-white/60">{form.email}</span>.
-                      The staff member registers using the link and is activated automatically.
+                  <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl p-3">
+                    <p className="text-xs text-emerald-300/80">
+                      Staff member will be created as <strong className="text-emerald-300">Active</strong> and
+                      linked to <span className="text-white/60">{form.email}</span>.
                     </p>
                   </div>
                 </>
@@ -507,8 +506,8 @@ export default function CreateStaffModal({ centerId, onClose, onCreated }: Creat
               className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-sm font-medium bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white transition-colors"
             >
               {isSubmitting
-                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Sending...</>
-                : <><Check className="w-3.5 h-3.5" /> Send Invitation</>
+                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Creating...</>
+                : <><Check className="w-3.5 h-3.5" /> Create Staff</>
               }
             </button>
           )}
