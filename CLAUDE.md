@@ -118,25 +118,28 @@ Check for Java compilation errors in test files. Run: `mvn test-compile --no-tra
 |---|---|---|
 | Login autofill fix | `LoginPage.tsx` | b54547a |
 | Add Child modal (DOB, institution dropdown, AI Smart Find) | `ParentChildrenPage.tsx` | 6c45f2d |
+| Register page (roles, layout, PARENT/CENTER_ADMIN flows) | `RegisterPage.tsx` | 7356635 |
 | OTP-based parent-child linking | `ParentChildrenPage.tsx`, `SettingsPage.tsx` | ac81927 |
 | Password recovery + MFA/TOTP | `LoginPage.tsx`, `SettingsPage.tsx` | 5bd149f |
 | Teacher onboarding + bulk import | `center-svc`, `AdminPendingTeachersPage.tsx` | 8bd6075 |
 | Real-time notifications (SSE + SMS) | `notification-svc`, `AppLayout.tsx` | 275e718 |
-| Google Sign-In | `LoginPage.tsx` | 944f801 |
-| District/state/country autocomplete (all roles) | `indiaLocations.ts`, `ParentProfilePage.tsx`, `SettingsPage.tsx` | see frozen-fixes |
+| Google Sign-In | `LoginPage.tsx`, `RegisterPage.tsx` | 944f801 |
+| District/state/country autocomplete (all roles) | `indiaLocations.ts`, `ParentProfilePage.tsx`, `SettingsPage.tsx`, `RegisterPage.tsx` | see frozen-fixes |
 | Copilot psychometric fix (real data, no hallucination) | `CopilotService.java` | see frozen-fixes |
 | Adaptive psychometric questions (board/class/gender/stream) | `PsychometricPage.tsx` | see frozen-fixes |
 | + Add Parent button (student Settings, top of Profile tab) | `SettingsPage.tsx` | see frozen-fixes |
 | AI Project Lab `/lab` (student portal) | `ProjectLabPage.tsx`, `router.tsx`, `AppLayout.tsx` | see frozen-fixes |
-| Institution name in Add Child (optional free-text) | `ParentChildrenPage.tsx` | see frozen-fixes |
-| center-svc branch/board fields + V11 migration | `CoachingCenter.java`, `CenterService.java` | see frozen-fixes |
+| Institution name in Add Child + Register (optional free-text) | `ParentChildrenPage.tsx`, `RegisterPage.tsx` | see frozen-fixes |
+| center-svc branch/board fields + V11 migration | `CoachingCenter.java`, `CenterService.java`, `RegisterPage.tsx` | see frozen-fixes |
 | Danger Zone → single Delete Account button (all roles) | `SettingsPage.tsx` | see frozen-fixes |
+| Teacher reg: institution dropdown, subjects dropdown, district + country | `RegisterPage.tsx`, center-svc, mentor-svc | 5d86803 |
+| Country field on all Register roles (Student/Parent/Teacher/Institution) | `RegisterPage.tsx` | 5d86803 |
+| Register autofill blocked (autoComplete="new-password" email+password) | `RegisterPage.tsx` | 5d86803 |
 | center-svc V12: district on teachers table | `V12__add_district_to_teachers.sql`, `Teacher.java` | 5d86803 |
 | mentor-svc V6: district on mentor_profiles table | `V6__add_district_to_mentor_profiles.sql`, `MentorProfile.java` | 5d86803 |
 | Staff Portal (CENTER_ADMIN) — full role-based staff management + AI | `AdminStaffPage.tsx`, `CreateStaffModal.tsx`, `staffConstants.ts`, `useStaffAI.ts`, `StaffController.java`, `StaffService.java`, `StaffRoleType.java`, `V13__add_staff_profile_fields.sql` | see frozen-fixes |
-| Register page REMOVED | `RegisterPage.tsx` deleted, route `/register` removed, "Create one" link removed from `LoginPage.tsx` | see frozen-fixes |
 
-Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (57+ fixes)
+Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (55+ fixes)
 
 ---
 

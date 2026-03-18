@@ -331,6 +331,15 @@ export default function LoginPage() {
             </button>
           </form>
 
+          <p className="mt-6 text-center text-white/40 text-sm">
+            Don&apos;t have an account?{' '}
+            <Link
+              to="/register"
+              className="text-brand-400 hover:text-brand-300 font-medium transition-colors"
+            >
+              Create one
+            </Link>
+          </p>
 
           <p className="mt-10 text-center text-white/15 text-xs">
             © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
