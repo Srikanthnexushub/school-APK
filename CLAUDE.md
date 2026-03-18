@@ -138,8 +138,9 @@ Check for Java compilation errors in test files. Run: `mvn test-compile --no-tra
 | center-svc V12: district on teachers table | `V12__add_district_to_teachers.sql`, `Teacher.java` | 5d86803 |
 | mentor-svc V6: district on mentor_profiles table | `V6__add_district_to_mentor_profiles.sql`, `MentorProfile.java` | 5d86803 |
 | Staff Portal (CENTER_ADMIN) — full role-based staff management + AI | `AdminStaffPage.tsx`, `CreateStaffModal.tsx`, `staffConstants.ts`, `useStaffAI.ts`, `StaffController.java`, `StaffService.java`, `StaffRoleType.java`, `V13__add_staff_profile_fields.sql` | see frozen-fixes |
+| Register UX — role dropdown, Country→State→City, email/password at bottom, address line 1+2, board multi-select, pincode | `RegisterPage.tsx`, `indiaLocations.ts` | e843293 |
 
-Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (55+ fixes)
+Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (57+ fixes)
 
 ---
 
