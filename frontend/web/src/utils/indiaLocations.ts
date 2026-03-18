@@ -207,3 +207,20 @@ export function suggestDistricts(state: string, input: string): string[] {
   const q = input.toLowerCase();
   return districts.filter((d) => d.toLowerCase().includes(q)).slice(0, 8);
 }
+
+/** Cities for a given state (alias for districts, used in city dropdowns). */
+export function getCitiesForState(state: string): string[] {
+  return DISTRICTS_BY_STATE[state] ?? [];
+}
+
+/** World countries — India listed first, then alphabetical. */
+export const WORLD_COUNTRIES: string[] = [
+  'India',
+  'Afghanistan', 'Australia', 'Bangladesh', 'Bhutan', 'Canada', 'China',
+  'France', 'Germany', 'Indonesia', 'Iran', 'Iraq', 'Italy', 'Japan',
+  'Kenya', 'Malaysia', 'Maldives', 'Mexico', 'Myanmar', 'Nepal',
+  'New Zealand', 'Nigeria', 'Oman', 'Pakistan', 'Philippines',
+  'Qatar', 'Russia', 'Saudi Arabia', 'Singapore', 'South Africa',
+  'South Korea', 'Spain', 'Sri Lanka', 'Thailand', 'Turkey',
+  'United Arab Emirates', 'United Kingdom', 'United States', 'Vietnam',
+];

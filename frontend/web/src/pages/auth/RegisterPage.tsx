@@ -21,7 +21,7 @@ import GoogleSignInButton from '../../components/GoogleSignInButton';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../lib/utils';
-import { suggestStates } from '../../utils/indiaLocations';
+import { suggestStates, getCitiesForState, WORLD_COUNTRIES } from '../../utils/indiaLocations';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
 
@@ -95,6 +95,167 @@ function CreatableInput({ label, value, onChange, placeholder, required }: {
   );
 }
 
+// ─── Searchable Select (click to open, search inside, "Can't find" free-text) ─
+
+function SearchableSelect({ label, value, onChange, options, placeholder, optional, required, allowCustom }: {
+  label: string; value: string; onChange: (v: string) => void;
+  options: string[]; placeholder?: string; optional?: boolean; required?: boolean; allowCustom?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [customMode, setCustomMode] = useState(false);
+  const filtered = options.filter(o => o.toLowerCase().includes(search.toLowerCase())).slice(0, 12);
+
+  if (customMode) {
+    return (
+      <div>
+        <label className="block text-sm font-medium text-white/70 mb-1.5">
+          {label}{required && <span className="text-red-400"> *</span>}{optional && <span className="text-white/30"> (optional)</span>}
+        </label>
+        <div className="flex gap-2">
+          <input type="text" value={value} onChange={e => onChange(e.target.value)}
+            placeholder={`Enter ${label.toLowerCase()}…`} className="input flex-1" autoFocus />
+          <button type="button" onClick={() => { setCustomMode(false); onChange(''); }}
+            className="px-3 py-2 text-xs text-white/40 hover:text-white/70 border border-white/10 rounded-lg transition-colors">
+            ↩ Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <label className="block text-sm font-medium text-white/70 mb-1.5">
+        {label}{required && <span className="text-red-400"> *</span>}{optional && <span className="text-white/30"> (optional)</span>}
+      </label>
+      <button type="button" onClick={() => { setOpen(o => !o); setSearch(''); }}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        className="input w-full text-left flex items-center justify-between">
+        <span className={value ? 'text-white/90' : 'text-white/30'}>{value || placeholder || `Select ${label}`}</span>
+        <ChevronDown className={cn('w-4 h-4 text-white/30 flex-shrink-0 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-surface-100 border border-white/10 rounded-xl shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-white/5">
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+              placeholder={`Search ${label.toLowerCase()}…`} className="input w-full text-sm py-1.5" autoFocus />
+          </div>
+          <div className="max-h-44 overflow-y-auto">
+            {filtered.length > 0 ? filtered.map(o => (
+              <button key={o} type="button"
+                onMouseDown={() => { onChange(o); setOpen(false); setSearch(''); }}
+                className={cn('w-full text-left px-3 py-2 text-sm hover:bg-white/5 transition-colors',
+                  o === value ? 'text-brand-300 font-medium' : 'text-white/80')}>
+                {o}
+              </button>
+            )) : <p className="px-3 py-2 text-sm text-white/30">No matches</p>}
+            {allowCustom && (
+              <button type="button" onMouseDown={() => { setCustomMode(true); setOpen(false); setSearch(''); }}
+                className="w-full text-left px-3 py-2.5 text-xs text-white/40 hover:bg-white/5 border-t border-white/10 transition-colors">
+                Can't find? Enter manually
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Autocomplete Input (type → live suggestions + "Can't find" fallback) ─────
+
+function AutocompleteInput({ label, value, onChange, options, placeholder, optional, required }: {
+  label: string; value: string; onChange: (v: string) => void;
+  options: string[]; placeholder?: string; optional?: boolean; required?: boolean;
+}) {
+  const [show, setShow] = useState(false);
+  const filtered = value
+    ? options.filter(o => o.toLowerCase().includes(value.toLowerCase())).slice(0, 12)
+    : options.slice(0, 12);
+
+  return (
+    <div className="relative">
+      <label className="block text-sm font-medium text-white/70 mb-1.5">
+        {label}{required && <span className="text-red-400"> *</span>}{optional && <span className="text-white/30"> (optional)</span>}
+      </label>
+      <input type="text" value={value}
+        onChange={e => { onChange(e.target.value); setShow(true); }}
+        onFocus={() => setShow(true)}
+        onBlur={() => setTimeout(() => setShow(false), 150)}
+        placeholder={placeholder || `Type to search…`}
+        className="input w-full" />
+      {show && (
+        <div className="absolute z-50 mt-1 w-full bg-surface-100 border border-white/10 rounded-xl shadow-xl overflow-hidden">
+          <div className="max-h-44 overflow-y-auto">
+            {filtered.length > 0 ? filtered.map(o => (
+              <button key={o} type="button"
+                onMouseDown={() => { onChange(o); setShow(false); }}
+                className={cn('w-full text-left px-3 py-2 text-sm hover:bg-white/5 transition-colors',
+                  o === value ? 'text-brand-300 font-medium' : 'text-white/80')}>
+                {o}
+              </button>
+            )) : <p className="px-3 py-2 text-sm text-white/30">No matches — your input will be used</p>}
+            <button type="button" onMouseDown={() => setShow(false)}
+              className="w-full text-left px-3 py-2.5 text-xs text-white/40 hover:bg-white/5 border-t border-white/10 transition-colors">
+              Can't find? Keep what you typed
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Multi-Select Dropdown (checkboxes, comma-separated display) ──────────────
+
+function MultiSelectDropdown({ label, values, onChange, options, placeholder, required }: {
+  label: string; values: string[]; onChange: (v: string[]) => void;
+  options: { value: string; label: string }[]; placeholder?: string; required?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const toggle = (val: string) =>
+    onChange(values.includes(val) ? values.filter(v => v !== val) : [...values, val]);
+  const display = values.length === 0
+    ? (placeholder || `Select ${label}`)
+    : options.filter(o => values.includes(o.value)).map(o => o.label).join(', ');
+
+  return (
+    <div className="relative">
+      <label className="block text-sm font-medium text-white/70 mb-1.5">
+        {label}{required && <span className="text-red-400"> *</span>}
+      </label>
+      <button type="button" onClick={() => setOpen(o => !o)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        className="input w-full text-left flex items-center justify-between">
+        <span className={cn('truncate text-sm', values.length === 0 ? 'text-white/30' : 'text-white/90')}>{display}</span>
+        <ChevronDown className={cn('w-4 h-4 text-white/30 flex-shrink-0 ml-2 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-surface-100 border border-white/10 rounded-xl shadow-xl overflow-hidden">
+          <div className="max-h-48 overflow-y-auto divide-y divide-white/5">
+            {options.map(({ value, label: optLabel }) => (
+              <label key={value} className="flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 cursor-pointer">
+                <input type="checkbox" checked={values.includes(value)} onChange={() => toggle(value)}
+                  className="w-4 h-4 accent-brand-500 cursor-pointer flex-shrink-0" />
+                <span className="text-sm text-white/80">{optLabel}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const BOARD_OPTIONS = [
+  { value: 'CBSE',        label: 'CBSE' },
+  { value: 'ICSE',        label: 'ICSE' },
+  { value: 'STATE_BOARD', label: 'State Board' },
+  { value: 'IB',          label: 'IB' },
+  { value: 'IGCSE',       label: 'IGCSE / Cambridge' },
+];
+
 const step1Schema = z
   .object({
     firstName: z.string().max(100).optional().or(z.literal('')),
@@ -150,11 +311,11 @@ const TEACHER_SUBJECTS = [
   'Physical Education', 'Art', 'Music',
 ];
 
-const roleOptions: { role: Role; label: string; description: string }[] = [
-  { role: 'STUDENT', label: 'Student', description: 'Prepare for competitive exams with AI guidance and personalised study plans.' },
-  { role: 'PARENT', label: 'Parent', description: "Monitor your child's progress, fee payments, and receive real-time updates." },
-  { role: 'TEACHER', label: 'Teacher', description: 'Coach students, conduct sessions, and track their performance analytics.' },
-  { role: 'CENTER_ADMIN', label: 'Institution', description: 'Manage your coaching centre, batches, teachers, and student enrolments.' },
+const roleOptions: { role: Role; label: string }[] = [
+  { role: 'STUDENT',      label: 'Student' },
+  { role: 'PARENT',       label: 'Parent / Guardian' },
+  { role: 'TEACHER',      label: 'Teacher' },
+  { role: 'CENTER_ADMIN', label: 'Institution / Coaching Centre' },
 ];
 
 const slideVariants = {
@@ -219,13 +380,23 @@ export default function RegisterPage() {
   // Institution (CENTER_ADMIN) state field
   const [instStateVal, setInstStateVal] = useState('');
   const [instBranch, setInstBranch] = useState('');
-  const [instBoard, setInstBoard] = useState('');
-  const [instAddress, setInstAddress] = useState('');
-  const [instCountry, setInstCountry] = useState('India');
+  const [instBoard, setInstBoard] = useState<string[]>([]);
+  const [instAddressLine1, setInstAddressLine1] = useState('');
+  const [instAddressLine2, setInstAddressLine2] = useState('');
+  const [instPincode, setInstPincode] = useState('');
+  const [instCountry, setInstCountry] = useState('');
   // Country fields for other roles
-  const [studentCountry, setStudentCountry] = useState('India');
-  const [parentCountry, setParentCountry] = useState('India');
-  const [teacherCountry, setTeacherCountry] = useState('India');
+  const [studentCountry, setStudentCountry] = useState('');
+  const [parentCountry, setParentCountry] = useState('');
+  const [teacherCountry, setTeacherCountry] = useState('');
+  // Parent location fields
+  const [parentState, setParentState] = useState('');
+  const [parentCity, setParentCity] = useState('');
+  const [parentAddress, setParentAddress] = useState('');
+  const [parentDistrict, setParentDistrict] = useState('');
+  const [parentPincode, setParentPincode] = useState('');
+  // Student pincode
+  const [studentPincode, setStudentPincode] = useState('');
 
   const handleCaptchaVerify = useCallback((token: string | null) => setCaptchaToken(token), []);
 
@@ -495,7 +666,7 @@ export default function RegisterPage() {
             city: studentCity || undefined,
             state: studentStateVal || undefined,
             country: studentCountry || undefined,
-            pincode: undefined,
+            pincode: studentPincode || undefined,
             institutionName: centerName || manualInstitutionName || undefined,
             board: step3Data.board,
             currentClass: step3Data.grade,
@@ -554,6 +725,11 @@ export default function RegisterPage() {
             email: step1Data.email,
             occupation: parentOccupation || undefined,
             gender: selectedGender || undefined,
+            address: parentAddress || undefined,
+            city: parentCity || undefined,
+            state: parentState || undefined,
+            district: parentDistrict || undefined,
+            pincode: parentPincode || undefined,
             country: parentCountry || undefined,
           }, { headers: { Authorization: `Bearer ${regToken}` } });
           toast.success('Account created! Welcome to NexusEd.');
@@ -607,9 +783,10 @@ export default function RegisterPage() {
                 city: institutionCity.trim(),
                 phone: institutionPhone.trim(),
                 state: instStateVal || undefined,
-                address: instAddress.trim() || undefined,
+                address: [instAddressLine1, instAddressLine2].filter(Boolean).join(', ') || undefined,
                 branch: instBranch.trim() || undefined,
-                board: instBoard || undefined,
+                board: instBoard.length > 0 ? instBoard.join(',') : undefined,
+                pincode: instPincode || undefined,
                 country: instCountry.trim() || undefined,
               },
               { headers: { Authorization: `Bearer ${regToken}` } }
@@ -761,30 +938,22 @@ export default function RegisterPage() {
 
                       <form onSubmit={handleSubmit(onStep1Submit)} className="space-y-4" autoComplete="off">
 
-                        {/* Role dropdown — before first name */}
+                        {/* Role selector */}
                         <div>
-                          <label className="block text-sm font-medium text-white/70 mb-1.5">I am a</label>
+                          <label className="block text-sm font-medium text-white/70 mb-1.5">I am a <span className="text-red-400">*</span></label>
                           <div className="relative">
                             <select
                               value={selectedRole ?? ''}
                               onChange={(e) => setSelectedRole((e.target.value as Role) || null)}
-                              className={cn(
-                                'input w-full appearance-none pr-10',
-                                !selectedRole && 'text-white/30'
-                              )}
+                              className="input w-full appearance-none pr-10"
                             >
-                              <option value="" disabled>Select your role</option>
+                              <option value="">— Select your role —</option>
                               {roleOptions.map(({ role, label }) => (
                                 <option key={role} value={role}>{label}</option>
                               ))}
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
                           </div>
-                          {selectedRole && (
-                            <p className="text-white/30 text-xs mt-1.5">
-                              {roleOptions.find((r) => r.role === selectedRole)?.description}
-                            </p>
-                          )}
                         </div>
 
                         {/* First Name + Last Name — hidden for CENTER_ADMIN (derived from institution name) */}
@@ -813,85 +982,6 @@ export default function RegisterPage() {
                           </div>
                         )}
 
-                        {/* Email */}
-                        <div>
-                          <label className="block text-sm font-medium text-white/70 mb-1.5">Email</label>
-                          <input
-                            {...register('email')}
-                            type="email"
-                            placeholder="you@example.com"
-                            autoComplete="new-password"
-                            className={cn('input w-full', errors.email && 'border-red-500/50')}
-                          />
-                          {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
-                        </div>
-
-                        {/* Password */}
-                        <div>
-                          <label className="block text-sm font-medium text-white/70 mb-1.5">Password</label>
-                          <div className="relative">
-                            <input
-                              {...register('password')}
-                              type={showPw ? 'text' : 'password'}
-                              placeholder="••••••••"
-                              autoComplete="new-password"
-                              className={cn('input w-full pr-10', errors.password && 'border-red-500/50')}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPw(!showPw)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors"
-                            >
-                              {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                          </div>
-                          {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {[
-                              { key: 'length', label: '≥ 8 chars' },
-                              { key: 'upper', label: '1 uppercase' },
-                              { key: 'digit', label: '1 digit' },
-                              { key: 'special', label: '1 special char' },
-                            ].map(({ key, label }) => (
-                              <span
-                                key={key}
-                                className={cn(
-                                  'text-xs px-2 py-0.5 rounded-full border transition-colors',
-                                  pwChecks[key as keyof typeof pwChecks]
-                                    ? 'border-green-500/50 bg-green-500/10 text-green-400'
-                                    : 'border-white/10 text-white/30'
-                                )}
-                              >
-                                {label}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Confirm Password */}
-                        <div>
-                          <label className="block text-sm font-medium text-white/70 mb-1.5">Confirm Password</label>
-                          <div className="relative">
-                            <input
-                              {...register('confirmPassword')}
-                              type={showConfirm ? 'text' : 'password'}
-                              placeholder="••••••••"
-                              autoComplete="new-password"
-                              className={cn('input w-full pr-10', errors.confirmPassword && 'border-red-500/50')}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowConfirm(!showConfirm)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors"
-                            >
-                              {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                          </div>
-                          {errors.confirmPassword && (
-                            <p className="text-red-400 text-xs mt-1">{errors.confirmPassword.message}</p>
-                          )}
-                        </div>
-
                         {/* Role-specific fields — STUDENT */}
                         {selectedRole === 'STUDENT' && (
                           <div className="space-y-3 pt-1">
@@ -917,32 +1007,39 @@ export default function RegisterPage() {
                                 {errors.dateOfBirth && <p className="text-red-400 text-xs mt-1">{errors.dateOfBirth.message}</p>}
                               </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                              <LocationInput
-                                label="State (optional)"
-                                value={studentStateVal}
-                                onChange={setStudentStateVal}
-                                suggestions={suggestStates(studentStateVal)}
-                                placeholder="e.g. Maharashtra"
-                              />
-                              <div>
-                                <label className="block text-sm font-medium text-white/70 mb-1.5">City (optional)</label>
-                                <input
-                                  type="text"
-                                  value={studentCity}
-                                  onChange={(e) => setStudentCity(e.target.value)}
-                                  placeholder="e.g. Mumbai"
-                                  className="input w-full"
-                                />
-                              </div>
-                            </div>
+                            <SearchableSelect
+                              label="Country"
+                              value={studentCountry}
+                              onChange={setStudentCountry}
+                              options={WORLD_COUNTRIES}
+                              placeholder="Select country…"
+                              optional
+                              allowCustom
+                            />
+                            <SearchableSelect
+                              label="State"
+                              value={studentStateVal}
+                              onChange={(v) => { setStudentStateVal(v); setStudentCity(''); }}
+                              options={suggestStates('')}
+                              placeholder="Select state…"
+                              optional
+                              allowCustom
+                            />
+                            <AutocompleteInput
+                              label="City"
+                              value={studentCity}
+                              onChange={setStudentCity}
+                              options={studentStateVal ? getCitiesForState(studentStateVal) : []}
+                              placeholder="Type to search city…"
+                              optional
+                            />
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Country <span className="text-white/30">(optional)</span></label>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-white/30">(optional)</span></label>
                               <input
                                 type="text"
-                                value={studentCountry}
-                                onChange={(e) => setStudentCountry(e.target.value)}
-                                placeholder="e.g. India"
+                                value={studentPincode}
+                                onChange={(e) => setStudentPincode(e.target.value)}
+                                placeholder="e.g. 400001"
                                 className="input w-full"
                               />
                             </div>
@@ -956,32 +1053,16 @@ export default function RegisterPage() {
                             <div className="grid grid-cols-2 gap-3">
                               <div>
                                 <label className="block text-sm font-medium text-white/70 mb-1.5">Phone Number</label>
-                                <input
-                                  type="tel"
-                                  value={parentPhone}
-                                  onChange={(e) => setParentPhone(e.target.value)}
-                                  placeholder="+91 87654 32100"
-                                  className="input w-full"
-                                />
+                                <input type="tel" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} placeholder="+91 87654 32100" className="input w-full" />
                               </div>
                               <div>
                                 <label className="block text-sm font-medium text-white/70 mb-1.5">Occupation</label>
-                                <input
-                                  type="text"
-                                  value={parentOccupation}
-                                  onChange={(e) => setParentOccupation(e.target.value)}
-                                  placeholder="e.g. Marketing Manager"
-                                  className="input w-full"
-                                />
+                                <input type="text" value={parentOccupation} onChange={(e) => setParentOccupation(e.target.value)} placeholder="e.g. Marketing Manager" className="input w-full" />
                               </div>
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-white/70 mb-1.5">Gender</label>
-                              <select
-                                value={selectedGender}
-                                onChange={(e) => setSelectedGender(e.target.value)}
-                                className="input w-full"
-                              >
+                              <select value={selectedGender} onChange={(e) => setSelectedGender(e.target.value)} className="input w-full">
                                 <option value="">— Select (optional) —</option>
                                 <option value="MALE">Male</option>
                                 <option value="FEMALE">Female</option>
@@ -990,14 +1071,21 @@ export default function RegisterPage() {
                               </select>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Country <span className="text-white/30">(optional)</span></label>
-                              <input
-                                type="text"
-                                value={parentCountry}
-                                onChange={(e) => setParentCountry(e.target.value)}
-                                placeholder="e.g. India"
-                                className="input w-full"
-                              />
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address <span className="text-white/30">(optional)</span></label>
+                              <input type="text" value={parentAddress} onChange={(e) => setParentAddress(e.target.value)} placeholder="e.g. 12 Park Avenue" className="input w-full" />
+                            </div>
+                            <SearchableSelect label="Country" value={parentCountry} onChange={setParentCountry} options={WORLD_COUNTRIES} placeholder="Select country…" optional allowCustom />
+                            <SearchableSelect label="State" value={parentState} onChange={(v) => { setParentState(v); setParentCity(''); }} options={suggestStates('')} placeholder="Select state…" optional allowCustom />
+                            <AutocompleteInput label="City" value={parentCity} onChange={setParentCity} options={parentState ? getCitiesForState(parentState) : []} placeholder="Type to search city…" optional />
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-sm font-medium text-white/70 mb-1.5">District <span className="text-white/30">(optional)</span></label>
+                                <input type="text" value={parentDistrict} onChange={(e) => setParentDistrict(e.target.value)} placeholder="e.g. South Delhi" className="input w-full" />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-white/30">(optional)</span></label>
+                                <input type="text" value={parentPincode} onChange={(e) => setParentPincode(e.target.value)} placeholder="e.g. 110001" className="input w-full" />
+                              </div>
                             </div>
                           </div>
                         )}
@@ -1086,54 +1174,14 @@ export default function RegisterPage() {
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-white/70 mb-1.5">Address <span className="text-white/30">(optional)</span></label>
-                              <input
-                                type="text"
-                                value={teacherAddress}
-                                onChange={(e) => setTeacherAddress(e.target.value)}
-                                placeholder="e.g. 45 MG Road, Apartment 3B"
-                                className="input w-full"
-                              />
+                              <input type="text" value={teacherAddress} onChange={(e) => setTeacherAddress(e.target.value)} placeholder="e.g. 45 MG Road, Apartment 3B" className="input w-full" />
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="block text-sm font-medium text-white/70 mb-1.5">City <span className="text-white/30">(optional)</span></label>
-                                <input
-                                  type="text"
-                                  value={teacherCity}
-                                  onChange={(e) => setTeacherCity(e.target.value)}
-                                  placeholder="e.g. Mumbai"
-                                  className="input w-full"
-                                />
-                              </div>
-                              <LocationInput
-                                label="State (optional)"
-                                value={teacherStateVal}
-                                onChange={setTeacherStateVal}
-                                suggestions={suggestStates(teacherStateVal)}
-                                placeholder="e.g. Maharashtra"
-                              />
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="block text-sm font-medium text-white/70 mb-1.5">District <span className="text-white/30">(optional)</span></label>
-                                <input
-                                  type="text"
-                                  value={teacherDistrict}
-                                  onChange={(e) => setTeacherDistrict(e.target.value)}
-                                  placeholder="e.g. Andheri"
-                                  className="input w-full"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-white/70 mb-1.5">Country <span className="text-white/30">(optional)</span></label>
-                                <input
-                                  type="text"
-                                  value={teacherCountry}
-                                  onChange={(e) => setTeacherCountry(e.target.value)}
-                                  placeholder="e.g. India"
-                                  className="input w-full"
-                                />
-                              </div>
+                            <SearchableSelect label="Country" value={teacherCountry} onChange={setTeacherCountry} options={WORLD_COUNTRIES} placeholder="Select country…" optional allowCustom />
+                            <SearchableSelect label="State" value={teacherStateVal} onChange={(v) => { setTeacherStateVal(v); setTeacherCity(''); }} options={suggestStates('')} placeholder="Select state…" optional allowCustom />
+                            <AutocompleteInput label="City" value={teacherCity} onChange={setTeacherCity} options={teacherStateVal ? getCitiesForState(teacherStateVal) : []} placeholder="Type to search city…" optional />
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">District <span className="text-white/30">(optional)</span></label>
+                              <input type="text" value={teacherDistrict} onChange={(e) => setTeacherDistrict(e.target.value)} placeholder="e.g. Andheri" className="input w-full" />
                             </div>
                           </div>
                         )}
@@ -1161,80 +1209,62 @@ export default function RegisterPage() {
                                 className="input w-full"
                               />
                             </div>
+                            <MultiSelectDropdown label="Board" values={instBoard} onChange={setInstBoard} options={BOARD_OPTIONS} placeholder="Select board(s)…" required />
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">
-                                Board <span className="text-red-400">*</span>
-                              </label>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Phone <span className="text-red-400">*</span></label>
+                              <input type="text" value={institutionPhone} onChange={(e) => setInstitutionPhone(e.target.value)} placeholder="+91 98765 43210" className="input w-full" />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address Line 1 <span className="text-white/30">(optional)</span></label>
+                              <input type="text" value={instAddressLine1} onChange={(e) => setInstAddressLine1(e.target.value)} placeholder="e.g. 123 Main Road" className="input w-full" />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address Line 2 <span className="text-white/30">(optional)</span></label>
+                              <input type="text" value={instAddressLine2} onChange={(e) => setInstAddressLine2(e.target.value)} placeholder="e.g. Andheri West" className="input w-full" />
+                            </div>
+                            <SearchableSelect label="Country" value={instCountry} onChange={setInstCountry} options={WORLD_COUNTRIES} placeholder="Select country…" optional allowCustom />
+                            <SearchableSelect label="State" value={instStateVal} onChange={(v) => { setInstStateVal(v); setInstitutionCity(''); }} options={suggestStates('')} placeholder="Select state…" optional allowCustom />
+                            <AutocompleteInput label="City" value={institutionCity} onChange={setInstitutionCity} options={instStateVal ? getCitiesForState(instStateVal) : []} placeholder="Type to search city…" optional />
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-white/30">(optional)</span></label>
+                              <input type="text" value={instPincode} onChange={(e) => setInstPincode(e.target.value)} placeholder="e.g. 400058" className="input w-full" />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Email / Password / Confirm — bottom of form */}
+                        {selectedRole && (
+                          <div className="space-y-4 pt-1">
+                            <div className="h-px bg-white/5" />
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Email</label>
+                              <input {...register('email')} type="email" placeholder="you@example.com" autoComplete="new-password" className={cn('input w-full', errors.email && 'border-red-500/50')} />
+                              {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Password</label>
                               <div className="relative">
-                                <select
-                                  value={instBoard}
-                                  onChange={(e) => setInstBoard(e.target.value)}
-                                  className="input w-full appearance-none pr-10"
-                                >
-                                  <option value="">Select board</option>
-                                  <option value="CBSE">CBSE</option>
-                                  <option value="ICSE">ICSE</option>
-                                  <option value="STATE_BOARD">State Board</option>
-                                  <option value="IB">IB</option>
-                                  <option value="IGCSE">IGCSE</option>
-                                </select>
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
+                                <input {...register('password')} type={showPw ? 'text' : 'password'} placeholder="••••••••" autoComplete="new-password" className={cn('input w-full pr-10', errors.password && 'border-red-500/50')} />
+                                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors">
+                                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                              </div>
+                              {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                {[{ key: 'length', label: '≥ 8 chars' }, { key: 'upper', label: '1 uppercase' }, { key: 'digit', label: '1 digit' }, { key: 'special', label: '1 special char' }].map(({ key, label }) => (
+                                  <span key={key} className={cn('text-xs px-2 py-0.5 rounded-full border transition-colors', pwChecks[key as keyof typeof pwChecks] ? 'border-green-500/50 bg-green-500/10 text-green-400' : 'border-white/10 text-white/30')}>{label}</span>
+                                ))}
                               </div>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">
-                                Address
-                              </label>
-                              <input
-                                type="text"
-                                value={instAddress}
-                                onChange={(e) => setInstAddress(e.target.value)}
-                                placeholder="e.g. 123 Main Road, Andheri West"
-                                className="input w-full"
-                              />
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="block text-sm font-medium text-white/70 mb-1.5">
-                                  City <span className="text-red-400">*</span>
-                                </label>
-                                <input
-                                  type="text"
-                                  value={institutionCity}
-                                  onChange={(e) => setInstitutionCity(e.target.value)}
-                                  placeholder="e.g. Mumbai"
-                                  className="input w-full"
-                                />
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Confirm Password</label>
+                              <div className="relative">
+                                <input {...register('confirmPassword')} type={showConfirm ? 'text' : 'password'} placeholder="••••••••" autoComplete="new-password" className={cn('input w-full pr-10', errors.confirmPassword && 'border-red-500/50')} />
+                                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors">
+                                  {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
                               </div>
-                              <div>
-                                <label className="block text-sm font-medium text-white/70 mb-1.5">
-                                  Phone <span className="text-red-400">*</span>
-                                </label>
-                                <input
-                                  type="text"
-                                  value={institutionPhone}
-                                  onChange={(e) => setInstitutionPhone(e.target.value)}
-                                  placeholder="+91 98765 43210"
-                                  className="input w-full"
-                                />
-                              </div>
-                            </div>
-                            <LocationInput
-                              label="State"
-                              value={instStateVal}
-                              onChange={setInstStateVal}
-                              suggestions={suggestStates(instStateVal)}
-                              placeholder="e.g. Maharashtra"
-                            />
-                            <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Country <span className="text-white/30">(optional)</span></label>
-                              <input
-                                type="text"
-                                value={instCountry}
-                                onChange={(e) => setInstCountry(e.target.value)}
-                                placeholder="e.g. India"
-                                className="input w-full"
-                              />
+                              {errors.confirmPassword && <p className="text-red-400 text-xs mt-1">{errors.confirmPassword.message}</p>}
                             </div>
                           </div>
                         )}
@@ -1557,6 +1587,313 @@ export default function RegisterPage() {
             )}
 
           </AnimatePresence>
+        </div>
+
+        <p className="mt-6 text-center text-white/40 text-sm">
+          Already have an account?{' '}
+          <Link to="/login" className="text-brand-400 hover:text-brand-300 font-medium transition-colors">
+            Sign in
+          </Link>
+        </p>
+
+        <p className="mt-6 text-center text-white/15 text-xs">
+          © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
+}
+tePresence>
+        </div>
+
+        <p className="mt-6 text-center text-white/40 text-sm">
+          Already have an account?{' '}
+          <Link to="/login" className="text-brand-400 hover:text-brand-300 font-medium transition-colors">
+            Sign in
+          </Link>
+        </p>
+
+        <p className="mt-6 text-center text-white/15 text-xs">
+          © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
+}
+          )}
+
+          </AnimatePresence>
+        </div>
+
+        <p className="mt-6 text-center text-white/40 text-sm">
+          Already have an account?{' '}
+          <Link to="/login" className="text-brand-400 hover:text-brand-300 font-medium transition-colors">
+            Sign in
+          </Link>
+        </p>
+
+        <p className="mt-6 text-center text-white/15 text-xs">
+          © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
+}
+tePresence>
+        </div>
+
+        <p className="mt-6 text-center text-white/40 text-sm">
+          Already have an account?{' '}
+          <Link to="/login" className="text-brand-400 hover:text-brand-300 font-medium transition-colors">
+            Sign in
+          </Link>
+        </p>
+
+        <p className="mt-6 text-center text-white/15 text-xs">
+          © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
+}
+           key="step-subjects"
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+              >
+                <h2 className="text-2xl font-bold text-white mb-1">Your Subjects</h2>
+                <p className="text-white/40 mb-6 text-sm">Select the subjects you&apos;re studying.</p>
+
+                {isLoadingSubjects ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="w-8 h-8 text-brand-400 animate-spin" />
+                  </div>
+                ) : availableSubjects.length === 0 ? (
+                  <p className="text-white/40 text-sm text-center py-8">
+                    No subjects found for your institution. You can add them later in Settings.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    {availableSubjects.map((subject) => (
+                      <button
+                        key={subject}
+                        type="button"
+                        onClick={() => toggleSubject(subject)}
+                        className={cn(
+                          'px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200',
+                          selectedSubjects.includes(subject)
+                            ? 'border-brand-500 bg-brand-500/20 text-brand-300'
+                            : 'border-white/10 bg-surface-100/50 text-white/60 hover:border-white/20 hover:bg-surface-100'
+                        )}
+                      >
+                        {subject}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button type="button" onClick={goBack} className="btn-ghost flex items-center gap-2 py-3 px-4">
+                    <ArrowLeft className="w-4 h-4" /> Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onSubjectsContinue}
+                    className="btn-primary flex-1 flex items-center justify-center gap-2 py-3"
+                  >
+                    Finish <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+          </AnimatePresence>
+        </div>
+
+        <p className="mt-6 text-center text-white/40 text-sm">
+          Already have an account?{' '}
+          <Link to="/login" className="text-brand-400 hover:text-brand-300 font-medium transition-colors">
+            Sign in
+          </Link>
+        </p>
+
+        <p className="mt-6 text-center text-white/15 text-xs">
+          © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
+}
+tePresence>
+        </div>
+
+        <p className="mt-6 text-center text-white/40 text-sm">
+          Already have an account?{' '}
+          <Link to="/login" className="text-brand-400 hover:text-brand-300 font-medium transition-colors">
+            Sign in
+          </Link>
+        </p>
+
+        <p className="mt-6 text-center text-white/15 text-xs">
+          © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
+}
+          )}
+
+          </AnimatePresence>
+        </div>
+
+        <p className="mt-6 text-center text-white/40 text-sm">
+          Already have an account?{' '}
+          <Link to="/login" className="text-brand-400 hover:text-brand-300 font-medium transition-colors">
+            Sign in
+          </Link>
+        </p>
+
+        <p className="mt-6 text-center text-white/15 text-xs">
+          © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
+}
+tePresence>
+        </div>
+
+        <p className="mt-6 text-center text-white/40 text-sm">
+          Already have an account?{' '}
+          <Link to="/login" className="text-brand-400 hover:text-brand-300 font-medium transition-colors">
+            Sign in
+          </Link>
+        </p>
+
+        <p className="mt-6 text-center text-white/15 text-xs">
+          © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
+}
+ Pvt Ltd. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
+}
+tePresence>
+        </div>
+
+        <p className="mt-6 text-center text-white/40 text-sm">
+          Already have an account?{' '}
+          <Link to="/login" className="text-brand-400 hover:text-brand-300 font-medium transition-colors">
+            Sign in
+          </Link>
+        </p>
+
+        <p className="mt-6 text-center text-white/15 text-xs">
+          © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
+}
+          )}
+
+          </AnimatePresence>
+        </div>
+
+        <p className="mt-6 text-center text-white/40 text-sm">
+          Already have an account?{' '}
+          <Link to="/login" className="text-brand-400 hover:text-brand-300 font-medium transition-colors">
+            Sign in
+          </Link>
+        </p>
+
+        <p className="mt-6 text-center text-white/15 text-xs">
+          © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
+}
+tePresence>
+        </div>
+
+        <p className="mt-6 text-center text-white/40 text-sm">
+          Already have an account?{' '}
+          <Link to="/login" className="text-brand-400 hover:text-brand-300 font-medium transition-colors">
+            Sign in
+          </Link>
+        </p>
+
+        <p className="mt-6 text-center text-white/15 text-xs">
+          © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
+}
+n-colors">
+            Sign in
+          </Link>
+        </p>
+
+        <p className="mt-6 text-center text-white/15 text-xs">
+          © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
+}
+ Pvt Ltd. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
+}
+tePresence>
+        </div>
+
+        <p className="mt-6 text-center text-white/40 text-sm">
+          Already have an account?{' '}
+          <Link to="/login" className="text-brand-400 hover:text-brand-300 font-medium transition-colors">
+            Sign in
+          </Link>
+        </p>
+
+        <p className="mt-6 text-center text-white/15 text-xs">
+          © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
+}
+          )}
+
+          </AnimatePresence>
+        </div>
+
+        <p className="mt-6 text-center text-white/40 text-sm">
+          Already have an account?{' '}
+          <Link to="/login" className="text-brand-400 hover:text-brand-300 font-medium transition-colors">
+            Sign in
+          </Link>
+        </p>
+
+        <p className="mt-6 text-center text-white/15 text-xs">
+          © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
+}
+tePresence>
         </div>
 
         <p className="mt-6 text-center text-white/40 text-sm">
