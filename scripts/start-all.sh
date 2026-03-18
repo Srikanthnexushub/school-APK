@@ -288,7 +288,7 @@ bash "${SCRIPT_DIR}/health-check.sh" --quiet 2>/dev/null || true
 
 echo ""
 echo -e "${BOLD}Useful URLs:${NC}"
-echo "  Frontend         → http://localhost:5173"
+echo "  Frontend         → http://localhost:3000"
 echo "  API Gateway      → http://localhost:8180/actuator/health"
 echo "  Student Gateway  → http://localhost:8089/actuator/health"
 echo "  Kafka UI         → http://localhost:${KAFKA_UI_PORT:-9080}"
