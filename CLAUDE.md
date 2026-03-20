@@ -100,6 +100,41 @@ Usually means Redis is unreachable. Fix Redis first (see above), then auth-svc r
 ### `mvn test-compile` fails
 Check for Java compilation errors in test files. Run: `mvn test-compile --no-transfer-progress 2>&1 | grep ERROR`
 
+### Exam creation returns empty 403 (not an auth issue)
+**Symptom:** `POST /api/v1/exams` returns 403 with empty response body.
+**Cause:** `ExamMode` enum only has `STANDARD` and `CAT`. Sending `"mode": "ONLINE"` causes Jackson deserialization failure BEFORE the controller is reached. Spring Security renders the error as an empty 403.
+**Fix:** Use `"mode": "STANDARD"` or `"mode": "CAT"`.
+
+### `POST /api/v1/questions` returns 403
+Wrong URL. Questions are scoped per exam.
+**Fix:** Use `POST /api/v1/exams/{examId}/questions`.
+
+### Login response has no userId / role
+`POST /api/v1/auth/login` returns only `{ accessToken, refreshToken }`.
+To get userId/role/centerId, decode the JWT payload:
+```js
+const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+// payload.sub = userId, payload.role, payload.centerId
+```
+
+### DeviceFingerprint must be a JSON object, not a string
+```json
+"deviceFingerprint": { "userAgent": "E2E-Test/1.0", "deviceId": "e2e-001", "ipSubnet": "127.0.0.1/24" }
+```
+Sending a plain string → 500.
+
+### `!` in passwords breaks bash curl
+Bash history expansion interprets `!` inside double-quoted strings.
+Use Python `urllib.request` for API calls with passwords that contain `!`.
+
+### StudentAssignmentsPage shows "No center linked"
+**Cause:** `auth_schema.users.center_id` is NULL for the student — JWT carries no `centerId` → store returns `undefined`.
+**Fix:** `UPDATE auth_schema.users SET center_id='<centerId>' WHERE email='<student>';`
+
+### AdminBatchesPage shows "No center found"
+**Cause:** `CenterService.resolveAccessibleCenters()` queries `findByOwnerId`. If `owner_id` ≠ CENTER_ADMIN userId the list is empty.
+**Fix:** `UPDATE center_schema.centers SET owner_id='<ca_userId>', admin_user_id='<ca_userId>' WHERE id='<centerId>';`
+
 ---
 
 ## Architecture Rules (NEVER violate)
@@ -147,6 +182,22 @@ Check for Java compilation errors in test files. Run: `mvn test-compile --no-tra
 | Advertisement Banners — center-svc V16 migration, Banner domain + BannerAudience (PARENT/CENTER_ADMIN/ALL), SUPER_ADMIN CRUD, date-window filtering, AdvertisementBanner hero carousel (auto-rotate, pause-on-hover, nav dots), FooterBanner cyclic strip, integrated into ParentDashboard + AdminDashboard, SUPER_ADMIN banner management tab, BannerControllerIT (12 IT) | `center-svc: V16, Banner*.java, BannerService, BannerController`; `frontend: AdvertisementBanner.tsx, FooterBanner.tsx, AdminBannersPage.tsx` | d301e53 |
 
 Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (63+ fixes)
+
+---
+
+## E2E Demo Data (Full Journey — completed 2026-03-20)
+
+All entities created dynamically (timestamp namespace `TS=1773998793`). Full details in memory: `e2e-demo-data.md`.
+
+| Entity | Value |
+|---|---|
+| **Institute** | NexusEd Demo Academy · centerId `174f6651-418a-40d2-8ecf-c386ff19ac7c` |
+| **CENTER_ADMIN** | `ca_1773998793@nexused-demo.edu` / `Demo@2026!` · userId `6deef1e4-65f8-428b-b98a-9c9b3b6e1779` |
+| **Batch** | JEE 2026 - Batch A · batchId `3889199a-55c0-4992-8375-109df8648b1d` |
+| **Student** | Aryan Kumar · `student_1773998793@nexused-demo.edu` · userId `ee624ff9-8a50-495e-a1c5-8d5bbe8db1b9` |
+| **Parent** | Suresh Kumar · `parent_1773998793@nexused-demo.edu` · FATHER→Aryan (ACTIVE) |
+| **Exam** | JEE Mathematics Chapter 5 Quiz · examId `18daac77-b595-44ae-9226-8b253e12e832` · PUBLISHED · 5Q · 50 marks · Score: 40/50=80% |
+| **Assignment** | Quadratic Equations Practice Set · assignId `c4527cf6-ccd3-4f2e-9b00-9f3300c61369` · PUBLISHED · Score: 18/20 GRADED |
 
 ---
 
