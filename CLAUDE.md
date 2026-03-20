@@ -196,6 +196,7 @@ Use Python `urllib.request` for API calls with passwords that contain `!`.
 | Disk space permanent fix — log watchdog in start-all.sh (100 MB cap, 10 min interval), scripts/cleanup.sh (new), .gitignore additions (playwright, PNGs, .venv), performance-svc Kafka log suppression | `scripts/start-all.sh`, `scripts/cleanup.sh`, `.gitignore`, `performance-svc/application.yml` | 7f01e5d |
 | Register dropdown fix + district for all roles — SearchableSelect/MultiSelectDropdown: onBlur moved to container div with relatedTarget check (fixes blink-and-close caused by inner autoFocus); District SearchableSelect added to STUDENT (new), PARENT (was text input), TEACHER (was text input), INSTITUTION_ADMIN (new); all data from getDistricts() in indiaLocations.ts; studentDistrict sent in student profile POST | `RegisterPage.tsx` | c75c549 |
 | Universal address fields + correct field order — Address Line 1 + Line 2 added to STUDENT, PARENT, TEACHER (was only on INSTITUTION_ADMIN); order standardised: Address L1 → Address L2 → Country → State → District → City → Pincode for all 4 roles; TEACHER gains Pincode; state onChange cascades to clear District + City; student POST sends combined address | `RegisterPage.tsx` | bd6964e |
+| Location fields side-by-side grid layout — Country+State in grid-cols-2, District+City in grid-cols-2, for all 4 roles (STUDENT/PARENT/TEACHER/INSTITUTION_ADMIN). Layout-only, no logic changes. | `RegisterPage.tsx` | b46b775 |
 
 Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (65+ fixes)
 
