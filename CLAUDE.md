@@ -143,8 +143,10 @@ Check for Java compilation errors in test files. Run: `mvn test-compile --no-tra
 | Pre-commit hook — TypeScript check blocks broken commits | `.git/hooks/pre-commit` | 4458d30 |
 | Jobs feature — My Postings (full CRUD + stat cards + inline status transitions) + Job Board (paginated public view across all institutions, city/role/type filters) | `AdminJobsPage.tsx`, `PostJobModal.tsx`, `jobConstants.ts`, `AdminPortalPage.tsx`, center-svc: `JobPosting.java`, `JobPostingService.java`, `JobPostingController.java`, `V14+V15 migrations`, `SpringDataJobPostingRepository.java` (CAST fix), api-gateway route `/api/v1/jobs/**` | 1b19097 |
 | Institution Portal E2E (22 Playwright tests) + JobPosting IT (17 Spring IT) | `tests/e2e/institution-portal.spec.ts`, `JobPostingControllerIT.java` | 7f01c7b |
+| Assignments (centralized, all-role RBAC) — assess-svc V10+V11 migrations, Assignment + AssignmentSubmission domain, DRAFT→PUBLISHED→CLOSED state machine, late submission detection, 12 REST endpoints, AssignmentControllerIT (17 IT), StudentAssignmentsPage, MentorPortalAssignmentsPage, AdminAssignmentsTab | `assess-svc: V10+V11, Assignment*.java, AssignmentService, AssignmentController`; `frontend: StudentAssignmentsPage.tsx, MentorPortalAssignmentsPage.tsx, AdminAssignmentsTab.tsx` | d301e53 |
+| Advertisement Banners — center-svc V16 migration, Banner domain + BannerAudience (PARENT/CENTER_ADMIN/ALL), SUPER_ADMIN CRUD, date-window filtering, AdvertisementBanner hero carousel (auto-rotate, pause-on-hover, nav dots), FooterBanner cyclic strip, integrated into ParentDashboard + AdminDashboard, SUPER_ADMIN banner management tab, BannerControllerIT (12 IT) | `center-svc: V16, Banner*.java, BannerService, BannerController`; `frontend: AdvertisementBanner.tsx, FooterBanner.tsx, AdminBannersPage.tsx` | d301e53 |
 
-Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (61+ fixes)
+Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (63+ fixes)
 
 ---
 
