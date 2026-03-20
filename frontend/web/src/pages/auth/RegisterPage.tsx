@@ -410,6 +410,14 @@ export default function RegisterPage() {
   const [studentPincode, setStudentPincode] = useState('');
   // Student district
   const [studentDistrict, setStudentDistrict] = useState('');
+  // Student address
+  const [studentAddressLine1, setStudentAddressLine1] = useState('');
+  const [studentAddressLine2, setStudentAddressLine2] = useState('');
+  // Parent address line 2 (line 1 reuses parentAddress)
+  const [parentAddressLine2, setParentAddressLine2] = useState('');
+  // Teacher address line 2 + pincode
+  const [teacherAddressLine2, setTeacherAddressLine2] = useState('');
+  const [teacherPincode, setTeacherPincode] = useState('');
   // Institution district
   const [instDistrict, setInstDistrict] = useState('');
 
@@ -678,6 +686,7 @@ export default function RegisterPage() {
             phone: step1Data.phone || undefined,
             gender: selectedGender || undefined,
             dateOfBirth: step1Data.dateOfBirth!,
+            address: [studentAddressLine1, studentAddressLine2].filter(Boolean).join(', ') || undefined,
             city: studentCity || undefined,
             state: studentStateVal || undefined,
             district: studentDistrict || undefined,
@@ -741,7 +750,7 @@ export default function RegisterPage() {
             email: step1Data.email,
             occupation: parentOccupation || undefined,
             gender: selectedGender || undefined,
-            address: parentAddress || undefined,
+            address: [parentAddress, parentAddressLine2].filter(Boolean).join(', ') || undefined,
             city: parentCity || undefined,
             state: parentState || undefined,
             district: parentDistrict || undefined,
@@ -1023,6 +1032,14 @@ export default function RegisterPage() {
                                 {errors.dateOfBirth && <p className="text-red-400 text-xs mt-1">{errors.dateOfBirth.message}</p>}
                               </div>
                             </div>
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address Line 1 <span className="text-white/30">(optional)</span></label>
+                              <input type="text" value={studentAddressLine1} onChange={(e) => setStudentAddressLine1(e.target.value)} placeholder="e.g. 12 Park Avenue" className="input w-full" />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address Line 2 <span className="text-white/30">(optional)</span></label>
+                              <input type="text" value={studentAddressLine2} onChange={(e) => setStudentAddressLine2(e.target.value)} placeholder="e.g. Andheri West" className="input w-full" />
+                            </div>
                             <SearchableSelect
                               label="Country"
                               value={studentCountry}
@@ -1035,9 +1052,18 @@ export default function RegisterPage() {
                             <SearchableSelect
                               label="State"
                               value={studentStateVal}
-                              onChange={(v) => { setStudentStateVal(v); setStudentCity(''); }}
+                              onChange={(v) => { setStudentStateVal(v); setStudentCity(''); setStudentDistrict(''); }}
                               options={suggestStates('')}
                               placeholder="Select state…"
+                              optional
+                              allowCustom
+                            />
+                            <SearchableSelect
+                              label="District"
+                              value={studentDistrict}
+                              onChange={setStudentDistrict}
+                              options={studentStateVal ? getDistricts(studentStateVal) : []}
+                              placeholder="Select district…"
                               optional
                               allowCustom
                             />
@@ -1048,15 +1074,6 @@ export default function RegisterPage() {
                               options={studentStateVal ? getCitiesForState(studentStateVal) : []}
                               placeholder="Type to search city…"
                               optional
-                            />
-                            <SearchableSelect
-                              label="District"
-                              value={studentDistrict}
-                              onChange={setStudentDistrict}
-                              options={studentStateVal ? getDistricts(studentStateVal) : []}
-                              placeholder="Select district…"
-                              optional
-                              allowCustom
                             />
                             <div>
                               <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-white/30">(optional)</span></label>
@@ -1096,12 +1113,15 @@ export default function RegisterPage() {
                               </select>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address <span className="text-white/30">(optional)</span></label>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address Line 1 <span className="text-white/30">(optional)</span></label>
                               <input type="text" value={parentAddress} onChange={(e) => setParentAddress(e.target.value)} placeholder="e.g. 12 Park Avenue" className="input w-full" />
                             </div>
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address Line 2 <span className="text-white/30">(optional)</span></label>
+                              <input type="text" value={parentAddressLine2} onChange={(e) => setParentAddressLine2(e.target.value)} placeholder="e.g. Andheri West" className="input w-full" />
+                            </div>
                             <SearchableSelect label="Country" value={parentCountry} onChange={setParentCountry} options={WORLD_COUNTRIES} placeholder="Select country…" optional allowCustom />
-                            <SearchableSelect label="State" value={parentState} onChange={(v) => { setParentState(v); setParentCity(''); }} options={suggestStates('')} placeholder="Select state…" optional allowCustom />
-                            <AutocompleteInput label="City" value={parentCity} onChange={setParentCity} options={parentState ? getCitiesForState(parentState) : []} placeholder="Type to search city…" optional />
+                            <SearchableSelect label="State" value={parentState} onChange={(v) => { setParentState(v); setParentCity(''); setParentDistrict(''); }} options={suggestStates('')} placeholder="Select state…" optional allowCustom />
                             <SearchableSelect
                               label="District"
                               value={parentDistrict}
@@ -1111,6 +1131,7 @@ export default function RegisterPage() {
                               optional
                               allowCustom
                             />
+                            <AutocompleteInput label="City" value={parentCity} onChange={setParentCity} options={parentState ? getCitiesForState(parentState) : []} placeholder="Type to search city…" optional />
                             <div>
                               <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-white/30">(optional)</span></label>
                               <input type="text" value={parentPincode} onChange={(e) => setParentPincode(e.target.value)} placeholder="e.g. 110001" className="input w-full" />
@@ -1201,12 +1222,15 @@ export default function RegisterPage() {
                               </div>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address <span className="text-white/30">(optional)</span></label>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address Line 1 <span className="text-white/30">(optional)</span></label>
                               <input type="text" value={teacherAddress} onChange={(e) => setTeacherAddress(e.target.value)} placeholder="e.g. 45 MG Road, Apartment 3B" className="input w-full" />
                             </div>
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address Line 2 <span className="text-white/30">(optional)</span></label>
+                              <input type="text" value={teacherAddressLine2} onChange={(e) => setTeacherAddressLine2(e.target.value)} placeholder="e.g. Andheri West" className="input w-full" />
+                            </div>
                             <SearchableSelect label="Country" value={teacherCountry} onChange={setTeacherCountry} options={WORLD_COUNTRIES} placeholder="Select country…" optional allowCustom />
-                            <SearchableSelect label="State" value={teacherStateVal} onChange={(v) => { setTeacherStateVal(v); setTeacherCity(''); }} options={suggestStates('')} placeholder="Select state…" optional allowCustom />
-                            <AutocompleteInput label="City" value={teacherCity} onChange={setTeacherCity} options={teacherStateVal ? getCitiesForState(teacherStateVal) : []} placeholder="Type to search city…" optional />
+                            <SearchableSelect label="State" value={teacherStateVal} onChange={(v) => { setTeacherStateVal(v); setTeacherCity(''); setTeacherDistrict(''); }} options={suggestStates('')} placeholder="Select state…" optional allowCustom />
                             <SearchableSelect
                               label="District"
                               value={teacherDistrict}
@@ -1216,6 +1240,11 @@ export default function RegisterPage() {
                               optional
                               allowCustom
                             />
+                            <AutocompleteInput label="City" value={teacherCity} onChange={setTeacherCity} options={teacherStateVal ? getCitiesForState(teacherStateVal) : []} placeholder="Type to search city…" optional />
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-white/30">(optional)</span></label>
+                              <input type="text" value={teacherPincode} onChange={(e) => setTeacherPincode(e.target.value)} placeholder="e.g. 400058" className="input w-full" />
+                            </div>
                           </div>
                         )}
 
@@ -1256,8 +1285,7 @@ export default function RegisterPage() {
                               <input type="text" value={instAddressLine2} onChange={(e) => setInstAddressLine2(e.target.value)} placeholder="e.g. Andheri West" className="input w-full" />
                             </div>
                             <SearchableSelect label="Country" value={instCountry} onChange={setInstCountry} options={WORLD_COUNTRIES} placeholder="Select country…" optional allowCustom />
-                            <SearchableSelect label="State" value={instStateVal} onChange={(v) => { setInstStateVal(v); setInstitutionCity(''); }} options={suggestStates('')} placeholder="Select state…" optional allowCustom />
-                            <AutocompleteInput label="City" value={institutionCity} onChange={setInstitutionCity} options={instStateVal ? getCitiesForState(instStateVal) : []} placeholder="Type to search city…" optional />
+                            <SearchableSelect label="State" value={instStateVal} onChange={(v) => { setInstStateVal(v); setInstitutionCity(''); setInstDistrict(''); }} options={suggestStates('')} placeholder="Select state…" optional allowCustom />
                             <SearchableSelect
                               label="District"
                               value={instDistrict}
@@ -1267,6 +1295,7 @@ export default function RegisterPage() {
                               optional
                               allowCustom
                             />
+                            <AutocompleteInput label="City" value={institutionCity} onChange={setInstitutionCity} options={instStateVal ? getCitiesForState(instStateVal) : []} placeholder="Type to search city…" optional />
                             <div>
                               <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-white/30">(optional)</span></label>
                               <input type="text" value={instPincode} onChange={(e) => setInstPincode(e.target.value)} placeholder="e.g. 400058" className="input w-full" />
