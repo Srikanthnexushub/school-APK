@@ -302,7 +302,7 @@ function calculateAge(dob: string): number {
   return age;
 }
 
-type Role = 'STUDENT' | 'PARENT' | 'TEACHER' | 'CENTER_ADMIN';
+type Role = 'STUDENT' | 'PARENT' | 'TEACHER' | 'INSTITUTION_ADMIN';
 
 const TEACHER_SUBJECTS = [
   'Mathematics', 'Physics', 'Chemistry', 'Biology', 'English', 'Hindi',
@@ -312,10 +312,10 @@ const TEACHER_SUBJECTS = [
 ];
 
 const roleOptions: { role: Role; label: string }[] = [
-  { role: 'STUDENT',      label: 'Student' },
-  { role: 'PARENT',       label: 'Parent / Guardian' },
-  { role: 'TEACHER',      label: 'Teacher' },
-  { role: 'CENTER_ADMIN', label: 'Institution / Coaching Centre' },
+  { role: 'STUDENT',           label: 'Student' },
+  { role: 'PARENT',            label: 'Parent / Guardian' },
+  { role: 'TEACHER',           label: 'Teacher' },
+  { role: 'INSTITUTION_ADMIN', label: 'Institution / Coaching Centre' },
 ];
 
 const slideVariants = {
@@ -415,7 +415,7 @@ export default function RegisterPage() {
       const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;
       setAuth(jwt, { id: u.id, email: u.email, role: u.role, name }, refreshToken, deviceId);
       toast.success('Signed in with Google!');
-      if (u.role === 'CENTER_ADMIN' || u.role === 'SUPER_ADMIN') navigate('/admin');
+      if (u.role === 'CENTER_ADMIN' || u.role === 'INSTITUTION_ADMIN' || u.role === 'SUPER_ADMIN') navigate('/admin');
       else if (u.role === 'PARENT') navigate('/parent');
       else if (u.role === 'TEACHER') navigate('/mentor-portal');
       else navigate('/dashboard');
@@ -529,13 +529,13 @@ export default function RegisterPage() {
     setStep1Data(data);
 
     // Validate firstName/lastName for non-CENTER_ADMIN roles (schema allows optional)
-    if (selectedRole !== 'CENTER_ADMIN') {
+    if (selectedRole !== 'INSTITUTION_ADMIN') {
       if (!data.firstName?.trim()) { toast.error('First name is required'); return; }
       if (!data.lastName?.trim()) { toast.error('Last name is required'); return; }
     }
 
     // CENTER_ADMIN: validate institution fields
-    if (selectedRole === 'CENTER_ADMIN') {
+    if (selectedRole === 'INSTITUTION_ADMIN') {
       if (!institutionName.trim()) { toast.error('Institution name is required'); return; }
       if (!institutionCity.trim()) { toast.error('City is required'); return; }
       if (!institutionPhone.trim()) { toast.error('Institution phone is required'); return; }
@@ -545,10 +545,10 @@ export default function RegisterPage() {
     try {
       const deviceId = crypto.randomUUID();
       setRegDeviceId(deviceId);
-      const instWords = selectedRole === 'CENTER_ADMIN' ? institutionName.trim().split(/\s+/) : [];
+      const instWords = selectedRole === 'INSTITUTION_ADMIN' ? institutionName.trim().split(/\s+/) : [];
       const response = await api.post('/api/v1/auth/register', {
-        firstName: selectedRole === 'CENTER_ADMIN' ? (instWords[0] || institutionName.trim()) : data.firstName,
-        lastName: selectedRole === 'CENTER_ADMIN' ? (instWords.slice(1).join(' ') || instWords[0] || '-') : data.lastName,
+        firstName: selectedRole === 'INSTITUTION_ADMIN' ? (instWords[0] || institutionName.trim()) : data.firstName,
+        lastName: selectedRole === 'INSTITUTION_ADMIN' ? (instWords.slice(1).join(' ') || instWords[0] || '-') : data.lastName,
         email: data.email,
         password: data.password,
         role: selectedRole,
@@ -772,8 +772,8 @@ export default function RegisterPage() {
         return;
       }
 
-      // CENTER_ADMIN: create their institution in center-svc then redirect
-      if (selectedRole === 'CENTER_ADMIN') {
+      // INSTITUTION_ADMIN: create their institution in center-svc then redirect
+      if (selectedRole === 'INSTITUTION_ADMIN') {
         if (regToken) {
           try {
             await axios.post(
@@ -957,7 +957,7 @@ export default function RegisterPage() {
                         </div>
 
                         {/* First Name + Last Name — hidden for CENTER_ADMIN (derived from institution name) */}
-                        {selectedRole !== 'CENTER_ADMIN' && (
+                        {selectedRole !== 'INSTITUTION_ADMIN' && (
                           <div className="grid grid-cols-2 gap-3">
                             <div>
                               <label className="block text-sm font-medium text-white/70 mb-1.5">First Name</label>
@@ -1187,7 +1187,7 @@ export default function RegisterPage() {
                         )}
 
                         {/* Role-specific fields — INSTITUTION */}
-                        {selectedRole === 'CENTER_ADMIN' && (
+                        {selectedRole === 'INSTITUTION_ADMIN' && (
                           <div className="space-y-3 pt-1">
                             <div className="h-px bg-white/5" />
                             <CreatableInput

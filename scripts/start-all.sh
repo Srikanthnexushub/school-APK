@@ -140,6 +140,71 @@ fi
 
 # ── service launcher helpers ──────────────────────────────────────────────────
 
+# rotate_log <log_file>
+# On startup: rotates current log to .1, deletes any backup > LOG_ROTATE_MAX_MB.
+LOG_ROTATE_MAX_MB=50
+rotate_log() {
+  local log_file="$1"
+  local max_bytes=$(( LOG_ROTATE_MAX_MB * 1024 * 1024 ))
+
+  if [[ -f "${log_file}" && -s "${log_file}" ]]; then
+    local size
+    size=$(wc -c < "${log_file}" 2>/dev/null || echo 0)
+    if [[ ${size} -gt ${max_bytes} ]]; then
+      warn "  Log $(basename "${log_file}") is $(( size / 1024 / 1024 )) MB — rotating."
+    fi
+    [[ -f "${log_file}.2" ]] && mv -f "${log_file}.2" "${log_file}.3"
+    [[ -f "${log_file}.1" ]] && mv -f "${log_file}.1" "${log_file}.2"
+    mv -f "${log_file}" "${log_file}.1"
+  fi
+
+  # Hard delete any backup over the limit (including .watchdog.* files)
+  for old in "${log_file}.3" "${log_file}.2" "${log_file}.1"; do
+    if [[ -f "${old}" ]]; then
+      local old_size
+      old_size=$(wc -c < "${old}" 2>/dev/null || echo 0)
+      if [[ ${old_size} -gt ${max_bytes} ]]; then
+        warn "  Deleting oversized rotated log $(basename "${old}") ($(( old_size / 1024 / 1024 )) MB)"
+        rm -f "${old}"
+      fi
+    fi
+  done
+  # Remove leftover watchdog backups for this log
+  rm -f "${log_file}".watchdog.* 2>/dev/null || true
+}
+
+# start_log_watchdog
+# Runs in background for the lifetime of this shell session.
+# Every LOG_WATCHDOG_INTERVAL_MIN minutes it checks all *.log files under LOGS_DIR.
+# Any active log exceeding LOG_WATCHDOG_MAX_MB is truncated in-place (copy+truncate).
+# On macOS/APFS the sparse holes created by the writing process consume no disk space.
+LOG_WATCHDOG_MAX_MB=100
+LOG_WATCHDOG_INTERVAL_MIN=10
+start_log_watchdog() {
+  local max_bytes=$(( LOG_WATCHDOG_MAX_MB * 1024 * 1024 ))
+  local interval=$(( LOG_WATCHDOG_INTERVAL_MIN * 60 ))
+  (
+    while true; do
+      sleep "${interval}"
+      for log_file in "${LOGS_DIR}"/*.log; do
+        [[ -f "${log_file}" ]] || continue
+        local size
+        size=$(wc -c < "${log_file}" 2>/dev/null || echo 0)
+        if [[ ${size} -gt ${max_bytes} ]]; then
+          local stamp
+          stamp=$(date +%H%M)
+          warn "Watchdog: $(basename "${log_file}") is $(( size / 1024 / 1024 )) MB — truncating."
+          cp -f "${log_file}" "${log_file}.watchdog.${stamp}" 2>/dev/null || true
+          : > "${log_file}"   # truncate in-place; APFS sparse = no disk wasted
+          # Prune watchdog backups older than 1 day
+          find "${LOGS_DIR}" -name "*.watchdog.*" -mtime +1 -delete 2>/dev/null || true
+        fi
+      done
+    done
+  ) &
+  info "Log watchdog started (cap: ${LOG_WATCHDOG_MAX_MB} MB, interval: ${LOG_WATCHDOG_INTERVAL_MIN} min)."
+}
+
 # start_svc <module-path> <display-name> <health-port> [health-path]
 start_svc() {
   local module_path="$1"
@@ -158,6 +223,8 @@ start_svc() {
     fi
     rm -f "${pid_file}"
   fi
+
+  rotate_log "${log_file}"
 
   info "Starting ${name} on port ${port}..."
 
@@ -297,4 +364,6 @@ echo ""
 echo -e "${BOLD}Logs:${NC}  tail -f ${LOGS_DIR}/<service>.log"
 echo -e "${BOLD}Stop:${NC}  bash scripts/stop-all.sh"
 echo ""
+start_log_watchdog
+
 info "All services started. Happy coding!"

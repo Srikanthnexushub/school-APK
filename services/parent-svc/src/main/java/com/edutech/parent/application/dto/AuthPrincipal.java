@@ -16,11 +16,15 @@ public record AuthPrincipal(
         return role == Role.SUPER_ADMIN;
     }
 
+    public boolean isInstitutionAdmin() {
+        return role == Role.INSTITUTION_ADMIN;
+    }
+
     public boolean isParent() {
         return role == Role.PARENT;
     }
 
     public boolean ownsProfile(UUID profileUserId) {
-        return isSuperAdmin() || userId.equals(profileUserId);
+        return isSuperAdmin() || isInstitutionAdmin() || userId.equals(profileUserId);
     }
 }

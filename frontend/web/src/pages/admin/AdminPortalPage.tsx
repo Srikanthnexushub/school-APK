@@ -50,6 +50,7 @@ export default function AdminPortalPage() {
   const activeTab = (searchParams.get('tab') as TabId) ?? 'overview';
   const role = useAuthStore(s => s.user?.role);
   const isSuperAdmin = role === 'SUPER_ADMIN';
+  const isInstitutionAdmin = role === 'INSTITUTION_ADMIN';
   const isCenterAdmin = role === 'CENTER_ADMIN';
 
   const switchTab = (id: TabId) => {
@@ -58,8 +59,8 @@ export default function AdminPortalPage() {
   };
 
   const visibleTabs = TABS.filter(t =>
-    (!t.superAdminOnly || isSuperAdmin) &&
-    (!t.centerAdminOnly || isCenterAdmin || isSuperAdmin)
+    (!t.superAdminOnly || isSuperAdmin || isInstitutionAdmin) &&
+    (!t.centerAdminOnly || isCenterAdmin || isSuperAdmin || isInstitutionAdmin)
   );
 
   return (

@@ -61,3 +61,31 @@ dist/
 .expo/
 BOOT-INF/
 logs/
+
+### Playwright / MCP test artifacts ###
+.playwright-mcp/
+.playwright/
+test-results/
+playwright-report/
+
+### Python virtual environments & compiled files ###
+python-ai-svc/.venv/
+**/.venv/
+**/venv/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.pytest_cache/
+**/.coverage
+
+### Screenshots & test captures (generated at runtime) ###
+/*.png
+/*.jpg
+/*.jpeg
+docs/screenshots/
+
+### Redis persistence (local dev) ###
+dump.rdb
+
+### Runtime log rotation watchdog backups ###
+logs/*.watchdog.*

@@ -53,6 +53,12 @@ public class UserRegistrationService implements RegisterUserUseCase {
             throw new CaptchaVerificationException("Captcha verification failed");
         }
 
+        // SUPER_ADMIN cannot self-register — only created by platform operators directly in DB.
+        // INSTITUTION_ADMIN IS permitted to self-register (via the "Institution" flow in RegisterPage).
+        if (request.role() == Role.SUPER_ADMIN) {
+            throw new IllegalArgumentException("Self-registration is not permitted for this role");
+        }
+
         if (userRepository.existsByEmail(request.email())) {
             throw new EmailAlreadyExistsException(request.email());
         }

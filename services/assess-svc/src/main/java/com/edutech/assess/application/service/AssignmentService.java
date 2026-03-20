@@ -42,10 +42,10 @@ public class AssignmentService {
     }
 
     public AssignmentResponse createAssignment(CreateAssignmentRequest request, AuthPrincipal principal) {
-        if (!principal.isSuperAdmin() && !principal.isTeacher() && !principal.isCenterAdmin()) {
+        if (!principal.isSuperAdmin() && !principal.isInstitutionAdmin() && !principal.isTeacher() && !principal.isCenterAdmin()) {
             throw new AssignmentAccessDeniedException();
         }
-        if (!principal.isSuperAdmin() && !principal.belongsToCenter(request.centerId())) {
+        if (!principal.isSuperAdmin() && !principal.isInstitutionAdmin() && !principal.belongsToCenter(request.centerId())) {
             throw new AssignmentAccessDeniedException();
         }
         Assignment assignment = Assignment.create(
@@ -70,7 +70,7 @@ public class AssignmentService {
     public AssignmentResponse getAssignment(UUID id, AuthPrincipal principal) {
         Assignment assignment = assignmentRepository.findActiveById(id)
                 .orElseThrow(() -> new AssignmentNotFoundException(id));
-        if (principal.isSuperAdmin()) {
+        if (principal.isSuperAdmin() || principal.isInstitutionAdmin()) {
             // always allowed
         } else if (principal.isCenterAdmin() || principal.isTeacher()) {
             if (!principal.belongsToCenter(assignment.getCenterId())) {

@@ -9,4 +9,8 @@ public record AuthPrincipal(UUID userId, String email, Role role, UUID centerId,
     public boolean isSuperAdmin() {
         return role == Role.SUPER_ADMIN;
     }
+
+    public boolean isInstitutionAdmin() {
+        return role == Role.INSTITUTION_ADMIN;
+    }
 }

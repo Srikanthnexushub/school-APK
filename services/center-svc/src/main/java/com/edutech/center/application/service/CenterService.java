@@ -52,7 +52,7 @@ public class CenterService implements CreateCenterUseCase, UpdateCenterUseCase {
     @Override
     @Transactional
     public CenterResponse createCenter(CreateCenterRequest request, AuthPrincipal principal) {
-        if (principal.role() != Role.SUPER_ADMIN) {
+        if (principal.role() != Role.SUPER_ADMIN && principal.role() != Role.INSTITUTION_ADMIN) {
             throw new CenterAccessDeniedException();
         }
         if (centerRepository.existsByCode(request.code())) {
@@ -79,7 +79,7 @@ public class CenterService implements CreateCenterUseCase, UpdateCenterUseCase {
         CoachingCenter center = centerRepository.findById(centerId)
             .orElseThrow(() -> new CenterNotFoundException(centerId));
 
-        if (!principal.isSuperAdmin() && !center.getOwnerId().equals(principal.userId())) {
+        if (!principal.isSuperAdmin() && !principal.isInstitutionAdmin() && !center.getOwnerId().equals(principal.userId())) {
             throw new CenterAccessDeniedException();
         }
 
@@ -94,7 +94,7 @@ public class CenterService implements CreateCenterUseCase, UpdateCenterUseCase {
 
     @Transactional
     public CenterResponse selfRegisterCenter(InstitutionSelfRegisterRequest request, AuthPrincipal principal) {
-        if (principal.role() != Role.CENTER_ADMIN) {
+        if (principal.role() != Role.CENTER_ADMIN && principal.role() != Role.INSTITUTION_ADMIN) {
             throw new CenterAccessDeniedException();
         }
         CoachingCenter center = CoachingCenter.selfRegister(
@@ -125,6 +125,11 @@ public class CenterService implements CreateCenterUseCase, UpdateCenterUseCase {
     private List<CenterResponse> resolveAccessibleCenters(AuthPrincipal principal) {
         if (principal.isSuperAdmin()) {
             return centerRepository.findAll().stream().map(this::toResponse).toList();
+        }
+        if (principal.isInstitutionAdmin()) {
+            // INSTITUTION_ADMIN sees only centers they own (scoped to their institution)
+            return centerRepository.findByOwnerId(principal.userId())
+                    .stream().map(this::toResponse).toList();
         }
         Set<UUID> seen = new LinkedHashSet<>();
         List<CenterResponse> result = new ArrayList<>();

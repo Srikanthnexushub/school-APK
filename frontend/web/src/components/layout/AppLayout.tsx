@@ -69,19 +69,20 @@ const mentorNav: NavItem[] = [
 ];
 
 function getNavItems(role?: string): NavItem[] {
-  if (role === 'CENTER_ADMIN' || role === 'SUPER_ADMIN') return adminNav;
+  if (role === 'CENTER_ADMIN' || role === 'INSTITUTION_ADMIN' || role === 'SUPER_ADMIN') return adminNav;
   if (role === 'PARENT') return parentNav;
   if (role === 'TEACHER') return mentorNav;
   return studentNav;
 }
 
 const roleBadgeColors: Record<string, string> = {
-  STUDENT:     'bg-brand-500/20 text-brand-400',
-  CENTER_ADMIN:'bg-red-500/20 text-red-400',
-  SUPER_ADMIN: 'bg-red-500/20 text-red-400',
-  PARENT:      'bg-emerald-500/20 text-emerald-400',
-  TEACHER:     'bg-amber-500/20 text-amber-400',
-  GUEST:       'bg-white/10 text-white/40',
+  STUDENT:           'bg-brand-500/20 text-brand-400',
+  CENTER_ADMIN:      'bg-red-500/20 text-red-400',
+  INSTITUTION_ADMIN: 'bg-purple-500/20 text-purple-400',
+  SUPER_ADMIN:       'bg-red-500/20 text-red-400',
+  PARENT:            'bg-emerald-500/20 text-emerald-400',
+  TEACHER:           'bg-amber-500/20 text-amber-400',
+  GUEST:             'bg-white/10 text-white/40',
 };
 
 function RoleBadge({ role }: { role: string }) {
@@ -468,7 +469,7 @@ export default function AppLayout() {
     } else if (user.role === 'TEACHER' && mentorProfile) {
       const f = [mentorProfile.fullName, mentorProfile.email, user.avatarUrl, mentorProfile.bio, mentorProfile.specializations, mentorProfile.yearsOfExperience, mentorProfile.hourlyRate, (mentorProfile as { gender?: string }).gender];
       profilePct = Math.round(f.filter(Boolean).length / f.length * 100);
-    } else if (user.role === 'CENTER_ADMIN' || user.role === 'SUPER_ADMIN') {
+    } else if (user.role === 'CENTER_ADMIN' || user.role === 'INSTITUTION_ADMIN' || user.role === 'SUPER_ADMIN') {
       const f = [!!user.name, !!user.email, !!user.avatarUrl];
       profilePct = Math.round(f.filter(Boolean).length / f.length * 100);
     }

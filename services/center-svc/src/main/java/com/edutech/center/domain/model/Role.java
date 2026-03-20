@@ -3,6 +3,7 @@ package com.edutech.center.domain.model;
 
 public enum Role {
     SUPER_ADMIN,
+    INSTITUTION_ADMIN,
     CENTER_ADMIN,
     TEACHER,
     PARENT,

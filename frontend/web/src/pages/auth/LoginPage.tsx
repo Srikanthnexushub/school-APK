@@ -57,7 +57,7 @@ export default function LoginPage() {
       const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;
       setAuth(jwt, { id: u.id, email: u.email, role: u.role, name, centerId: u.centerId ?? undefined }, refreshToken, deviceId);
       toast.success('Signed in with Google!');
-      if (u.role === 'CENTER_ADMIN' || u.role === 'SUPER_ADMIN') navigate('/admin');
+      if (u.role === 'CENTER_ADMIN' || u.role === 'INSTITUTION_ADMIN' || u.role === 'SUPER_ADMIN') navigate('/admin');
       else if (u.role === 'PARENT') navigate('/parent');
       else if (u.role === 'TEACHER') navigate('/mentor-portal');
       else navigate('/dashboard');
@@ -76,7 +76,7 @@ export default function LoginPage() {
     const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;
     setAuth(accessToken, { id: u.id, email: u.email, role: u.role, name, centerId: u.centerId ?? undefined }, refreshToken, deviceId);
     toast.success('Welcome back!');
-    if (u.role === 'CENTER_ADMIN' || u.role === 'SUPER_ADMIN') navigate('/admin');
+    if (u.role === 'CENTER_ADMIN' || u.role === 'INSTITUTION_ADMIN' || u.role === 'SUPER_ADMIN') navigate('/admin');
     else if (u.role === 'PARENT') navigate('/parent');
     else if (u.role === 'TEACHER') navigate('/mentor-portal');
     else navigate('/dashboard');

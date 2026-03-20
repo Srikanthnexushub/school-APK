@@ -43,7 +43,7 @@ public class BannerService {
      * Creates a new platform banner. SUPER_ADMIN only.
      */
     public BannerResponse createBanner(CreateBannerRequest request, AuthPrincipal principal) {
-        if (!principal.isSuperAdmin()) throw new CenterAccessDeniedException();
+        if (!principal.isSuperAdmin() && !principal.isInstitutionAdmin()) throw new CenterAccessDeniedException();
         Banner banner = Banner.create(
                 request.title(),
                 request.subtitle(),
@@ -67,7 +67,7 @@ public class BannerService {
      * Updates editable banner details (PATCH semantics). SUPER_ADMIN only.
      */
     public BannerResponse updateBanner(UUID id, UpdateBannerRequest request, AuthPrincipal principal) {
-        if (!principal.isSuperAdmin()) throw new CenterAccessDeniedException();
+        if (!principal.isSuperAdmin() && !principal.isInstitutionAdmin()) throw new CenterAccessDeniedException();
         Banner banner = bannerRepository.findActiveById(id)
                 .orElseThrow(() -> new BannerNotFoundException(id));
         banner.updateDetails(
@@ -97,7 +97,7 @@ public class BannerService {
      * Toggles the active state of a banner. SUPER_ADMIN only.
      */
     public BannerResponse toggleActive(UUID id, AuthPrincipal principal) {
-        if (!principal.isSuperAdmin()) throw new CenterAccessDeniedException();
+        if (!principal.isSuperAdmin() && !principal.isInstitutionAdmin()) throw new CenterAccessDeniedException();
         Banner banner = bannerRepository.findActiveById(id)
                 .orElseThrow(() -> new BannerNotFoundException(id));
         if (banner.isActive()) {
@@ -116,7 +116,7 @@ public class BannerService {
      * Soft-deletes a banner. SUPER_ADMIN only.
      */
     public void deleteBanner(UUID id, AuthPrincipal principal) {
-        if (!principal.isSuperAdmin()) throw new CenterAccessDeniedException();
+        if (!principal.isSuperAdmin() && !principal.isInstitutionAdmin()) throw new CenterAccessDeniedException();
         Banner banner = bannerRepository.findActiveById(id)
                 .orElseThrow(() -> new BannerNotFoundException(id));
         banner.softDelete();
@@ -150,7 +150,7 @@ public class BannerService {
      */
     @Transactional(readOnly = true)
     public List<BannerResponse> getAllBanners(AuthPrincipal principal) {
-        if (!principal.isSuperAdmin()) throw new CenterAccessDeniedException();
+        if (!principal.isSuperAdmin() && !principal.isInstitutionAdmin()) throw new CenterAccessDeniedException();
         return bannerRepository.findAllActive().stream()
                 .map(this::toResponse)
                 .toList();

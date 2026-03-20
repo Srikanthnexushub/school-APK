@@ -15,4 +15,7 @@ public record AuthPrincipal(
     Role role,
     UUID centerId,
     String deviceFingerprintHash
-) {}
+) {
+    public boolean isSuperAdmin() { return role == Role.SUPER_ADMIN; }
+    public boolean isInstitutionAdmin() { return role == Role.INSTITUTION_ADMIN; }
+}

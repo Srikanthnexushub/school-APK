@@ -15,6 +15,10 @@ public record AuthPrincipal(
         return role == Role.SUPER_ADMIN;
     }
 
+    public boolean isInstitutionAdmin() {
+        return role == Role.INSTITUTION_ADMIN;
+    }
+
     public boolean isStudent() {
         return role == Role.STUDENT;
     }
@@ -24,6 +28,6 @@ public record AuthPrincipal(
     }
 
     public boolean belongsToCenter(UUID cId) {
-        return isSuperAdmin() || (centerId != null && centerId.equals(cId));
+        return isSuperAdmin() || isInstitutionAdmin() || (centerId != null && centerId.equals(cId));
     }
 }

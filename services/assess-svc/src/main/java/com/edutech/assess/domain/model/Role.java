@@ -2,7 +2,7 @@
 package com.edutech.assess.domain.model;
 
 public enum Role {
-    SUPER_ADMIN(6), CENTER_ADMIN(5), TEACHER(4), PARENT(3), STUDENT(2), GUEST(1);
+    SUPER_ADMIN(7), INSTITUTION_ADMIN(6), CENTER_ADMIN(5), TEACHER(4), PARENT(3), STUDENT(2), GUEST(1);
 
     private final int rank;
 

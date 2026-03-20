@@ -13,7 +13,7 @@ export function isJwtExpired(token: string): boolean {
 interface User {
   id: string;
   email: string;
-  role: 'STUDENT' | 'CENTER_ADMIN' | 'SUPER_ADMIN' | 'TEACHER' | 'PARENT' | 'GUEST';
+  role: 'STUDENT' | 'CENTER_ADMIN' | 'INSTITUTION_ADMIN' | 'SUPER_ADMIN' | 'TEACHER' | 'PARENT' | 'GUEST';
   name: string;
   centerId?: string;
   avatarUrl?: string;

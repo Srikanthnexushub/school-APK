@@ -4,5 +4,6 @@ public enum Role {
     STUDENT,
     PARENT,
     CENTER_ADMIN,
+    INSTITUTION_ADMIN,
     SUPER_ADMIN
 }

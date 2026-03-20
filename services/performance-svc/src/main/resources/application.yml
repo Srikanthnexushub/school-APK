@@ -72,6 +72,12 @@ logging:
   level:
     root: ${LOG_LEVEL_ROOT}
     com.edutech: ${LOG_LEVEL_APP}
+    org.apache.kafka: WARN
+    org.springframework.kafka: WARN
+    org.apache.kafka.clients.consumer: WARN
+    org.apache.kafka.clients.producer: WARN
+    org.apache.kafka.common.network: WARN
+    kafka.server: WARN
 
   data:
     redis:
