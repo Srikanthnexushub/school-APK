@@ -66,7 +66,9 @@ docker compose -f infrastructure/docker/docker-compose.yml up -d redis
 | **Parent** | `ravi.parent@test.com` | userId `bd7d02da-11e3-4bda-9795-41d3c93bac69` |
 | **Student** | `qa-test@nexused.dev` | userId `50d63f9c-9b9c-4737-a66a-22b29dad42a1` |
 | **Teacher** | `teacher1@test.com` | — |
-| **Admin** | `admin@test.com` | — |
+| **CENTER_ADMIN** | `institute@nexused.com` | centerId `6e9985dd-f029-49aa-8d22-39c42525df97` |
+| **INSTITUTION_ADMIN** | `superadmin@nexused.com` | platform INSTITUTION_ADMIN (no center_id); can create centers |
+| **SUPER_ADMIN** | _(no longer used for self-reg)_ | Blocked from self-registration. Existing DB row: `superadmin@nexused.com` carries role INSTITUTION_ADMIN after Fix #65. |
 
 ---
 
@@ -135,6 +137,14 @@ Use Python `urllib.request` for API calls with passwords that contain `!`.
 **Cause:** `CenterService.resolveAccessibleCenters()` queries `findByOwnerId`. If `owner_id` ≠ CENTER_ADMIN userId the list is empty.
 **Fix:** `UPDATE center_schema.centers SET owner_id='<ca_userId>', admin_user_id='<ca_userId>' WHERE id='<centerId>';`
 
+### Disk full / ENOSPC errors
+**Root cause:** A single unbounded service log (e.g. `logs/performance-svc.log`) can grow to hundreds of GB.
+**Permanent prevention (Fix #65):**
+- `start-all.sh` runs a background `start_log_watchdog()` — checks every 10 min, truncates any `*.log` > 100 MB in-place (APFS sparse, no disk waste).
+- `scripts/cleanup.sh` — manual cleanup: `bash scripts/cleanup.sh` (logs only), `--build` (Maven target/), `--all --force` (everything).
+- `.gitignore` excludes: `.playwright-mcp/`, `*.png`/`*.jpg` at root, `docs/screenshots/`, `python-ai-svc/.venv/`, `dump.rdb`.
+**Emergency recovery:** `bash scripts/cleanup.sh --force` then if Docker crashed restart Docker Desktop from macOS menu bar.
+
 ---
 
 ## Architecture Rules (NEVER violate)
@@ -182,8 +192,10 @@ Use Python `urllib.request` for API calls with passwords that contain `!`.
 | Advertisement Banners — center-svc V16 migration, Banner domain + BannerAudience (PARENT/CENTER_ADMIN/ALL), SUPER_ADMIN CRUD, date-window filtering, AdvertisementBanner hero carousel (auto-rotate, pause-on-hover, nav dots), FooterBanner cyclic strip, integrated into ParentDashboard + AdminDashboard, SUPER_ADMIN banner management tab, BannerControllerIT (12 IT) | `center-svc: V16, Banner*.java, BannerService, BannerController`; `frontend: AdvertisementBanner.tsx, FooterBanner.tsx, AdminBannersPage.tsx` | d301e53 |
 | Unified welcome greeting — "Welcome, [firstName]" on all 4 role dashboards (Student/Parent/Admin/Mentor) | `StudentDashboardPage.tsx`, `ParentDashboardPage.tsx`, `AdminDashboardPage.tsx` | 039cd74 |
 | Running Ticker Banner (BannerType HERO/TICKER) — third-party advertiser marquee strip, V17 migration, TickerBanner component, admin form type selector | `center-svc: V17, BannerType.java, Banner.java, BannerService`; `frontend: TickerBanner.tsx, AdminBannersPage.tsx, ParentDashboardPage.tsx, AdminDashboardPage.tsx` | d0ee154 |
+| INSTITUTION_ADMIN role — institution-scoped admin (hierarchy: INSTITUTION_ADMIN→CENTER_ADMIN); auth-svc V6 migration, Role enum in 6 services, AuthPrincipal helpers, resolveAccessibleCenters scoped to owned centers, SUPER_ADMIN self-reg blocked | `Role.java` (6 services), `AuthPrincipal.java` (6 services), `CenterService.java`, `BannerService.java`, `AssignmentService.java`, `UserRegistrationService.java`, `GlobalExceptionHandler.java`, `V6__add_institution_admin_role.sql`; `frontend: authStore.ts, AppLayout.tsx, AdminPortalPage.tsx, router.tsx, LoginPage.tsx, RegisterPage.tsx, SettingsPage.tsx` | 7f01e5d |
+| Disk space permanent fix — log watchdog in start-all.sh (100 MB cap, 10 min interval), scripts/cleanup.sh (new), .gitignore additions (playwright, PNGs, .venv), performance-svc Kafka log suppression | `scripts/start-all.sh`, `scripts/cleanup.sh`, `.gitignore`, `performance-svc/application.yml` | 7f01e5d |
 
-Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (63+ fixes)
+Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (65+ fixes)
 
 ---
 
