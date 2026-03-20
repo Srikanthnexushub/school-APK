@@ -142,8 +142,9 @@ Check for Java compilation errors in test files. Run: `mvn test-compile --no-tra
 | Staff modal — Subjects hidden for non-teaching roles (LIBRARIAN/COUNSELOR/LAB_ASSISTANT/SPORTS_COACH/ADMIN_STAFF), District removed | `CreateStaffModal.tsx` | 4458d30 |
 | Pre-commit hook — TypeScript check blocks broken commits | `.git/hooks/pre-commit` | 4458d30 |
 | Jobs feature — My Postings (full CRUD + stat cards + inline status transitions) + Job Board (paginated public view across all institutions, city/role/type filters) | `AdminJobsPage.tsx`, `PostJobModal.tsx`, `jobConstants.ts`, `AdminPortalPage.tsx`, center-svc: `JobPosting.java`, `JobPostingService.java`, `JobPostingController.java`, `V14+V15 migrations`, `SpringDataJobPostingRepository.java` (CAST fix), api-gateway route `/api/v1/jobs/**` | 1b19097 |
+| Institution Portal E2E (22 Playwright tests) + JobPosting IT (17 Spring IT) | `tests/e2e/institution-portal.spec.ts`, `JobPostingControllerIT.java` | 7f01c7b |
 
-Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (60+ fixes)
+Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (61+ fixes)
 
 ---
 
