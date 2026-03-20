@@ -139,8 +139,11 @@ Check for Java compilation errors in test files. Run: `mvn test-compile --no-tra
 | mentor-svc V6: district on mentor_profiles table | `V6__add_district_to_mentor_profiles.sql`, `MentorProfile.java` | 5d86803 |
 | Staff Portal (CENTER_ADMIN) — full role-based staff management + AI | `AdminStaffPage.tsx`, `CreateStaffModal.tsx`, `staffConstants.ts`, `useStaffAI.ts`, `StaffController.java`, `StaffService.java`, `StaffRoleType.java`, `V13__add_staff_profile_fields.sql` | see frozen-fixes |
 | Register UX — role dropdown, Country→State→City, email/password at bottom, address line 1+2, board multi-select, pincode | `RegisterPage.tsx`, `indiaLocations.ts` | e843293 |
+| Staff modal — Subjects hidden for non-teaching roles (LIBRARIAN/COUNSELOR/LAB_ASSISTANT/SPORTS_COACH/ADMIN_STAFF), District removed | `CreateStaffModal.tsx` | 4458d30 |
+| Pre-commit hook — TypeScript check blocks broken commits | `.git/hooks/pre-commit` | 4458d30 |
+| Jobs feature — My Postings (full CRUD + stat cards + inline status transitions) + Job Board (paginated public view across all institutions, city/role/type filters) | `AdminJobsPage.tsx`, `PostJobModal.tsx`, `jobConstants.ts`, `AdminPortalPage.tsx`, center-svc: `JobPosting.java`, `JobPostingService.java`, `JobPostingController.java`, `V14+V15 migrations`, `SpringDataJobPostingRepository.java` (CAST fix), api-gateway route `/api/v1/jobs/**` | 1b19097 |
 
-Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (57+ fixes)
+Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (60+ fixes)
 
 ---
 
