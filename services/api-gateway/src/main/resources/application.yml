@@ -46,6 +46,10 @@ spring:
           uri: ${CENTER_SVC_URI}
           predicates:
             - Path=/api/v1/centers/**
+        - id: center-svc-jobs
+          uri: ${CENTER_SVC_URI}
+          predicates:
+            - Path=/api/v1/jobs/**
         - id: assess-svc-exams
           uri: ${ASSESS_SVC_URI}
           predicates:

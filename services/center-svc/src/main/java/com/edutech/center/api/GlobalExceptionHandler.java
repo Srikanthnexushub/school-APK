@@ -6,6 +6,7 @@ import com.edutech.center.application.exception.CenterAccessDeniedException;
 import com.edutech.center.application.exception.CenterException;
 import com.edutech.center.application.exception.CenterNotFoundException;
 import com.edutech.center.application.exception.DuplicateCenterCodeException;
+import com.edutech.center.application.exception.JobPostingNotFoundException;
 import com.edutech.center.application.exception.ScheduleConflictException;
 import com.edutech.center.application.exception.TeacherAlreadyAssignedException;
 import com.edutech.center.application.exception.TeacherNotFoundException;
@@ -35,6 +36,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TeacherNotFoundException.class)
     public ProblemDetail handleTeacherNotFound(TeacherNotFoundException ex) {
         return problem(HttpStatus.NOT_FOUND, "teacher-not-found", ex.getMessage());
+    }
+
+    @ExceptionHandler(JobPostingNotFoundException.class)
+    public ProblemDetail handleJobPostingNotFound(JobPostingNotFoundException ex) {
+        return problem(HttpStatus.NOT_FOUND, "job-posting-not-found", ex.getMessage());
     }
 
     @ExceptionHandler(DuplicateCenterCodeException.class)
