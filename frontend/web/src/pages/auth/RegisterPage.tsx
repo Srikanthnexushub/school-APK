@@ -21,7 +21,7 @@ import GoogleSignInButton from '../../components/GoogleSignInButton';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../lib/utils';
-import { suggestStates, getCitiesForState, WORLD_COUNTRIES, getDistricts } from '../../utils/indiaLocations';
+import { INDIA_STATES, getCitiesForState, WORLD_COUNTRIES, getDistricts, lookupPincode } from '../../utils/indiaLocations';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
 
@@ -423,6 +423,26 @@ export default function RegisterPage() {
 
   const handleCaptchaVerify = useCallback((token: string | null) => setCaptchaToken(token), []);
 
+  // Pincode auto-fill: when 6 digits entered, lookup state/district/city via India Post API
+  async function handlePincodeChange(
+    value: string,
+    setPincode: (v: string) => void,
+    setState: (v: string) => void,
+    setDistrict: (v: string) => void,
+    setCity: (v: string) => void,
+  ) {
+    setPincode(value);
+    if (value.length === 6 && /^\d{6}$/.test(value)) {
+      const result = await lookupPincode(value);
+      if (result) {
+        if (result.state) setState(result.state);
+        if (result.district) setDistrict(result.district);
+        if (result.city) setCity(result.city);
+        toast.success(`Auto-filled: ${result.city}, ${result.district}, ${result.state}`);
+      }
+    }
+  }
+
   async function handleGoogleSuccess(accessToken: string) {
     setIsGoogleLoading(true);
     try {
@@ -476,7 +496,7 @@ export default function RegisterPage() {
   useEffect(() => {
     if (selectedRole !== 'TEACHER') return;
     setTeacherCentersLoading(true);
-    api.get('/api/v1/centers?size=200')
+    axios.get('/api/v1/centers?size=200')
       .then((r) => {
         const data = r.data;
         const list = Array.isArray(data) ? data : (data.content ?? []);
@@ -981,8 +1001,8 @@ export default function RegisterPage() {
                           </div>
                         </div>
 
-                        {/* First Name + Last Name — hidden for CENTER_ADMIN (derived from institution name) */}
-                        {selectedRole !== 'INSTITUTION_ADMIN' && (
+                        {/* First Name + Last Name — shown only after role selected, hidden for INSTITUTION_ADMIN */}
+                        {selectedRole && selectedRole !== 'INSTITUTION_ADMIN' && (
                           <div className="grid grid-cols-2 gap-3">
                             <div>
                               <label className="block text-sm font-medium text-white/70 mb-1.5">First Name</label>
@@ -1054,7 +1074,7 @@ export default function RegisterPage() {
                                 label="State"
                                 value={studentStateVal}
                                 onChange={(v) => { setStudentStateVal(v); setStudentCity(''); setStudentDistrict(''); }}
-                                options={suggestStates('')}
+                                options={INDIA_STATES}
                                 placeholder="Select state…"
                                 optional
                                 allowCustom
@@ -1084,7 +1104,7 @@ export default function RegisterPage() {
                               <input
                                 type="text"
                                 value={studentPincode}
-                                onChange={(e) => setStudentPincode(e.target.value)}
+                                onChange={(e) => handlePincodeChange(e.target.value, setStudentPincode, setStudentStateVal, setStudentDistrict, setStudentCity)}
                                 placeholder="e.g. 400001"
                                 className="input w-full"
                               />
@@ -1126,7 +1146,7 @@ export default function RegisterPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                               <SearchableSelect label="Country" value={parentCountry} onChange={setParentCountry} options={WORLD_COUNTRIES} placeholder="Select country…" optional allowCustom />
-                              <SearchableSelect label="State" value={parentState} onChange={(v) => { setParentState(v); setParentCity(''); setParentDistrict(''); }} options={suggestStates('')} placeholder="Select state…" optional allowCustom />
+                              <SearchableSelect label="State" value={parentState} onChange={(v) => { setParentState(v); setParentCity(''); setParentDistrict(''); }} options={INDIA_STATES} placeholder="Select state…" optional allowCustom />
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                               <SearchableSelect
@@ -1142,7 +1162,7 @@ export default function RegisterPage() {
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-white/30">(optional)</span></label>
-                              <input type="text" value={parentPincode} onChange={(e) => setParentPincode(e.target.value)} placeholder="e.g. 110001" className="input w-full" />
+                              <input type="text" value={parentPincode} onChange={(e) => handlePincodeChange(e.target.value, setParentPincode, setParentState, setParentDistrict, setParentCity)} placeholder="e.g. 110001" className="input w-full" />
                             </div>
                           </div>
                         )}
@@ -1239,7 +1259,7 @@ export default function RegisterPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                               <SearchableSelect label="Country" value={teacherCountry} onChange={setTeacherCountry} options={WORLD_COUNTRIES} placeholder="Select country…" optional allowCustom />
-                              <SearchableSelect label="State" value={teacherStateVal} onChange={(v) => { setTeacherStateVal(v); setTeacherCity(''); setTeacherDistrict(''); }} options={suggestStates('')} placeholder="Select state…" optional allowCustom />
+                              <SearchableSelect label="State" value={teacherStateVal} onChange={(v) => { setTeacherStateVal(v); setTeacherCity(''); setTeacherDistrict(''); }} options={INDIA_STATES} placeholder="Select state…" optional allowCustom />
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                               <SearchableSelect
@@ -1255,7 +1275,7 @@ export default function RegisterPage() {
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-white/30">(optional)</span></label>
-                              <input type="text" value={teacherPincode} onChange={(e) => setTeacherPincode(e.target.value)} placeholder="e.g. 400058" className="input w-full" />
+                              <input type="text" value={teacherPincode} onChange={(e) => handlePincodeChange(e.target.value, setTeacherPincode, setTeacherStateVal, setTeacherDistrict, setTeacherCity)} placeholder="e.g. 400058" className="input w-full" />
                             </div>
                           </div>
                         )}
@@ -1298,7 +1318,7 @@ export default function RegisterPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                               <SearchableSelect label="Country" value={instCountry} onChange={setInstCountry} options={WORLD_COUNTRIES} placeholder="Select country…" optional allowCustom />
-                              <SearchableSelect label="State" value={instStateVal} onChange={(v) => { setInstStateVal(v); setInstitutionCity(''); setInstDistrict(''); }} options={suggestStates('')} placeholder="Select state…" optional allowCustom />
+                              <SearchableSelect label="State" value={instStateVal} onChange={(v) => { setInstStateVal(v); setInstitutionCity(''); setInstDistrict(''); }} options={INDIA_STATES} placeholder="Select state…" optional allowCustom />
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                               <SearchableSelect
@@ -1314,7 +1334,7 @@ export default function RegisterPage() {
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-white/30">(optional)</span></label>
-                              <input type="text" value={instPincode} onChange={(e) => setInstPincode(e.target.value)} placeholder="e.g. 400058" className="input w-full" />
+                              <input type="text" value={instPincode} onChange={(e) => handlePincodeChange(e.target.value, setInstPincode, setInstStateVal, setInstDistrict, setInstitutionCity)} placeholder="e.g. 400058" className="input w-full" />
                             </div>
                           </div>
                         )}
@@ -1363,17 +1383,26 @@ export default function RegisterPage() {
                           </div>
                         )}
 
-                        <button
-                          type="submit"
-                          disabled={!selectedRole || !captchaToken || isRegistering}
-                          className="btn-primary w-full flex items-center justify-center gap-2 py-3 mt-2 disabled:opacity-50"
-                        >
-                          {isRegistering ? (
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          ) : (
-                            <>Create Account <ArrowRight className="w-4 h-4" /></>
-                          )}
-                        </button>
+                        <div className="flex gap-3 mt-2">
+                          <button
+                            type="button"
+                            onClick={() => navigate('/login')}
+                            className="btn-ghost flex items-center gap-2 py-3 px-4"
+                          >
+                            <ArrowLeft className="w-4 h-4" /> Back
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={!selectedRole || !captchaToken || isRegistering}
+                            className="btn-primary flex-1 flex items-center justify-center gap-2 py-3 disabled:opacity-50"
+                          >
+                            {isRegistering ? (
+                              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                              <>Create Account <ArrowRight className="w-4 h-4" /></>
+                            )}
+                          </button>
+                        </div>
                       </form>
                     </motion.div>
                   )}

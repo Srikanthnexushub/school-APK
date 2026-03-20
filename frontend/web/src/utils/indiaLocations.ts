@@ -1,188 +1,25 @@
 // India States and Districts utility
-// Provides autocomplete data for state and district fields across the app
+// Comprehensive data from india-state-district package (772 districts across 36 states/UTs)
+// Real-time pincode lookup via India Post API (free, no auth)
 
-export const INDIA_STATES: string[] = [
-  'Andhra Pradesh',
-  'Arunachal Pradesh',
-  'Assam',
-  'Bihar',
-  'Chhattisgarh',
-  'Delhi',
-  'Goa',
-  'Gujarat',
-  'Haryana',
-  'Himachal Pradesh',
-  'Jharkhand',
-  'Karnataka',
-  'Kerala',
-  'Madhya Pradesh',
-  'Maharashtra',
-  'Manipur',
-  'Meghalaya',
-  'Mizoram',
-  'Nagaland',
-  'Odisha',
-  'Punjab',
-  'Rajasthan',
-  'Sikkim',
-  'Tamil Nadu',
-  'Telangana',
-  'Tripura',
-  'Uttar Pradesh',
-  'Uttarakhand',
-  'West Bengal',
-  'Andaman and Nicobar Islands',
-  'Chandigarh',
-  'Dadra and Nagar Haveli and Daman and Diu',
-  'Jammu and Kashmir',
-  'Ladakh',
-  'Lakshadweep',
-  'Puducherry',
-];
+import { getAllStates, getDistricts as getDistrictsByCode } from 'india-state-district';
 
-export const DISTRICTS_BY_STATE: Record<string, string[]> = {
-  'Andhra Pradesh': [
-    'Visakhapatnam', 'Vijayawada', 'Guntur', 'Nellore', 'Tirupati',
-    'Kurnool', 'Kadapa', 'Anantapur', 'East Godavari', 'West Godavari',
-  ],
-  'Arunachal Pradesh': [
-    'Itanagar', 'Tawang', 'East Kameng', 'West Kameng', 'Papum Pare', 'Upper Siang',
-  ],
-  'Assam': [
-    'Guwahati', 'Dibrugarh', 'Jorhat', 'Silchar', 'Tezpur', 'Nagaon',
-    'Barpeta', 'Kamrup', 'Cachar',
-  ],
-  'Bihar': [
-    'Patna', 'Gaya', 'Muzaffarpur', 'Bhagalpur', 'Darbhanga', 'Purnia',
-    'Nalanda', 'Vaishali', 'Saran', 'Begusarai',
-  ],
-  'Chhattisgarh': [
-    'Raipur', 'Bilaspur', 'Durg', 'Korba', 'Rajnandgaon',
-    'Janjgir-Champa', 'Surguja', 'Bastar',
-  ],
-  'Delhi': [
-    'Central Delhi', 'East Delhi', 'New Delhi', 'North Delhi', 'North East Delhi',
-    'North West Delhi', 'Shahdara', 'South Delhi', 'South East Delhi',
-    'South West Delhi', 'West Delhi',
-  ],
-  'Goa': [
-    'North Goa', 'South Goa',
-  ],
-  'Gujarat': [
-    'Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Bhavnagar',
-    'Jamnagar', 'Gandhinagar', 'Anand', 'Mehsana', 'Kutch',
-  ],
-  'Haryana': [
-    'Gurugram', 'Faridabad', 'Ambala', 'Rohtak', 'Hisar',
-    'Karnal', 'Sonipat', 'Panipat', 'Yamunanagar', 'Panchkula',
-  ],
-  'Himachal Pradesh': [
-    'Shimla', 'Mandi', 'Kangra', 'Kullu', 'Solan',
-    'Hamirpur', 'Sirmaur', 'Bilaspur', 'Chamba', 'Kinnaur',
-  ],
-  'Jharkhand': [
-    'Ranchi', 'Dhanbad', 'Jamshedpur', 'Bokaro', 'Deoghar',
-    'Hazaribagh', 'Giridih', 'Ramgarh', 'Dumka',
-  ],
-  'Karnataka': [
-    'Bengaluru Urban', 'Mysuru', 'Hubballi', 'Mangaluru', 'Belagavi',
-    'Kalaburagi', 'Tumakuru', 'Davangere', 'Ballari', 'Shivamogga',
-  ],
-  'Kerala': [
-    'Thiruvananthapuram', 'Kochi', 'Kozhikode', 'Thrissur', 'Kollam',
-    'Kannur', 'Alappuzha', 'Palakkad', 'Malappuram', 'Kottayam',
-  ],
-  'Madhya Pradesh': [
-    'Bhopal', 'Indore', 'Gwalior', 'Jabalpur', 'Ujjain',
-    'Sagar', 'Rewa', 'Satna', 'Dewas', 'Ratlam',
-  ],
-  'Maharashtra': [
-    'Mumbai City', 'Mumbai Suburban', 'Pune', 'Nashik', 'Thane',
-    'Aurangabad', 'Nagpur', 'Kolhapur', 'Solapur', 'Amravati',
-  ],
-  'Manipur': [
-    'Imphal East', 'Imphal West', 'Thoubal', 'Bishnupur',
-    'Churachandpur', 'Senapati', 'Ukhrul',
-  ],
-  'Meghalaya': [
-    'East Khasi Hills', 'West Khasi Hills', 'Ri-Bhoi',
-    'East Jaintia Hills', 'West Jaintia Hills', 'East Garo Hills',
-  ],
-  'Mizoram': [
-    'Aizawl', 'Lunglei', 'Champhai', 'Kolasib', 'Mamit', 'Serchhip', 'Lawngtlai',
-  ],
-  'Nagaland': [
-    'Kohima', 'Dimapur', 'Mokokchung', 'Tuensang', 'Wokha', 'Phek', 'Mon', 'Longleng',
-  ],
-  'Odisha': [
-    'Bhubaneswar', 'Cuttack', 'Rourkela', 'Berhampur', 'Sambalpur',
-    'Puri', 'Balasore', 'Bhadrak', 'Bargarh', 'Koraput',
-  ],
-  'Punjab': [
-    'Ludhiana', 'Amritsar', 'Jalandhar', 'Patiala', 'Bathinda',
-    'Mohali', 'Hoshiarpur', 'Gurdaspur', 'Ferozepur', 'Fatehgarh Sahib',
-  ],
-  'Rajasthan': [
-    'Jaipur', 'Jodhpur', 'Udaipur', 'Ajmer', 'Kota',
-    'Bikaner', 'Alwar', 'Bharatpur', 'Sikar', 'Pali',
-  ],
-  'Sikkim': [
-    'East Sikkim', 'West Sikkim', 'North Sikkim', 'South Sikkim',
-  ],
-  'Tamil Nadu': [
-    'Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem',
-    'Tirunelveli', 'Vellore', 'Erode', 'Thoothukudi', 'Dindigul',
-  ],
-  'Telangana': [
-    'Hyderabad', 'Warangal', 'Nizamabad', 'Karimnagar', 'Khammam',
-    'Nalgonda', 'Medak', 'Adilabad', 'Ranga Reddy', 'Sangareddy',
-  ],
-  'Tripura': [
-    'West Tripura', 'Gomati', 'Sepahijala', 'Khowai',
-    'North Tripura', 'Unakoti', 'South Tripura', 'Dhalai',
-  ],
-  'Uttar Pradesh': [
-    'Lucknow', 'Kanpur', 'Varanasi', 'Agra', 'Meerut',
-    'Allahabad', 'Ghaziabad', 'Noida', 'Bareilly', 'Moradabad',
-  ],
-  'Uttarakhand': [
-    'Dehradun', 'Haridwar', 'Nainital', 'Udham Singh Nagar', 'Almora',
-    'Pauri Garhwal', 'Tehri Garhwal', 'Chamoli', 'Pithoragarh', 'Rudraprayag',
-  ],
-  'West Bengal': [
-    'Kolkata', 'Howrah', 'North 24 Parganas', 'South 24 Parganas', 'Bardhaman',
-    'Hooghly', 'Medinipur', 'Nadia', 'Murshidabad', 'Jalpaiguri',
-  ],
-  'Andaman and Nicobar Islands': [
-    'South Andaman', 'North and Middle Andaman', 'Nicobar',
-  ],
-  'Chandigarh': [
-    'Chandigarh',
-  ],
-  'Dadra and Nagar Haveli and Daman and Diu': [
-    'Dadra and Nagar Haveli', 'Daman', 'Diu',
-  ],
-  'Jammu and Kashmir': [
-    'Srinagar', 'Jammu', 'Anantnag', 'Baramulla', 'Budgam',
-    'Pulwama', 'Shopian', 'Kupwara', 'Poonch', 'Rajouri',
-  ],
-  'Ladakh': [
-    'Leh', 'Kargil',
-  ],
-  'Lakshadweep': [
-    'Lakshadweep',
-  ],
-  'Puducherry': [
-    'Puducherry', 'Karaikal', 'Mahé', 'Yanam',
-  ],
-};
+// Build state list from package
+const _allStates = getAllStates(); // [{code, name}, ...]
+
+export const INDIA_STATES: string[] = _allStates.map((s) => s.name);
+
+// Build districts map: state name → district list
+export const DISTRICTS_BY_STATE: Record<string, string[]> = Object.fromEntries(
+  _allStates.map((s) => [s.name, getDistrictsByCode(s.code) as string[]])
+);
 
 /** Return the full list of Indian states / UTs */
 export function getStates(): string[] {
   return INDIA_STATES;
 }
 
-/** Return districts for a given state, or empty array if state not found */
+/** Return all districts for a given state name, or empty array if not found */
 export function getDistricts(state: string): string[] {
   return DISTRICTS_BY_STATE[state] ?? [];
 }
@@ -224,3 +61,36 @@ export const WORLD_COUNTRIES: string[] = [
   'South Korea', 'Spain', 'Sri Lanka', 'Thailand', 'Turkey',
   'United Arab Emirates', 'United Kingdom', 'United States', 'Vietnam',
 ];
+
+export interface PincodeLookupResult {
+  state: string;
+  district: string;
+  city: string;
+}
+
+/**
+ * Real-time pincode lookup using India Post API.
+ * Returns state, district, and city/post-office name for the given 6-digit pincode.
+ * Free API, no auth required.
+ */
+export async function lookupPincode(pincode: string): Promise<PincodeLookupResult | null> {
+  if (!/^\d{6}$/.test(pincode)) return null;
+  try {
+    const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const entry = data?.[0];
+    if (entry?.Status !== 'Success' || !entry?.PostOffice?.length) return null;
+    // Pick first delivery post office, fallback to first
+    const po = entry.PostOffice.find(
+      (p: { DeliveryStatus: string }) => p.DeliveryStatus === 'Delivery'
+    ) ?? entry.PostOffice[0];
+    return {
+      state: po.State ?? '',
+      district: po.District ?? '',
+      city: po.Name ?? '',
+    };
+  } catch {
+    return null;
+  }
+}
