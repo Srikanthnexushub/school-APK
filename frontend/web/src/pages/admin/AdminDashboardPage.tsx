@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import api from '../../lib/api';
 import AdvertisementBanner from '../../components/ui/AdvertisementBanner';
 import FooterBanner from '../../components/ui/FooterBanner';
+import { useAuthStore } from '../../stores/authStore';
 
 // ─── API Types ─────────────────────────────────────────────────────────────
 
@@ -429,6 +430,7 @@ function Skeleton({ className }: { className?: string }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function AdminDashboardPage() {
+  const user = useAuthStore(s => s.user);
   const qc = useQueryClient();
   const [showAddModal, setShowAddModal]   = useState(false);
   const [editingCenter, setEditingCenter] = useState<(CenterRow & { email?: string; state?: string; pincode?: string }) | null>(null);
@@ -600,7 +602,7 @@ export default function AdminDashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Admin Overview</h1>
+          <h1 className="text-2xl font-bold text-white">Welcome, {user?.name?.split(' ')[0] ?? 'Admin'}</h1>
           <p className="text-white/50 text-sm mt-0.5">Manage centers, batches and monitor platform health.</p>
         </div>
         <button

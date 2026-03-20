@@ -243,7 +243,7 @@ export default function StudentDashboardPage() {
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <h1 className="text-2xl font-bold text-white">
-          Good morning, {user?.name?.split(' ')[0] ?? 'Student'} 👋
+          Welcome, {user?.name?.split(' ')[0] ?? 'Student'}
         </h1>
         <p className="text-white/40 text-sm mt-1">Here&apos;s your study snapshot for today.</p>
       </motion.div>

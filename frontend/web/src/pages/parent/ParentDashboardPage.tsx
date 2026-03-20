@@ -377,7 +377,7 @@ export default function ParentDashboardPage() {
       {/* Page header */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Parent Dashboard</h1>
+          <h1 className="text-2xl font-bold text-white">Welcome, {profile?.name?.split(' ')[0] ?? 'Parent'}</h1>
           <p className="text-white/50 text-sm mt-0.5">Monitor your children's progress and manage fees.</p>
         </div>
         {profile && (
