@@ -21,7 +21,7 @@ import GoogleSignInButton from '../../components/GoogleSignInButton';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../lib/utils';
-import { suggestStates, getCitiesForState, WORLD_COUNTRIES } from '../../utils/indiaLocations';
+import { suggestStates, getCitiesForState, WORLD_COUNTRIES, getDistricts } from '../../utils/indiaLocations';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
 
@@ -125,12 +125,19 @@ function SearchableSelect({ label, value, onChange, options, placeholder, option
   }
 
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+          setOpen(false);
+          setSearch('');
+        }
+      }}
+    >
       <label className="block text-sm font-medium text-white/70 mb-1.5">
         {label}{required && <span className="text-red-400"> *</span>}{optional && <span className="text-white/30"> (optional)</span>}
       </label>
       <button type="button" onClick={() => { setOpen(o => !o); setSearch(''); }}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
         className="input w-full text-left flex items-center justify-between">
         <span className={value ? 'text-white/90' : 'text-white/30'}>{value || placeholder || `Select ${label}`}</span>
         <ChevronDown className={cn('w-4 h-4 text-white/30 flex-shrink-0 transition-transform', open && 'rotate-180')} />
@@ -221,12 +228,16 @@ function MultiSelectDropdown({ label, values, onChange, options, placeholder, re
     : options.filter(o => values.includes(o.value)).map(o => o.label).join(', ');
 
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setOpen(false);
+      }}
+    >
       <label className="block text-sm font-medium text-white/70 mb-1.5">
         {label}{required && <span className="text-red-400"> *</span>}
       </label>
       <button type="button" onClick={() => setOpen(o => !o)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
         className="input w-full text-left flex items-center justify-between">
         <span className={cn('truncate text-sm', values.length === 0 ? 'text-white/30' : 'text-white/90')}>{display}</span>
         <ChevronDown className={cn('w-4 h-4 text-white/30 flex-shrink-0 ml-2 transition-transform', open && 'rotate-180')} />
@@ -397,6 +408,10 @@ export default function RegisterPage() {
   const [parentPincode, setParentPincode] = useState('');
   // Student pincode
   const [studentPincode, setStudentPincode] = useState('');
+  // Student district
+  const [studentDistrict, setStudentDistrict] = useState('');
+  // Institution district
+  const [instDistrict, setInstDistrict] = useState('');
 
   const handleCaptchaVerify = useCallback((token: string | null) => setCaptchaToken(token), []);
 
@@ -665,6 +680,7 @@ export default function RegisterPage() {
             dateOfBirth: step1Data.dateOfBirth!,
             city: studentCity || undefined,
             state: studentStateVal || undefined,
+            district: studentDistrict || undefined,
             country: studentCountry || undefined,
             pincode: studentPincode || undefined,
             institutionName: centerName || manualInstitutionName || undefined,
@@ -1033,6 +1049,15 @@ export default function RegisterPage() {
                               placeholder="Type to search city…"
                               optional
                             />
+                            <SearchableSelect
+                              label="District"
+                              value={studentDistrict}
+                              onChange={setStudentDistrict}
+                              options={studentStateVal ? getDistricts(studentStateVal) : []}
+                              placeholder="Select district…"
+                              optional
+                              allowCustom
+                            />
                             <div>
                               <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-white/30">(optional)</span></label>
                               <input
@@ -1077,15 +1102,18 @@ export default function RegisterPage() {
                             <SearchableSelect label="Country" value={parentCountry} onChange={setParentCountry} options={WORLD_COUNTRIES} placeholder="Select country…" optional allowCustom />
                             <SearchableSelect label="State" value={parentState} onChange={(v) => { setParentState(v); setParentCity(''); }} options={suggestStates('')} placeholder="Select state…" optional allowCustom />
                             <AutocompleteInput label="City" value={parentCity} onChange={setParentCity} options={parentState ? getCitiesForState(parentState) : []} placeholder="Type to search city…" optional />
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="block text-sm font-medium text-white/70 mb-1.5">District <span className="text-white/30">(optional)</span></label>
-                                <input type="text" value={parentDistrict} onChange={(e) => setParentDistrict(e.target.value)} placeholder="e.g. South Delhi" className="input w-full" />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-white/30">(optional)</span></label>
-                                <input type="text" value={parentPincode} onChange={(e) => setParentPincode(e.target.value)} placeholder="e.g. 110001" className="input w-full" />
-                              </div>
+                            <SearchableSelect
+                              label="District"
+                              value={parentDistrict}
+                              onChange={setParentDistrict}
+                              options={parentState ? getDistricts(parentState) : []}
+                              placeholder="Select district…"
+                              optional
+                              allowCustom
+                            />
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-white/30">(optional)</span></label>
+                              <input type="text" value={parentPincode} onChange={(e) => setParentPincode(e.target.value)} placeholder="e.g. 110001" className="input w-full" />
                             </div>
                           </div>
                         )}
@@ -1179,10 +1207,15 @@ export default function RegisterPage() {
                             <SearchableSelect label="Country" value={teacherCountry} onChange={setTeacherCountry} options={WORLD_COUNTRIES} placeholder="Select country…" optional allowCustom />
                             <SearchableSelect label="State" value={teacherStateVal} onChange={(v) => { setTeacherStateVal(v); setTeacherCity(''); }} options={suggestStates('')} placeholder="Select state…" optional allowCustom />
                             <AutocompleteInput label="City" value={teacherCity} onChange={setTeacherCity} options={teacherStateVal ? getCitiesForState(teacherStateVal) : []} placeholder="Type to search city…" optional />
-                            <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">District <span className="text-white/30">(optional)</span></label>
-                              <input type="text" value={teacherDistrict} onChange={(e) => setTeacherDistrict(e.target.value)} placeholder="e.g. Andheri" className="input w-full" />
-                            </div>
+                            <SearchableSelect
+                              label="District"
+                              value={teacherDistrict}
+                              onChange={setTeacherDistrict}
+                              options={teacherStateVal ? getDistricts(teacherStateVal) : []}
+                              placeholder="Select district…"
+                              optional
+                              allowCustom
+                            />
                           </div>
                         )}
 
@@ -1225,6 +1258,15 @@ export default function RegisterPage() {
                             <SearchableSelect label="Country" value={instCountry} onChange={setInstCountry} options={WORLD_COUNTRIES} placeholder="Select country…" optional allowCustom />
                             <SearchableSelect label="State" value={instStateVal} onChange={(v) => { setInstStateVal(v); setInstitutionCity(''); }} options={suggestStates('')} placeholder="Select state…" optional allowCustom />
                             <AutocompleteInput label="City" value={institutionCity} onChange={setInstitutionCity} options={instStateVal ? getCitiesForState(instStateVal) : []} placeholder="Type to search city…" optional />
+                            <SearchableSelect
+                              label="District"
+                              value={instDistrict}
+                              onChange={setInstDistrict}
+                              options={instStateVal ? getDistricts(instStateVal) : []}
+                              placeholder="Select district…"
+                              optional
+                              allowCustom
+                            />
                             <div>
                               <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-white/30">(optional)</span></label>
                               <input type="text" value={instPincode} onChange={(e) => setInstPincode(e.target.value)} placeholder="e.g. 400058" className="input w-full" />
