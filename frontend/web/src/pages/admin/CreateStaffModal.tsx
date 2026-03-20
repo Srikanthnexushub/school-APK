@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, ChevronRight, ChevronLeft, User, GraduationCap, Sparkles,
-  Loader2, Check, Copy, RefreshCw, Mail, Phone, Hash, MapPin,
+  Loader2, Check, Copy, RefreshCw, Mail, Phone, Hash,
   BookOpen, Briefcase, Star, Bot,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -37,7 +37,6 @@ interface FormState {
   designation: string;
   // Step 2 — Qualifications
   subjects: string[];
-  district: string;
   qualification: string;
   yearsOfExperience: string;
   // Step 3 — AI Polish
@@ -47,7 +46,7 @@ interface FormState {
 const INITIAL_FORM: FormState = {
   firstName: '', lastName: '', email: '', phoneNumber: '',
   employeeId: '', roleType: '', designation: '',
-  subjects: [], district: '', qualification: '',
+  subjects: [], qualification: '',
   yearsOfExperience: '', bio: '',
 };
 
@@ -154,8 +153,7 @@ export default function CreateStaffModal({ centerId, onClose, onCreated }: Creat
         employeeId:        form.employeeId.trim() || null,
         roleType:          form.roleType || null,
         designation:       form.designation.trim() || null,
-        subjects:          form.subjects.length ? form.subjects.join(',') : null,
-        district:          form.district.trim() || null,
+        subjects:          showSubjects && form.subjects.length ? form.subjects.join(',') : null,
         qualification:     form.qualification.trim() || null,
         yearsOfExperience: form.yearsOfExperience !== '' ? parseInt(form.yearsOfExperience) : null,
         bio:               form.bio.trim() || null,
@@ -174,6 +172,7 @@ export default function CreateStaffModal({ centerId, onClose, onCreated }: Creat
   const designationOptions = form.roleType
     ? DESIGNATIONS_BY_ROLE[form.roleType as StaffRoleTypeValue]
     : [];
+  const showSubjects = ['TEACHER', 'HOD', 'COORDINATOR'].includes(form.roleType);
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
@@ -314,50 +313,46 @@ export default function CreateStaffModal({ centerId, onClose, onCreated }: Creat
               {/* ── Step 2: Qualifications ───────────────────────────────── */}
               {step === 2 && (
                 <>
-                  <div>
-                    <FieldLabel><span className="flex items-center gap-1"><BookOpen className="w-3 h-3" />Subjects</span></FieldLabel>
-                    <div className="flex flex-wrap gap-1.5 p-2.5 bg-white/3 border border-white/8 rounded-xl min-h-[44px]">
-                      {SUBJECT_OPTIONS.map(subject => {
-                        const selected = form.subjects.includes(subject);
-                        return (
-                          <button
-                            key={subject}
-                            type="button"
-                            onClick={() => {
-                              patch('subjects', selected
-                                ? form.subjects.filter(s => s !== subject)
-                                : [...form.subjects, subject]
-                              );
-                            }}
-                            className={cn(
-                              'px-2 py-1 rounded-lg text-xs font-medium transition-colors border',
-                              selected
-                                ? 'bg-brand-500/20 border-brand-500/40 text-brand-300'
-                                : 'bg-white/5 border-white/8 text-white/50 hover:text-white/80 hover:bg-white/8'
-                            )}
-                          >
-                            {subject}
-                          </button>
-                        );
-                      })}
+                  {showSubjects && (
+                    <div>
+                      <FieldLabel><span className="flex items-center gap-1"><BookOpen className="w-3 h-3" />Subjects</span></FieldLabel>
+                      <div className="flex flex-wrap gap-1.5 p-2.5 bg-white/3 border border-white/8 rounded-xl min-h-[44px]">
+                        {SUBJECT_OPTIONS.map(subject => {
+                          const selected = form.subjects.includes(subject);
+                          return (
+                            <button
+                              key={subject}
+                              type="button"
+                              onClick={() => {
+                                patch('subjects', selected
+                                  ? form.subjects.filter(s => s !== subject)
+                                  : [...form.subjects, subject]
+                                );
+                              }}
+                              className={cn(
+                                'px-2 py-1 rounded-lg text-xs font-medium transition-colors border',
+                                selected
+                                  ? 'bg-brand-500/20 border-brand-500/40 text-brand-300'
+                                  : 'bg-white/5 border-white/8 text-white/50 hover:text-white/80 hover:bg-white/8'
+                              )}
+                            >
+                              {subject}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <FieldLabel><span className="flex items-center gap-1"><Star className="w-3 h-3" />Experience (years)</span></FieldLabel>
-                      <FieldInput
-                        value={form.yearsOfExperience}
-                        onChange={v => patch('yearsOfExperience', v)}
-                        placeholder="0"
-                        type="number"
-                      />
-                      {errors.yearsOfExperience && <p className="text-xs text-red-400 mt-1">{errors.yearsOfExperience}</p>}
-                    </div>
-                    <div>
-                      <FieldLabel><span className="flex items-center gap-1"><MapPin className="w-3 h-3" />District</span></FieldLabel>
-                      <FieldInput value={form.district} onChange={v => patch('district', v)} placeholder="Bengaluru" />
-                    </div>
+                  <div>
+                    <FieldLabel><span className="flex items-center gap-1"><Star className="w-3 h-3" />Experience (years)</span></FieldLabel>
+                    <FieldInput
+                      value={form.yearsOfExperience}
+                      onChange={v => patch('yearsOfExperience', v)}
+                      placeholder="0"
+                      type="number"
+                    />
+                    {errors.yearsOfExperience && <p className="text-xs text-red-400 mt-1">{errors.yearsOfExperience}</p>}
                   </div>
 
                   <div>
