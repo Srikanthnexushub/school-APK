@@ -6,6 +6,7 @@ import com.edutech.center.application.dto.BannerResponse;
 import com.edutech.center.application.dto.CreateBannerRequest;
 import com.edutech.center.application.dto.UpdateBannerRequest;
 import com.edutech.center.domain.model.BannerAudience;
+import com.edutech.center.domain.model.BannerType;
 import com.edutech.center.domain.model.Role;
 import com.edutech.center.infrastructure.security.JwtTokenValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -173,7 +174,8 @@ class BannerControllerIT {
                 "#4F46E5",
                 1,
                 null,
-                null
+                null,
+                BannerType.HERO
         );
         ResponseEntity<BannerResponse> resp = restTemplate.exchange(
                 "/api/v1/banners",
@@ -203,7 +205,8 @@ class BannerControllerIT {
                 "#1D4ED8",
                 1,
                 null,
-                null
+                null,
+                BannerType.HERO
         );
 
         ResponseEntity<BannerResponse> response = restTemplate.exchange(
@@ -235,7 +238,7 @@ class BannerControllerIT {
                 "Center Admin Banner",
                 null, null, null, null,
                 BannerAudience.CENTER_ADMIN,
-                null, 1, null, null
+                null, 1, null, null, BannerType.HERO
         );
 
         ResponseEntity<String> response = restTemplate.exchange(
@@ -420,6 +423,7 @@ class BannerControllerIT {
                 "#EC4899",
                 2,
                 null,
+                null,
                 null
         );
 
@@ -452,7 +456,7 @@ class BannerControllerIT {
         UpdateBannerRequest updateReq = new UpdateBannerRequest(
                 "Tampered Title",
                 null, null, null, null,
-                null, null, null, null, null
+                null, null, null, null, null, null
         );
 
         ResponseEntity<String> response = restTemplate.exchange(

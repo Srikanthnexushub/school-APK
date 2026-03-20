@@ -20,6 +20,7 @@ interface BannerResponse {
   linkUrl?: string;
   linkLabel?: string;
   audience: string;
+  bannerType?: string;
   bgColor?: string;
   displayOrder: number;
   isActive: boolean;
@@ -35,6 +36,7 @@ interface BannerFormState {
   linkUrl: string;
   linkLabel: string;
   audience: string;
+  bannerType: string;
   bgColor: string;
   displayOrder: number;
   isActive: boolean;
@@ -48,6 +50,11 @@ const audienceColors: Record<string, string> = {
   PARENT:       'bg-emerald-500/15 text-emerald-400',
   CENTER_ADMIN: 'bg-amber-500/15 text-amber-400',
   ALL:          'bg-brand-500/15 text-brand-400',
+};
+
+const bannerTypeColors: Record<string, string> = {
+  HERO:   'bg-sky-500/15 text-sky-400',
+  TICKER: 'bg-violet-500/15 text-violet-400',
 };
 
 // ─── Banner Form Modal ────────────────────────────────────────────────────────
@@ -70,6 +77,7 @@ function BannerFormModal({
     linkUrl:      initial?.linkUrl ?? '',
     linkLabel:    initial?.linkLabel ?? '',
     audience:     initial?.audience ?? 'ALL',
+    bannerType:   initial?.bannerType ?? 'HERO',
     bgColor:      initial?.bgColor ?? '#1e1b4b',
     displayOrder: initial?.displayOrder ?? 0,
     isActive:     initial?.isActive ?? true,
@@ -176,14 +184,26 @@ function BannerFormModal({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-white/60 mb-1.5">Display Order</label>
-                <input
-                  type="number"
+                <label className="block text-xs font-medium text-white/60 mb-1.5">Banner Type</label>
+                <select
                   className="input w-full"
-                  value={form.displayOrder}
-                  onChange={(e) => setForm({ ...form, displayOrder: Number(e.target.value) })}
-                />
+                  value={form.bannerType}
+                  onChange={(e) => setForm({ ...form, bannerType: e.target.value })}
+                >
+                  <option value="HERO">Hero Carousel</option>
+                  <option value="TICKER">Running Ticker</option>
+                </select>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-white/60 mb-1.5">Display Order</label>
+              <input
+                type="number"
+                className="input w-full"
+                value={form.displayOrder}
+                onChange={(e) => setForm({ ...form, displayOrder: Number(e.target.value) })}
+              />
             </div>
 
             <div>
@@ -375,6 +395,7 @@ export default function AdminBannersPage() {
               <tr className="text-left text-xs text-white/30 uppercase tracking-wider border-b border-white/5">
                 <th className="pb-2 pr-4">Title</th>
                 <th className="pb-2 pr-4">Audience</th>
+                <th className="pb-2 pr-4">Type</th>
                 <th className="pb-2 pr-4">Active</th>
                 <th className="pb-2 pr-4">Order</th>
                 <th className="pb-2 pr-4">Start</th>
@@ -404,6 +425,11 @@ export default function AdminBannersPage() {
                   <td className="py-3 pr-4">
                     <span className={cn('badge text-xs', audienceColors[banner.audience] ?? 'bg-white/10 text-white/40')}>
                       {banner.audience}
+                    </span>
+                  </td>
+                  <td className="py-3 pr-4">
+                    <span className={cn('badge text-xs', bannerTypeColors[banner.bannerType ?? 'HERO'] ?? 'bg-white/10 text-white/40')}>
+                      {banner.bannerType === 'TICKER' ? 'Ticker' : 'Hero'}
                     </span>
                   </td>
                   <td className="py-3 pr-4">

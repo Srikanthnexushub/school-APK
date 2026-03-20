@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import api from '../../lib/api';
 import AdvertisementBanner from '../../components/ui/AdvertisementBanner';
 import FooterBanner from '../../components/ui/FooterBanner';
+import TickerBanner from '../../components/ui/TickerBanner';
 import { useAuthStore } from '../../stores/authStore';
 
 // ─── API Types ─────────────────────────────────────────────────────────────
@@ -599,6 +600,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
       <AdvertisementBanner audience="CENTER_ADMIN" />
+      <TickerBanner audience="CENTER_ADMIN" />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

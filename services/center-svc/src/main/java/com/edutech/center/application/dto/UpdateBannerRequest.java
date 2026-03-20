@@ -2,6 +2,7 @@
 package com.edutech.center.application.dto;
 
 import com.edutech.center.domain.model.BannerAudience;
+import com.edutech.center.domain.model.BannerType;
 
 import java.time.Instant;
 
@@ -21,6 +22,7 @@ public record UpdateBannerRequest(
     String bgColor,
     Integer displayOrder,
     Instant startDate,
-    Instant endDate
+    Instant endDate,
+    BannerType bannerType
 
 ) {}

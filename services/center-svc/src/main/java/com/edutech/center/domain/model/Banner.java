@@ -50,6 +50,10 @@ public class Banner {
     @Column(nullable = false, length = 20)
     private BannerAudience audience;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "banner_type", nullable = false, length = 10)
+    private BannerType bannerType;
+
     @Column(name = "bg_color", columnDefinition = "TEXT")
     private String bgColor;
 
@@ -86,7 +90,8 @@ public class Banner {
      */
     public static Banner create(String title, String subtitle, String imageUrl,
                                 String linkUrl, String linkLabel, BannerAudience audience,
-                                String bgColor, int displayOrder, Instant startDate, Instant endDate) {
+                                String bgColor, int displayOrder, Instant startDate, Instant endDate,
+                                BannerType bannerType) {
         Banner b = new Banner();
         b.title        = title;
         b.subtitle     = subtitle;
@@ -99,6 +104,7 @@ public class Banner {
         b.isActive     = true;
         b.startDate    = startDate;
         b.endDate      = endDate;
+        b.bannerType   = bannerType != null ? bannerType : BannerType.HERO;
         b.createdAt    = Instant.now();
         b.updatedAt    = Instant.now();
         return b;
@@ -163,6 +169,7 @@ public class Banner {
     public void setLinkUrl(String linkUrl)           { this.linkUrl = linkUrl; }
     public void setLinkLabel(String linkLabel)       { this.linkLabel = linkLabel; }
     public void setAudience(BannerAudience audience) { this.audience = audience; }
+    public void setBannerType(BannerType bannerType)  { this.bannerType = bannerType; }
     public void setBgColor(String bgColor)           { this.bgColor = bgColor; }
     public void setDisplayOrder(int displayOrder)    { this.displayOrder = displayOrder; }
     public void setIsActive(boolean isActive)        { this.isActive = isActive; }
@@ -180,6 +187,7 @@ public class Banner {
     public String getLinkUrl()       { return linkUrl; }
     public String getLinkLabel()     { return linkLabel; }
     public BannerAudience getAudience() { return audience; }
+    public BannerType getBannerType()   { return bannerType; }
     public String getBgColor()       { return bgColor; }
     public int getDisplayOrder()     { return displayOrder; }
     public boolean isActive()        { return isActive; }

@@ -9,6 +9,7 @@ import com.edutech.center.application.exception.BannerNotFoundException;
 import com.edutech.center.application.exception.CenterAccessDeniedException;
 import com.edutech.center.domain.model.Banner;
 import com.edutech.center.domain.model.BannerAudience;
+import com.edutech.center.domain.model.BannerType;
 import com.edutech.center.domain.port.out.BannerRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +54,8 @@ public class BannerService {
                 request.bgColor(),
                 request.displayOrder(),
                 request.startDate(),
-                request.endDate());
+                request.endDate(),
+                request.bannerType());
         Banner saved = bannerRepository.save(banner);
         log.info("Banner created: id={} audience={} title={}", saved.getId(), request.audience(), request.title());
         return toResponse(saved);
@@ -80,6 +82,9 @@ public class BannerService {
                 request.endDate());
         if (request.audience() != null) {
             banner.setAudience(request.audience());
+        }
+        if (request.bannerType() != null) {
+            banner.setBannerType(request.bannerType());
         }
         Banner saved = bannerRepository.save(banner);
         log.info("Banner updated: id={}", id);
@@ -162,6 +167,7 @@ public class BannerService {
                 b.getLinkUrl(),
                 b.getLinkLabel(),
                 b.getAudience(),
+                b.getBannerType(),
                 b.getBgColor(),
                 b.getDisplayOrder(),
                 b.isActive(),

@@ -13,6 +13,7 @@ interface BannerResponse {
   linkUrl?: string;
   linkLabel?: string;
   audience: string;
+  bannerType?: string;
   bgColor?: string;
   displayOrder: number;
   isActive: boolean;
@@ -30,7 +31,7 @@ export default function FooterBanner({ audience }: FooterBannerProps) {
   const [current, setCurrent] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const { data: banners = [] } = useQuery<BannerResponse[]>({
+  const { data: allBanners = [] } = useQuery<BannerResponse[]>({
     queryKey: ['banners', audience],
     queryFn: () =>
       api.get(`/api/v1/banners?audience=${audience}`).then((r) => {
@@ -39,6 +40,9 @@ export default function FooterBanner({ audience }: FooterBannerProps) {
       }),
     staleTime: 60 * 1000,
   });
+
+  // Show only HERO-type banners (null/undefined treated as HERO for backward compat)
+  const banners = allBanners.filter((b) => !b.bannerType || b.bannerType === 'HERO');
 
   useEffect(() => {
     if (banners.length <= 1) {

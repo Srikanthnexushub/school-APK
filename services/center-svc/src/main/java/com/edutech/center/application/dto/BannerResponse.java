@@ -2,6 +2,7 @@
 package com.edutech.center.application.dto;
 
 import com.edutech.center.domain.model.BannerAudience;
+import com.edutech.center.domain.model.BannerType;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -18,6 +19,7 @@ public record BannerResponse(
     String linkUrl,
     String linkLabel,
     BannerAudience audience,
+    BannerType bannerType,
     String bgColor,
     int displayOrder,
     boolean isActive,

@@ -2,6 +2,7 @@
 package com.edutech.center.application.dto;
 
 import com.edutech.center.domain.model.BannerAudience;
+import com.edutech.center.domain.model.BannerType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -10,6 +11,8 @@ import java.time.Instant;
 /**
  * Request payload for creating a new platform banner.
  * SUPER_ADMIN only.
+ *
+ * <p>{@code bannerType} is optional — defaults to {@link BannerType#HERO} when null.
  */
 public record CreateBannerRequest(
 
@@ -27,6 +30,8 @@ public record CreateBannerRequest(
     String bgColor,
     int displayOrder,
     Instant startDate,
-    Instant endDate
+    Instant endDate,
+
+    BannerType bannerType
 
 ) {}
