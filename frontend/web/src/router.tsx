@@ -41,6 +41,8 @@ import MentorPortalPerformancePage from './pages/mentor-portal/MentorPortalPerfo
 import MentorPortalLibraryPage from './pages/mentor-portal/MentorPortalLibraryPage';
 import StudentLibraryPage from './pages/library/StudentLibraryPage';
 import ProjectLabPage from './pages/lab/ProjectLabPage';
+import StudentAssignmentsPage from './pages/assignments/StudentAssignmentsPage';
+import MentorPortalAssignmentsPage from './pages/mentor-portal/MentorPortalAssignmentsPage';
 
 export const router = createBrowserRouter([
   {
@@ -91,6 +93,7 @@ export const router = createBrowserRouter([
       { path: 'exam-tracker', element: <ExamTrackerPage /> },
       { path: 'library', element: <StudentLibraryPage /> },
       { path: 'lab', element: <ProjectLabPage /> },
+      { path: 'assignments', element: <StudentAssignmentsPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'study-plan', element: <Navigate to="/ai-mentor" replace /> },
       { path: 'doubts', element: <Navigate to="/ai-mentor" replace /> },
@@ -143,6 +146,7 @@ export const router = createBrowserRouter([
       { path: 'sessions',    element: <MentorPortalSessionsPage /> },
       { path: 'insights',    element: <MentorPortalInsightsPage /> },
       { path: 'exams',       element: <MentorPortalExamsPage /> },
+      { path: 'assignments', element: <MentorPortalAssignmentsPage /> },
       { path: 'performance', element: <MentorPortalPerformancePage /> },
       { path: 'library',     element: <MentorPortalLibraryPage /> },
     ],

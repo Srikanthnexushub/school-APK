@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Bot, ClipboardList, BarChart3, Target, Brain,
   Users, Calendar, Settings, LogOut, BookOpen, Menu, X, ChevronLeft,
   Bell, Search, ChevronRight, BookOpenCheck, Library, Award,
-  CreditCard, Beaker, UserCog,
+  CreditCard, Beaker, UserCog, BookCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '../../stores/authStore';
@@ -28,6 +28,7 @@ const studentNav: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard',    to: '/dashboard' },
   { icon: Bot,             label: 'AI Mentor',    to: '/ai-mentor', badge: 3 },
   { icon: ClipboardList,   label: 'Assessments',  to: '/assessments' },
+  { icon: BookCheck,       label: 'Assignments',  to: '/assignments' },
   { icon: BarChart3,       label: 'Performance',  to: '/performance' },
   { icon: Target,          label: 'Career Oracle',to: '/career' },
   { icon: Brain,           label: 'Psychometric', to: '/psychometric' },
@@ -42,6 +43,7 @@ const adminNav: NavItem[] = [
   { icon: Users,            label: 'Centers',     to: '/admin?tab=centers' },
   { icon: BookOpenCheck,    label: 'Batches',     to: '/admin?tab=batches' },
   { icon: ClipboardList,    label: 'Assessments', to: '/admin?tab=assessments' },
+  { icon: BookCheck,        label: 'Assignments', to: '/admin?tab=assignments' },
   { icon: UserCog,          label: 'Staff',       to: '/admin?tab=staff' },
 ];
 
@@ -61,6 +63,7 @@ const mentorNav: NavItem[] = [
   { icon: Calendar,        label: 'Sessions',     to: '/mentor-portal/sessions' },
   { icon: Brain,           label: 'AI Insights',  to: '/mentor-portal/insights' },
   { icon: ClipboardList,   label: 'Exams',        to: '/mentor-portal/exams' },
+  { icon: BookCheck,       label: 'Assignments',  to: '/mentor-portal/assignments' },
   { icon: Award,           label: 'My Performance',to: '/mentor-portal/performance' },
   { icon: Library,         label: 'Library',      to: '/mentor-portal/library' },
 ];

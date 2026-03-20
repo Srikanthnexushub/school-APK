@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Building2, Users, ClipboardList, Upload, UserCheck, UserCog, Briefcase,
+  Megaphone, BookCheck,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuthStore } from '../../stores/authStore';
@@ -14,10 +15,12 @@ import AdminBulkImportTeachersPage from './AdminBulkImportTeachersPage';
 import AdminPendingTeachersPage from './AdminPendingTeachersPage';
 import AdminStaffPage from './AdminStaffPage';
 import AdminJobsPage from './AdminJobsPage';
+import AdminAssignmentsTab from './AdminAssignmentsTab';
+import AdminBannersPage from './AdminBannersPage';
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
 
-type TabId = 'overview' | 'centers' | 'batches' | 'assessments' | 'teacher-import' | 'teacher-pending' | 'staff' | 'jobs';
+type TabId = 'overview' | 'centers' | 'batches' | 'assessments' | 'teacher-import' | 'teacher-pending' | 'staff' | 'jobs' | 'assignments' | 'banners';
 
 interface Tab {
   id: TabId;
@@ -36,6 +39,8 @@ const TABS: Tab[] = [
   { id: 'teacher-pending',  label: 'Teacher Approvals',  icon: UserCheck, centerAdminOnly: true },
   { id: 'staff',            label: 'Staff',              icon: UserCog,   centerAdminOnly: true },
   { id: 'jobs',             label: 'Jobs',               icon: Briefcase, centerAdminOnly: true },
+  { id: 'assignments',      label: 'Assignments',        icon: BookCheck },
+  { id: 'banners',          label: 'Banners',            icon: Megaphone, superAdminOnly: true },
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -107,6 +112,8 @@ export default function AdminPortalPage() {
         {activeTab === 'teacher-pending' && <AdminPendingTeachersPage />}
         {activeTab === 'staff'           && <AdminStaffPage />}
         {activeTab === 'jobs'            && <AdminJobsPage />}
+        {activeTab === 'assignments'     && <AdminAssignmentsTab />}
+        {activeTab === 'banners'         && <AdminBannersPage />}
       </motion.div>
     </div>
   );

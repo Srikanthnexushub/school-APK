@@ -1,6 +1,7 @@
 // src/main/java/com/edutech/center/api/GlobalExceptionHandler.java
 package com.edutech.center.api;
 
+import com.edutech.center.application.exception.BannerNotFoundException;
 import com.edutech.center.application.exception.BatchNotFoundException;
 import com.edutech.center.application.exception.CenterAccessDeniedException;
 import com.edutech.center.application.exception.CenterException;
@@ -41,6 +42,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(JobPostingNotFoundException.class)
     public ProblemDetail handleJobPostingNotFound(JobPostingNotFoundException ex) {
         return problem(HttpStatus.NOT_FOUND, "job-posting-not-found", ex.getMessage());
+    }
+
+    @ExceptionHandler(BannerNotFoundException.class)
+    public ProblemDetail handleBannerNotFound(BannerNotFoundException ex) {
+        return problem(HttpStatus.NOT_FOUND, "banner-not-found", ex.getMessage());
     }
 
     @ExceptionHandler(DuplicateCenterCodeException.class)

@@ -16,6 +16,8 @@ import { z } from 'zod';
 import { cn } from '../../lib/utils';
 import { toast } from 'sonner';
 import api from '../../lib/api';
+import AdvertisementBanner from '../../components/ui/AdvertisementBanner';
+import FooterBanner from '../../components/ui/FooterBanner';
 
 // ─── API Types ─────────────────────────────────────────────────────────────
 
@@ -594,6 +596,7 @@ export default function AdminDashboardPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
+      <AdvertisementBanner audience="CENTER_ADMIN" />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -844,6 +847,8 @@ export default function AdminDashboardPage() {
           />
         )}
       </AnimatePresence>
+
+      <FooterBanner audience="CENTER_ADMIN" />
     </div>
   );
 }

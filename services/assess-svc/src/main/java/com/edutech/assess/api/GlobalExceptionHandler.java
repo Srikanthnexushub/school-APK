@@ -2,6 +2,9 @@
 package com.edutech.assess.api;
 
 import com.edutech.assess.application.exception.AssessAccessDeniedException;
+import com.edutech.assess.application.exception.AssignmentAccessDeniedException;
+import com.edutech.assess.application.exception.AssignmentNotFoundException;
+import com.edutech.assess.application.exception.AssignmentSubmissionNotFoundException;
 import com.edutech.assess.application.exception.DuplicateEnrollmentException;
 import com.edutech.assess.application.exception.EnrollmentNotFoundException;
 import com.edutech.assess.application.exception.ExamNotFoundException;
@@ -74,6 +77,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MaxAttemptsExceededException.class)
     public ProblemDetail handleMaxAttemptsExceeded(MaxAttemptsExceededException ex) {
         return problem(HttpStatus.CONFLICT, "max-attempts-exceeded", ex.getMessage());
+    }
+
+    @ExceptionHandler(AssignmentNotFoundException.class)
+    public ProblemDetail handleAssignmentNotFound(AssignmentNotFoundException ex) {
+        return problem(HttpStatus.NOT_FOUND, "assignment-not-found", ex.getMessage());
+    }
+
+    @ExceptionHandler(AssignmentSubmissionNotFoundException.class)
+    public ProblemDetail handleAssignmentSubmissionNotFound(AssignmentSubmissionNotFoundException ex) {
+        return problem(HttpStatus.NOT_FOUND, "assignment-submission-not-found", ex.getMessage());
+    }
+
+    @ExceptionHandler(AssignmentAccessDeniedException.class)
+    public ProblemDetail handleAssignmentAccessDenied(AssignmentAccessDeniedException ex) {
+        return problem(HttpStatus.FORBIDDEN, "assignment-access-denied", ex.getMessage());
     }
 
     @ExceptionHandler(IllegalStateException.class)

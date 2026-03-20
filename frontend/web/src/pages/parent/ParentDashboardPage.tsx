@@ -15,6 +15,8 @@ import { cn } from '../../lib/utils';
 import { Avatar } from '../../components/ui/Avatar';
 import { toast } from 'sonner';
 import api from '../../lib/api';
+import AdvertisementBanner from '../../components/ui/AdvertisementBanner';
+import FooterBanner from '../../components/ui/FooterBanner';
 
 // ─── API response types ───────────────────────────────────────────────────────
 
@@ -371,6 +373,7 @@ export default function ParentDashboardPage() {
 
   return (
     <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
+      <AdvertisementBanner audience="PARENT" />
       {/* Page header */}
       <div className="flex items-center justify-between gap-4">
         <div>
@@ -723,6 +726,7 @@ export default function ParentDashboardPage() {
         </>
       )}
 
+      <FooterBanner audience="PARENT" />
     </div>
   );
 }
