@@ -180,6 +180,7 @@ Use Python `urllib.request` for API calls with passwords that contain `!`.
 | Institution Portal E2E (22 Playwright tests) + JobPosting IT (17 Spring IT) | `tests/e2e/institution-portal.spec.ts`, `JobPostingControllerIT.java` | 7f01c7b |
 | Assignments (centralized, all-role RBAC) — assess-svc V10+V11 migrations, Assignment + AssignmentSubmission domain, DRAFT→PUBLISHED→CLOSED state machine, late submission detection, 12 REST endpoints, AssignmentControllerIT (17 IT), StudentAssignmentsPage, MentorPortalAssignmentsPage, AdminAssignmentsTab | `assess-svc: V10+V11, Assignment*.java, AssignmentService, AssignmentController`; `frontend: StudentAssignmentsPage.tsx, MentorPortalAssignmentsPage.tsx, AdminAssignmentsTab.tsx` | d301e53 |
 | Advertisement Banners — center-svc V16 migration, Banner domain + BannerAudience (PARENT/CENTER_ADMIN/ALL), SUPER_ADMIN CRUD, date-window filtering, AdvertisementBanner hero carousel (auto-rotate, pause-on-hover, nav dots), FooterBanner cyclic strip, integrated into ParentDashboard + AdminDashboard, SUPER_ADMIN banner management tab, BannerControllerIT (12 IT) | `center-svc: V16, Banner*.java, BannerService, BannerController`; `frontend: AdvertisementBanner.tsx, FooterBanner.tsx, AdminBannersPage.tsx` | d301e53 |
+| Unified welcome greeting — "Welcome, [firstName]" on all 4 role dashboards (Student/Parent/Admin/Mentor) | `StudentDashboardPage.tsx`, `ParentDashboardPage.tsx`, `AdminDashboardPage.tsx` | 039cd74 |
 
 Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (63+ fixes)
 
