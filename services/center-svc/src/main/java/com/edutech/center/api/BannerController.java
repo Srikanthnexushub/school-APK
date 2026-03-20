@@ -31,13 +31,13 @@ import java.util.UUID;
  * REST controller for platform-level advertisement banner management.
  *
  * <p>Read endpoints are available to any authenticated user.
- * Write endpoints (create / update / toggle / delete) require SUPER_ADMIN — enforced
- * in {@link BannerService}.
+ * Write endpoints (create / update / toggle / delete) require SUPER_ADMIN or
+ * INSTITUTION_ADMIN — enforced in {@link BannerService}.
  */
 @RestController
 @RequestMapping("/api/v1/banners")
 @SecurityRequirement(name = "BearerAuth")
-@Tag(name = "Banners", description = "Platform-level promotional banner management (SUPER_ADMIN) and public read")
+@Tag(name = "Banners", description = "Platform-level promotional banner management (SUPER_ADMIN / INSTITUTION_ADMIN) and public read")
 public class BannerController {
 
     private final BannerService bannerService;
@@ -64,7 +64,7 @@ public class BannerController {
      * Returns all non-deleted banners for the SUPER_ADMIN management view.
      */
     @GetMapping("/all")
-    @Operation(summary = "List all banners — management view (SUPER_ADMIN only)")
+    @Operation(summary = "List all banners — management view (SUPER_ADMIN / INSTITUTION_ADMIN only)")
     public List<BannerResponse> getAllBanners(@AuthenticationPrincipal AuthPrincipal principal) {
         return bannerService.getAllBanners(principal);
     }
@@ -74,7 +74,7 @@ public class BannerController {
      */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Create a platform banner (SUPER_ADMIN only)")
+    @Operation(summary = "Create a platform banner (SUPER_ADMIN / INSTITUTION_ADMIN only)")
     public BannerResponse createBanner(@Valid @RequestBody CreateBannerRequest request,
                                        @AuthenticationPrincipal AuthPrincipal principal) {
         return bannerService.createBanner(request, principal);
@@ -84,7 +84,7 @@ public class BannerController {
      * Updates editable banner details (PATCH semantics). SUPER_ADMIN only.
      */
     @PutMapping("/{id}")
-    @Operation(summary = "Update a platform banner (SUPER_ADMIN only)")
+    @Operation(summary = "Update a platform banner (SUPER_ADMIN / INSTITUTION_ADMIN only)")
     public BannerResponse updateBanner(@PathVariable UUID id,
                                        @RequestBody UpdateBannerRequest request,
                                        @AuthenticationPrincipal AuthPrincipal principal) {
@@ -95,7 +95,7 @@ public class BannerController {
      * Toggles the active/inactive state of a banner. SUPER_ADMIN only.
      */
     @PatchMapping("/{id}/toggle")
-    @Operation(summary = "Toggle banner active state (SUPER_ADMIN only)")
+    @Operation(summary = "Toggle banner active state (SUPER_ADMIN / INSTITUTION_ADMIN only)")
     public BannerResponse toggleActive(@PathVariable UUID id,
                                        @AuthenticationPrincipal AuthPrincipal principal) {
         return bannerService.toggleActive(id, principal);
@@ -106,7 +106,7 @@ public class BannerController {
      */
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Soft-delete a platform banner (SUPER_ADMIN only)")
+    @Operation(summary = "Soft-delete a platform banner (SUPER_ADMIN / INSTITUTION_ADMIN only)")
     public void deleteBanner(@PathVariable UUID id,
                              @AuthenticationPrincipal AuthPrincipal principal) {
         bannerService.deleteBanner(id, principal);

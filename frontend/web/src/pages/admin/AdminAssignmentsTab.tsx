@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookCheck, AlertTriangle, Loader2, CheckCircle2,
-  XCircle, Plus, Calendar, FileText, Users,
+  XCircle, Plus, Calendar, FileText, Users, Building2, ChevronDown,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -127,17 +127,35 @@ function AssignmentRow({ assignment, centerId }: { assignment: AssignmentRespons
   );
 }
 
+// ─── Center option type ────────────────────────────────────────────────────────
+
+interface CenterOption { id: string; name: string; code?: string; }
+
 // ─── Main tab ─────────────────────────────────────────────────────────────────
 
 export default function AdminAssignmentsTab() {
   const role = useAuthStore((s) => s.user?.role);
   const centerId = useAuthStore((s) => s.user?.centerId);
-  const isSuperAdmin = role === 'SUPER_ADMIN';
 
-  const [manualCenterId, setManualCenterId] = useState('');
+  // Admins without a centerId in JWT (INSTITUTION_ADMIN, SUPER_ADMIN) need to
+  // pick a centre from their accessible list rather than typing a raw UUID.
+  const needsCenterPicker = !centerId;
+
+  const [selectedCenterId, setSelectedCenterId] = useState('');
   const [showCreate, setShowCreate] = useState(false);
 
-  const effectiveCenterId = isSuperAdmin ? manualCenterId : (centerId ?? '');
+  const effectiveCenterId = centerId ?? selectedCenterId;
+
+  // Fetch accessible centres for the picker
+  const { data: centers = [], isLoading: centersLoading } = useQuery<CenterOption[]>({
+    queryKey: ['centers-picker-assignments'],
+    queryFn: async () => {
+      const r = await api.get('/api/v1/centers?size=100');
+      const d = r.data;
+      return Array.isArray(d) ? d : (d.content ?? []);
+    },
+    enabled: needsCenterPicker,
+  });
 
   const { data: assignments = [], isLoading, isError } = useQuery<AssignmentResponse[]>({
     queryKey: ['assignments-admin', effectiveCenterId],
@@ -156,7 +174,7 @@ export default function AdminAssignmentsTab() {
         <div>
           <h2 className="text-xl font-bold text-white">Assignments</h2>
           <p className="text-white/50 text-sm mt-0.5">
-            {isSuperAdmin ? 'View assignments by center.' : 'Manage assignments for your center.'}
+            {needsCenterPicker ? 'Select a centre to view its assignments.' : 'Manage assignments for your center.'}
           </p>
         </div>
         {effectiveCenterId && (
@@ -170,26 +188,43 @@ export default function AdminAssignmentsTab() {
         )}
       </div>
 
-      {/* Super admin center selector */}
-      {isSuperAdmin && (
+      {/* Center picker for admins without a JWT centerId */}
+      {needsCenterPicker && (
         <div className="card">
-          <label className="block text-xs font-medium text-white/60 mb-1.5">Enter Center ID to view assignments</label>
-          <div className="flex gap-3">
-            <input
-              className="input flex-1"
-              placeholder="Center UUID…"
-              value={manualCenterId}
-              onChange={(e) => setManualCenterId(e.target.value)}
-            />
-          </div>
-          {!manualCenterId && (
-            <p className="text-xs text-white/30 mt-2">Enter a center ID above to load assignments.</p>
+          <label className="block text-xs font-medium text-white/60 mb-2">Select Centre</label>
+          {centersLoading ? (
+            <div className="flex items-center gap-2 py-2">
+              <Loader2 className="w-4 h-4 animate-spin text-brand-400" />
+              <span className="text-xs text-white/40">Loading centres…</span>
+            </div>
+          ) : centers.length === 0 ? (
+            <p className="text-xs text-white/30">No centres found.</p>
+          ) : (
+            <div className="relative">
+              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
+              <select
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-8 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500/50 transition-colors appearance-none"
+                value={selectedCenterId}
+                onChange={(e) => setSelectedCenterId(e.target.value)}
+              >
+                <option value="" className="bg-surface-100">— choose a centre —</option>
+                {centers.map(c => (
+                  <option key={c.id} value={c.id} className="bg-surface-100">
+                    {c.name}{c.code ? ` (${c.code})` : ''}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
+            </div>
+          )}
+          {!selectedCenterId && !centersLoading && centers.length > 0 && (
+            <p className="text-xs text-white/30 mt-2">Choose a centre above to load its assignments.</p>
           )}
         </div>
       )}
 
       {/* No center */}
-      {!effectiveCenterId && !isSuperAdmin && (
+      {!effectiveCenterId && !needsCenterPicker && (
         <div className="card text-center py-12">
           <BookCheck className="w-10 h-10 text-white/20 mx-auto mb-3" />
           <p className="text-white/50 text-sm">No center linked to your account.</p>

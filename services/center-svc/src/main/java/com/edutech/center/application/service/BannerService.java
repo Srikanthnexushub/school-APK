@@ -22,7 +22,8 @@ import java.util.UUID;
 /**
  * Application service for platform-level banner management.
  *
- * <p>Write operations (create, update, toggle, delete) are restricted to SUPER_ADMIN.
+ * <p>Write operations (create, update, toggle, delete) are restricted to
+ * SUPER_ADMIN or INSTITUTION_ADMIN.
  * Read operations (audience-filtered list) are available to any authenticated user.
  */
 @Service
@@ -40,7 +41,7 @@ public class BannerService {
     // ─── Create ───────────────────────────────────────────────────────────────
 
     /**
-     * Creates a new platform banner. SUPER_ADMIN only.
+     * Creates a new platform banner. SUPER_ADMIN or INSTITUTION_ADMIN only.
      */
     public BannerResponse createBanner(CreateBannerRequest request, AuthPrincipal principal) {
         if (!principal.isSuperAdmin() && !principal.isInstitutionAdmin()) throw new CenterAccessDeniedException();
@@ -64,7 +65,7 @@ public class BannerService {
     // ─── Update ───────────────────────────────────────────────────────────────
 
     /**
-     * Updates editable banner details (PATCH semantics). SUPER_ADMIN only.
+     * Updates editable banner details (PATCH semantics). SUPER_ADMIN or INSTITUTION_ADMIN only.
      */
     public BannerResponse updateBanner(UUID id, UpdateBannerRequest request, AuthPrincipal principal) {
         if (!principal.isSuperAdmin() && !principal.isInstitutionAdmin()) throw new CenterAccessDeniedException();
@@ -94,7 +95,7 @@ public class BannerService {
     // ─── Toggle active ─────────────────────────────────────────────────────────
 
     /**
-     * Toggles the active state of a banner. SUPER_ADMIN only.
+     * Toggles the active state of a banner. SUPER_ADMIN or INSTITUTION_ADMIN only.
      */
     public BannerResponse toggleActive(UUID id, AuthPrincipal principal) {
         if (!principal.isSuperAdmin() && !principal.isInstitutionAdmin()) throw new CenterAccessDeniedException();
@@ -113,7 +114,7 @@ public class BannerService {
     // ─── Delete ───────────────────────────────────────────────────────────────
 
     /**
-     * Soft-deletes a banner. SUPER_ADMIN only.
+     * Soft-deletes a banner. SUPER_ADMIN or INSTITUTION_ADMIN only.
      */
     public void deleteBanner(UUID id, AuthPrincipal principal) {
         if (!principal.isSuperAdmin() && !principal.isInstitutionAdmin()) throw new CenterAccessDeniedException();
@@ -145,8 +146,8 @@ public class BannerService {
     }
 
     /**
-     * Returns all non-deleted banners for the SUPER_ADMIN management view.
-     * SUPER_ADMIN only.
+     * Returns all non-deleted banners for the management view.
+     * SUPER_ADMIN or INSTITUTION_ADMIN only.
      */
     @Transactional(readOnly = true)
     public List<BannerResponse> getAllBanners(AuthPrincipal principal) {

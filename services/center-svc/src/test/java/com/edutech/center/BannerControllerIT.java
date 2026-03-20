@@ -109,22 +109,25 @@ class BannerControllerIT {
     // Shared test identities
     // -------------------------------------------------------------------------
 
-    static final UUID SUPER_ADMIN_USER_ID  = UUID.randomUUID();
-    static final UUID CENTER_ADMIN_USER_ID = UUID.randomUUID();
-    static final UUID PARENT_USER_ID       = UUID.randomUUID();
-    static final UUID CENTER_ID            = UUID.randomUUID();
+    static final UUID SUPER_ADMIN_USER_ID        = UUID.randomUUID();
+    static final UUID INSTITUTION_ADMIN_USER_ID  = UUID.randomUUID();
+    static final UUID CENTER_ADMIN_USER_ID       = UUID.randomUUID();
+    static final UUID PARENT_USER_ID             = UUID.randomUUID();
+    static final UUID CENTER_ID                  = UUID.randomUUID();
 
     static final String FAKE_TOKEN = "test-token";
 
     AuthPrincipal superAdminPrincipal;
+    AuthPrincipal institutionAdminPrincipal;
     AuthPrincipal centerAdminPrincipal;
     AuthPrincipal parentPrincipal;
 
     @BeforeEach
     void setUp() {
-        superAdminPrincipal  = new AuthPrincipal(SUPER_ADMIN_USER_ID,  "superadmin@test.com",  Role.SUPER_ADMIN,  null,      "fp-superadmin");
-        centerAdminPrincipal = new AuthPrincipal(CENTER_ADMIN_USER_ID, "admin@center.com",     Role.CENTER_ADMIN, CENTER_ID, "fp-center-admin");
-        parentPrincipal      = new AuthPrincipal(PARENT_USER_ID,       "parent@test.com",      Role.PARENT,       null,      "fp-parent");
+        superAdminPrincipal       = new AuthPrincipal(SUPER_ADMIN_USER_ID,       "superadmin@test.com",    Role.SUPER_ADMIN,       null,      "fp-superadmin");
+        institutionAdminPrincipal = new AuthPrincipal(INSTITUTION_ADMIN_USER_ID, "institution@test.com",   Role.INSTITUTION_ADMIN, null,      "fp-institution-admin");
+        centerAdminPrincipal      = new AuthPrincipal(CENTER_ADMIN_USER_ID,      "admin@center.com",       Role.CENTER_ADMIN,      CENTER_ID, "fp-center-admin");
+        parentPrincipal           = new AuthPrincipal(PARENT_USER_ID,            "parent@test.com",        Role.PARENT,            null,      "fp-parent");
 
         // Default auth: super admin
         mockAuth(superAdminPrincipal);
@@ -535,5 +538,82 @@ class BannerControllerIT {
         List<String> remainingTitles = allAfter.getBody().stream()
                 .map(BannerResponse::title).toList();
         assertThat(remainingTitles).doesNotContain(deletableTitle);
+    }
+
+    // =========================================================================
+    // Test 13: POST /api/v1/banners as INSTITUTION_ADMIN → 201
+    // =========================================================================
+
+    @Test
+    @DisplayName("POST /api/v1/banners — INSTITUTION_ADMIN creates banner → 201, id not null")
+    void createBanner_institutionAdmin_succeeds() {
+        mockAuth(institutionAdminPrincipal);
+
+        CreateBannerRequest req = new CreateBannerRequest(
+                "Institution Admin Banner",
+                "Institution-level announcement",
+                null, null, "Read More",
+                BannerAudience.ALL,
+                "#7C3AED",
+                1,
+                null, null,
+                BannerType.HERO
+        );
+
+        ResponseEntity<BannerResponse> response = restTemplate.exchange(
+                "/api/v1/banners",
+                HttpMethod.POST,
+                authEntity(req),
+                BannerResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        BannerResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.id()).isNotNull();
+        assertThat(body.title()).isEqualTo("Institution Admin Banner");
+        assertThat(body.isActive()).isTrue();
+    }
+
+    // =========================================================================
+    // Test 14: GET /api/v1/banners/all as INSTITUTION_ADMIN → 200
+    // =========================================================================
+
+    @Test
+    @DisplayName("GET /api/v1/banners/all — INSTITUTION_ADMIN gets management view → 200")
+    void getAllBanners_institutionAdmin_succeeds() {
+        mockAuth(superAdminPrincipal);
+        createBanner("Inst Admin View Banner " + UUID.randomUUID(), BannerAudience.ALL);
+
+        mockAuth(institutionAdminPrincipal);
+        ResponseEntity<List<BannerResponse>> response = restTemplate.exchange(
+                "/api/v1/banners/all",
+                HttpMethod.GET,
+                authEntity(),
+                new ParameterizedTypeReference<List<BannerResponse>>() {});
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody()).isNotEmpty();
+    }
+
+    // =========================================================================
+    // Test 15: DELETE /api/v1/banners/{id} as INSTITUTION_ADMIN → 204
+    // =========================================================================
+
+    @Test
+    @DisplayName("DELETE /api/v1/banners/{id} — INSTITUTION_ADMIN soft-deletes → 204")
+    void deleteBanner_institutionAdmin_succeeds() {
+        mockAuth(superAdminPrincipal);
+        String title = "Inst Admin Deletable " + UUID.randomUUID();
+        UUID id = createBanner(title, BannerAudience.ALL);
+
+        mockAuth(institutionAdminPrincipal);
+        ResponseEntity<Void> deleteResp = restTemplate.exchange(
+                "/api/v1/banners/" + id,
+                HttpMethod.DELETE,
+                authEntity(),
+                Void.class);
+
+        assertThat(deleteResp.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
     }
 }

@@ -811,22 +811,86 @@ function JobBoardTab() {
   );
 }
 
+// ─── Center picker (for INSTITUTION_ADMIN / SUPER_ADMIN — no centerId in JWT) ─
+
+interface CenterOption { id: string; name: string; code?: string; }
+
+function CenterPicker({
+  onSelect,
+}: {
+  onSelect: (id: string) => void;
+}) {
+  const { data: centers = [], isLoading } = useQuery<CenterOption[]>({
+    queryKey: ['centers-picker-jobs'],
+    queryFn: async () => {
+      const r = await api.get('/api/v1/centers?size=100');
+      const d = r.data;
+      return Array.isArray(d) ? d : (d.content ?? []);
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-6 h-6 text-brand-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (centers.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px] p-8">
+        <div className="text-center">
+          <Building2 className="w-10 h-10 text-white/15 mx-auto mb-3" />
+          <p className="text-white/40 text-sm">No centres found.</p>
+          <p className="text-white/25 text-xs mt-1">Create a centre first before managing jobs.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 lg:p-8 max-w-lg mx-auto">
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <Briefcase className="w-5 h-5 text-brand-400" /> Jobs
+        </h2>
+        <p className="text-sm text-white/40 mt-1">Select a centre to manage its job postings.</p>
+      </div>
+      <div className="space-y-2">
+        {centers.map(c => (
+          <button
+            key={c.id}
+            onClick={() => onSelect(c.id)}
+            className="w-full flex items-center justify-between gap-3 p-4 rounded-xl bg-white/3 border border-white/8 hover:bg-white/6 hover:border-white/15 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3">
+              <Building2 className="w-4 h-4 text-brand-400 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-white">{c.name}</p>
+                {c.code && <p className="text-xs text-white/35">{c.code}</p>}
+              </div>
+            </div>
+            <Briefcase className="w-4 h-4 text-white/25 flex-shrink-0" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AdminJobsPage() {
   const centerId  = useAuthStore(s => s.user?.centerId);
   const [subTab, setSubTab] = useState<SubTab>('my-postings');
+  const [selectedCenterId, setSelectedCenterId] = useState('');
 
-  if (!centerId) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px] p-8">
-        <div className="text-center">
-          <Briefcase className="w-10 h-10 text-white/15 mx-auto mb-3" />
-          <p className="text-white/40 text-sm">Centre ID not found.</p>
-          <p className="text-white/25 text-xs mt-1">Please sign out and sign in again.</p>
-        </div>
-      </div>
-    );
+  const effectiveCenterId = centerId || selectedCenterId;
+
+  // Institution-level admins have no centerId in JWT — show center picker first
+  if (!effectiveCenterId) {
+    return <CenterPicker onSelect={setSelectedCenterId} />;
   }
 
   return (
@@ -864,7 +928,7 @@ export default function AdminJobsPage() {
         transition={{ duration: 0.15 }}
         className="flex-1 p-6 lg:p-8 max-w-5xl mx-auto w-full"
       >
-        {subTab === 'my-postings' && <MyPostingsTab centerId={centerId} />}
+        {subTab === 'my-postings' && <MyPostingsTab centerId={effectiveCenterId} />}
         {subTab === 'job-board'   && <JobBoardTab />}
       </motion.div>
     </div>
