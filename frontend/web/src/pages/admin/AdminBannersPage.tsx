@@ -105,12 +105,13 @@ function BannerFormModal({
         onClick={onClose}
         className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
       />
+      <div className="fixed inset-0 z-[51] flex items-center justify-center pointer-events-none px-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ duration: 0.2 }}
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[51] w-full max-w-lg"
+        className="w-full max-w-lg pointer-events-auto"
       >
         <div className="bg-surface-50 border border-white/10 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 flex-shrink-0">
@@ -159,7 +160,7 @@ function BannerFormModal({
                   <input
                     type="file"
                     accept="image/*"
-                    className="sr-only"
+                    className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
@@ -189,7 +190,7 @@ function BannerFormModal({
                   <input
                     type="file"
                     accept="video/mp4,video/webm,video/ogg"
-                    className="sr-only"
+                    className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
@@ -328,6 +329,7 @@ function BannerFormModal({
           </div>
         </div>
       </motion.div>
+      </div>
     </>,
     document.body
   );
