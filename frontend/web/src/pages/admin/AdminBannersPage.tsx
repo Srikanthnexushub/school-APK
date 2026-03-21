@@ -111,8 +111,8 @@ function BannerFormModal({
         transition={{ duration: 0.2 }}
         className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[51] w-full max-w-lg"
       >
-        <div className="bg-surface-50 border border-white/10 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 sticky top-0 bg-surface-50 z-10">
+        <div className="bg-surface-50 border border-white/10 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 flex-shrink-0">
             <div>
               <h3 className="font-semibold text-white">{initial ? 'Edit Banner' : 'Create Banner'}</h3>
               <p className="text-xs text-white/40 mt-0.5">Fill in banner details</p>
@@ -122,7 +122,7 @@ function BannerFormModal({
             </button>
           </div>
 
-          <div className="p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
             <div>
               <label className="block text-xs font-medium text-white/60 mb-1.5">Title *</label>
               <input
@@ -277,19 +277,19 @@ function BannerFormModal({
               </button>
             </div>
 
-            <div className="flex gap-3 pt-2">
-              <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/10 text-sm font-medium text-white/60 hover:text-white hover:border-white/20 transition-colors">
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="flex-1 btn-primary py-2.5 text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                {isSubmitting ? 'Saving…' : (initial ? 'Save Changes' : 'Create Banner')}
-              </button>
-            </div>
+          </div>
+          <div className="flex gap-3 p-6 border-t border-white/10 flex-shrink-0">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/10 text-sm font-medium text-white/60 hover:text-white hover:border-white/20 transition-colors">
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="flex-1 btn-primary py-2.5 text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isSubmitting ? 'Saving…' : (initial ? 'Save Changes' : 'Create Banner')}
+            </button>
           </div>
         </div>
       </motion.div>
