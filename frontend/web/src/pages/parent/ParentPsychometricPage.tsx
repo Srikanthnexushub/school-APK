@@ -1,17 +1,21 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   Brain, ChevronRight, Star, TrendingUp, TrendingDown,
-  BookOpen, Loader2,
+  BookOpen, Loader2, RefreshCw, Users,
 } from 'lucide-react';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
 } from 'recharts';
+import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import { Avatar } from '../../components/ui/Avatar';
+import { Modal } from '../../components/ui/Modal';
 import api from '../../lib/api';
+import { useAuthStore } from '../../stores/authStore';
+import { getAdaptiveQuestions, computeTraits } from '../../utils/psychometricUtils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -282,10 +286,109 @@ function StrengthsCard({ bigFive }: { bigFive: BigFiveTrait[] }) {
   );
 }
 
+// ─── Inline Quiz Modal ────────────────────────────────────────────────────────
+
+interface QuizModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  assessStep: 'info' | 'quiz' | 'submitting';
+  quizAnswers: Record<number, number>;
+  setQuizAnswers: React.Dispatch<React.SetStateAction<Record<number, number>>>;
+  onStartQuiz: () => void;
+  onSubmit: () => void;
+  questions: { id: number; trait: string; text: string }[];
+}
+
+function QuizModal({ isOpen, onClose, assessStep, quizAnswers, setQuizAnswers, onStartQuiz, onSubmit, questions }: QuizModalProps) {
+  const answeredCount = Object.keys(quizAnswers).length;
+  const allAnswered = answeredCount === questions.length;
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Your Personality Assessment">
+      {assessStep === 'info' ? (
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-brand-600 to-violet-600 flex items-center justify-center">
+            <Brain className="w-8 h-8 text-white" />
+          </div>
+          <h3 className="text-xl font-bold text-white">Big Five Assessment</h3>
+          <p className="text-white/50 text-sm leading-relaxed">
+            10 science-backed questions measuring your personality across five dimensions. Takes about 5 minutes. Results are private to you.
+          </p>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            {[{ value: '5 min', label: 'Duration' }, { value: '10', label: 'Questions' }, { value: 'Big Five', label: 'Framework' }].map((stat) => (
+              <div key={stat.label} className="glass rounded-xl p-3">
+                <p className="text-white font-bold">{stat.value}</p>
+                <p className="text-white/40 text-xs">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+          <button className="btn-primary w-full py-3" onClick={onStartQuiz}>Start Assessment</button>
+        </div>
+      ) : assessStep === 'submitting' ? (
+        <div className="text-center py-12 space-y-4">
+          <div className="w-10 h-10 border-2 border-brand-400/30 border-t-brand-400 rounded-full animate-spin mx-auto" />
+          <p className="text-white/60 text-sm">Calculating your personality profile…</p>
+        </div>
+      ) : (
+        <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-1">
+          <div className="flex items-center justify-between sticky top-0 bg-surface-800 pb-2 border-b border-white/5">
+            <p className="text-white/60 text-sm">{answeredCount} / {questions.length} answered</p>
+            <div className="h-1.5 w-32 bg-white/10 rounded-full overflow-hidden">
+              <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${(answeredCount / questions.length) * 100}%` }} />
+            </div>
+          </div>
+          {questions.map((q) => (
+            <div key={q.id} className="space-y-3">
+              <p className="text-white text-sm font-medium leading-relaxed">
+                <span className="text-white/30 mr-2">{q.id + 1}.</span>{q.text}
+              </p>
+              <div className="grid grid-cols-5 gap-1.5">
+                {[1, 2, 3, 4, 5].map((val) => (
+                  <button
+                    key={val}
+                    onClick={() => setQuizAnswers((prev) => ({ ...prev, [q.id]: val }))}
+                    className={cn(
+                      'py-2 rounded-lg text-xs font-medium transition-all border',
+                      quizAnswers[q.id] === val
+                        ? 'bg-brand-600 border-brand-500 text-white'
+                        : 'glass border-white/10 text-white/50 hover:border-brand-500/50 hover:text-white/80'
+                    )}
+                  >
+                    {val}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-between text-white/20 text-xs px-0.5">
+                <span>Strongly Disagree</span>
+                <span>Strongly Agree</span>
+              </div>
+            </div>
+          ))}
+          <button
+            className={cn('btn-primary w-full py-3 mt-4', !allAnswered && 'opacity-50 cursor-not-allowed')}
+            onClick={onSubmit}
+            disabled={!allAnswered}
+          >
+            {allAnswered ? 'Submit Assessment' : `Answer all questions (${questions.length - answeredCount} remaining)`}
+          </button>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ParentPsychometricPage() {
+  const user = useAuthStore((s) => s.user);
+  const [activeView, setActiveView] = useState<'children' | 'mine'>('children');
   const [activeStudentId, setActiveStudentId] = useState<string | null>(null);
+
+  // Parent's own quiz state
+  const [showAssessModal, setShowAssessModal] = useState(false);
+  const [assessStep, setAssessStep] = useState<'info' | 'quiz' | 'submitting'>('info');
+  const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
+  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
+  const parentQuestions = getAdaptiveQuestions('adult');
 
   const { data: profile } = useQuery<ParentProfileResponse>({
     queryKey: ['parent-profile'],
@@ -319,15 +422,214 @@ export default function ParentPsychometricPage() {
 
   const isLoading = studentsLoading || psychLoading;
 
+  // Parent's own psychometric profile (adult level, uses parent's userId as studentId)
+  const { data: myPsychProfile = null, isLoading: myProfileLoading, refetch: refetchMyProfile } = useQuery<PsychProfile | null>({
+    queryKey: ['psych-profile-parent-self', user?.id],
+    queryFn: async () => {
+      try {
+        const res = await api.get(`/api/v1/psych/profiles`, { params: { studentId: user?.id } });
+        const d = res.data;
+        const list = Array.isArray(d) ? d : (d.content ?? []);
+        const raw = list[0];
+        return raw ? transformProfile(raw) : null;
+      } catch (err: any) {
+        if (err?.response?.status === 404) return null;
+        throw err;
+      }
+    },
+    enabled: !!user?.id && activeView === 'mine',
+  });
+
+  const openModal = () => {
+    setAssessStep('info');
+    setQuizAnswers({});
+    setShowAssessModal(true);
+  };
+
+  const handleInitAndStart = async () => {
+    if (isCreatingProfile) return;
+    if (myPsychProfile) { openModal(); return; }
+    setIsCreatingProfile(true);
+    try {
+      await api.post('/api/v1/psych/profiles', { studentId: user!.id });
+      await refetchMyProfile();
+      openModal();
+    } catch (err: any) {
+      if (err?.response?.status === 409 || err?.response?.status === 422) {
+        await refetchMyProfile();
+        openModal();
+      } else {
+        toast.error('Could not initialise your profile. Please try again.');
+      }
+    } finally {
+      setIsCreatingProfile(false);
+    }
+  };
+
+  const handleSubmitAssessment = async () => {
+    if (!myPsychProfile?.id) return;
+    const allAnswered = parentQuestions.every((q) => quizAnswers[q.id] !== undefined);
+    if (!allAnswered) { toast.error('Please answer all questions before submitting.'); return; }
+    setAssessStep('submitting');
+    try {
+      const sessRes = await api.post(`/api/v1/psych/profiles/${myPsychProfile.id}/sessions`, {
+        sessionType: 'INITIAL',
+        scheduledAt: new Date().toISOString(),
+      });
+      const { openness, conscientiousness, extraversion, agreeableness, neuroticism, riasecCode } =
+        computeTraits(parentQuestions, quizAnswers);
+      await api.post(`/api/v1/psych/profiles/${myPsychProfile.id}/sessions/${sessRes.data.id}/complete`, {
+        openness, conscientiousness, extraversion, agreeableness, neuroticism,
+        riasecCode,
+        notes: 'Self-assessment completed via parent portal',
+      });
+      toast.success('Assessment complete! Your personality profile has been updated.');
+      setShowAssessModal(false);
+      refetchMyProfile();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Submission failed. Please try again.');
+      setAssessStep('quiz');
+    }
+  };
+
   return (
     <div className="p-4 lg:p-8 space-y-6 max-w-5xl mx-auto">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-white">Psychometric Profile</h1>
         <p className="text-white/50 text-sm mt-0.5">
-          View your child's personality traits, career aptitude, and learning style.
+          Personality traits, career aptitude, and learning style — for you and your children.
         </p>
       </div>
+
+      {/* Tab switcher */}
+      <div className="flex gap-1 p-1 glass rounded-xl w-fit">
+        <button
+          onClick={() => setActiveView('children')}
+          className={cn(
+            'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+            activeView === 'children' ? 'bg-brand-600 text-white' : 'text-white/50 hover:text-white'
+          )}
+        >
+          <Users className="w-4 h-4" /> My Children
+        </button>
+        <button
+          onClick={() => setActiveView('mine')}
+          className={cn(
+            'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+            activeView === 'mine' ? 'bg-brand-600 text-white' : 'text-white/50 hover:text-white'
+          )}
+        >
+          <Brain className="w-4 h-4" /> My Profile
+        </button>
+      </div>
+
+      {/* ── My Profile Tab ── */}
+      {activeView === 'mine' && (
+        <>
+          {myProfileLoading && (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-8 h-8 text-brand-400 animate-spin" />
+            </div>
+          )}
+
+          {!myProfileLoading && !myPsychProfile && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="card text-center py-16 space-y-6"
+            >
+              <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-brand-600 to-violet-600 flex items-center justify-center">
+                <Brain className="w-10 h-10 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-2">Discover Your Personality Profile</h2>
+                <p className="text-white/50 max-w-md mx-auto text-sm">
+                  Take the Big Five personality assessment to understand your own traits, career aptitude (RIASEC), and learning style. No admin required.
+                </p>
+              </div>
+              <div className="flex justify-center gap-8 text-center">
+                {[{ value: '5 min', label: 'Duration' }, { value: '10', label: 'Questions' }, { value: 'Big Five', label: 'Framework' }].map((stat) => (
+                  <div key={stat.label}>
+                    <p className="text-xl font-bold text-brand-400">{stat.value}</p>
+                    <p className="text-white/40 text-xs">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={handleInitAndStart}
+                disabled={isCreatingProfile}
+                className="btn-primary px-8 py-3 flex items-center gap-2 mx-auto"
+              >
+                {isCreatingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
+                {isCreatingProfile ? 'Setting up…' : 'Start Assessment'}
+              </button>
+            </motion.div>
+          )}
+
+          {!myProfileLoading && myPsychProfile && (
+            <>
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-xs text-white/40">
+                  Last updated: <span className="text-white/60">{formatDate(myPsychProfile.generatedAt)}</span>
+                </span>
+                <span className={cn(
+                  'text-xs px-2 py-0.5 rounded-full font-medium',
+                  myPsychProfile.status === 'ACTIVE' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'
+                )}>
+                  {myPsychProfile.status}
+                </span>
+                <button onClick={handleInitAndStart} className="ml-auto btn-primary text-xs flex items-center gap-1 py-1.5 px-3">
+                  <RefreshCw className="w-3 h-3" /> Retake
+                </button>
+              </div>
+
+              {myPsychProfile.bigFive.length > 0 && (
+                <>
+                  <div className="card border border-brand-500/15">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-xl bg-brand-500/15 flex-shrink-0">
+                        <BookOpen className="w-5 h-5 text-brand-400" />
+                      </div>
+                      <div>
+                        <div className="text-xs text-white/40 mb-0.5">Dominant Learning Style</div>
+                        <div className="text-lg font-bold text-white flex items-center gap-2">
+                          <span>{LEARNING_STYLE_ICONS[myPsychProfile.dominantLearningStyle] ?? '🧠'}</span>
+                          <span>{LEARNING_STYLE_LABELS[myPsychProfile.dominantLearningStyle] ?? myPsychProfile.dominantLearningStyle}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid lg:grid-cols-2 gap-6">
+                    <BigFiveRadar bigFive={myPsychProfile.bigFive} />
+                    <StrengthsCard bigFive={myPsychProfile.bigFive} />
+                  </div>
+                </>
+              )}
+              {myPsychProfile.riasecCode && (
+                <div className="grid lg:grid-cols-2 gap-6">
+                  <RiasecChart riasecCode={myPsychProfile.riasecCode} riasecScores={myPsychProfile.riasecScores} />
+                  <CareerSuggestions riasecCode={myPsychProfile.riasecCode} />
+                </div>
+              )}
+            </>
+          )}
+
+          <QuizModal
+            isOpen={showAssessModal}
+            onClose={() => setShowAssessModal(false)}
+            assessStep={assessStep}
+            quizAnswers={quizAnswers}
+            setQuizAnswers={setQuizAnswers}
+            onStartQuiz={() => setAssessStep('quiz')}
+            onSubmit={handleSubmitAssessment}
+            questions={parentQuestions}
+          />
+        </>
+      )}
+
+      {/* ── My Children Tab ── */}
+      {activeView === 'children' && <>
 
       {/* Child selector */}
       {linkedStudents.length > 1 && (
@@ -445,6 +747,8 @@ export default function ParentPsychometricPage() {
           )}
         </>
       )}
+
+      </>}
     </div>
   );
 }

@@ -37,7 +37,10 @@ public class PsychProfileService implements CreatePsychProfileUseCase {
     @Override
     @Transactional
     public PsychProfileResponse createProfile(CreatePsychProfileRequest req, AuthPrincipal principal) {
-        if (!principal.belongsToCenter(req.centerId())) {
+        // Self-service: any authenticated user may create their own profile (no center required).
+        // Admin-managed: requires center membership when centerId is provided.
+        boolean isSelfCreation = principal.userId().equals(req.studentId());
+        if (!isSelfCreation && !principal.belongsToCenter(req.centerId())) {
             throw new PsychAccessDeniedException();
         }
 
@@ -71,7 +74,9 @@ public class PsychProfileService implements CreatePsychProfileUseCase {
 
     @Transactional(readOnly = true)
     public List<PsychProfileResponse> listByStudentId(UUID studentId, AuthPrincipal principal) {
-        if (!principal.isSuperAdmin() && !principal.isParent() && !principal.userId().equals(studentId)) {
+        // Allow: own profile, SUPER_ADMIN, INSTITUTION_ADMIN, PARENT (viewing child or own)
+        boolean isOwn = principal.userId().equals(studentId);
+        if (!isOwn && !principal.isSuperAdmin() && !principal.isInstitutionAdmin() && !principal.isParent()) {
             throw new PsychAccessDeniedException();
         }
         return profileRepository.findByStudentId(studentId).stream()

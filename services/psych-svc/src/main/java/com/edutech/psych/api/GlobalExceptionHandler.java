@@ -8,6 +8,7 @@ import com.edutech.psych.application.exception.SessionAlreadyCompletedException;
 import com.edutech.psych.application.exception.SessionHistoryNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.validation.FieldError;
@@ -97,6 +98,18 @@ public class GlobalExceptionHandler {
         detail.setType(URI.create(PROBLEM_BASE_URI + "validation-error"));
         detail.setTitle("Validation Error");
         detail.setProperty("fieldErrors", fieldErrors);
+        return detail;
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation: {}", ex.getMostSpecificCause().getMessage());
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.CONFLICT,
+                "A psychometric profile already exists for this person. Each person may have only one active profile."
+        );
+        detail.setType(URI.create(PROBLEM_BASE_URI + "profile-already-exists"));
+        detail.setTitle("Profile Already Exists");
         return detail;
     }
 

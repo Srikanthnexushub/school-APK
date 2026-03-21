@@ -252,26 +252,37 @@ class PsychAssessmentIT {
     }
 
     @Test
-    @DisplayName("listByStudentId_returnsProfiles: profiles for a student are all retrievable")
-    void listByStudentId_returnsProfiles() {
-        UUID anotherCenter = UUID.randomUUID();
-        UUID anotherBatch  = UUID.randomUUID();
-
-        // Create two profiles for the same student (different centers)
+    @DisplayName("listByStudentId_returnsProfile: the profile for a student is retrievable by studentId")
+    void listByStudentId_returnsProfile() {
+        // V6: only one active profile per student is allowed
         psychProfileService.createProfile(
                 new CreatePsychProfileRequest(STUDENT_ID, CENTER_ID, BATCH_ID),
                 superAdmin()
         );
-        psychProfileService.createProfile(
-                new CreatePsychProfileRequest(STUDENT_ID, anotherCenter, anotherBatch),
+
+        var profiles = psychProfileService.listByStudentId(STUDENT_ID, superAdmin());
+
+        assertThat(profiles).hasSize(1);
+        assertThat(profiles.get(0).studentId()).isEqualTo(STUDENT_ID);
+        assertThat(profiles.get(0).status()).isEqualTo(ProfileStatus.ACTIVE);
+    }
+
+    @Test
+    @DisplayName("createProfile_selfService: null centerId and batchId are accepted — self-service creation")
+    void createProfile_selfService_nullCenterAndBatch() {
+        UUID selfId = UUID.randomUUID();
+
+        // A self-service request carries no centerId or batchId
+        var response = psychProfileService.createProfile(
+                new CreatePsychProfileRequest(selfId, null, null),
                 superAdmin()
         );
 
-        // Super admin can list by studentId
-        var profiles = psychProfileService.listByStudentId(STUDENT_ID, superAdmin());
-
-        assertThat(profiles).hasSize(2);
-        profiles.forEach(p -> assertThat(p.studentId()).isEqualTo(STUDENT_ID));
-        profiles.forEach(p -> assertThat(p.status()).isEqualTo(ProfileStatus.ACTIVE));
+        assertThat(response).isNotNull();
+        assertThat(response.studentId()).isEqualTo(selfId);
+        assertThat(response.centerId()).isNull();
+        assertThat(response.batchId()).isNull();
+        assertThat(response.status()).isEqualTo(ProfileStatus.ACTIVE);
+        assertThat(response.openness()).isEqualTo(0.0);
     }
 }

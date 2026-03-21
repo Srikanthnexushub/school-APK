@@ -5,13 +5,14 @@ import {
   RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, Legend,
 } from 'recharts';
 import {
-  Brain, RefreshCw, Calendar, ChevronRight, Eye, Ear, BookText, Activity,
+  Brain, RefreshCw, Calendar, ChevronRight, Eye, Ear, BookText, Activity, Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../lib/utils';
 import { Modal } from '../../components/ui/Modal';
+import { getEducationLevel, getAdaptiveQuestions as getQuestions, computeTraits } from '../../utils/psychometricUtils';
 
 interface BigFiveTrait {
   name: string;
@@ -60,44 +61,6 @@ const RIASEC_CAREERS: Record<string, string[]> = {
   'E-S-C': ['Business Manager', 'HR Specialist', 'Entrepreneur'],
 };
 
-function getAdaptiveQuestions(board?: string, currentClass?: number, gender?: string, stream?: string) {
-  const isClass10 = currentClass === 10;
-  const isScience = stream === 'PCM' || stream === 'PCB';
-  const isCommerce = stream === 'COMMERCE';
-  const isCBSE = board === 'CBSE';
-
-  const baseQuestions = [
-    // Openness - 2 questions
-    { id: 0, trait: 'openness', text: isClass10
-      ? 'I enjoy exploring different subjects and learning new concepts at school.'
-      : 'I actively seek out new ideas beyond my syllabus and explore interdisciplinary topics.' },
-    { id: 1, trait: 'openness', text: isScience
-      ? 'I enjoy solving unfamiliar problems and thinking about scientific possibilities beyond what I\'ve studied.'
-      : isCommerce
-      ? 'I find it exciting to analyse business trends and think creatively about economic challenges.'
-      : 'I often think about abstract concepts and enjoy creative expression in my learning.' },
-    // Conscientiousness - 2 questions
-    { id: 2, trait: 'conscientiousness', text: isCBSE
-      ? 'I follow the CBSE study schedule diligently and complete NCERT exercises on time.'
-      : 'I complete my study tasks on time and maintain a consistent study routine.' },
-    { id: 3, trait: 'conscientiousness', text: 'I keep my notes, study materials, and assignments well organised.' },
-    // Extraversion - 2 questions
-    { id: 4, trait: 'extraversion', text: 'I feel energised after participating in group study sessions or classroom discussions.' },
-    { id: 5, trait: 'extraversion', text: isClass10
-      ? 'I enjoy presenting my ideas in class and participating in school activities.'
-      : 'I proactively seek mentors, peers, or online communities to deepen my knowledge.' },
-    // Agreeableness - 2 questions
-    { id: 6, trait: 'agreeableness', text: 'I enjoy helping my classmates understand difficult topics when they struggle.' },
-    { id: 7, trait: 'agreeableness', text: 'I try to understand different perspectives in group projects and respect others\' opinions.' },
-    // Neuroticism - 2 questions
-    { id: 8, trait: 'neuroticism', text: isClass10
-      ? 'I feel anxious or stressed about board exams and perform poorly under pressure.'
-      : 'Competitive pressure from entrance exam preparation significantly affects my focus and wellbeing.' },
-    { id: 9, trait: 'neuroticism', text: 'Small setbacks in my studies—like a poor test score—can disrupt my focus for several days.' },
-  ];
-
-  return baseQuestions;
-}
 
 
 const LEARNING_TABS = [
@@ -159,6 +122,7 @@ export default function PsychometricPage() {
   const [showAssessModal, setShowAssessModal] = useState(false);
   const [assessStep, setAssessStep] = useState<'info' | 'quiz' | 'submitting'>('info');
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
+  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
 
   const { data: studentProfile } = useQuery({
     queryKey: ['student-profile-me'],
@@ -167,12 +131,11 @@ export default function PsychometricPage() {
     staleTime: 10 * 60 * 1000,
   });
 
-  const adaptiveQuestions = getAdaptiveQuestions(
-    studentProfile?.board,
-    studentProfile?.currentClass,
-    studentProfile?.gender,
-    studentProfile?.stream
-  );
+  const level = getEducationLevel(studentProfile?.currentClass);
+  const adaptiveQuestions = getQuestions(level, {
+    board: studentProfile?.board,
+    stream: studentProfile?.stream,
+  });
 
   const openModal = () => {
     setAssessStep('info');
@@ -181,6 +144,27 @@ export default function PsychometricPage() {
   };
 
   const handleStartQuiz = () => setAssessStep('quiz');
+
+  // Auto-create profile if none exists, then open quiz
+  const handleInitAndStart = async () => {
+    if (isCreatingProfile) return;
+    if (profile) { openModal(); return; }
+    setIsCreatingProfile(true);
+    try {
+      await api.post('/api/v1/psych/profiles', { studentId: user!.id });
+      await refetch();
+      openModal();
+    } catch (err: any) {
+      if (err?.response?.status === 409 || err?.response?.status === 422) {
+        await refetch();
+        openModal();
+      } else {
+        toast.error('Could not initialise your profile. Please try again.');
+      }
+    } finally {
+      setIsCreatingProfile(false);
+    }
+  };
 
   const handleSubmitAssessment = async () => {
     if (!profile?.id) return;
@@ -195,30 +179,8 @@ export default function PsychometricPage() {
       });
       const sessionId = sessRes.data.id;
 
-      const traitAvg = (traitKey: string) => {
-        const qs = adaptiveQuestions.filter((q) => q.trait === traitKey);
-        const sum = qs.reduce((acc, q) => acc + (quizAnswers[q.id] ?? 3), 0);
-        return parseFloat((sum / qs.length / 5.0).toFixed(4));
-      };
-      const openness = traitAvg('openness');
-      const conscientiousness = traitAvg('conscientiousness');
-      const extraversion = traitAvg('extraversion');
-      const agreeableness = traitAvg('agreeableness');
-      const neuroticism = traitAvg('neuroticism');
-
-      const riasecScores: Record<string, number> = {
-        R: conscientiousness * 0.5 + (1 - openness) * 0.5,
-        I: openness * 0.7 + conscientiousness * 0.3,
-        A: openness * 0.8 + extraversion * 0.2,
-        S: agreeableness * 0.6 + extraversion * 0.4,
-        E: extraversion * 0.5 + (1 - neuroticism) * 0.5,
-        C: conscientiousness * 0.7 + (1 - openness) * 0.3,
-      };
-      const riasecCode = Object.entries(riasecScores)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3)
-        .map(([k]) => k)
-        .join('-');
+      const { openness, conscientiousness, extraversion, agreeableness, neuroticism, riasecCode } =
+        computeTraits(adaptiveQuestions, quizAnswers);
 
       await api.post(`/api/v1/psych/profiles/${profile.id}/sessions/${sessionId}/complete`, {
         openness, conscientiousness, extraversion, agreeableness, neuroticism,
@@ -361,23 +323,52 @@ export default function PsychometricPage() {
           </p>
         </motion.div>
 
-        {/* Profile not activated state */}
+        {/* Self-service CTA */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           className="card text-center py-16 space-y-6"
         >
-          <div className="w-20 h-20 mx-auto rounded-full bg-amber-600/20 flex items-center justify-center">
-            <Brain className="w-10 h-10 text-amber-400" />
+          <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-brand-600 to-violet-600 flex items-center justify-center">
+            <Brain className="w-10 h-10 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white mb-2">Profile Not Activated</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">Begin Your Psychometric Journey</h2>
             <p className="text-white/50 max-w-md mx-auto text-sm">
-              Your psychometric profile hasn't been set up yet. Please contact your center administrator or counselor — they'll activate it so you can take the assessment.
+              Discover your Big Five personality profile, RIASEC career code, and learning style through a 10-question science-backed assessment. No admin required — start right now.
             </p>
           </div>
+          <div className="flex justify-center gap-8 text-center">
+            {[{ value: '5 min', label: 'Duration' }, { value: '10', label: 'Questions' }, { value: 'Big Five', label: 'Framework' }].map((stat) => (
+              <div key={stat.label}>
+                <p className="text-xl font-bold text-brand-400">{stat.value}</p>
+                <p className="text-white/40 text-xs">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={handleInitAndStart}
+            disabled={isCreatingProfile}
+            className="btn-primary px-8 py-3 text-base flex items-center gap-2 mx-auto"
+          >
+            {isCreatingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
+            {isCreatingProfile ? 'Setting up your profile…' : 'Start Assessment'}
+          </button>
         </motion.div>
+
+        {/* Modal (opens after auto-create) */}
+        <AssessmentModal
+          isOpen={showAssessModal}
+          onClose={() => setShowAssessModal(false)}
+          assessStep={assessStep}
+          quizAnswers={quizAnswers}
+          setQuizAnswers={setQuizAnswers}
+          onStartQuiz={handleStartQuiz}
+          onSubmit={handleSubmitAssessment}
+          adaptiveQuestions={adaptiveQuestions}
+          studentProfile={studentProfile}
+        />
       </div>
     );
   }
@@ -634,11 +625,10 @@ export default function PsychometricPage() {
         )}
       </motion.div>
 
-      {/* Assessment Modal — has profile */}
+      {/* Assessment Modal */}
       <AssessmentModal
         isOpen={showAssessModal}
         onClose={() => setShowAssessModal(false)}
-        hasProfile={true}
         assessStep={assessStep}
         quizAnswers={quizAnswers}
         setQuizAnswers={setQuizAnswers}
@@ -655,7 +645,6 @@ export default function PsychometricPage() {
 interface AssessmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  hasProfile: boolean;
   assessStep: 'info' | 'quiz' | 'submitting';
   quizAnswers: Record<number, number>;
   setQuizAnswers: React.Dispatch<React.SetStateAction<Record<number, number>>>;
@@ -665,24 +654,13 @@ interface AssessmentModalProps {
   studentProfile?: { board?: string; currentClass?: number; stream?: string } | null;
 }
 
-function AssessmentModal({ isOpen, onClose, hasProfile, assessStep, quizAnswers, setQuizAnswers, onStartQuiz, onSubmit, adaptiveQuestions, studentProfile }: AssessmentModalProps) {
+function AssessmentModal({ isOpen, onClose, assessStep, quizAnswers, setQuizAnswers, onStartQuiz, onSubmit, adaptiveQuestions, studentProfile }: AssessmentModalProps) {
   const answeredCount = Object.keys(quizAnswers).length;
   const allAnswered = answeredCount === adaptiveQuestions.length;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Discover Your Learning DNA">
-      {!hasProfile ? (
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 mx-auto rounded-full bg-amber-600/20 flex items-center justify-center">
-            <Brain className="w-8 h-8 text-amber-400" />
-          </div>
-          <h3 className="text-xl font-bold text-white">Profile Not Set Up</h3>
-          <p className="text-white/50 text-sm leading-relaxed">
-            Your psychometric profile hasn't been activated yet. Please contact your center administrator or counselor to get started.
-          </p>
-          <button className="btn-primary w-full" onClick={onClose}>Got It</button>
-        </div>
-      ) : assessStep === 'info' ? (
+      {assessStep === 'info' ? (
         <div className="text-center space-y-4">
           <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-brand-600 to-violet-600 flex items-center justify-center">
             <Brain className="w-8 h-8 text-white" />

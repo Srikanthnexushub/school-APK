@@ -6,7 +6,7 @@ import java.util.UUID;
 
 public record CreatePsychProfileRequest(
         @NotNull UUID studentId,
-        @NotNull UUID centerId,
-        @NotNull UUID batchId
+        UUID centerId,   // optional — null for self-service (no center)
+        UUID batchId     // optional — null for self-service
 ) {
 }

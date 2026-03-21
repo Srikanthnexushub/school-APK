@@ -226,16 +226,14 @@ class PsychControllerIT {
     }
 
     @Test
-    @DisplayName("GET /api/v1/psych/profiles?studentId=... — 200 returns list of profiles for student")
-    void listByStudentId_returns200_allProfiles() {
-        UUID studentId    = UUID.randomUUID();
-        UUID centerId1    = UUID.randomUUID();
-        UUID centerId2    = UUID.randomUUID();
-        UUID batchId1     = UUID.randomUUID();
-        UUID batchId2     = UUID.randomUUID();
+    @DisplayName("GET /api/v1/psych/profiles?studentId=... — 200 returns the profile for the student")
+    void listByStudentId_returns200_profileForStudent() {
+        // V6: one active profile per student — create one and verify list returns it
+        UUID studentId = UUID.randomUUID();
+        UUID centerId  = UUID.randomUUID();
+        UUID batchId   = UUID.randomUUID();
 
-        createProfile(studentId, centerId1, batchId1);
-        createProfile(studentId, centerId2, batchId2);
+        createProfile(studentId, centerId, batchId);
 
         ResponseEntity<List> response = restTemplate.exchange(
                 "/api/v1/psych/profiles?studentId=" + studentId,
@@ -246,7 +244,55 @@ class PsychControllerIT {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         List<?> body = response.getBody();
-        assertThat(body).isNotNull().hasSize(2);
+        assertThat(body).isNotNull().hasSize(1);
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/psych/profiles — 201 self-service: null centerId and batchId accepted")
+    void createProfile_selfService_nullCenterAndBatch_returns201() {
+        UUID studentId = UUID.randomUUID();
+
+        // Self-service: only studentId, no centerId or batchId
+        CreatePsychProfileRequest req = new CreatePsychProfileRequest(studentId, null, null);
+
+        ResponseEntity<PsychProfileResponse> response = restTemplate.exchange(
+                "/api/v1/psych/profiles",
+                HttpMethod.POST,
+                new HttpEntity<>(req, serviceKeyHeaders()),
+                PsychProfileResponse.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        PsychProfileResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.studentId()).isEqualTo(studentId);
+        assertThat(body.centerId()).isNull();
+        assertThat(body.batchId()).isNull();
+        assertThat(body.status()).isEqualTo(ProfileStatus.ACTIVE);
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/psych/profiles — 409 when a profile already exists for the same student")
+    void createProfile_duplicate_returns409() {
+        UUID studentId = UUID.randomUUID();
+
+        // First creation succeeds
+        createProfile(studentId, UUID.randomUUID(), UUID.randomUUID());
+
+        // Second creation for the same student must be rejected
+        CreatePsychProfileRequest duplicate = new CreatePsychProfileRequest(studentId, null, null);
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/v1/psych/profiles",
+                HttpMethod.POST,
+                new HttpEntity<>(duplicate, serviceKeyHeaders()),
+                Map.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        Map<?, ?> body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.get("title")).isEqualTo("Profile Already Exists");
     }
 
     @Test

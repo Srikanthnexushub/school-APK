@@ -26,11 +26,11 @@ public class PsychProfile {
     @Column(name = "student_id", updatable = false, nullable = false)
     private UUID studentId;
 
-    @Column(name = "center_id", updatable = false, nullable = false)
-    private UUID centerId;
+    @Column(name = "center_id", updatable = false)
+    private UUID centerId;   // nullable — null for self-service profiles
 
-    @Column(name = "batch_id", updatable = false, nullable = false)
-    private UUID batchId;
+    @Column(name = "batch_id", updatable = false)
+    private UUID batchId;    // nullable — null for self-service profiles
 
     @Column(nullable = false)
     private double openness;
