@@ -5,7 +5,8 @@ import {
   LayoutDashboard, Bot, ClipboardList, BarChart3, Target, Brain,
   Users, Calendar, Settings, LogOut, BookOpen, Menu, X, ChevronLeft,
   Bell, Search, ChevronRight, BookOpenCheck, Library, Award,
-  CreditCard, Beaker, UserCog, BookCheck,
+  CreditCard, Beaker, UserCog, BookCheck, Building2, Upload, UserCheck,
+  Briefcase, Megaphone,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '../../stores/authStore';
@@ -38,14 +39,22 @@ const studentNav: NavItem[] = [
   { icon: Beaker,          label: 'AI Lab',       to: '/lab' },
 ];
 
-const adminNav: NavItem[] = [
-  { icon: LayoutDashboard,  label: 'Overview',    to: '/admin?tab=overview' },
-  { icon: Users,            label: 'Centers',     to: '/admin?tab=centers' },
-  { icon: BookOpenCheck,    label: 'Batches',     to: '/admin?tab=batches' },
-  { icon: ClipboardList,    label: 'Assessments', to: '/admin?tab=assessments' },
-  { icon: BookCheck,        label: 'Assignments', to: '/admin?tab=assignments' },
-  { icon: UserCog,          label: 'Staff',       to: '/admin?tab=staff' },
-];
+function getAdminNav(role?: string): NavItem[] {
+  const isSuperOrInst = role === 'SUPER_ADMIN' || role === 'INSTITUTION_ADMIN';
+  return [
+    { icon: LayoutDashboard, label: 'Overview',          to: '/admin?tab=overview' },
+    { icon: Building2,       label: 'Centers',            to: '/admin?tab=centers' },
+    { icon: Users,           label: 'Batches',            to: '/admin?tab=batches' },
+    { icon: ClipboardList,   label: 'Assessments',        to: '/admin?tab=assessments' },
+    { icon: Upload,          label: 'Bulk Import',        to: '/admin?tab=teacher-import' },
+    { icon: UserCheck,       label: 'Teacher Approvals',  to: '/admin?tab=teacher-pending' },
+    { icon: UserCog,         label: 'Staff',              to: '/admin?tab=staff' },
+    { icon: Briefcase,       label: 'Jobs',               to: '/admin?tab=jobs' },
+    { icon: BookCheck,       label: 'Assignments',        to: '/admin?tab=assignments' },
+    { icon: Brain,           label: 'Psychometric',       to: '/admin?tab=psychometric' },
+    ...(isSuperOrInst ? [{ icon: Megaphone, label: 'Banners', to: '/admin?tab=banners' }] : []),
+  ];
+}
 
 const parentNav: NavItem[] = [
   { icon: LayoutDashboard, label: 'Overview',      to: '/parent' },
@@ -69,7 +78,7 @@ const mentorNav: NavItem[] = [
 ];
 
 function getNavItems(role?: string): NavItem[] {
-  if (role === 'CENTER_ADMIN' || role === 'INSTITUTION_ADMIN' || role === 'SUPER_ADMIN') return adminNav;
+  if (role === 'CENTER_ADMIN' || role === 'INSTITUTION_ADMIN' || role === 'SUPER_ADMIN') return getAdminNav(role);
   if (role === 'PARENT') return parentNav;
   if (role === 'TEACHER') return mentorNav;
   return studentNav;
