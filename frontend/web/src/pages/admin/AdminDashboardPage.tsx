@@ -604,7 +604,7 @@ export default function AdminDashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Welcome, {user?.name?.split(' ')[0] ?? 'Admin'}</h1>
+          <h1 className="text-2xl font-bold text-white">Welcome, {user?.name ?? 'Admin'}</h1>
           <p className="text-white/50 text-sm mt-0.5">Manage centers, batches and monitor platform health.</p>
         </div>
         <button

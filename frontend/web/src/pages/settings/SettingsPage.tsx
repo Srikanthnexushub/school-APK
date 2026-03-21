@@ -327,6 +327,73 @@ function ProfileTab() {
     onError: () => toast.error('Failed to save profile.'),
   });
 
+  // Parent form state
+  const [parentForm, setParentForm] = useState({
+    name: '', phone: '', gender: '', address: '', city: '', state: '', pincode: '',
+  });
+  const parentFormInitialized = useRef(false);
+  useEffect(() => {
+    if (parentProfile && !parentFormInitialized.current) {
+      setParentForm({
+        name: parentProfile.name ?? '',
+        phone: parentProfile.phone ?? '',
+        gender: parentProfile.gender ?? '',
+        address: parentProfile.address ?? '',
+        city: parentProfile.city ?? '',
+        state: parentProfile.state ?? '',
+        pincode: parentProfile.pincode ?? '',
+      });
+      parentFormInitialized.current = true;
+    }
+  }, [parentProfile]);
+
+  const parentSaveMutation = useMutation({
+    mutationFn: (form: typeof parentForm) =>
+      Promise.all([
+        api.patch('/api/v1/parents/me', {
+          name: form.name || undefined,
+          phone: form.phone || undefined,
+          gender: form.gender || undefined,
+          address: form.address || undefined,
+          city: form.city || undefined,
+          state: form.state || undefined,
+          pincode: form.pincode || undefined,
+        }),
+        ...(form.name ? [api.patch('/api/v1/auth/me', { firstName: form.name.trim().split(/\s+/)[0], lastName: form.name.trim().split(/\s+/).slice(1).join(' ') || form.name.trim().split(/\s+/)[0] })] : []),
+      ]),
+    onSuccess: () => {
+      if (parentForm.name) updateUser({ name: parentForm.name });
+      queryClient.invalidateQueries({ queryKey: ['parent-profile'] });
+      toast.success('Profile updated successfully!');
+    },
+    onError: () => toast.error('Failed to save profile.'),
+  });
+
+  // Admin/Institution form state
+  const [adminForm, setAdminForm] = useState({ name: '' });
+  const adminFormInitialized = useRef(false);
+  useEffect(() => {
+    if (user && !adminFormInitialized.current && (user.role === 'CENTER_ADMIN' || user.role === 'INSTITUTION_ADMIN' || user.role === 'SUPER_ADMIN')) {
+      setAdminForm({ name: user.name ?? '' });
+      adminFormInitialized.current = true;
+    }
+  }, [user]);
+
+  const adminSaveMutation = useMutation({
+    mutationFn: (form: typeof adminForm) => {
+      const parts = form.name.trim().split(/\s+/);
+      return api.patch('/api/v1/auth/me', {
+        firstName: parts[0] ?? '',
+        lastName: parts.slice(1).join(' ') || (parts[0] ?? ''),
+      });
+    },
+    onSuccess: () => {
+      updateUser({ name: adminForm.name });
+      toast.success('Profile updated successfully!');
+    },
+    onError: () => toast.error('Failed to save profile.'),
+  });
+
   const [teacherForm, setTeacherForm] = useState({
     bio: '', specializations: '', yearsOfExperience: 0, hourlyRate: '', gender: '',
   });
@@ -576,6 +643,111 @@ function ProfileTab() {
         </form>
       </div>}
 
+      {/* Edit Info — parents only */}
+      {user?.role === 'PARENT' && (
+        <div className="card">
+          <h3 className="text-base font-semibold text-white mb-4">Edit Profile</h3>
+          <form
+            onSubmit={(e) => { e.preventDefault(); parentSaveMutation.mutate(parentForm); }}
+            className="space-y-4"
+          >
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">Full Name</label>
+              <input
+                value={parentForm.name}
+                onChange={(e) => setParentForm((p) => ({ ...p, name: e.target.value }))}
+                placeholder="Your full name"
+                className="input w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">Email</label>
+              <input value={user?.email ?? ''} readOnly className="input w-full opacity-50 cursor-not-allowed" />
+              <p className="text-white/30 text-xs mt-1">Email cannot be changed.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1.5">Phone Number</label>
+                <input
+                  value={parentForm.phone}
+                  onChange={(e) => setParentForm((p) => ({ ...p, phone: e.target.value }))}
+                  placeholder="+91 98765 43210"
+                  className="input w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1.5">Gender</label>
+                <select
+                  value={parentForm.gender}
+                  onChange={(e) => setParentForm((p) => ({ ...p, gender: e.target.value }))}
+                  className="input w-full"
+                >
+                  <option value="">— Select —</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                  <option value="OTHER">Other</option>
+                  <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">Address</label>
+              <input
+                value={parentForm.address}
+                onChange={(e) => setParentForm((p) => ({ ...p, address: e.target.value }))}
+                placeholder="Street address"
+                className="input w-full"
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1.5">City</label>
+                <input
+                  value={parentForm.city}
+                  onChange={(e) => setParentForm((p) => ({ ...p, city: e.target.value }))}
+                  placeholder="City"
+                  className="input w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1.5">State</label>
+                <input
+                  value={parentForm.state}
+                  onChange={(e) => setParentForm((p) => ({ ...p, state: e.target.value }))}
+                  list="parent-states-list"
+                  placeholder="State"
+                  className="input w-full"
+                />
+                <datalist id="parent-states-list">
+                  {suggestStates('').map(s => <option key={s} value={s} />)}
+                </datalist>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode</label>
+                <input
+                  value={parentForm.pincode}
+                  onChange={(e) => setParentForm((p) => ({ ...p, pincode: e.target.value }))}
+                  placeholder="400001"
+                  className="input w-full"
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={parentSaveMutation.isPending}
+              className="btn-primary flex items-center gap-2"
+            >
+              {parentSaveMutation.isPending ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
+              Save Changes
+            </button>
+          </form>
+        </div>
+      )}
+
       {/* Edit Info — teachers only */}
       {user?.role === 'TEACHER' && mentorProfile && (
         <div className="card">
@@ -636,6 +808,44 @@ function ProfileTab() {
               className="btn-primary flex items-center gap-2"
             >
               {teacherSaveMutation.isPending ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
+              Save Changes
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Edit Info — CENTER_ADMIN / INSTITUTION_ADMIN / SUPER_ADMIN */}
+      {(user?.role === 'CENTER_ADMIN' || user?.role === 'INSTITUTION_ADMIN' || user?.role === 'SUPER_ADMIN') && (
+        <div className="card">
+          <h3 className="text-base font-semibold text-white mb-4">Edit Profile</h3>
+          <form
+            onSubmit={(e) => { e.preventDefault(); adminSaveMutation.mutate(adminForm); }}
+            className="space-y-4"
+          >
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">Full Name</label>
+              <input
+                value={adminForm.name}
+                onChange={(e) => setAdminForm((p) => ({ ...p, name: e.target.value }))}
+                placeholder="Your full name"
+                className="input w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">Email</label>
+              <input value={user?.email ?? ''} readOnly className="input w-full opacity-50 cursor-not-allowed" />
+              <p className="text-white/30 text-xs mt-1">Email cannot be changed.</p>
+            </div>
+            <button
+              type="submit"
+              disabled={adminSaveMutation.isPending || !adminForm.name.trim()}
+              className="btn-primary flex items-center gap-2"
+            >
+              {adminSaveMutation.isPending ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <Check className="w-4 h-4" />

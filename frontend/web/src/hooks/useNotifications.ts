@@ -89,8 +89,11 @@ export function useNotifications(): UseNotificationsReturn {
             if (!json) continue;
             try {
               const incoming: AppNotification = JSON.parse(json);
-              setNotifications((prev) => [incoming, ...prev]);
-              setUnreadCount((c) => c + 1);
+              setNotifications((prev) => {
+                if (prev.some((n) => n.id === incoming.id)) return prev;
+                if (!incoming.readAt) setUnreadCount((c) => c + 1);
+                return [incoming, ...prev];
+              });
             } catch {
               // Ignore malformed SSE frames
             }
