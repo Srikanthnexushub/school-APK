@@ -1,9 +1,10 @@
 // src/pages/admin/AdminBannersPage.tsx
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Megaphone, Plus, X, Loader2, AlertTriangle,
-  Edit2, Trash2, ToggleLeft, ToggleRight,
+  Edit2, Trash2, ToggleLeft, ToggleRight, Upload,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -97,7 +98,7 @@ function BannerFormModal({
     onSave(form);
   }
 
-  return (
+  return createPortal(
     <>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -145,24 +146,58 @@ function BannerFormModal({
 
             <div>
               <label className="block text-xs font-medium text-white/60 mb-1.5">Image URL <span className="text-white/30">(poster / fallback)</span></label>
-              <input
-                className="input w-full"
-                placeholder="https://…"
-                value={form.imageUrl}
-                onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-              />
+              <div className="flex gap-2">
+                <input
+                  className="input flex-1"
+                  placeholder="https://…"
+                  value={form.imageUrl}
+                  onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+                />
+                <label className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/10 text-xs font-medium text-white/50 hover:text-white/80 hover:border-white/20 cursor-pointer transition-colors flex-shrink-0">
+                  <Upload className="w-3.5 h-3.5" />
+                  Browse
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = () => setForm((f) => ({ ...f, imageUrl: reader.result as string }));
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                </label>
+              </div>
             </div>
 
             <div>
               <label className="block text-xs font-medium text-white/60 mb-1.5">
                 Video URL <span className="text-white/30">(MP4 / WebM — required for Video type)</span>
               </label>
-              <input
-                className="input w-full"
-                placeholder="https://…/event-promo.mp4"
-                value={form.videoUrl}
-                onChange={(e) => setForm({ ...form, videoUrl: e.target.value })}
-              />
+              <div className="flex gap-2">
+                <input
+                  className="input flex-1"
+                  placeholder="https://…/event-promo.mp4"
+                  value={form.videoUrl}
+                  onChange={(e) => setForm({ ...form, videoUrl: e.target.value })}
+                />
+                <label className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/10 text-xs font-medium text-white/50 hover:text-white/80 hover:border-white/20 cursor-pointer transition-colors flex-shrink-0">
+                  <Upload className="w-3.5 h-3.5" />
+                  Browse
+                  <input
+                    type="file"
+                    accept="video/mp4,video/webm,video/ogg"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setForm((f) => ({ ...f, videoUrl: URL.createObjectURL(file) }));
+                    }}
+                  />
+                </label>
+              </div>
               {form.bannerType === 'VIDEO' && !form.videoUrl && (
                 <p className="text-xs text-amber-400/80 mt-1">⚠ A Video URL is required for Video banners.</p>
               )}
@@ -293,7 +328,8 @@ function BannerFormModal({
           </div>
         </div>
       </motion.div>
-    </>
+    </>,
+    document.body
   );
 }
 
