@@ -27,7 +27,7 @@ Claude will read this file + memory automatically and have full context.
 ```bash
 # 1. Make sure Docker Desktop is running (check macOS menu bar)
 # 2. From the project root:
-bash scripts/start-all.sh --no-build    # fastest (jars already built)
+bash scripts/start-all.sh --no-build    # smart: skips full build but auto-rebuilds any service whose source changed since its JAR was built
 bash scripts/start-all.sh               # full build + start
 bash scripts/start-all.sh --infra-only  # only Docker infra (Postgres/Redis/Kafka)
 ```
@@ -197,8 +197,10 @@ Use Python `urllib.request` for API calls with passwords that contain `!`.
 | Register dropdown fix + district for all roles — SearchableSelect/MultiSelectDropdown: onBlur moved to container div with relatedTarget check (fixes blink-and-close caused by inner autoFocus); District SearchableSelect added to STUDENT (new), PARENT (was text input), TEACHER (was text input), INSTITUTION_ADMIN (new); all data from getDistricts() in indiaLocations.ts; studentDistrict sent in student profile POST | `RegisterPage.tsx` | c75c549 |
 | Universal address fields + correct field order — Address Line 1 + Line 2 added to STUDENT, PARENT, TEACHER (was only on INSTITUTION_ADMIN); order standardised: Address L1 → Address L2 → Country → State → District → City → Pincode for all 4 roles; TEACHER gains Pincode; state onChange cascades to clear District + City; student POST sends combined address | `RegisterPage.tsx` | bd6964e |
 | Location fields side-by-side grid layout — Country+State in grid-cols-2, District+City in grid-cols-2, for all 4 roles (STUDENT/PARENT/TEACHER/INSTITUTION_ADMIN). Layout-only, no logic changes. | `RegisterPage.tsx` | b46b775 |
+| Comprehensive India locations + pincode auto-fill — `india-state-district` npm package (772 districts, 36 states/UTs); real-time pincode → State/District/City via India Post API (free, no auth); First/Last Name hidden until role selected; Teacher centers uses plain axios (fixes redirect-to-login bug); Back button on Step 1 | `indiaLocations.ts`, `RegisterPage.tsx`, `package.json` | bf69e3d |
+| INSTITUTION_ADMIN as top self-service role — Banner write RBAC already correct (isSuperAdmin OR isInstitutionAdmin); BannerControllerIT 12→15 tests (+3 INSTITUTION_ADMIN cases); AdminJobsPage: replaced "Centre ID not found" error with CenterPicker (fetches GET /api/v1/centers, card list); AdminAssignmentsTab: replaced raw UUID input with centre select dropdown | `BannerService.java`, `BannerController.java`, `BannerControllerIT.java`, `AdminJobsPage.tsx`, `AdminAssignmentsTab.tsx` | 2b19f4d |
 
-Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (65+ fixes)
+Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (70+ fixes)
 
 ---
 

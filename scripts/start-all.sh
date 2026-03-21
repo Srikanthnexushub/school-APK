@@ -230,6 +230,24 @@ start_svc() {
 
   JAR=$(find "${ROOT_DIR}/${module_path}/target" -name "*.jar" -not -name "*sources*" 2>/dev/null | head -1)
 
+  # ── stale-JAR guard ────────────────────────────────────────────────────────
+  # When --no-build is passed, check if any source file is newer than the JAR.
+  # If so, rebuild just this module before starting — prevents stale-enum / 500
+  # errors that occur after code changes without a full rebuild.
+  if [[ "${DO_BUILD}" == "false" && -n "${JAR}" ]]; then
+    local stale_src
+    stale_src=$(find "${ROOT_DIR}/${module_path}/src" -newer "${JAR}" \
+      \( -name "*.java" -o -name "*.xml" -o -name "*.yml" -o -name "*.sql" \) \
+      2>/dev/null | head -1)
+    if [[ -n "${stale_src}" ]]; then
+      warn "${name}: source changed since last build (${stale_src##*/}) — rebuilding..."
+      mvn package -pl "${module_path}" -am -DskipTests --no-transfer-progress -q 2>/dev/null
+      JAR=$(find "${ROOT_DIR}/${module_path}/target" -name "*.jar" -not -name "*sources*" 2>/dev/null | head -1)
+      info "${name}: rebuilt OK."
+    fi
+  fi
+  # ───────────────────────────────────────────────────────────────────────────
+
   if [[ -n "${JAR}" ]]; then
     # run packaged JAR — faster startup
     java -jar "${JAR}" \
