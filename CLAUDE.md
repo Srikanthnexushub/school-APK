@@ -199,8 +199,10 @@ Use Python `urllib.request` for API calls with passwords that contain `!`.
 | Location fields side-by-side grid layout — Country+State in grid-cols-2, District+City in grid-cols-2, for all 4 roles (STUDENT/PARENT/TEACHER/INSTITUTION_ADMIN). Layout-only, no logic changes. | `RegisterPage.tsx` | b46b775 |
 | Comprehensive India locations + pincode auto-fill — `india-state-district` npm package (772 districts, 36 states/UTs); real-time pincode → State/District/City via India Post API (free, no auth); First/Last Name hidden until role selected; Teacher centers uses plain axios (fixes redirect-to-login bug); Back button on Step 1 | `indiaLocations.ts`, `RegisterPage.tsx`, `package.json` | bf69e3d |
 | INSTITUTION_ADMIN as top self-service role — Banner write RBAC already correct (isSuperAdmin OR isInstitutionAdmin); BannerControllerIT 12→15 tests (+3 INSTITUTION_ADMIN cases); AdminJobsPage: replaced "Centre ID not found" error with CenterPicker (fetches GET /api/v1/centers, card list); AdminAssignmentsTab: replaced raw UUID input with centre select dropdown | `BannerService.java`, `BannerController.java`, `BannerControllerIT.java`, `AdminJobsPage.tsx`, `AdminAssignmentsTab.tsx` | 2b19f4d |
+| Profile edit forms for ALL roles — PARENT: Edit Profile (name/phone/gender/address/city/state/pincode → PATCH /api/v1/parents/me); CENTER_ADMIN/INSTITUTION_ADMIN/SUPER_ADMIN: Edit Profile (name → PATCH /api/v1/auth/me); Admin welcome greeting uses full name (not split()[0]); SSE notification badge dedup by id prevents inflation on reconnect | `SettingsPage.tsx`, `AdminDashboardPage.tsx`, `useNotifications.ts` | b72784e |
+| Admin profile completion 100% — removed avatarUrl from admin allFields (avatar upload is "coming soon", never saves); both AppLayout.tsx ring and SettingsPage.tsx bar now use [name, email] = 2/2 = 100%; STUDENT(8)/PARENT(9)/TEACHER(8)/ADMIN(2) counts | `AppLayout.tsx`, `SettingsPage.tsx` | dc33618 |
 
-Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (70+ fixes)
+Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (73+ fixes)
 
 ---
 
