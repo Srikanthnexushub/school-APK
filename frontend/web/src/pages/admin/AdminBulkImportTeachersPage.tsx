@@ -35,8 +35,9 @@ interface BulkImportConfirmResponse {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function AdminBulkImportTeachersPage() {
-  const centerId = useAuthStore(s => s.user?.centerId);
+export default function AdminBulkImportTeachersPage({ centerId: centerIdProp }: { centerId?: string }) {
+  const storeCenterId = useAuthStore(s => s.user?.centerId);
+  const centerId = centerIdProp || storeCenterId;
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<BulkImportPreviewResponse | null>(null);
@@ -164,10 +165,9 @@ export default function AdminBulkImportTeachersPage() {
 
       {/* Upload Zone */}
       {!preview && (
-        <div
-          onClick={() => fileRef.current?.click()}
+        <label
           className={cn(
-            'border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all',
+            'border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all block',
             file
               ? 'border-brand-500/40 bg-brand-500/5'
               : 'border-white/10 hover:border-white/20 hover:bg-white/3'
@@ -193,7 +193,7 @@ export default function AdminBulkImportTeachersPage() {
               <p className="text-white/30 text-xs mt-1">Max 500 teachers per file</p>
             </>
           )}
-        </div>
+        </label>
       )}
 
       {/* Validate Button */}

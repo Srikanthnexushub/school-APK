@@ -485,7 +485,7 @@ export default function AdminStaffPage() {
 
       {subTab === 'import' && (
         <div className="flex-1">
-          <AdminBulkImportTeachersPage />
+          <AdminBulkImportTeachersPage centerId={effectiveCenterId} />
         </div>
       )}
 
