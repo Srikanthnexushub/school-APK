@@ -436,7 +436,7 @@ function ProfileTab() {
     if (user.role === 'TEACHER' && mentorProfile)
       return [mentorProfile.fullName, mentorProfile.email, user.avatarUrl, mentorProfile.bio, mentorProfile.specializations, mentorProfile.yearsOfExperience, mentorProfile.hourlyRate, mentorProfile.gender];
     if (user.role === 'CENTER_ADMIN' || user.role === 'INSTITUTION_ADMIN' || user.role === 'SUPER_ADMIN')
-      return [user.name, user.email, user.avatarUrl];
+      return [user.name, user.email];
     return null;
   })();
   const profilePct = allFields ? Math.round(allFields.filter(Boolean).length / allFields.length * 100) : null;

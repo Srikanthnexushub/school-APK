@@ -470,7 +470,7 @@ export default function AppLayout() {
       const f = [mentorProfile.fullName, mentorProfile.email, user.avatarUrl, mentorProfile.bio, mentorProfile.specializations, mentorProfile.yearsOfExperience, mentorProfile.hourlyRate, (mentorProfile as { gender?: string }).gender];
       profilePct = Math.round(f.filter(Boolean).length / f.length * 100);
     } else if (user.role === 'CENTER_ADMIN' || user.role === 'INSTITUTION_ADMIN' || user.role === 'SUPER_ADMIN') {
-      const f = [!!user.name, !!user.email, !!user.avatarUrl];
+      const f = [!!user.name, !!user.email];
       profilePct = Math.round(f.filter(Boolean).length / f.length * 100);
     }
   }
