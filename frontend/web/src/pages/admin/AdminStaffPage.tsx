@@ -5,7 +5,7 @@ import {
   Users, UserPlus, Search, Filter, RefreshCw, Loader2,
   Upload, ChevronDown, Sparkles, X, CheckCircle2,
   AlertCircle, Clock, UserX, RotateCcw, Bot,
-  GraduationCap, Briefcase, MapPin, Star,
+  GraduationCap, Briefcase, MapPin, Star, Building2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -334,11 +334,78 @@ function StaffCard({ member, centerId, onRefresh }: {
   );
 }
 
+// ─── Center Picker (for INSTITUTION_ADMIN with no centerId in JWT) ────────────
+
+interface CenterOption { id: string; name: string; code?: string; }
+
+function CenterPicker({ onSelect }: { onSelect: (id: string) => void }) {
+  const { data: centers = [], isLoading } = useQuery<CenterOption[]>({
+    queryKey: ['centers-picker-staff'],
+    queryFn: async () => {
+      const r = await api.get('/api/v1/centers?size=100');
+      const d = r.data;
+      return Array.isArray(d) ? d : (d.content ?? []);
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-6 h-6 text-brand-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (centers.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px] p-8">
+        <div className="text-center">
+          <Building2 className="w-10 h-10 text-white/15 mx-auto mb-3" />
+          <p className="text-white/40 text-sm">No centres found.</p>
+          <p className="text-white/25 text-xs mt-1">Create a centre first before managing staff.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 lg:p-8 max-w-lg mx-auto">
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <Users className="w-5 h-5 text-brand-400" /> Staff
+        </h2>
+        <p className="text-sm text-white/40 mt-1">Select a centre to manage its staff.</p>
+      </div>
+      <div className="space-y-2">
+        {centers.map(c => (
+          <button
+            key={c.id}
+            onClick={() => onSelect(c.id)}
+            className="w-full flex items-center justify-between gap-3 p-4 rounded-xl bg-white/3 border border-white/8 hover:bg-white/6 hover:border-white/15 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3">
+              <Building2 className="w-4 h-4 text-brand-400 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-white">{c.name}</p>
+                {c.code && <p className="text-xs text-white/35">{c.code}</p>}
+              </div>
+            </div>
+            <Users className="w-4 h-4 text-white/25 flex-shrink-0" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AdminStaffPage() {
   const centerId   = useAuthStore(s => s.user?.centerId);
   const queryClient = useQueryClient();
+
+  const [selectedCenterId, setSelectedCenterId] = useState('');
+  const effectiveCenterId = centerId || selectedCenterId;
 
   const [subTab,      setSubTab]      = useState<SubTab>('directory');
   const [showCreate,  setShowCreate]  = useState(false);
@@ -348,15 +415,19 @@ export default function AdminStaffPage() {
   const [showFilters, setShowFilters] = useState(false);
 
   const { data: staff = [], isLoading, refetch } = useQuery<StaffMember[]>({
-    queryKey: ['staff', centerId],
+    queryKey: ['staff', effectiveCenterId],
     queryFn: async () => {
-      if (!centerId) return [];
-      const res = await api.get(`/api/v1/centers/${centerId}/staff`);
+      if (!effectiveCenterId) return [];
+      const res = await api.get(`/api/v1/centers/${effectiveCenterId}/staff`);
       const d = res.data;
       return Array.isArray(d) ? d : (d.content ?? []);
     },
-    enabled: !!centerId,
+    enabled: !!effectiveCenterId,
   });
+
+  if (!effectiveCenterId) {
+    return <CenterPicker onSelect={setSelectedCenterId} />;
+  }
 
   // ── Stats ────────────────────────────────────────────────────────────────────
   const total           = staff.length;
@@ -432,13 +503,7 @@ export default function AdminStaffPage() {
               </p>
             </div>
             <button
-              onClick={() => {
-                if (!centerId) {
-                  toast.error('Your account is not linked to a centre. Please sign out and sign in again.');
-                  return;
-                }
-                setShowCreate(true);
-              }}
+              onClick={() => setShowCreate(true)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-brand-600 hover:bg-brand-500 text-white transition-colors flex-shrink-0"
             >
               <UserPlus className="w-4 h-4" /> + Create Staff
@@ -589,8 +654,8 @@ export default function AdminStaffPage() {
                     <StaffCard
                       key={member.id}
                       member={member}
-                      centerId={centerId!}
-                      onRefresh={() => queryClient.invalidateQueries({ queryKey: ['staff', centerId] })}
+                      centerId={effectiveCenterId}
+                      onRefresh={() => queryClient.invalidateQueries({ queryKey: ['staff', effectiveCenterId] })}
                     />
                   ))}
                 </div>
@@ -626,13 +691,13 @@ export default function AdminStaffPage() {
 
       {/* Create Staff Modal */}
       <AnimatePresence>
-        {showCreate && centerId && (
+        {showCreate && (
           <CreateStaffModal
-            centerId={centerId}
+            centerId={effectiveCenterId}
             onClose={() => setShowCreate(false)}
             onCreated={() => {
               setShowCreate(false);
-              queryClient.invalidateQueries({ queryKey: ['staff', centerId] });
+              queryClient.invalidateQueries({ queryKey: ['staff', effectiveCenterId] });
             }}
           />
         )}
