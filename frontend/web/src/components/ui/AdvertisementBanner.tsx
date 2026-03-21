@@ -11,6 +11,7 @@ interface BannerResponse {
   title: string;
   subtitle?: string;
   imageUrl?: string;
+  videoUrl?: string;
   linkUrl?: string;
   linkLabel?: string;
   audience: string;

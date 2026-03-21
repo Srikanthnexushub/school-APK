@@ -16,6 +16,7 @@ public record UpdateBannerRequest(
     String title,
     String subtitle,
     String imageUrl,
+    String videoUrl,
     String linkUrl,
     String linkLabel,
     BannerAudience audience,

@@ -40,6 +40,9 @@ public class Banner {
     @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
 
+    @Column(name = "video_url", columnDefinition = "TEXT")
+    private String videoUrl;
+
     @Column(name = "link_url", columnDefinition = "TEXT")
     private String linkUrl;
 
@@ -88,7 +91,7 @@ public class Banner {
      * Factory method — creates a new banner with the given properties.
      * The banner is created active by default.
      */
-    public static Banner create(String title, String subtitle, String imageUrl,
+    public static Banner create(String title, String subtitle, String imageUrl, String videoUrl,
                                 String linkUrl, String linkLabel, BannerAudience audience,
                                 String bgColor, int displayOrder, Instant startDate, Instant endDate,
                                 BannerType bannerType) {
@@ -96,6 +99,7 @@ public class Banner {
         b.title        = title;
         b.subtitle     = subtitle;
         b.imageUrl     = imageUrl;
+        b.videoUrl     = videoUrl;
         b.linkUrl      = linkUrl;
         b.linkLabel    = linkLabel;
         b.audience     = audience;
@@ -134,12 +138,13 @@ public class Banner {
      * Updates editable banner details.
      * Only non-null parameters are applied (PATCH semantics).
      */
-    public void updateDetails(String title, String subtitle, String imageUrl,
+    public void updateDetails(String title, String subtitle, String imageUrl, String videoUrl,
                               String linkUrl, String linkLabel, String bgColor,
                               int displayOrder, Instant startDate, Instant endDate) {
         if (title     != null) this.title     = title;
         if (subtitle  != null) this.subtitle  = subtitle;
         if (imageUrl  != null) this.imageUrl  = imageUrl;
+        if (videoUrl  != null) this.videoUrl  = videoUrl;
         if (linkUrl   != null) this.linkUrl   = linkUrl;
         if (linkLabel != null) this.linkLabel = linkLabel;
         if (bgColor   != null) this.bgColor   = bgColor;
@@ -166,6 +171,7 @@ public class Banner {
     public void setTitle(String title)               { this.title = title; }
     public void setSubtitle(String subtitle)         { this.subtitle = subtitle; }
     public void setImageUrl(String imageUrl)         { this.imageUrl = imageUrl; }
+    public void setVideoUrl(String videoUrl)         { this.videoUrl = videoUrl; }
     public void setLinkUrl(String linkUrl)           { this.linkUrl = linkUrl; }
     public void setLinkLabel(String linkLabel)       { this.linkLabel = linkLabel; }
     public void setAudience(BannerAudience audience) { this.audience = audience; }
@@ -184,6 +190,7 @@ public class Banner {
     public String getTitle()         { return title; }
     public String getSubtitle()      { return subtitle; }
     public String getImageUrl()      { return imageUrl; }
+    public String getVideoUrl()      { return videoUrl; }
     public String getLinkUrl()       { return linkUrl; }
     public String getLinkLabel()     { return linkLabel; }
     public BannerAudience getAudience() { return audience; }

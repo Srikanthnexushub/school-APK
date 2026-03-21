@@ -172,6 +172,7 @@ class BannerControllerIT {
                 "Subtitle for " + title,
                 null,
                 null,
+                null,
                 "Learn more",
                 audience,
                 "#4F46E5",
@@ -202,6 +203,7 @@ class BannerControllerIT {
                 "Welcome to EduTech",
                 "Platform-wide announcement",
                 "https://images.edutech.com/welcome.png",
+                null,
                 "https://edutech.com/learn-more",
                 "Explore Features",
                 BannerAudience.ALL,
@@ -239,7 +241,7 @@ class BannerControllerIT {
 
         CreateBannerRequest req = new CreateBannerRequest(
                 "Center Admin Banner",
-                null, null, null, null,
+                null, null, null, null, null,
                 BannerAudience.CENTER_ADMIN,
                 null, 1, null, null, BannerType.HERO
         );
@@ -421,7 +423,7 @@ class BannerControllerIT {
         UpdateBannerRequest updateReq = new UpdateBannerRequest(
                 "Updated Banner Title",
                 "New subtitle",
-                null, null, null,
+                null, null, null, null,
                 BannerAudience.PARENT,
                 "#EC4899",
                 2,
@@ -458,7 +460,7 @@ class BannerControllerIT {
         mockAuth(centerAdminPrincipal);
         UpdateBannerRequest updateReq = new UpdateBannerRequest(
                 "Tampered Title",
-                null, null, null, null,
+                null, null, null, null, null,
                 null, null, null, null, null, null
         );
 
@@ -552,7 +554,7 @@ class BannerControllerIT {
         CreateBannerRequest req = new CreateBannerRequest(
                 "Institution Admin Banner",
                 "Institution-level announcement",
-                null, null, "Read More",
+                null, null, null, "Read More",
                 BannerAudience.ALL,
                 "#7C3AED",
                 1,

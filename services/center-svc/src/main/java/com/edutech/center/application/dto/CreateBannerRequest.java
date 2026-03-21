@@ -21,6 +21,7 @@ public record CreateBannerRequest(
 
     String subtitle,
     String imageUrl,
+    String videoUrl,
     String linkUrl,
     String linkLabel,
 

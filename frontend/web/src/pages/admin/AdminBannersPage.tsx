@@ -17,6 +17,7 @@ interface BannerResponse {
   title: string;
   subtitle?: string;
   imageUrl?: string;
+  videoUrl?: string;
   linkUrl?: string;
   linkLabel?: string;
   audience: string;
@@ -33,6 +34,7 @@ interface BannerFormState {
   title: string;
   subtitle: string;
   imageUrl: string;
+  videoUrl: string;
   linkUrl: string;
   linkLabel: string;
   audience: string;
@@ -55,6 +57,7 @@ const audienceColors: Record<string, string> = {
 const bannerTypeColors: Record<string, string> = {
   HERO:   'bg-sky-500/15 text-sky-400',
   TICKER: 'bg-violet-500/15 text-violet-400',
+  VIDEO:  'bg-rose-500/15 text-rose-400',
 };
 
 // ─── Banner Form Modal ────────────────────────────────────────────────────────
@@ -74,6 +77,7 @@ function BannerFormModal({
     title:        initial?.title ?? '',
     subtitle:     initial?.subtitle ?? '',
     imageUrl:     initial?.imageUrl ?? '',
+    videoUrl:     initial?.videoUrl ?? '',
     linkUrl:      initial?.linkUrl ?? '',
     linkLabel:    initial?.linkLabel ?? '',
     audience:     initial?.audience ?? 'ALL',
@@ -140,13 +144,28 @@ function BannerFormModal({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-white/60 mb-1.5">Image URL</label>
+              <label className="block text-xs font-medium text-white/60 mb-1.5">Image URL <span className="text-white/30">(poster / fallback)</span></label>
               <input
                 className="input w-full"
                 placeholder="https://…"
                 value={form.imageUrl}
                 onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-white/60 mb-1.5">
+                Video URL <span className="text-white/30">(MP4 / WebM — required for Video type)</span>
+              </label>
+              <input
+                className="input w-full"
+                placeholder="https://…/event-promo.mp4"
+                value={form.videoUrl}
+                onChange={(e) => setForm({ ...form, videoUrl: e.target.value })}
+              />
+              {form.bannerType === 'VIDEO' && !form.videoUrl && (
+                <p className="text-xs text-amber-400/80 mt-1">⚠ A Video URL is required for Video banners.</p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -192,6 +211,7 @@ function BannerFormModal({
                 >
                   <option value="HERO">Hero Carousel</option>
                   <option value="TICKER">Running Ticker</option>
+                  <option value="VIDEO">Video Advertisement</option>
                 </select>
               </div>
             </div>
@@ -429,7 +449,7 @@ export default function AdminBannersPage() {
                   </td>
                   <td className="py-3 pr-4">
                     <span className={cn('badge text-xs', bannerTypeColors[banner.bannerType ?? 'HERO'] ?? 'bg-white/10 text-white/40')}>
-                      {banner.bannerType === 'TICKER' ? 'Ticker' : 'Hero'}
+                      {banner.bannerType === 'TICKER' ? 'Ticker' : banner.bannerType === 'VIDEO' ? 'Video' : 'Hero'}
                     </span>
                   </td>
                   <td className="py-3 pr-4">

@@ -18,6 +18,7 @@ import api from '../../lib/api';
 import AdvertisementBanner from '../../components/ui/AdvertisementBanner';
 import FooterBanner from '../../components/ui/FooterBanner';
 import TickerBanner from '../../components/ui/TickerBanner';
+import VideoBanner from '../../components/ui/VideoBanner';
 
 // ─── API response types ───────────────────────────────────────────────────────
 
@@ -375,6 +376,7 @@ export default function ParentDashboardPage() {
   return (
     <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
       <AdvertisementBanner audience="PARENT" />
+      <VideoBanner audience="PARENT" />
       <TickerBanner audience="PARENT" />
       {/* Page header */}
       <div className="flex items-center justify-between gap-4">
