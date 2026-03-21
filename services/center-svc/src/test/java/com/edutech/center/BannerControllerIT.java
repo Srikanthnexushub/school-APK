@@ -47,9 +47,9 @@ import static org.mockito.Mockito.when;
  * automatically. Kafka and the JWT validator are mocked — the validator returns a
  * pre-configured {@link AuthPrincipal} for any bearer token.
  *
- * <p>Test coverage:
+ * <p>Test coverage (19 tests):
  * <ul>
- *   <li>POST  /api/v1/banners              — SUPER_ADMIN creates banner → 201</li>
+ *   <li>POST  /api/v1/banners              — SUPER_ADMIN creates HERO banner → 201</li>
  *   <li>POST  /api/v1/banners              — CENTER_ADMIN forbidden → 403</li>
  *   <li>GET   /api/v1/banners?audience=PARENT — active PARENT banner returned</li>
  *   <li>GET   /api/v1/banners?audience=PARENT — inactive banner NOT returned</li>
@@ -61,6 +61,13 @@ import static org.mockito.Mockito.when;
  *   <li>PUT   /api/v1/banners/{id}         — CENTER_ADMIN forbidden → 403</li>
  *   <li>PATCH /api/v1/banners/{id}/toggle  — SUPER_ADMIN toggles active=true → active=false</li>
  *   <li>DELETE /api/v1/banners/{id}        — SUPER_ADMIN deletes → 204, not in /all afterwards</li>
+ *   <li>POST  /api/v1/banners              — TICKER type banner persisted with bannerType=TICKER</li>
+ *   <li>POST  /api/v1/banners              — VIDEO type banner with videoUrl → 201, videoUrl stored</li>
+ *   <li>PUT   /api/v1/banners/{id}         — change HERO to VIDEO, videoUrl updated</li>
+ *   <li>GET   /api/v1/banners?audience=ALL — active VIDEO banner returned with correct type+videoUrl</li>
+ *   <li>POST  /api/v1/banners              — INSTITUTION_ADMIN creates banner → 201</li>
+ *   <li>GET   /api/v1/banners/all          — INSTITUTION_ADMIN sees management view → 200</li>
+ *   <li>DELETE /api/v1/banners/{id}        — INSTITUTION_ADMIN soft-deletes → 204</li>
  * </ul>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -543,7 +550,187 @@ class BannerControllerIT {
     }
 
     // =========================================================================
-    // Test 13: POST /api/v1/banners as INSTITUTION_ADMIN → 201
+    // Test 13: POST /api/v1/banners with BannerType.TICKER → 201, type persisted
+    // =========================================================================
+
+    @Test
+    @DisplayName("POST /api/v1/banners — TICKER type banner saved and returned with bannerType=TICKER")
+    void createBanner_withTickerType_succeeds() {
+        mockAuth(superAdminPrincipal);
+
+        CreateBannerRequest req = new CreateBannerRequest(
+                "Summer Admissions Open",
+                null,
+                null,
+                null,
+                "https://nexused.com/admissions",
+                "Apply Now",
+                BannerAudience.PARENT,
+                "#0f172a",
+                1,
+                null,
+                null,
+                BannerType.TICKER
+        );
+
+        ResponseEntity<BannerResponse> response = restTemplate.exchange(
+                "/api/v1/banners",
+                HttpMethod.POST,
+                authEntity(req),
+                BannerResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        BannerResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.id()).isNotNull();
+        assertThat(body.title()).isEqualTo("Summer Admissions Open");
+        assertThat(body.bannerType()).isEqualTo(BannerType.TICKER);
+        assertThat(body.isActive()).isTrue();
+    }
+
+    // =========================================================================
+    // Test 14: POST /api/v1/banners with BannerType.VIDEO + videoUrl → 201, videoUrl persisted
+    // =========================================================================
+
+    @Test
+    @DisplayName("POST /api/v1/banners — VIDEO type banner with videoUrl → 201, videoUrl persisted")
+    void createBanner_withVideoType_succeeds() {
+        mockAuth(superAdminPrincipal);
+
+        String videoUrl = "https://example.com/promo.mp4";
+
+        CreateBannerRequest req = new CreateBannerRequest(
+                "Nexus Promo Video",
+                "Watch our campus tour",
+                "https://example.com/poster.jpg",
+                videoUrl,
+                "https://nexused.com",
+                "Learn More",
+                BannerAudience.ALL,
+                "#1e1b4b",
+                1,
+                null,
+                null,
+                BannerType.VIDEO
+        );
+
+        ResponseEntity<BannerResponse> response = restTemplate.exchange(
+                "/api/v1/banners",
+                HttpMethod.POST,
+                authEntity(req),
+                BannerResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        BannerResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.id()).isNotNull();
+        assertThat(body.title()).isEqualTo("Nexus Promo Video");
+        assertThat(body.bannerType()).isEqualTo(BannerType.VIDEO);
+        assertThat(body.videoUrl()).isEqualTo(videoUrl);
+        assertThat(body.imageUrl()).isEqualTo("https://example.com/poster.jpg");
+    }
+
+    // =========================================================================
+    // Test 15: PUT /api/v1/banners/{id} — change type to VIDEO, videoUrl updated
+    // =========================================================================
+
+    @Test
+    @DisplayName("PUT /api/v1/banners/{id} — SUPER_ADMIN changes HERO to VIDEO type, videoUrl persisted")
+    void updateBanner_changeToVideoType_updatesVideoUrl() {
+        mockAuth(superAdminPrincipal);
+        UUID id = createBanner("Hero To Video Banner", BannerAudience.CENTER_ADMIN);
+
+        String newVideoUrl = "https://cdn.example.com/campus.mp4";
+
+        UpdateBannerRequest updateReq = new UpdateBannerRequest(
+                "Campus Video Tour",
+                "See what makes us special",
+                null,
+                newVideoUrl,
+                null,
+                "Watch Now",
+                BannerAudience.CENTER_ADMIN,
+                "#0f172a",
+                1,
+                null,
+                null,
+                BannerType.VIDEO
+        );
+
+        ResponseEntity<BannerResponse> response = restTemplate.exchange(
+                "/api/v1/banners/" + id,
+                HttpMethod.PUT,
+                authEntity(updateReq),
+                BannerResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        BannerResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.id()).isEqualTo(id);
+        assertThat(body.bannerType()).isEqualTo(BannerType.VIDEO);
+        assertThat(body.videoUrl()).isEqualTo(newVideoUrl);
+        assertThat(body.title()).isEqualTo("Campus Video Tour");
+    }
+
+    // =========================================================================
+    // Test 16: GET active banners — VIDEO banner included in active list
+    // =========================================================================
+
+    @Test
+    @DisplayName("GET /api/v1/banners?audience=ALL — active VIDEO banner is returned in results")
+    void getActiveBanners_videoType_returnedInActiveList() {
+        mockAuth(superAdminPrincipal);
+        String videoTitle = "Video Active Banner " + UUID.randomUUID();
+
+        CreateBannerRequest req = new CreateBannerRequest(
+                videoTitle,
+                null,
+                null,
+                "https://example.com/video.mp4",
+                null,
+                null,
+                BannerAudience.ALL,
+                null,
+                1,
+                null,
+                null,
+                BannerType.VIDEO
+        );
+        ResponseEntity<BannerResponse> createResp = restTemplate.exchange(
+                "/api/v1/banners",
+                HttpMethod.POST,
+                authEntity(req),
+                BannerResponse.class);
+        assertThat(createResp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+
+        // Any authenticated user can query active banners
+        mockAuth(centerAdminPrincipal);
+        ResponseEntity<List<BannerResponse>> response = restTemplate.exchange(
+                "/api/v1/banners?audience=CENTER_ADMIN",
+                HttpMethod.GET,
+                authEntity(),
+                new ParameterizedTypeReference<List<BannerResponse>>() {});
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        List<BannerResponse> body = response.getBody();
+        assertThat(body).isNotNull();
+
+        // The VIDEO banner must appear in the active list for its audience
+        List<String> titles = body.stream().map(BannerResponse::title).toList();
+        assertThat(titles).contains(videoTitle);
+
+        // And its bannerType must be VIDEO (not coerced to something else)
+        BannerResponse videoBanner = body.stream()
+                .filter(b -> b.title().equals(videoTitle))
+                .findFirst()
+                .orElse(null);
+        assertThat(videoBanner).isNotNull();
+        assertThat(videoBanner.bannerType()).isEqualTo(BannerType.VIDEO);
+        assertThat(videoBanner.videoUrl()).isEqualTo("https://example.com/video.mp4");
+    }
+
+    // =========================================================================
+    // Test 17: POST /api/v1/banners as INSTITUTION_ADMIN → 201
     // =========================================================================
 
     @Test
@@ -577,7 +764,7 @@ class BannerControllerIT {
     }
 
     // =========================================================================
-    // Test 14: GET /api/v1/banners/all as INSTITUTION_ADMIN → 200
+    // Test 18: GET /api/v1/banners/all as INSTITUTION_ADMIN → 200
     // =========================================================================
 
     @Test
@@ -599,7 +786,7 @@ class BannerControllerIT {
     }
 
     // =========================================================================
-    // Test 15: DELETE /api/v1/banners/{id} as INSTITUTION_ADMIN → 204
+    // Test 19: DELETE /api/v1/banners/{id} as INSTITUTION_ADMIN → 204
     // =========================================================================
 
     @Test

@@ -1,5 +1,7 @@
 /**
- * E2E tests for the Institution Portal (CENTER_ADMIN role).
+ * E2E tests for the Institution Portal.
+ *
+ * Covers CENTER_ADMIN (Suites 1–6), INSTITUTION_ADMIN (Suites 7–8).
  *
  * Auth strategy: token injection via page.evaluate() rather than UI login,
  * which avoids captcha overhead and keeps tests fast and deterministic.
@@ -7,8 +9,10 @@
  * Prerequisites:
  *   - All services running (start-all.sh --no-build)
  *   - CAPTCHA_E2E_BYPASS_TOKEN env var set (matches auth-svc config)
- *   - CENTER_ADMIN account: institute@nexused.com / Test@12345
+ *   - CENTER_ADMIN account:       institute@nexused.com / Test@12345
  *     centerId: 6e9985dd-f029-49aa-8d22-39c42525df97
+ *   - INSTITUTION_ADMIN account:  superadmin@nexused.com / Test@12345
+ *     no centerId (platform-level admin)
  */
 
 import { test, expect, type Page, type APIRequestContext } from '@playwright/test';
@@ -21,7 +25,17 @@ const CENTER_ADMIN   = {
   password: 'Test@12345',
   userId:   'd3b21512-3184-4b8c-b8a9-7e19fdd9422b',
   centerId: '6e9985dd-f029-49aa-8d22-39c42525df97',
+  role:     'CENTER_ADMIN' as const,
 };
+
+const INSTITUTION_ADMIN = {
+  email:    'superadmin@nexused.com',
+  password: 'Test@12345',
+  userId:   'abcb0257-1ca2-43a9-8ac4-a4bb5e02ad39',
+  centerId: null as null,
+  role:     'INSTITUTION_ADMIN' as const,
+};
+
 const CAPTCHA_BYPASS = process.env.CAPTCHA_E2E_BYPASS_TOKEN
   ?? 'E2E-LOCAL-BYPASS-DO-NOT-USE-IN-PROD';
 
@@ -31,12 +45,17 @@ const E2E_JOB_TITLE = `E2E Test Position ${Date.now()}`;
 
 // ─── Auth helpers ─────────────────────────────────────────────────────────────
 
-/** Obtain a fresh JWT for CENTER_ADMIN by calling auth-svc directly. */
-async function fetchToken(request: APIRequestContext): Promise<string> {
+type TestUser = typeof CENTER_ADMIN | typeof INSTITUTION_ADMIN;
+
+/** Obtain a fresh JWT for the given user by calling auth-svc directly. */
+async function fetchToken(
+  request: APIRequestContext,
+  user: TestUser = CENTER_ADMIN,
+): Promise<string> {
   const res = await request.post(`${AUTH_SVC_URL}/api/v1/auth/login`, {
     data: {
-      email:    CENTER_ADMIN.email,
-      password: CENTER_ADMIN.password,
+      email:    user.email,
+      password: user.password,
       captchaToken: `${CAPTCHA_BYPASS}:bypass`,
       deviceFingerprint: {
         userAgent: 'Playwright/institution-portal',
@@ -48,7 +67,7 @@ async function fetchToken(request: APIRequestContext): Promise<string> {
 
   if (!res.ok()) {
     throw new Error(
-      `Login failed ${res.status()}: ${await res.text()}`
+      `Login failed ${res.status()} for ${user.email}: ${await res.text()}`
     );
   }
 
@@ -60,10 +79,14 @@ async function fetchToken(request: APIRequestContext): Promise<string> {
   return token;
 }
 
-/** Inject the CENTER_ADMIN auth state into localStorage, then navigate to url. */
-async function injectAuthAndGo(page: Page, token: string, url = '/admin'): Promise<void> {
+/** Inject auth state for the given user into localStorage, then navigate to url. */
+async function injectAuthAndGo(
+  page: Page,
+  token: string,
+  url = '/admin',
+  user: TestUser = CENTER_ADMIN,
+): Promise<void> {
   // Navigate to the app root first so localStorage is scoped to the right origin.
-  // If the page is already on the right origin we can skip the first goto.
   try {
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 10_000 });
   } catch {
@@ -71,7 +94,7 @@ async function injectAuthAndGo(page: Page, token: string, url = '/admin'): Promi
   }
 
   await page.evaluate(
-    ([t, user]: [string, typeof CENTER_ADMIN]) => {
+    ([t, u]: [string, TestUser]) => {
       localStorage.setItem(
         'edupath-auth',
         JSON.stringify({
@@ -81,17 +104,17 @@ async function injectAuthAndGo(page: Page, token: string, url = '/admin'): Promi
             deviceId:        'e2e-institution',
             isAuthenticated: true,
             user: {
-              id:       user.userId,
-              email:    user.email,
-              role:     'CENTER_ADMIN',
-              centerId: user.centerId,
+              id:       u.userId,
+              email:    u.email,
+              role:     u.role,
+              centerId: u.centerId,
             },
           },
           version: 0,
         })
       );
     },
-    [token, CENTER_ADMIN] as [string, typeof CENTER_ADMIN]
+    [token, user] as [string, TestUser]
   );
 
   await page.goto(url, { waitUntil: 'load', timeout: 30_000 });
@@ -118,9 +141,10 @@ test.describe('Suite 1 — Authentication & Navigation', () => {
     ).toBeVisible({ timeout: 10_000 });
   });
 
-  test('all 8 tabs are visible in the tab bar', async ({ page }) => {
+  test('all 9 tabs are visible in the tab bar for CENTER_ADMIN', async ({ page }) => {
     await injectAuthAndGo(page, sharedToken, '/admin');
 
+    // CENTER_ADMIN sees 9 tabs — Banners is superAdminOnly (hidden for CENTER_ADMIN).
     const expectedLabels = [
       'Overview',
       'Centers',
@@ -130,6 +154,7 @@ test.describe('Suite 1 — Authentication & Navigation', () => {
       'Teacher Approvals',
       'Staff',
       'Jobs',
+      'Assignments',
     ];
 
     for (const label of expectedLabels) {
@@ -566,5 +591,221 @@ test.describe('Suite 5 — Jobs: Job Board', () => {
     for (const label of ['Full Time', 'Part Time', 'Contract']) {
       await expect(jobTypeSelect.locator('option', { hasText: label })).toHaveCount(1);
     }
+  });
+});
+
+// ─── Suite 6: Assignments Tab (CENTER_ADMIN) ──────────────────────────────────
+
+test.describe('Suite 6 — Assignments Tab', () => {
+  test.beforeAll(async ({ request }) => {
+    sharedToken = await fetchToken(request);
+  });
+
+  test('assignments tab renders Assignments heading', async ({ page }) => {
+    await injectAuthAndGo(page, sharedToken, '/admin?tab=assignments');
+
+    await expect(
+      page.getByRole('heading', { name: /Assignments/i }).first()
+    ).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('assignments tab shows Create Assignment button', async ({ page }) => {
+    await injectAuthAndGo(page, sharedToken, '/admin?tab=assignments');
+
+    await expect(
+      page.getByRole('button', { name: /Create Assignment/i })
+    ).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('assignments tab shows list or empty state message', async ({ page }) => {
+    await injectAuthAndGo(page, sharedToken, '/admin?tab=assignments');
+
+    // Wait for the assignments query to resolve.
+    await page.waitForTimeout(2_000);
+
+    // Either assignment rows exist or the empty-state message is shown.
+    const hasRows    = await page.getByText(/Due:|DRAFT|PUBLISHED|CLOSED/i).count();
+    const hasEmpty   = await page.getByText(/No assignments found/i).count();
+
+    expect(hasRows + hasEmpty).toBeGreaterThan(0);
+  });
+
+  test('Create Assignment button opens modal with title field', async ({ page }) => {
+    await injectAuthAndGo(page, sharedToken, '/admin?tab=assignments');
+
+    await page.getByRole('button', { name: /Create Assignment/i }).click();
+
+    // Modal renders a text input for the assignment title
+    await expect(
+      page.getByRole('dialog')
+        .or(page.locator('[class*="modal"], [class*="Modal"]').first())
+    ).toBeVisible({ timeout: 10_000 });
+
+    // Title input or Assignment Title label should be present in the modal
+    await expect(
+      page.getByPlaceholder(/title/i)
+        .or(page.getByLabel(/Assignment Title/i))
+        .or(page.getByText(/Assignment Title/i))
+    ).toBeVisible({ timeout: 5_000 });
+  });
+});
+
+// ─── Suite 7: Banners Tab (INSTITUTION_ADMIN) ─────────────────────────────────
+
+let institutionAdminToken: string;
+
+test.describe('Suite 7 — Banners Tab (INSTITUTION_ADMIN)', () => {
+  test.beforeAll(async ({ request }) => {
+    institutionAdminToken = await fetchToken(request, INSTITUTION_ADMIN);
+  });
+
+  test('INSTITUTION_ADMIN can access Banners tab', async ({ page }) => {
+    await injectAuthAndGo(page, institutionAdminToken, '/admin?tab=banners', INSTITUTION_ADMIN);
+
+    await expect(
+      page.getByRole('heading', { name: /Banners/i })
+    ).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('Banners tab shows Create Banner button', async ({ page }) => {
+    await injectAuthAndGo(page, institutionAdminToken, '/admin?tab=banners', INSTITUTION_ADMIN);
+
+    await expect(
+      page.getByRole('button', { name: /Create Banner/i })
+    ).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('Banners table has Type column showing Hero/Ticker/Video badges', async ({ page }) => {
+    await injectAuthAndGo(page, institutionAdminToken, '/admin?tab=banners', INSTITUTION_ADMIN);
+
+    await page.waitForTimeout(2_000); // wait for banners query
+
+    // The table header always renders even when the list is empty.
+    // Check for the "Type" column header.
+    await expect(
+      page.getByText(/^Type$/i).first()
+    ).toBeVisible({ timeout: 5_000 });
+  });
+
+  test('Create Banner modal has Type dropdown with Hero/Ticker/Video options', async ({ page }) => {
+    await injectAuthAndGo(page, institutionAdminToken, '/admin?tab=banners', INSTITUTION_ADMIN);
+
+    await page.getByRole('button', { name: /Create Banner/i }).click();
+
+    // Wait for the form panel to open (it slides in on the right side)
+    await expect(
+      page.getByRole('heading', { name: /Create Banner/i })
+    ).toBeVisible({ timeout: 10_000 });
+
+    // The Type <select> should have Hero Carousel, Running Ticker, Video Advertisement options
+    const typeSelect = page.locator('select').filter({ hasText: /Hero Carousel/i }).first();
+    await expect(typeSelect).toBeVisible({ timeout: 5_000 });
+
+    await expect(typeSelect.locator('option', { hasText: /Hero Carousel/i })).toHaveCount(1);
+    await expect(typeSelect.locator('option', { hasText: /Running Ticker/i })).toHaveCount(1);
+    await expect(typeSelect.locator('option', { hasText: /Video Advertisement/i })).toHaveCount(1);
+  });
+
+  test('selecting Video type reveals Video URL field', async ({ page }) => {
+    await injectAuthAndGo(page, institutionAdminToken, '/admin?tab=banners', INSTITUTION_ADMIN);
+
+    await page.getByRole('button', { name: /Create Banner/i }).click();
+    await expect(
+      page.getByRole('heading', { name: /Create Banner/i })
+    ).toBeVisible({ timeout: 10_000 });
+
+    // Select "Video Advertisement" from the type dropdown
+    const typeSelect = page.locator('select').filter({ hasText: /Hero Carousel/i }).first();
+    await typeSelect.selectOption('VIDEO');
+
+    // The Video URL input should appear
+    await expect(
+      page.getByPlaceholder(/https:\/\/.*\.mp4/i)
+        .or(page.getByLabel(/Video URL/i))
+    ).toBeVisible({ timeout: 5_000 });
+  });
+
+  test('Banners tab is hidden for CENTER_ADMIN role', async ({ page, request }) => {
+    // Fetch a CENTER_ADMIN token and verify Banners tab is not visible.
+    const caToken = await fetchToken(request, CENTER_ADMIN);
+    await injectAuthAndGo(page, caToken, '/admin', CENTER_ADMIN);
+
+    // Banners tab button must not be present for CENTER_ADMIN
+    await expect(
+      page.getByRole('button', { name: /^Banners$/i })
+    ).toBeHidden({ timeout: 5_000 });
+  });
+});
+
+// ─── Suite 8: INSTITUTION_ADMIN Role Navigation ───────────────────────────────
+
+test.describe('Suite 8 — INSTITUTION_ADMIN Role', () => {
+  test.beforeAll(async ({ request }) => {
+    institutionAdminToken = await fetchToken(request, INSTITUTION_ADMIN);
+  });
+
+  test('INSTITUTION_ADMIN is redirected to /admin after login', async ({ page }) => {
+    await injectAuthAndGo(page, institutionAdminToken, '/admin', INSTITUTION_ADMIN);
+
+    // Should stay on /admin — not bounced to /login
+    await expect(page).toHaveURL(/\/admin/, { timeout: 10_000 });
+  });
+
+  test('INSTITUTION_ADMIN sees all 10 tabs including Banners', async ({ page }) => {
+    await injectAuthAndGo(page, institutionAdminToken, '/admin', INSTITUTION_ADMIN);
+
+    // INSTITUTION_ADMIN has same tab visibility as SUPER_ADMIN — all 10 tabs.
+    const expectedLabels = [
+      'Overview',
+      'Centers',
+      'Batches',
+      'Assessments',
+      'Bulk Import',
+      'Teacher Approvals',
+      'Staff',
+      'Jobs',
+      'Assignments',
+      'Banners',
+    ];
+
+    for (const label of expectedLabels) {
+      await expect(
+        page.getByRole('button', { name: new RegExp(label, 'i') })
+      ).toBeVisible({ timeout: 10_000 });
+    }
+  });
+
+  test('INSTITUTION_ADMIN overview shows Welcome greeting with name', async ({ page }) => {
+    await injectAuthAndGo(page, institutionAdminToken, '/admin?tab=overview', INSTITUTION_ADMIN);
+
+    // AdminDashboardPage renders "Welcome, [user.name]"
+    await expect(
+      page.getByRole('heading', { name: /Welcome,/i })
+    ).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('INSTITUTION_ADMIN Assignments tab shows center picker (no centerId in JWT)', async ({ page }) => {
+    await injectAuthAndGo(page, institutionAdminToken, '/admin?tab=assignments', INSTITUTION_ADMIN);
+
+    // INSTITUTION_ADMIN has no centerId in JWT → AdminAssignmentsTab renders
+    // a center picker dropdown or card list to select a centre first.
+    await page.waitForTimeout(2_000); // wait for centers query
+
+    // Either a <select> dropdown or "Select a Centre" placeholder text
+    const hasCenterSelect = await page.getByRole('combobox').count();
+    const hasPickerText   = await page.getByText(/Select a [Cc]entre|Select [Cc]enter|Choose a [Cc]entre/i).count();
+    const hasHeading      = await page.getByText(/Assignments/i).count();
+
+    // At minimum the Assignments heading must be present
+    expect(hasHeading).toBeGreaterThan(0);
+    // And there must be some centre-picker UI (select or helper text)
+    expect(hasCenterSelect + hasPickerText).toBeGreaterThan(0);
+  });
+
+  test('unauthenticated access to /admin redirects to login', async ({ page }) => {
+    await page.addInitScript(() => localStorage.clear());
+    await page.goto('/admin', { waitUntil: 'networkidle', timeout: 20_000 });
+
+    await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
   });
 });
