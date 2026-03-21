@@ -8,6 +8,51 @@
 
 ---
 
+## 🧠 THINK BEFORE BUILDING — LAYOUT & ARCHITECTURE CHECKLIST
+
+Before building any new UI component, navigation, or feature — **stop and answer these questions first**:
+
+1. **Layout conflict check**: Does `AppLayout.tsx` already render a sidebar/nav/header at this route? If yes, does the new component add a second one? → Fix the existing one instead.
+2. **Data already exists?**: Is there an existing API, store, hook, or component that already does what's needed? → Reuse it.
+3. **Where does state live?**: Should this state be local, in a store (Zustand), or server-side (React Query)?
+4. **Role/permission impact**: Does this change affect what CENTER_ADMIN / INSTITUTION_ADMIN / SUPER_ADMIN / STUDENT / PARENT / TEACHER sees? Check all roles.
+5. **Frozen fix conflict**: Does this touch any file mentioned in `frozen-fixes.md`? → Ask permission explicitly.
+
+**If any answer is "yes" or "unsure" — explain the conflict to the user BEFORE writing code.**
+
+---
+
+## 🔧 Advanced Concepts & Patterns Used in This Codebase
+
+### Frontend (React / TypeScript)
+- **Zustand** (`useAuthStore`) — global auth state (token, user, role, centerId). Persist key: `edupath-auth`. Access: `useAuthStore(s => s.user?.role)`.
+- **React Query** (`@tanstack/react-query`) — all server data fetching. Use `queryKey` arrays, `staleTime`, `enabled` guards. Pagination: `Array.isArray(d) ? d : (d.content ?? [])`.
+- **Framer Motion** — page transitions (`AnimatePresence`, `motion.div`), animated tab indicators (`layoutId`). ⛔ NEVER use `-translate-x/y-1/2` with Framer Motion (it gets overridden).
+- **React Router v6** — `useSearchParams` for tab state in admin portal (`?tab=xxx`). `NavLink` for active styles. `Outlet` in AppLayout.
+- **`AppLayout.tsx`** — the single persistent shell for ALL roles. Left collapsible sidebar + top header + `<Outlet>`. Nav items come from `getNavItems(role)` which calls `getAdminNav(role)` for admin roles. **Never add a second sidebar inside a page rendered inside AppLayout.**
+- **`createPortal`** — used for modals that need to escape `overflow-hidden` parents (e.g. AdminBannersPage modal).
+- **File uploads** — ALWAYS use `<label>` wrapping `<input type="file" className="hidden">`. NEVER `div + onClick + programmatic .click()` (causes click-bubble loop).
+- **SSE (Server-Sent Events)** — real-time notifications via `useNotifications` hook. Dedup by `id` to prevent badge inflation on reconnect.
+- **Intersection Observer** — used in `VideoBanner.tsx` to pause video when scrolled out of view.
+
+### Backend (Spring Boot / Java)
+- **Hexagonal architecture** — domain → application → infrastructure layers. No Spring annotations in `domain/`. Ports + Adapters pattern.
+- **JWT (RSA asymmetric)** — every service validates with RSA public key. 15-min TTL. Payload: `sub=userId`, `role`, `centerId`. All inter-service calls require JWT header.
+- **Spring Security** — RBAC per endpoint. Empty-body 403 = Jackson deserialization failure BEFORE controller (e.g. bad enum value), NOT an auth error.
+- **Spring Data JPA + Flyway** — migrations in `src/main/resources/db/migration/V{n}__description.sql`. ALWAYS increment V number. Check constraints (e.g. `chk_banner_type`) must be dropped+recreated when adding new enum values.
+- **TestContainers** — integration tests spin up real Postgres (pgvector/pg16). No mocks for DB. Pattern: `@SpringBootTest` + `@ActiveProfiles("test")` + static container.
+- **Kafka** — event bus for notifications. Topics defined in `event-contracts` module. Services publish/consume domain events.
+- **JPQL CAST fix** — `CAST(:param AS String)` in JPQL queries to prevent `lower(bytea)` error on nullable params in Postgres.
+
+### Infrastructure
+- **Docker Compose** — all infra (Postgres, Redis, Kafka, MailHog) via `infrastructure/docker/docker-compose.yml`.
+- **Maven multi-module** — ALWAYS run `mvn` from project root. Internal modules (`common-security`, `event-contracts`, `test-fixtures`) only resolve from the reactor.
+- **Gateway routing** — ALL frontend → api-gateway (8180) or student-gateway (8089). Never call services directly. Routes defined in gateway `application.yml`.
+
+---
+
+---
+
 ## Starting a Fresh Session — What to Say
 
 You don't need to explain anything. Just tell Claude what you want to do:
@@ -98,6 +143,17 @@ Usually means Redis is unreachable. Fix Redis first (see above), then auth-svc r
 **Symptom:** Browser or Playwright cannot connect to `http://localhost:3000` even though Vite is running.
 **Cause:** Vite was binding only to IPv6 `[::1]:3000`, not IPv4 `127.0.0.1:3000`. `localhost` resolves to IPv4 on many systems, so the connection was refused.
 **Fixed permanently** in `vite.config.ts` by adding `host: true` to the server block — Vite now binds to `0.0.0.0` (all interfaces). Also fixed `start-all.sh` to print `http://localhost:3000` (was wrongly showing `5173`).
+
+### IT tests fail with "Could not find a valid Docker environment"
+**Symptom:** All `*IT.java` tests fail with `Could not find a valid Docker environment` at TestContainers startup.
+**Cause:** Docker Desktop 4.60.1+ raised `MinAPIVersion` to 1.44. TestContainers' bundled (shaded) docker-java defaults to requesting `/v1.41/info` → HTTP 400 Bad Request.
+**Fixed permanently** in `pom.xml` (commit `2666427`): `<argLine>-Dapi.version=1.47</argLine>` in maven-failsafe-plugin `<configuration>`. ⛔ NEVER remove this line.
+**If it reappears:** Do NOT reinstall TestContainers. Check if `pom.xml` still has the `<argLine>` — if removed, restore it. If argLine is present and still failing, verify Docker Desktop is running (`docker ps`).
+
+### IT tests fail with "Could not resolve placeholder 'APP_ENVIRONMENT'"
+**Symptom:** Spring context fails to load in IT tests with `NumberFormatException` or placeholder errors for `${APP_ENVIRONMENT}`, `${PSYCH_SVC_DB_CONNECTION_TIMEOUT_MS}`, etc.
+**Cause:** `application.yml` uses env vars. `application-test.yml` must override all of them. Previously these were set in `.env` loaded in the shell.
+**Fixed permanently** in `services/psych-svc/src/test/resources/application-test.yml` (commit `2666427`): added `spring.datasource.hikari.*` pool settings and `management.metrics.tags.*` overrides. ⛔ NEVER remove these sections.
 
 ### `mvn test-compile` fails
 Check for Java compilation errors in test files. Run: `mvn test-compile --no-transfer-progress 2>&1 | grep ERROR`
@@ -207,8 +263,10 @@ Use Python `urllib.request` for API calls with passwords that contain `!`.
 | Admin profile completion 100% — removed avatarUrl from admin allFields (avatar upload is "coming soon", never saves); both AppLayout.tsx ring and SettingsPage.tsx bar now use [name, email] = 2/2 = 100%; STUDENT(8)/PARENT(9)/TEACHER(8)/ADMIN(2) counts | `AppLayout.tsx`, `SettingsPage.tsx` | dc33618 |
 | Staff tab CenterPicker for INSTITUTION_ADMIN — `AdminStaffPage` now shows CenterPicker (card list of accessible centres) when no centerId in JWT; `effectiveCenterId = centerId \|\| selectedCenterId`; removes toast.error guard; all staff queries + StaffCard + CreateStaffModal use effectiveCenterId. Same pattern as AdminJobsPage Fix #70 | `frontend: AdminStaffPage.tsx` | ba70c91 |
 | Upload zone click-bubble loop fix — `AdminBulkImportTeachersPage` upload div+onClick+programmatic .click() caused click-bubble loop (file chooser opened then closed). Fix: `<label>` wrapping `<input type="file" className="hidden">`. Also added `centerId?` prop so INSTITUTION_ADMIN gets effectiveCenterId from AdminStaffPage. ⛔ RULE: NEVER use div+onClick+.click() for file uploads. ALWAYS use `<label>` wrapping hidden input. | `frontend: AdminBulkImportTeachersPage.tsx, AdminStaffPage.tsx` | 6b23f51 |
+| TestContainers Docker Desktop 4.60+ fix (Fix #83) — Docker Desktop 4.60.1 raised MinAPIVersion to 1.44; shaded docker-java defaulted to /v1.41 → HTTP 400 → "Could not find a valid Docker environment" for ALL IT tests. Fix: `<argLine>-Dapi.version=1.47</argLine>` in maven-failsafe-plugin `<configuration>` in root pom.xml. Also fixed psych-svc application-test.yml: added `spring.datasource.hikari.*` pool settings + `management.metrics.tags.*` overrides. ⛔ NEVER remove argLine from pom.xml or hikari/metrics blocks from application-test.yml. | `pom.xml`, `services/psych-svc/src/test/resources/application-test.yml`, `testcontainers.properties` | 2666427 |
+| psych-svc self-service psychometric (Fix #84) — null centerId+batchId allowed in CreatePsychProfileRequest, PsychProfile, PsychProfileService. GlobalExceptionHandler: DataIntegrityViolationException → 409. PsychometricPage.tsx + ParentPsychometricPage.tsx self-service flow. 17 IT tests (12 PsychControllerIT + 5 PsychAssessmentIT) all pass. | `psych-svc: PsychProfile.java, CreatePsychProfileRequest.java, PsychProfileService.java, GlobalExceptionHandler.java, PsychAssessmentIT.java, PsychControllerIT.java`; `frontend: PsychometricPage.tsx, ParentPsychometricPage.tsx` | 2666427 |
 
-Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (83+ fixes)
+Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (85+ fixes)
 
 ---
 
