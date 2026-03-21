@@ -121,7 +121,6 @@ function VideoSlide({ banner, isActive, onEnded }: VideoSlideProps) {
           poster={banner.imageUrl}
           muted
           playsInline
-          loop
           preload="metadata"
           onTimeUpdate={handleTimeUpdate}
           onPlay={handlePlay}
@@ -229,6 +228,8 @@ function VideoSlide({ banner, isActive, onEnded }: VideoSlideProps) {
 
 export default function VideoBanner({ audience }: VideoBannerProps) {
   const [current, setCurrent] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const rotationMs = parseInt(import.meta.env.VITE_BANNER_ROTATION_MS ?? '8000', 10);
 
   const { data: allBanners = [] } = useQuery<BannerResponse[]>({
     queryKey: ['banners', audience],
@@ -242,6 +243,21 @@ export default function VideoBanner({ audience }: VideoBannerProps) {
 
   const banners = allBanners.filter((b) => b.bannerType === 'VIDEO');
 
+  // Auto-rotate between video banners on a fixed interval
+  useEffect(() => {
+    if (banners.length <= 1) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
+    }
+    intervalRef.current = setInterval(() => {
+      setCurrent((c) => (c + 1) % banners.length);
+    }, rotationMs);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [banners.length, rotationMs]);
+
+  // Also advance on video natural end (for short clips)
   const handleEnded = useCallback(() => {
     setCurrent((c) => (c + 1) % banners.length);
   }, [banners.length]);
