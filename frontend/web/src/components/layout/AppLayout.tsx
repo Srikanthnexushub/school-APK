@@ -451,6 +451,8 @@ export default function AppLayout() {
     queryFn: () => api.get('/api/v1/students/me').then((r) => r.data),
     enabled: !!user && user.role === 'STUDENT',
     staleTime: 5 * 60 * 1000,
+    retry: false,
+    throwOnError: false,
   });
 
   const { data: parentProfile } = useQuery({
@@ -469,8 +471,11 @@ export default function AppLayout() {
 
   let profilePct = 0;
   if (user) {
-    if (user.role === 'STUDENT' && studentProfile) {
-      const f = [user.name, user.email, user.avatarUrl, studentProfile.phone, studentProfile.gender, studentProfile.dateOfBirth, studentProfile.city, studentProfile.stream];
+    if (user.role === 'STUDENT') {
+      // 8-field array — studentProfile may be undefined for brand-new students (no profile row yet)
+      const f = [user.name, user.email, user.avatarUrl,
+        studentProfile?.phone, studentProfile?.gender, studentProfile?.dateOfBirth,
+        studentProfile?.city, studentProfile?.stream];
       profilePct = Math.round(f.filter(Boolean).length / f.length * 100);
     } else if (user.role === 'PARENT' && parentProfile) {
       const f = [parentProfile.name, parentProfile.phone, parentProfile.email, (parentProfile as { gender?: string }).gender, parentProfile.relationshipType, parentProfile.address, parentProfile.city, parentProfile.state, parentProfile.pincode];
