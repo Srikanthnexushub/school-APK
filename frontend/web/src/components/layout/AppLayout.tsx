@@ -460,6 +460,8 @@ export default function AppLayout() {
     queryFn: () => api.get('/api/v1/parents/me').then((r) => r.data),
     enabled: !!user && user.role === 'PARENT',
     staleTime: 5 * 60 * 1000,
+    retry: false,
+    throwOnError: false,
   });
 
   const { data: mentorProfile } = useQuery({
@@ -467,6 +469,8 @@ export default function AppLayout() {
     queryFn: () => api.get('/api/v1/mentors/me').then((r) => r.data),
     enabled: !!user && user.role === 'TEACHER',
     staleTime: 5 * 60 * 1000,
+    retry: false,
+    throwOnError: false,
   });
 
   let profilePct = 0;
@@ -477,11 +481,11 @@ export default function AppLayout() {
         studentProfile?.phone, studentProfile?.gender, studentProfile?.dateOfBirth,
         studentProfile?.city, studentProfile?.stream];
       profilePct = Math.round(f.filter(Boolean).length / f.length * 100);
-    } else if (user.role === 'PARENT' && parentProfile) {
-      const f = [parentProfile.name, parentProfile.phone, parentProfile.email, (parentProfile as { gender?: string }).gender, parentProfile.relationshipType, parentProfile.address, parentProfile.city, parentProfile.state, parentProfile.pincode];
+    } else if (user.role === 'PARENT') {
+      const f = [parentProfile?.name, parentProfile?.phone, parentProfile?.email, (parentProfile as { gender?: string } | undefined)?.gender, parentProfile?.relationshipType, parentProfile?.address, parentProfile?.city, parentProfile?.state, parentProfile?.pincode];
       profilePct = Math.round(f.filter(Boolean).length / f.length * 100);
-    } else if (user.role === 'TEACHER' && mentorProfile) {
-      const f = [mentorProfile.fullName, mentorProfile.email, user.avatarUrl, mentorProfile.bio, mentorProfile.specializations, mentorProfile.yearsOfExperience, mentorProfile.hourlyRate, (mentorProfile as { gender?: string }).gender];
+    } else if (user.role === 'TEACHER') {
+      const f = [mentorProfile?.fullName, mentorProfile?.email, user.avatarUrl, mentorProfile?.bio, mentorProfile?.specializations, mentorProfile?.yearsOfExperience, mentorProfile?.hourlyRate, (mentorProfile as { gender?: string } | undefined)?.gender];
       profilePct = Math.round(f.filter(Boolean).length / f.length * 100);
     } else if (user.role === 'CENTER_ADMIN' || user.role === 'INSTITUTION_ADMIN' || user.role === 'SUPER_ADMIN') {
       const f = [!!user.name, !!user.email];

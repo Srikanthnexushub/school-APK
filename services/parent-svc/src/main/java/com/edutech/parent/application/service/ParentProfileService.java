@@ -91,6 +91,27 @@ public class ParentProfileService implements CreateParentProfileUseCase, UpdateP
         return toResponse(profile);
     }
 
+    @Override
+    public ParentProfileResponse updateMyProfile(UpdateParentProfileRequest request, AuthPrincipal principal) {
+        ParentProfile profile = profileRepository.findByUserId(principal.userId())
+                .orElseThrow(() -> new ParentProfileNotFoundException(null));
+        profile.update(
+                request.name(),
+                request.phone(),
+                request.email(),
+                request.address(),
+                request.city(),
+                request.district(),
+                request.state(),
+                request.country(),
+                request.pincode(),
+                request.relationshipType(),
+                request.occupation(),
+                request.gender()
+        );
+        return toResponse(profileRepository.save(profile));
+    }
+
     @Transactional(readOnly = true)
     public ParentProfileResponse getMyProfile(AuthPrincipal principal) {
         return profileRepository.findByUserId(principal.userId())

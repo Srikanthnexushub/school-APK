@@ -9,4 +9,5 @@ import java.util.UUID;
 
 public interface UpdateParentProfileUseCase {
     ParentProfileResponse updateProfile(UUID profileId, UpdateParentProfileRequest request, AuthPrincipal principal);
+    ParentProfileResponse updateMyProfile(UpdateParentProfileRequest request, AuthPrincipal principal);
 }

@@ -18,6 +18,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -54,6 +55,14 @@ public class ParentController {
     @Operation(summary = "Get the authenticated parent's own profile")
     public ParentProfileResponse getMyProfile(@AuthenticationPrincipal AuthPrincipal principal) {
         return parentProfileService.getMyProfile(principal);
+    }
+
+    @PatchMapping("/me")
+    @Operation(summary = "Update the authenticated parent's own profile")
+    public ParentProfileResponse updateMyProfile(
+            @Valid @RequestBody UpdateParentProfileRequest request,
+            @AuthenticationPrincipal AuthPrincipal principal) {
+        return parentProfileService.updateMyProfile(request, principal);
     }
 
     @GetMapping("/{profileId}")

@@ -235,12 +235,16 @@ function ProfileTab() {
     queryKey: ['parent-profile'],
     queryFn: () => api.get('/api/v1/parents/me').then((r) => r.data),
     enabled: !!user && user.role === 'PARENT',
+    retry: false,
+    throwOnError: false,
   });
 
   const { data: mentorProfile } = useQuery<MentorProfileMin>({
     queryKey: ['mentor-profile-me'],
     queryFn: () => api.get('/api/v1/mentors/me').then((r) => r.data),
     enabled: !!user && user.role === 'TEACHER',
+    retry: false,
+    throwOnError: false,
   });
 
   interface PendingLink { otp: string; parentName: string; expiresAt: string; }
@@ -366,19 +370,26 @@ function ProfileTab() {
   }, [parentProfile]);
 
   const parentSaveMutation = useMutation({
-    mutationFn: (form: typeof parentForm) =>
-      Promise.all([
-        api.patch('/api/v1/parents/me', {
-          name: form.name || undefined,
-          phone: form.phone || undefined,
-          gender: form.gender || undefined,
-          address: form.address || undefined,
-          city: form.city || undefined,
-          state: form.state || undefined,
-          pincode: form.pincode || undefined,
-        }),
-        ...(form.name ? [api.patch('/api/v1/auth/me', { firstName: form.name.trim().split(/\s+/)[0], lastName: form.name.trim().split(/\s+/).slice(1).join(' ') || form.name.trim().split(/\s+/)[0] })] : []),
-      ]),
+    mutationFn: async (form: typeof parentForm) => {
+      const payload = {
+        name: form.name || undefined,
+        phone: form.phone || undefined,
+        gender: form.gender || undefined,
+        address: form.address || undefined,
+        city: form.city || undefined,
+        state: form.state || undefined,
+        pincode: form.pincode || undefined,
+      };
+      if (!parentProfile) {
+        await api.post('/api/v1/parents', { ...payload, email: user!.email });
+      } else {
+        await api.patch('/api/v1/parents/me', payload);
+      }
+      if (form.name) {
+        const parts = form.name.trim().split(/\s+/);
+        await api.patch('/api/v1/auth/me', { firstName: parts[0], lastName: parts.slice(1).join(' ') || parts[0] });
+      }
+    },
     onSuccess: () => {
       if (parentForm.name) updateUser({ name: parentForm.name });
       queryClient.invalidateQueries({ queryKey: ['parent-profile'] });
@@ -430,14 +441,28 @@ function ProfileTab() {
   }, [mentorProfile]);
 
   const teacherSaveMutation = useMutation({
-    mutationFn: (form: typeof teacherForm) =>
-      api.patch('/api/v1/mentors/me', {
-        bio: form.bio || undefined,
-        specializations: form.specializations || undefined,
-        yearsOfExperience: form.yearsOfExperience || undefined,
-        hourlyRate: form.hourlyRate ? parseFloat(form.hourlyRate) : undefined,
-        gender: form.gender || undefined,
-      }),
+    mutationFn: async (form: typeof teacherForm) => {
+      if (!mentorProfile) {
+        await api.post('/api/v1/mentors', {
+          userId: user!.id,
+          fullName: user!.name || 'Teacher',
+          email: user!.email,
+          bio: form.bio || undefined,
+          specializations: form.specializations || undefined,
+          yearsOfExperience: form.yearsOfExperience || 0,
+          hourlyRate: form.hourlyRate ? parseFloat(form.hourlyRate) : 0.01,
+          gender: form.gender || undefined,
+        });
+      } else {
+        await api.patch('/api/v1/mentors/me', {
+          bio: form.bio || undefined,
+          specializations: form.specializations || undefined,
+          yearsOfExperience: form.yearsOfExperience || undefined,
+          hourlyRate: form.hourlyRate ? parseFloat(form.hourlyRate) : undefined,
+          gender: form.gender || undefined,
+        });
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mentor-profile-me'] });
       toast.success('Profile updated successfully!');
@@ -447,12 +472,12 @@ function ProfileTab() {
 
   const allFields = (() => {
     if (!user) return null;
-    if (user.role === 'STUDENT' && profile)
-      return [user.name, user.email, user.avatarUrl, profile.phone, profile.gender, profile.dateOfBirth, profile.city, profile.stream];
-    if (user.role === 'PARENT' && parentProfile)
-      return [parentProfile.name, parentProfile.phone, parentProfile.email, parentProfile.gender, parentProfile.relationshipType, parentProfile.address, parentProfile.city, parentProfile.state, parentProfile.pincode];
-    if (user.role === 'TEACHER' && mentorProfile)
-      return [mentorProfile.fullName, mentorProfile.email, user.avatarUrl, mentorProfile.bio, mentorProfile.specializations, mentorProfile.yearsOfExperience, mentorProfile.hourlyRate, mentorProfile.gender];
+    if (user.role === 'STUDENT')
+      return [user.name, user.email, user.avatarUrl, profile?.phone, profile?.gender, profile?.dateOfBirth, profile?.city, profile?.stream];
+    if (user.role === 'PARENT')
+      return [parentProfile?.name, parentProfile?.phone, parentProfile?.email, parentProfile?.gender, parentProfile?.relationshipType, parentProfile?.address, parentProfile?.city, parentProfile?.state, parentProfile?.pincode];
+    if (user.role === 'TEACHER')
+      return [mentorProfile?.fullName, mentorProfile?.email, user.avatarUrl, mentorProfile?.bio, mentorProfile?.specializations, mentorProfile?.yearsOfExperience, mentorProfile?.hourlyRate, mentorProfile?.gender];
     if (user.role === 'CENTER_ADMIN' || user.role === 'INSTITUTION_ADMIN' || user.role === 'SUPER_ADMIN')
       return [user.name, user.email];
     return null;
