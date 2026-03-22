@@ -37,6 +37,7 @@ const studentNav: NavItem[] = [
   { icon: Calendar,        label: 'Exam Tracker', to: '/exam-tracker' },
   { icon: Library,         label: 'Library',      to: '/library' },
   { icon: Beaker,          label: 'AI Lab',       to: '/lab' },
+  { icon: Briefcase,       label: 'Job Board',    to: '/jobs' },
 ];
 
 function getAdminNav(role?: string): NavItem[] {
@@ -64,17 +65,19 @@ const parentNav: NavItem[] = [
   { icon: Library,         label: 'Library',       to: '/parent/library' },
   { icon: BookOpen,        label: 'Question Bank', to: '/parent/question-bank' },
   { icon: Bot,             label: 'Copilot',       to: '/parent/copilot' },
+  { icon: Briefcase,       label: 'Job Board',     to: '/parent/jobs' },
   { icon: Settings,        label: 'Profile',       to: '/parent/profile' },
 ];
 
 const mentorNav: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard',    to: '/mentor-portal' },
-  { icon: Calendar,        label: 'Sessions',     to: '/mentor-portal/sessions' },
-  { icon: Brain,           label: 'AI Insights',  to: '/mentor-portal/insights' },
-  { icon: ClipboardList,   label: 'Exams',        to: '/mentor-portal/exams' },
-  { icon: BookCheck,       label: 'Assignments',  to: '/mentor-portal/assignments' },
+  { icon: LayoutDashboard, label: 'Dashboard',     to: '/mentor-portal' },
+  { icon: Calendar,        label: 'Sessions',      to: '/mentor-portal/sessions' },
+  { icon: Brain,           label: 'AI Insights',   to: '/mentor-portal/insights' },
+  { icon: ClipboardList,   label: 'Exams',         to: '/mentor-portal/exams' },
+  { icon: BookCheck,       label: 'Assignments',   to: '/mentor-portal/assignments' },
   { icon: Award,           label: 'My Performance',to: '/mentor-portal/performance' },
-  { icon: Library,         label: 'Library',      to: '/mentor-portal/library' },
+  { icon: Library,         label: 'Library',       to: '/mentor-portal/library' },
+  { icon: Briefcase,       label: 'Job Board',     to: '/mentor-portal/jobs' },
 ];
 
 function getNavItems(role?: string): NavItem[] {

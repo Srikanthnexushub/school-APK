@@ -43,6 +43,7 @@ import StudentLibraryPage from './pages/library/StudentLibraryPage';
 import ProjectLabPage from './pages/lab/ProjectLabPage';
 import StudentAssignmentsPage from './pages/assignments/StudentAssignmentsPage';
 import MentorPortalAssignmentsPage from './pages/mentor-portal/MentorPortalAssignmentsPage';
+import JobBoardPage from './pages/jobs/JobBoardPage';
 
 export const router = createBrowserRouter([
   {
@@ -94,6 +95,7 @@ export const router = createBrowserRouter([
       { path: 'library', element: <StudentLibraryPage /> },
       { path: 'lab', element: <ProjectLabPage /> },
       { path: 'assignments', element: <StudentAssignmentsPage /> },
+      { path: 'jobs',        element: <JobBoardPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'study-plan', element: <Navigate to="/ai-mentor" replace /> },
       { path: 'doubts', element: <Navigate to="/ai-mentor" replace /> },
@@ -115,7 +117,8 @@ export const router = createBrowserRouter([
       { path: 'fees', element: <ParentFeesPage /> },
       { path: 'psychometric', element: <ParentPsychometricPage /> },
       { path: 'question-bank', element: <ParentQuestionBankPage /> },
-      { path: 'library', element: <ParentLibraryPage /> },
+      { path: 'library',       element: <ParentLibraryPage /> },
+      { path: 'jobs',          element: <JobBoardPage /> },
     ],
   },
   {
@@ -149,6 +152,7 @@ export const router = createBrowserRouter([
       { path: 'assignments', element: <MentorPortalAssignmentsPage /> },
       { path: 'performance', element: <MentorPortalPerformancePage /> },
       { path: 'library',     element: <MentorPortalLibraryPage /> },
+      { path: 'jobs',        element: <JobBoardPage /> },
     ],
   },
 ]);
