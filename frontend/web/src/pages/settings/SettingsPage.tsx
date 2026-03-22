@@ -227,6 +227,8 @@ function ProfileTab() {
     queryKey: ['student-profile-me'],
     queryFn: () => api.get('/api/v1/students/me').then((r) => r.data),
     enabled: !!user && user.role === 'STUDENT',
+    retry: false,
+    throwOnError: false,
   });
 
   const { data: parentProfile } = useQuery<ParentProfileMin>({
@@ -302,8 +304,24 @@ function ProfileTab() {
       const parts = data.name.trim().split(/\s+/);
       const firstName = parts[0] ?? '';
       const lastName = parts.slice(1).join(' ') || firstName;
-      await Promise.all([
-        api.patch('/api/v1/students/me', {
+      if (!profile) {
+        // No profile exists yet — create it (POST) instead of update (PATCH)
+        await api.post('/api/v1/students', {
+          userId: user!.id,
+          email: user!.email,
+          firstName,
+          lastName,
+          dateOfBirth: '2000-01-01', // placeholder — student can update later
+          phone: data.phone || undefined,
+          gender: data.gender || undefined,
+          city: data.city || undefined,
+          state: data.state || undefined,
+          country: data.country || undefined,
+          stream: data.stream || undefined,
+          targetYear: data.targetYear || undefined,
+        });
+      } else {
+        await api.patch('/api/v1/students/me', {
           firstName,
           lastName,
           phone: data.phone || undefined,
@@ -314,9 +332,9 @@ function ProfileTab() {
           country: data.country || undefined,
           stream: data.stream || undefined,
           targetYear: data.targetYear || undefined,
-        }),
-        api.patch('/api/v1/auth/me', { firstName, lastName }),
-      ]);
+        });
+      }
+      await api.patch('/api/v1/auth/me', { firstName, lastName });
       return data.name.trim();
     },
     onSuccess: (name) => {
