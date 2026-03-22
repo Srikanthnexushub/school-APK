@@ -184,3 +184,11 @@ mfa:
   issuer: ${MFA_ISSUER:EduTech}
   pending-token-ttl-seconds: ${MFA_PENDING_TOKEN_TTL_SECONDS:300}
   reset-token-ttl-seconds: ${MFA_RESET_TOKEN_TTL_SECONDS:300}
+
+# ── Loki log aggregation (read by logback-spring.xml via springProperty) ──────
+loki:
+  url: ${LOKI_URL:http://localhost:3100}
+log:
+  dedup:
+    allowed-repetitions: ${LOG_DEDUP_ALLOWED_REPETITIONS:5}
+    cache-size: ${LOG_DEDUP_CACHE_SIZE:500}

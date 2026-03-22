@@ -1,52 +1,69 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+    <springProperty scope="context" name="LOG_LEVEL_ROOT"  source="logging.level.root"           defaultValue="INFO"/>
+    <springProperty scope="context" name="LOG_LEVEL_APP"   source="logging.level.com.edutech"     defaultValue="INFO"/>
+    <springProperty scope="context" name="APP_NAME"        source="spring.application.name"        defaultValue="notification-svc"/>
+    <springProperty scope="context" name="APP_ENV"         source="management.metrics.tags.environment" defaultValue="local"/>
+    <springProperty scope="context" name="LOKI_URL"        source="loki.url"                       defaultValue="http://localhost:3100"/>
+    <springProperty scope="context" name="LOG_DEDUP_REPS"  source="log.dedup.allowed-repetitions"  defaultValue="5"/>
+    <springProperty scope="context" name="LOG_DEDUP_CACHE" source="log.dedup.cache-size"            defaultValue="500"/>
 
-    <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="notification-svc"/>
-    <springProperty scope="context" name="LOG_LEVEL_ROOT" source="logging.level.root" defaultValue="INFO"/>
-    <springProperty scope="context" name="LOG_LEVEL_APP" source="logging.level.com.edutech" defaultValue="INFO"/>
+    <!-- ── Duplicate message rate-limiter (prevents log flooding) ──────────── -->
+    <turboFilter class="ch.qos.logback.classic.turbo.DuplicateMessageFilter">
+        <AllowedRepetitions>${LOG_DEDUP_REPS}</AllowedRepetitions>
+        <CacheSize>${LOG_DEDUP_CACHE}</CacheSize>
+    </turboFilter>
 
-    <!-- JSON structured logging for production (Logstash/ELK ingestion) -->
-    <appender name="JSON_STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <!-- ── Production: structured JSON to stdout (LogstashEncoder) ─────────── -->
+    <!-- LogstashEncoder automatically includes ALL MDC fields (requestId,      -->
+    <!-- userId, role, traceId, spanId) as top-level JSON keys.                -->
+    <appender name="CONSOLE_JSON" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <customFields>{"service":"${APP_NAME}"}</customFields>
+            <customFields>{"service":"${APP_NAME}","environment":"${APP_ENV}"}</customFields>
             <fieldNames>
                 <timestamp>timestamp</timestamp>
-                <message>message</message>
-                <logger>logger</logger>
-                <thread>thread</thread>
-                <level>level</level>
+                <version>[ignore]</version>
             </fieldNames>
-            <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
-                <maxDepthPerCause>20</maxDepthPerCause>
-                <shortenedClassNameLength>35</shortenedClassNameLength>
-            </throwableConverter>
+            <shortenedLoggerNameLength>36</shortenedLoggerNameLength>
         </encoder>
     </appender>
 
-    <!-- Human-readable console logging for local development -->
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
-        </encoder>
+    <!-- ── Loki appender: push logs to Loki over HTTP ──────────────────────── -->
+    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <http>
+            <url>${LOKI_URL}/loki/api/v1/push</url>
+        </http>
+        <format>
+            <label>
+                <pattern>service=${APP_NAME},environment=${APP_ENV},level=%level</pattern>
+            </label>
+            <message>
+                <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} [rid=%X{requestId}] [tid=%X{traceId}] - %msg%n</pattern>
+            </message>
+            <sortByTime>true</sortByTime>
+        </format>
     </appender>
 
-    <!-- Use JSON in production, plain text in local dev -->
-    <springProfile name="prod,staging">
+    <!-- ── Development profile: human-readable console ─────────────────────── -->
+    <springProfile name="local,dev">
+        <appender name="CONSOLE_PLAIN" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} [rid=%X{requestId}] [tid=%X{traceId}] - %msg%n</pattern>
+            </encoder>
+        </appender>
         <root level="${LOG_LEVEL_ROOT}">
-            <appender-ref ref="JSON_STDOUT"/>
+            <appender-ref ref="CONSOLE_PLAIN"/>
+            <appender-ref ref="LOKI"/>
         </root>
-        <logger name="com.edutech" level="${LOG_LEVEL_APP}" additivity="false">
-            <appender-ref ref="JSON_STDOUT"/>
-        </logger>
+        <logger name="com.edutech" level="${LOG_LEVEL_APP}"/>
     </springProfile>
 
-    <springProfile name="!prod &amp; !staging">
+    <!-- ── Production profile: JSON to stdout + Loki ───────────────────────── -->
+    <springProfile name="!local &amp; !dev">
         <root level="${LOG_LEVEL_ROOT}">
-            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="CONSOLE_JSON"/>
+            <appender-ref ref="LOKI"/>
         </root>
-        <logger name="com.edutech" level="${LOG_LEVEL_APP}" additivity="false">
-            <appender-ref ref="CONSOLE"/>
-        </logger>
+        <logger name="com.edutech" level="${LOG_LEVEL_APP}"/>
     </springProfile>
-
 </configuration>

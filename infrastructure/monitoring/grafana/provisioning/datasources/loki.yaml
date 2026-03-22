@@ -1,0 +1,21 @@
+# =============================================================================
+# Grafana — Loki Datasource Provisioning
+# =============================================================================
+apiVersion: 1
+
+datasources:
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:${LOKI_PORT:-3100}
+    isDefault: false
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        - datasourceName: Jaeger
+          matcherRegex: "tid=([a-f0-9]{32})"
+          name: TraceID
+          url: "$${__value.raw}"
+          datasourceUid: jaeger
+    version: 1
+    editable: false

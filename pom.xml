@@ -115,6 +115,9 @@
 
         <!-- Distributed tracing -->
         <micrometer-tracing.version>1.3.5</micrometer-tracing.version>
+
+        <!-- Loki log aggregation -->
+        <loki4j.version>1.5.2</loki4j.version>
     </properties>
 
     <!-- =========================================================
@@ -236,6 +239,11 @@
                 <groupId>net.logstash.logback</groupId>
                 <artifactId>logstash-logback-encoder</artifactId>
                 <version>${logstash-logback-encoder.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.loki4j</groupId>
+                <artifactId>loki-logback-appender</artifactId>
+                <version>${loki4j.version}</version>
             </dependency>
 
             <!-- ── Distributed tracing ───────────────────────── -->

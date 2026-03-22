@@ -47,6 +47,7 @@ services:
       - edutech-network
     depends_on:
       - prometheus
+      - loki
 
   jaeger:
     image: jaegertracing/all-in-one:latest
@@ -71,11 +72,26 @@ services:
     networks:
       - edutech-network
 
+  loki:
+    image: grafana/loki:latest
+    container_name: edutech-loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    networks:
+      - edutech-network
+
 volumes:
   prometheus-data:
     name: edutech-prometheus-data
   grafana-data:
     name: edutech-grafana-data
+  loki-data:
+    name: edutech-loki-data
 
 networks:
   edutech-network:

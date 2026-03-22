@@ -155,3 +155,11 @@ springdoc:
         url: ${PSYCH_SVC_URI}/api-docs
       - name: notification-svc
         url: ${NOTIFICATION_SVC_URI}/api-docs
+
+# ── Loki log aggregation (read by logback-spring.xml via springProperty) ──────
+loki:
+  url: ${LOKI_URL:http://localhost:3100}
+log:
+  dedup:
+    allowed-repetitions: ${LOG_DEDUP_ALLOWED_REPETITIONS:5}
+    cache-size: ${LOG_DEDUP_CACHE_SIZE:500}
