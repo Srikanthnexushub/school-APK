@@ -14,18 +14,29 @@
         <CacheSize>${LOG_DEDUP_CACHE}</CacheSize>
     </turboFilter>
 
-    <!-- ── Production: structured JSON to stdout (LogstashEncoder) ─────────── -->
-    <!-- LogstashEncoder automatically includes ALL MDC fields (requestId,      -->
-    <!-- userId, role, traceId, spanId) as top-level JSON keys.                -->
-    <appender name="CONSOLE_JSON" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <customFields>{"service":"${APP_NAME}","environment":"${APP_ENV}"}</customFields>
-            <fieldNames>
-                <timestamp>timestamp</timestamp>
-                <version>[ignore]</version>
-            </fieldNames>
-            <shortenedLoggerNameLength>36</shortenedLoggerNameLength>
+    <!-- ── Rolling file appender: max 10 MB per file, 50 MB total cap ─────── -->
+    <!-- Older rotated files are gzip-compressed and auto-deleted once the     -->
+    <!-- 50 MB totalSizeCap is reached. cleanHistoryOnStart prunes stale       -->
+    <!-- rotated files from previous runs on every restart.                   -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/performance-svc.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>logs/performance-svc.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>7</maxHistory>
+            <totalSizeCap>50MB</totalSizeCap>
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} [rid=%X{requestId}] [tid=%X{traceId}] - %msg%n</pattern>
         </encoder>
+    </appender>
+
+    <!-- ── Async wrapper: non-blocking writes, never blocks app threads ─────── -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="FILE"/>
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
     </appender>
 
     <!-- ── Loki appender: push logs to Loki over HTTP ──────────────────────── -->
@@ -58,10 +69,10 @@
         <logger name="com.edutech" level="${LOG_LEVEL_APP}"/>
     </springProfile>
 
-    <!-- ── Production profile: JSON to stdout + Loki ───────────────────────── -->
+    <!-- ── Default / production profile: rolling file + Loki ──────────────── -->
     <springProfile name="!local &amp; !dev">
         <root level="${LOG_LEVEL_ROOT}">
-            <appender-ref ref="CONSOLE_JSON"/>
+            <appender-ref ref="ASYNC_FILE"/>
             <appender-ref ref="LOKI"/>
         </root>
         <logger name="com.edutech" level="${LOG_LEVEL_APP}"/>
