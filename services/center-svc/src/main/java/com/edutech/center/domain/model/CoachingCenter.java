@@ -134,13 +134,16 @@ public class CoachingCenter {
     /** CENTER_ADMIN self-registers their institution — immediately ACTIVE, code assigned later by SUPER_ADMIN. */
     public static CoachingCenter selfRegister(String name, String city, String phone,
                                               String email, String address, String state,
-                                              String pincode, UUID ownerId, String branch, String board) {
-        return new CoachingCenter(UUID.randomUUID(), name, null,
+                                              String pincode, UUID ownerId, String branch, String board,
+                                              CenterType centerType) {
+        CoachingCenter c = new CoachingCenter(UUID.randomUUID(), name, null,
                 address != null && !address.isBlank() ? address : "-",
                 city,
                 state != null && !state.isBlank() ? state : "-",
                 pincode != null && !pincode.isBlank() ? pincode : "000000",
                 phone, email, null, null, ownerId, "SELF_REGISTERED", branch, board);
+        if (centerType != null) c.setCenterType(centerType);
+        return c;
     }
 
     public void update(String name, String address, String city, String state,

@@ -1,5 +1,6 @@
 package com.edutech.center.application.dto;
 
+import com.edutech.center.domain.model.CenterType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -11,5 +12,6 @@ public record InstitutionSelfRegisterRequest(
     @Size(max = 100) String state,
     @Size(max = 10) String pincode,
     @Size(max = 200) String branch,
-    @Size(max = 100) String board
+    @Size(max = 100) String board,
+    CenterType centerType
 ) {}
