@@ -69,12 +69,18 @@ Claude will read this file + memory automatically and have full context.
 
 ## Start Services (run this BEFORE opening Claude Code)
 
+> **Postgres runs LOCALLY** via Homebrew `postgresql@16` — NOT in Docker.
+> Docker only manages Redis, Kafka, Mailhog, MinIO. Make sure local Postgres is running first.
+
 ```bash
+# 0. Ensure local native Postgres is running (one-time setup / after reboot):
+brew services start postgresql@16
+
 # 1. Make sure Docker Desktop is running (check macOS menu bar)
 # 2. From the project root:
 bash scripts/start-all.sh --no-build    # smart: skips full build but auto-rebuilds any service whose source changed since its JAR was built
 bash scripts/start-all.sh               # full build + start
-bash scripts/start-all.sh --infra-only  # only Docker infra (Postgres/Redis/Kafka)
+bash scripts/start-all.sh --infra-only  # only Docker infra (Redis/Kafka — NOT Postgres)
 ```
 
 **If only Redis is down (CAPTCHA broken):**
@@ -82,6 +88,12 @@ bash scripts/start-all.sh --infra-only  # only Docker infra (Postgres/Redis/Kafk
 # Load env first
 while IFS='=' read -r key val; do [[ -z "$key" || "$key" == \#* ]] && continue; export "$key=$val"; done < .env
 docker compose -f infrastructure/docker/docker-compose.yml up -d redis
+```
+
+**If Postgres is down:**
+```bash
+brew services start postgresql@16
+# Verify: /usr/local/Cellar/postgresql@16/*/bin/pg_isready -h localhost
 ```
 
 ---
@@ -118,6 +130,12 @@ docker compose -f infrastructure/docker/docker-compose.yml up -d redis
 ---
 
 ## Common Startup Problems & Fixes
+
+### Postgres not connecting (services crash on startup)
+**Cause:** Local native Postgres (`postgresql@16` via Homebrew) is not running.
+**Fix:** `brew services start postgresql@16`
+**Verify:** `/usr/local/Cellar/postgresql@16/*/bin/pg_isready -h localhost`
+⛔ Do NOT start `edutech-postgres` Docker container — use local native Postgres only.
 
 ### CAPTCHA not loading (blank / spinning)
 **Symptom:** CAPTCHA widget shows spinner forever, `GET /api/v1/captcha/challenge` returns 500.
@@ -274,6 +292,8 @@ Use Python `urllib.request` for API calls with passwords that contain `!`.
 | Profile completion skeleton + create-vs-update for ALL roles (Fix #89) — ALL roles (STUDENT/PARENT/TEACHER) showed skeleton (animate-pulse) and 0% ring for brand-new users. Root causes: (1) `allFields` IIFE in `SettingsPage.tsx` had `&& profile`, `&& parentProfile`, `&& mentorProfile` guards — when data is undefined (new user, no DB row), IIFE returned `null` → skeleton. (2) AppLayout.tsx ring had same guards — skipped branch, left `profilePct=0`. (3) parent-svc had no `PATCH /api/v1/parents/me` endpoint — Fix #71 added the frontend call but never added the backend handler. Every parent Save since Fix #71 returned 404. Fixes: (a) AppLayout.tsx: removed guards from PARENT+TEACHER branches, all fields use optional chaining. (b) SettingsPage.tsx: removed all three guards in allFields IIFE, optional chaining throughout. (c) SettingsPage.tsx: parentSaveMutation + teacherSaveMutation now detect `!parentProfile`/`!mentorProfile` → POST create first, else PATCH. (d) parent-svc: added `PATCH /api/v1/parents/me` to port interface + service + controller. ⛔ NEVER restore `&& parentProfile`, `&& mentorProfile`, `&& profile` guards. NEVER make saveMutation always PATCH. ALL profile queries must have `retry:false + throwOnError:false`. Requires parent-svc rebuild after commit. | `frontend: AppLayout.tsx, SettingsPage.tsx`; `services/parent-svc: UpdateParentProfileUseCase.java, ParentProfileService.java, ParentController.java` | 6e91249 |
 
 | Job Board for STUDENT / PARENT / TEACHER (Fix #90) — Read-only paginated job board visible to all non-admin roles. `JobBoardPage.tsx` at routes `/jobs` (student), `/parent/jobs` (parent), `/mentor-portal/jobs` (teacher). Filters: role type, job type, city, keyword search (400ms debounce). Pagination size=20. No write controls. Nav: Briefcase "Job Board" added to studentNav, parentNav, mentorNav in AppLayout.tsx. 14 E2E tests (3 suites). JWT decoded from token — no hardcoded user IDs. ⛔ NEVER add admin write controls (Post a Job / status change) to this page — it is read-only by design. | `frontend: JobBoardPage.tsx, AppLayout.tsx, router.tsx, tests/e2e/job-board.spec.ts` | 93703a4 |
+
+| GitHub OAuth sign-in + social buttons always visible (Fix #91) — Backend: `GitHubOAuthService` exchanges OAuth2 `code` for access token (POST `https://github.com/login/oauth/access_token`) then fetches user profile (GET `https://api.github.com/user`); null/private email → `login@users.noreply.github.com` fallback; find-or-create (provider=GITHUB). `GitHubAuthRequest` record `{ code, role }`. `POST /api/v1/auth/github` in SecurityConfig permitAll. `application.yml`: `github.client-id: ${GITHUB_OAUTH2_CLIENT_ID:}` + `github.client-secret: ${GITHUB_OAUTH2_CLIENT_SECRET:}` (blank = disabled). Frontend: Google + GitHub buttons **always rendered** — no `hasSocial` guard. Google: real `GoogleSignInButton` when `VITE_GOOGLE_CLIENT_ID` set, else SVG fallback button → `toast.info`. GitHub: always rendered; `initiateGithubLogin` checks blank `VITE_GITHUB_CLIENT_ID` → toast. Grid always `grid-cols-2`, divider always visible. E2E Suite 3 updated to assert buttons always visible. 17/17 tests pass. ⛔ `GoogleSignInButton` MUST stay guarded (hook crashes without clientId). Contract: `/api/v1/auth/github` receives `{ code }` NOT `{ accessToken }`. ⛔ NEVER wrap social buttons in env-var conditional. | `auth-svc: GitHubOAuthService.java, GitHubAuthRequest.java, AuthController.java, SecurityConfig.java, application.yml`; `frontend: LoginPage.tsx, tests/e2e/login-page-showcase.spec.ts` | fdb565e |
 
 Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (91+ fixes)
 
