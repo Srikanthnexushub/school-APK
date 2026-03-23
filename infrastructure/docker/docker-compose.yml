@@ -120,6 +120,21 @@ services:
       - "${KAFKA_UI_PORT}:8080"
     networks:
       - edutech-network
+  #------------------------------------------------------------------------------
+  #S3
+  #------------------------------------------------------------------------------
+  minio:
+    image: minio/minio
+    container_name: minio
+    ports:
+      - "9000:9000"    # API endpoint (S3-compatible)
+      - "9001:9001"    # Web console UI
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
 
   # ---------------------------------------------------------------------------
   # pgAdmin — PostgreSQL GUI (dev only)
@@ -176,6 +191,8 @@ volumes:
     name: edutech-redis-data
   kafka-data:
     name: edutech-kafka-data
+  minio_data:
+    name: edutech-s3-data
 
 networks:
   edutech-network:

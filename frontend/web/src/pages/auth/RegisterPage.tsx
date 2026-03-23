@@ -420,6 +420,8 @@ export default function RegisterPage() {
   const [teacherPincode, setTeacherPincode] = useState('');
   // Institution district
   const [instDistrict, setInstDistrict] = useState('');
+  // Institution type
+  const [instCenterType, setInstCenterType] = useState<'COACHING_CENTER' | 'SCHOOL' | 'COLLEGE'>('COACHING_CENTER');
 
   const handleCaptchaVerify = useCallback((token: string | null) => setCaptchaToken(token), []);
 
@@ -833,6 +835,7 @@ export default function RegisterPage() {
                 board: instBoard.length > 0 ? instBoard.join(',') : undefined,
                 pincode: instPincode || undefined,
                 country: instCountry.trim() || undefined,
+                centerType: instCenterType,
               },
               { headers: { Authorization: `Bearer ${regToken}` } }
             );
@@ -1304,6 +1307,31 @@ export default function RegisterPage() {
                               />
                             </div>
                             <MultiSelectDropdown label="Board" values={instBoard} onChange={setInstBoard} options={BOARD_OPTIONS} placeholder="Select board(s)…" required />
+                            <div>
+                              <label className="block text-sm font-medium text-white/70 mb-1">
+                                Institution Type
+                              </label>
+                              <div className="grid grid-cols-3 gap-2">
+                                {[
+                                  { value: 'COACHING_CENTER', label: 'Coaching Center' },
+                                  { value: 'SCHOOL', label: 'School' },
+                                  { value: 'COLLEGE', label: 'College' },
+                                ].map(opt => (
+                                  <button
+                                    key={opt.value}
+                                    type="button"
+                                    onClick={() => setInstCenterType(opt.value as 'COACHING_CENTER' | 'SCHOOL' | 'COLLEGE')}
+                                    className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+                                      instCenterType === opt.value
+                                        ? 'border-violet-500 bg-violet-500/20 text-violet-300'
+                                        : 'border-white/10 bg-white/5 text-white/60 hover:bg-white/10'
+                                    }`}
+                                  >
+                                    {opt.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
                             <div>
                               <label className="block text-sm font-medium text-white/70 mb-1.5">Phone <span className="text-red-400">*</span></label>
                               <input type="text" value={institutionPhone} onChange={(e) => setInstitutionPhone(e.target.value)} placeholder="+91 98765 43210" className="input w-full" />

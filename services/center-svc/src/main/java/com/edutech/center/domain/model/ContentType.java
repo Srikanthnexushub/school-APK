@@ -1,4 +1,3 @@
-// src/main/java/com/edutech/center/domain/model/ContentType.java
 package com.edutech.center.domain.model;
 
 public enum ContentType {
@@ -6,5 +5,9 @@ public enum ContentType {
     PDF,
     DOCUMENT,
     QUIZ_REF,
-    LINK
+    LINK,
+    PREVIOUS_YEAR_PAPER,
+    NOTES,
+    FORMULA_SHEET,
+    MIND_MAP
 }

@@ -1,5 +1,5 @@
 // src/pages/admin/AdminAssignmentsTab.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookCheck, AlertTriangle, Loader2, CheckCircle2,
@@ -157,6 +157,13 @@ export default function AdminAssignmentsTab() {
     enabled: needsCenterPicker,
   });
 
+  // Auto-select when there is exactly one accessible centre
+  useEffect(() => {
+    if (needsCenterPicker && centers?.length === 1 && !selectedCenterId) {
+      setSelectedCenterId(centers[0].id);
+    }
+  }, [centers, needsCenterPicker, selectedCenterId]);
+
   const { data: assignments = [], isLoading, isError } = useQuery<AssignmentResponse[]>({
     queryKey: ['assignments-admin', effectiveCenterId],
     queryFn: () =>
@@ -167,6 +174,27 @@ export default function AdminAssignmentsTab() {
     enabled: !!effectiveCenterId,
   });
 
+  // Fetch center info to determine center type
+  const { data: centerInfo } = useQuery({
+    queryKey: ['center-info', effectiveCenterId],
+    queryFn: () => api.get(`/api/v1/centers/${effectiveCenterId}`).then(r => r.data),
+    enabled: !!effectiveCenterId,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+  const centerType: string = centerInfo?.centerType ?? 'COACHING_CENTER';
+  const isSchoolOrCollege = centerType === 'SCHOOL' || centerType === 'COLLEGE';
+
+  // Dynamic subtitle
+  const subtitleText = effectiveCenterId
+    ? isSchoolOrCollege
+      ? 'View and manage class assignments.'
+      : 'View and manage batch assignments.'
+    : 'Select a centre to view its assignments.';
+
+  // Dynamic picker label
+  const pickerLabel = isSchoolOrCollege ? 'Select Institution' : 'Select Centre';
+
   return (
     <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -174,7 +202,7 @@ export default function AdminAssignmentsTab() {
         <div>
           <h2 className="text-xl font-bold text-white">Assignments</h2>
           <p className="text-white/50 text-sm mt-0.5">
-            {needsCenterPicker ? 'Select a centre to view its assignments.' : 'Manage assignments for your center.'}
+            {needsCenterPicker ? subtitleText : 'Manage assignments for your center.'}
           </p>
         </div>
         {effectiveCenterId && (
@@ -188,10 +216,10 @@ export default function AdminAssignmentsTab() {
         )}
       </div>
 
-      {/* Center picker for admins without a JWT centerId */}
-      {needsCenterPicker && (
+      {/* Center picker for admins without a JWT centerId — hidden when auto-select handles it (single center) */}
+      {needsCenterPicker && !(centers?.length === 1) && (
         <div className="card">
-          <label className="block text-xs font-medium text-white/60 mb-2">Select Centre</label>
+          <label className="block text-xs font-medium text-white/60 mb-2">{pickerLabel}</label>
           {centersLoading ? (
             <div className="flex items-center gap-2 py-2">
               <Loader2 className="w-4 h-4 animate-spin text-brand-400" />
@@ -294,6 +322,7 @@ export default function AdminAssignmentsTab() {
         {showCreate && effectiveCenterId && (
           <CreateAssignmentModal
             centerId={effectiveCenterId}
+            centerType={centerType}
             onClose={() => setShowCreate(false)}
           />
         )}

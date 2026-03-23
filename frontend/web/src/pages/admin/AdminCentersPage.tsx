@@ -12,6 +12,8 @@ import api from '../../lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type CenterType = 'COACHING_CENTER' | 'SCHOOL' | 'COLLEGE';
+
 interface CenterResponse {
   id: string;
   name: string;
@@ -24,6 +26,7 @@ interface CenterResponse {
   email?: string;
   website?: string;
   logoUrl?: string;
+  centerType?: CenterType;
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'PENDING_VERIFICATION' | 'REJECTED';
   ownerId: string;
   createdAt: string;
@@ -42,11 +45,13 @@ interface CenterFormState {
   website: string;
   logoUrl: string;
   ownerId: string;
+  centerType: CenterType;
 }
 
 const EMPTY_FORM: CenterFormState = {
   name: '', code: '', address: '', city: '', state: '',
   pincode: '', phone: '', email: '', website: '', logoUrl: '', ownerId: '',
+  centerType: 'COACHING_CENTER',
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -93,6 +98,15 @@ function CenterCard({ center, onEdit }: { center: CenterResponse; onEdit: () => 
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          {center.centerType && center.centerType !== 'COACHING_CENTER' && (
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+              center.centerType === 'SCHOOL'
+                ? 'bg-emerald-500/20 text-emerald-300'
+                : 'bg-blue-500/20 text-blue-300'
+            }`}>
+              {center.centerType === 'SCHOOL' ? 'School' : 'College'}
+            </span>
+          )}
           <span className={cn('flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border', STATUS_STYLES[center.status])}>
             <StatusIcon className="w-3 h-3" />
             {center.status}
@@ -244,6 +258,31 @@ function CenterFormModal({
                 placeholder="https://cdn.../logo.png"
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-brand-500/50" />
             </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-white/70 mb-1">
+                Institution Type
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { value: 'COACHING_CENTER', label: 'Coaching Center' },
+                  { value: 'SCHOOL', label: 'School' },
+                  { value: 'COLLEGE', label: 'College' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => set('centerType', opt.value as CenterType)}
+                    className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+                      (form.centerType ?? 'COACHING_CENTER') === opt.value
+                        ? 'border-violet-500 bg-violet-500/20 text-violet-300'
+                        : 'border-white/10 bg-white/5 text-white/60 hover:bg-white/10'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -288,6 +327,7 @@ export default function AdminCentersPage() {
       city: data.city || null, state: data.state || null, pincode: data.pincode || null,
       phone: data.phone || null, email: data.email || null, website: data.website || null,
       logoUrl: data.logoUrl || null, ownerId: data.ownerId || null,
+      centerType: data.centerType ?? 'COACHING_CENTER',
     }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-centers'] }); setShowCreate(false); toast.success('Center created'); },
     onError: () => toast.error('Failed to create center'),
@@ -300,6 +340,7 @@ export default function AdminCentersPage() {
         city: data.city || null, state: data.state || null, pincode: data.pincode || null,
         phone: data.phone || null, email: data.email || null, website: data.website || null,
         logoUrl: data.logoUrl || null,
+        centerType: data.centerType ?? 'COACHING_CENTER',
       }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-centers'] }); setEditCenter(null); toast.success('Center updated'); },
     onError: () => toast.error('Failed to update center'),
@@ -312,6 +353,7 @@ export default function AdminCentersPage() {
     phone: editCenter.phone ?? '', email: editCenter.email ?? '',
     website: editCenter.website ?? '', logoUrl: editCenter.logoUrl ?? '',
     ownerId: editCenter.ownerId,
+    centerType: editCenter.centerType ?? 'COACHING_CENTER' as CenterType,
   } : EMPTY_FORM;
 
   return (

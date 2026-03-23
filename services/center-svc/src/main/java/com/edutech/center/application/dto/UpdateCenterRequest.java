@@ -1,6 +1,7 @@
 // src/main/java/com/edutech/center/application/dto/UpdateCenterRequest.java
 package com.edutech.center.application.dto;
 
+import com.edutech.center.domain.model.CenterType;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -14,5 +15,6 @@ public record UpdateCenterRequest(
     @NotBlank @Size(max = 20) String phone,
     @NotBlank @Email @Size(max = 255) String email,
     @Size(max = 500) String website,
-    @Size(max = 1000) String logoUrl
+    @Size(max = 1000) String logoUrl,
+    CenterType centerType
 ) {}

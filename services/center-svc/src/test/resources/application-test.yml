@@ -49,9 +49,22 @@ jwt:
   public-key-path: classpath:test-public-key.pem
   issuer: test-issuer
 
-# AI gateway — disabled in tests
+# AI gateway — disabled in tests (adapter is mocked)
 ai-gateway:
   base-url: http://localhost:9999
+  timeout-seconds: 5
+
+service:
+  api-key: test-service-key
+
+# MinIO — client bean is mocked in IT tests via @MockBean
+minio:
+  endpoint: http://localhost:9000
+  access-key: minioadmin
+  secret-key: minioadmin123
+  bucket-name: edutech-library-test
+  presigned-upload-expiry-minutes: 15
+  presigned-download-expiry-minutes: 5
 
 # Kafka topics — non-null placeholders
 kafka:

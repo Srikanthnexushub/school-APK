@@ -85,10 +85,12 @@ const subStatusColors: Record<string, string> = {
 
 export function CreateAssignmentModal({
   centerId,
+  centerType = 'COACHING_CENTER',
   onClose,
   onCreated,
 }: {
   centerId: string;
+  centerType?: string;
   onClose: () => void;
   onCreated?: (a: AssignmentResponse) => void;
 }) {
@@ -111,9 +113,25 @@ export function CreateAssignmentModal({
     onError: () => toast.error('Failed to create assignment.'),
   });
 
+  const { data: batches = [], isLoading: batchesLoading } = useQuery({
+    queryKey: ['batches-for-assignment', centerId],
+    queryFn: () =>
+      api.get(`/api/v1/centers/${centerId}/batches`).then(r => {
+        const d = r.data;
+        return Array.isArray(d) ? d : (d.content ?? []);
+      }),
+    enabled: !!centerId,
+    staleTime: 2 * 60 * 1000,
+    retry: false,
+  });
+
+  const isSchoolOrCollege = centerType === 'SCHOOL' || centerType === 'COLLEGE';
+  const batchLabel = isSchoolOrCollege ? 'Class / Section' : 'Batch';
+  const batchPlaceholder = isSchoolOrCollege ? '— Select class/section —' : '— Select batch —';
+
   function submit() {
     if (!form.batchId?.trim() || !form.title?.trim() || !form.dueDate) {
-      toast.error('Batch ID, title, and due date are required.');
+      toast.error(`${batchLabel}, title, and due date are required.`);
       return;
     }
     createMutation.mutate(form as CreateAssignmentRequest);
@@ -133,8 +151,9 @@ export function CreateAssignmentModal({
         transition={{ duration: 0.2 }}
         className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[51] w-full max-w-lg"
       >
-        <div className="bg-surface-50 border border-white/10 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 sticky top-0 bg-surface-50 z-10">
+        <div className="bg-surface-50 border border-white/10 rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+          {/* Fixed header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 flex-shrink-0">
             <div>
               <h3 className="font-semibold text-white">Create Assignment</h3>
               <p className="text-xs text-white/40 mt-0.5">Fill in the details below</p>
@@ -144,7 +163,8 @@ export function CreateAssignmentModal({
             </button>
           </div>
 
-          <div className="p-6 space-y-4">
+          {/* Scrollable body */}
+          <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
             <div>
               <label className="block text-xs font-medium text-white/60 mb-1.5">Title *</label>
               <input
@@ -166,28 +186,45 @@ export function CreateAssignmentModal({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-white/60 mb-1.5">Type</label>
+            <div>
+              <label className="block text-xs font-medium text-white/60 mb-1.5">Type</label>
+              <select
+                className="input w-full"
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: e.target.value })}
+              >
+                {['HOMEWORK', 'CLASSWORK', 'PROJECT', 'QUIZ', 'PRACTICE'].map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1">
+                {batchLabel} <span className="text-red-400">*</span>
+              </label>
+              {batchesLoading ? (
+                <div className="flex items-center gap-2 text-white/50 text-sm py-2">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading {isSchoolOrCollege ? 'classes' : 'batches'}…
+                </div>
+              ) : batches.length === 0 ? (
+                <p className="text-white/40 text-sm py-2">
+                  No {isSchoolOrCollege ? 'classes/sections' : 'batches'} found for this centre.
+                </p>
+              ) : (
                 <select
                   className="input w-full"
-                  value={form.type}
-                  onChange={(e) => setForm({ ...form, type: e.target.value })}
+                  value={form.batchId ?? ''}
+                  onChange={e => setForm({ ...form, batchId: e.target.value })}
                 >
-                  {['HOMEWORK', 'CLASSWORK', 'PROJECT', 'QUIZ', 'PRACTICE'].map((t) => (
-                    <option key={t} value={t}>{t}</option>
+                  <option value="">{batchPlaceholder}</option>
+                  {batches.map((b: { id: string; name: string; code: string; subject?: string }) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}{b.subject ? ` — ${b.subject}` : ''}
+                    </option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-white/60 mb-1.5">Batch ID *</label>
-                <input
-                  className="input w-full"
-                  placeholder="UUID"
-                  value={form.batchId ?? ''}
-                  onChange={(e) => setForm({ ...form, batchId: e.target.value })}
-                />
-              </div>
+              )}
             </div>
 
             <div>
@@ -202,21 +239,29 @@ export function CreateAssignmentModal({
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-white/60 mb-1.5">Total Marks</label>
+                <label className="block text-sm font-medium text-white/70 mb-1">
+                  Total Marks
+                  <span className="ml-2 text-xs text-white/30">(system default)</span>
+                </label>
                 <input
                   type="number"
-                  className="input w-full"
-                  value={form.totalMarks}
-                  onChange={(e) => setForm({ ...form, totalMarks: Number(e.target.value) })}
+                  className="input w-full opacity-50 cursor-not-allowed"
+                  value={form.totalMarks ?? 100}
+                  disabled
+                  title="Managed by system"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-white/60 mb-1.5">Passing Marks</label>
+                <label className="block text-sm font-medium text-white/70 mb-1">
+                  Passing Marks
+                  <span className="ml-2 text-xs text-white/30">(system default)</span>
+                </label>
                 <input
                   type="number"
-                  className="input w-full"
-                  value={form.passingMarks}
-                  onChange={(e) => setForm({ ...form, passingMarks: Number(e.target.value) })}
+                  className="input w-full opacity-50 cursor-not-allowed"
+                  value={form.passingMarks ?? 40}
+                  disabled
+                  title="Managed by system"
                 />
               </div>
             </div>
@@ -231,20 +276,21 @@ export function CreateAssignmentModal({
                 onChange={(e) => setForm({ ...form, instructions: e.target.value })}
               />
             </div>
+          </div>
 
-            <div className="flex gap-3 pt-2">
-              <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/10 text-sm font-medium text-white/60 hover:text-white hover:border-white/20 transition-colors">
-                Cancel
-              </button>
-              <button
-                onClick={submit}
-                disabled={createMutation.isPending}
-                className="flex-1 btn-primary py-2.5 text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                {createMutation.isPending ? 'Creating…' : 'Create Assignment'}
-              </button>
-            </div>
+          {/* Fixed footer */}
+          <div className="flex gap-3 px-6 pb-6 pt-2 flex-shrink-0 border-t border-white/10">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-white/10 text-sm font-medium text-white/60 hover:text-white hover:border-white/20 transition-colors">
+              Cancel
+            </button>
+            <button
+              onClick={submit}
+              disabled={createMutation.isPending}
+              className="flex-1 btn-primary py-2.5 text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              {createMutation.isPending ? 'Creating…' : 'Create Assignment'}
+            </button>
           </div>
         </div>
       </motion.div>
@@ -557,6 +603,14 @@ export default function MentorPortalAssignmentsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [gradingAssignment, setGradingAssignment] = useState<AssignmentResponse | null>(null);
 
+  const { data: centerInfo } = useQuery({
+    queryKey: ['center-info-mentor', centerId],
+    queryFn: () => api.get(`/api/v1/centers/${centerId}`).then(r => r.data),
+    enabled: !!centerId,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+
   const { data: assignments = [], isLoading, isError } = useQuery<AssignmentResponse[]>({
     queryKey: ['assignments', centerId],
     queryFn: () =>
@@ -644,6 +698,7 @@ export default function MentorPortalAssignmentsPage() {
         {showCreate && centerId && (
           <CreateAssignmentModal
             centerId={centerId}
+            centerType={centerInfo?.centerType}
             onClose={() => setShowCreate(false)}
           />
         )}

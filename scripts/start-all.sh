@@ -86,21 +86,27 @@ mkdir -p "${LOGS_DIR}" "${PIDS_DIR}"
 # ── infrastructure ─────────────────────────────────────────────────────────────
 section "Infrastructure (Docker)"
 
-info "Starting Postgres / Redis / Kafka containers..."
+# Postgres runs LOCALLY via Homebrew (postgresql@16) — NOT in Docker.
+# Docker only manages Redis, Kafka, Mailhog, MinIO and their UI companions.
+info "Starting Redis / Kafka / Mailhog / MinIO containers (skipping Docker Postgres — using local native Postgres)..."
 docker compose \
   --file "${COMPOSE_FILE}" \
   --env-file "${ENV_FILE}" \
-  up -d 2>&1 | tail -5
+  up -d redis kafka kafka-ui minio pgadmin redis-commander mailhog 2>&1 | tail -5
 
-# wait until postgres is accepting connections
-info "Waiting for Postgres on port ${POSTGRES_PORT:-5433}..."
+# Add Homebrew postgres to PATH so pg_isready is available
+export PATH="/usr/local/Cellar/postgresql@16/$(ls /usr/local/Cellar/postgresql@16/ 2>/dev/null | head -1)/bin:${PATH}"
+export PATH="/opt/homebrew/opt/postgresql@16/bin:${PATH}"
+
+# wait until local native postgres is accepting connections
+info "Waiting for local native Postgres on port ${POSTGRES_PORT:-5432}..."
 for i in $(seq 1 30); do
-  if docker exec edutech-postgres pg_isready -q -p 5432 2>/dev/null; then
-    info "Postgres is ready."
+  if pg_isready -q -h localhost -p "${POSTGRES_PORT:-5432}" 2>/dev/null; then
+    info "Local Postgres is ready."
     break
   fi
   if [[ $i -eq 30 ]]; then
-    error "Postgres did not become ready after 30 attempts."
+    error "Local Postgres did not become ready. Make sure postgresql@16 is running: brew services start postgresql@16"
     exit 1
   fi
   sleep 2

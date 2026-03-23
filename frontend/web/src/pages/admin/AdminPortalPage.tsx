@@ -12,8 +12,9 @@ import AdminJobsPage from './AdminJobsPage';
 import AdminAssignmentsTab from './AdminAssignmentsTab';
 import AdminBannersPage from './AdminBannersPage';
 import AdminPsychometricTab from './AdminPsychometricTab';
+import AdminLibraryPage from './AdminLibraryPage';
 
-type TabId = 'overview' | 'centers' | 'batches' | 'assessments' | 'teacher-import' | 'teacher-pending' | 'staff' | 'jobs' | 'assignments' | 'banners' | 'psychometric';
+type TabId = 'overview' | 'centers' | 'batches' | 'assessments' | 'teacher-import' | 'teacher-pending' | 'staff' | 'jobs' | 'assignments' | 'banners' | 'psychometric' | 'library';
 
 export default function AdminPortalPage() {
   const [searchParams] = useSearchParams();
@@ -36,6 +37,7 @@ export default function AdminPortalPage() {
       {activeTab === 'jobs'            && <AdminJobsPage />}
       {activeTab === 'assignments'     && <AdminAssignmentsTab />}
       {activeTab === 'psychometric'    && <AdminPsychometricTab />}
+      {activeTab === 'library'         && <AdminLibraryPage />}
       {activeTab === 'banners'         && <AdminBannersPage />}
     </motion.div>
   );

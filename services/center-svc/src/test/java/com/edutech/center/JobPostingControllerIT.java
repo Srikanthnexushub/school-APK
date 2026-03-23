@@ -190,7 +190,8 @@ class JobPostingControllerIT {
                 "info." + uniqueSuffix.toLowerCase() + "@academy.com",
                 null,
                 null,
-                ADMIN_USER_ID
+                ADMIN_USER_ID,
+                null
         );
         ResponseEntity<CenterResponse> resp = restTemplate.exchange(
                 "/api/v1/centers",

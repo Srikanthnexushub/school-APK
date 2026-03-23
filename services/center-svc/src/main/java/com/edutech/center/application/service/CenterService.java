@@ -10,6 +10,7 @@ import com.edutech.center.application.dto.UpdateCenterRequest;
 import com.edutech.center.application.exception.CenterAccessDeniedException;
 import com.edutech.center.application.exception.CenterNotFoundException;
 import com.edutech.center.application.exception.DuplicateCenterCodeException;
+import com.edutech.center.domain.model.CenterType;
 import com.edutech.center.domain.model.CoachingCenter;
 import com.edutech.center.domain.model.Role;
 import com.edutech.center.domain.port.in.CreateCenterUseCase;
@@ -67,6 +68,7 @@ public class CenterService implements CreateCenterUseCase, UpdateCenterUseCase {
             request.phone(), request.email(), request.website(),
             request.logoUrl(), ownerId
         );
+        center.setCenterType(request.centerType() != null ? request.centerType() : CenterType.COACHING_CENTER);
 
         CoachingCenter saved = centerRepository.save(center);
         log.info("Center created: id={} code={}", saved.getId(), saved.getCode());
@@ -86,6 +88,9 @@ public class CenterService implements CreateCenterUseCase, UpdateCenterUseCase {
         center.update(request.name(), request.address(), request.city(), request.state(),
                 request.pincode(), request.phone(), request.email(),
                 request.website(), request.logoUrl());
+        if (request.centerType() != null) {
+            center.setCenterType(request.centerType());
+        }
 
         CoachingCenter saved = centerRepository.save(center);
         log.info("Center updated: id={}", saved.getId());
@@ -166,6 +171,7 @@ public class CenterService implements CreateCenterUseCase, UpdateCenterUseCase {
         return new CenterResponse(c.getId(), c.getName(), c.getCode(), c.getAddress(),
                 c.getCity(), c.getState(), c.getPincode(), c.getPhone(), c.getEmail(),
                 c.getWebsite(), c.getLogoUrl(), c.getStatus(), c.getOwnerId(),
-                c.getCreatedAt(), c.getUpdatedAt(), c.getBranch(), c.getBoard());
+                c.getCreatedAt(), c.getUpdatedAt(), c.getBranch(), c.getBoard(),
+                c.getCenterType());
     }
 }

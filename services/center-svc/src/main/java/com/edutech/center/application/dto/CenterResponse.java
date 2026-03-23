@@ -2,6 +2,7 @@
 package com.edutech.center.application.dto;
 
 import com.edutech.center.domain.model.CenterStatus;
+import com.edutech.center.domain.model.CenterType;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -23,5 +24,6 @@ public record CenterResponse(
     Instant createdAt,
     Instant updatedAt,
     String branch,
-    String board
+    String board,
+    CenterType centerType
 ) {}

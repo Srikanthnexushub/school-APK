@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, X, AlertTriangle, CheckCircle2, Clock,
@@ -678,6 +678,7 @@ export default function AdminAssessmentsPage() {
   const [showCreateForm, setShowCreateForm]           = useState(false);
   const [addingQuestionFor, setAddingQuestionFor]     = useState<string | null>(null);
   const [publishingId, setPublishingId]               = useState<string | null>(null);
+  const [selectedCenterId, setSelectedCenterId]       = useState<string>('');
 
   // ── Fetch centers ──────────────────────────────────────────────────────────
   const { data: centers = [], isLoading: centersLoading } = useQuery<CenterResponse[]>({
@@ -689,7 +690,14 @@ export default function AdminAssessmentsPage() {
       }),
   });
 
-  const centerId = centers[0]?.id ?? '';
+  // Auto-select the single centre when org has only one
+  useEffect(() => {
+    if (centers && centers.length === 1 && !selectedCenterId) {
+      setSelectedCenterId(centers[0].id);
+    }
+  }, [centers, selectedCenterId]);
+
+  const centerId = selectedCenterId || '';
 
   // ── Fetch batches for dropdown ─────────────────────────────────────────────
   const { data: batches = [] } = useQuery<BatchResponse[]>({
@@ -810,7 +818,9 @@ export default function AdminAssessmentsPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Assessments</h1>
           <p className="text-white/50 text-sm mt-0.5">
-            Create and manage exams{centers[0] ? ` — ${centers[0].name}` : ''}.
+            {centerId
+              ? `Create and manage exams — ${centers.find(c => c.id === centerId)?.name ?? ''}`
+              : 'Create and manage exams.'}
           </p>
         </div>
         {!showCreateForm && (
@@ -843,6 +853,23 @@ export default function AdminAssessmentsPage() {
               <span className={cn('inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium', color)}>{label}</span>
             </motion.div>
           ))}
+        </div>
+      )}
+
+      {/* Center picker — only shown for multi-centre orgs when no centre is selected yet */}
+      {!selectedCenterId && centers && centers.length > 1 && (
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-white/70 mb-2">Select Centre</label>
+          <select
+            className="input w-full max-w-sm"
+            value={selectedCenterId}
+            onChange={e => setSelectedCenterId(e.target.value)}
+          >
+            <option value="">— Select a centre —</option>
+            {centers.map(c => (
+              <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+            ))}
+          </select>
         </div>
       )}
 

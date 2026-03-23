@@ -171,7 +171,8 @@ class CenterControllerIT {
                 "info." + code.toLowerCase() + "@center.com",
                 "https://center.com/" + code.toLowerCase(),
                 null,
-                OWNER_ID
+                OWNER_ID,
+                null
         );
     }
 
@@ -311,6 +312,7 @@ class CenterControllerIT {
                 "500001",
                 "9988776655",
                 "updated@center.com",
+                null,
                 null,
                 null
         );

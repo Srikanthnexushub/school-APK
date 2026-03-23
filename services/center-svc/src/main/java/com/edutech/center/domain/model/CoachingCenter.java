@@ -85,6 +85,10 @@ public class CoachingCenter {
     @Column(name = "board", length = 100)
     private String board;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "center_type", nullable = false, length = 30)
+    private CenterType centerType = CenterType.COACHING_CENTER;
+
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
@@ -199,4 +203,6 @@ public class CoachingCenter {
     public Long getVersion() { return version; }
     public String getBranch() { return branch; }
     public String getBoard() { return board; }
+    public CenterType getCenterType() { return centerType; }
+    public void setCenterType(CenterType centerType) { this.centerType = centerType; }
 }

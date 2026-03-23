@@ -168,7 +168,7 @@ class TeacherControllerIT {
                 "Teacher IT Academy " + code, code,
                 "123 Main St", "Bengaluru", "Karnataka", "560001",
                 "9876500000", "info@" + code.toLowerCase() + ".com",
-                null, null, OWNER_ID);
+                null, null, OWNER_ID, null);
         CenterResponse center = restTemplate.exchange(
                 "/api/v1/centers", HttpMethod.POST, authEntity(req), CenterResponse.class).getBody();
         return center.id();

@@ -1,6 +1,7 @@
 // src/main/java/com/edutech/center/application/dto/CreateCenterRequest.java
 package com.edutech.center.application.dto;
 
+import com.edutech.center.domain.model.CenterType;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -20,5 +21,6 @@ public record CreateCenterRequest(
     @NotBlank @Email @Size(max = 255) String email,
     @Size(max = 500) String website,
     @Size(max = 1000) String logoUrl,
-    UUID ownerId
+    UUID ownerId,
+    CenterType centerType
 ) {}

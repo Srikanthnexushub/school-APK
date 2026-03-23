@@ -53,6 +53,7 @@ function getAdminNav(role?: string): NavItem[] {
     { icon: Briefcase,       label: 'Jobs',               to: '/admin?tab=jobs' },
     { icon: BookCheck,       label: 'Assignments',        to: '/admin?tab=assignments' },
     { icon: Brain,           label: 'Psychometric',       to: '/admin?tab=psychometric' },
+    { icon: Library,         label: 'Library',            to: '/admin?tab=library' },
     ...(isSuperOrInst ? [{ icon: Megaphone, label: 'Banners', to: '/admin?tab=banners' }] : []),
   ];
 }

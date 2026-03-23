@@ -146,7 +146,8 @@ class CenterOperationsIT {
                 "info." + code.toLowerCase() + "@edutech.com",
                 "https://edutech.com/" + code.toLowerCase(),
                 null,
-                OWNER_ID
+                OWNER_ID,
+                null
         );
     }
 

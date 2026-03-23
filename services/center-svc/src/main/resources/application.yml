@@ -66,6 +66,18 @@ kafka:
 
 ai-gateway:
   base-url: ${AI_GATEWAY_BASE_URL}
+  timeout-seconds: 30
+
+service:
+  api-key: ${SERVICE_API_KEY}
+
+minio:
+  endpoint: ${MINIO_ENDPOINT}
+  access-key: ${MINIO_ACCESS_KEY}
+  secret-key: ${MINIO_SECRET_KEY}
+  bucket-name: ${MINIO_BUCKET_NAME}
+  presigned-upload-expiry-minutes: ${MINIO_PRESIGNED_UPLOAD_EXPIRY_MINUTES}
+  presigned-download-expiry-minutes: ${MINIO_PRESIGNED_DOWNLOAD_EXPIRY_MINUTES}
 
 resilience4j:
   circuitbreaker:
