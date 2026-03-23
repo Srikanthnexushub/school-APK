@@ -1,5 +1,5 @@
 // src/pages/admin/AdminStaffPage.tsx
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, UserPlus, Search, Filter, RefreshCw, Loader2,
@@ -420,6 +420,15 @@ export default function AdminStaffPage() {
 
   const [subTab,      setSubTab]      = useState<SubTab>('directory');
   const [showCreate,  setShowCreate]  = useState(false);
+
+  // Auto-open create modal for school/college centers
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (!autoOpenedRef.current && isSchoolOrCollege && effectiveCenterId) {
+      autoOpenedRef.current = true;
+      setShowCreate(true);
+    }
+  }, [isSchoolOrCollege, effectiveCenterId]);
   const [search,      setSearch]      = useState('');
   const [filterRole,  setFilterRole]  = useState<StaffRoleTypeValue | ''>('');
   const [filterStatus,setFilterStatus]= useState('');

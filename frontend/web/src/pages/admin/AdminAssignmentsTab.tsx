@@ -23,8 +23,8 @@ interface AssignmentResponse {
   description?: string;
   type: 'HOMEWORK' | 'CLASSWORK' | 'PROJECT' | 'QUIZ' | 'PRACTICE';
   dueDate: string;
-  totalMarks: number;
-  passingMarks: number;
+  totalMarks?: number;
+  passingMarks?: number;
   instructions?: string;
   attachmentUrl?: string;
   status: 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'CANCELLED';

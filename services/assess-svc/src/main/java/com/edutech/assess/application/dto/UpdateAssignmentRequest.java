@@ -9,6 +9,6 @@ public record UpdateAssignmentRequest(
         String instructions,
         String attachmentUrl,
         Instant dueDate,
-        double totalMarks,
-        double passingMarks
+        Double totalMarks,
+        Double passingMarks
 ) {}

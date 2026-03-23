@@ -2,7 +2,6 @@
 package com.edutech.assess.application.dto;
 
 import com.edutech.assess.domain.model.AssignmentType;
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -16,8 +15,8 @@ public record CreateAssignmentRequest(
         String description,
         @NotNull AssignmentType type,
         Instant dueDate,
-        @DecimalMin("0.01") double totalMarks,
-        @DecimalMin("0.0") double passingMarks,
+        Double totalMarks,
+        Double passingMarks,
         String instructions,
         String attachmentUrl
 ) {}

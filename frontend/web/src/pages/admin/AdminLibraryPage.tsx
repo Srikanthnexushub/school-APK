@@ -3,7 +3,7 @@
 // Upload wizard: Step 1 file pick → presigned PUT to MinIO (XHR progress)
 //                Step 2 metadata form → Step 3 confirm POST to center-svc.
 // Manage table: list all content items + archive action.
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -666,6 +666,26 @@ export default function AdminLibraryPage() {
   const [filterStatus, setFilterStatus] = useState('');
 
   const effectiveCenterId = centerId || selectedCenterId;
+
+  // Fetch center info for center-type-aware auto-open
+  const { data: centerInfo } = useQuery({
+    queryKey: ['center-info', effectiveCenterId],
+    queryFn: () => api.get(`/api/v1/centers/${effectiveCenterId}`).then(r => r.data),
+    enabled: !!effectiveCenterId,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+  const centerType: string = centerInfo?.centerType ?? 'COACHING_CENTER';
+  const isSchoolOrCollege = centerType === 'SCHOOL' || centerType === 'COLLEGE';
+
+  // Auto-open upload wizard for school/college centers
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (!autoOpenedRef.current && isSchoolOrCollege && effectiveCenterId) {
+      autoOpenedRef.current = true;
+      setShowUpload(true);
+    }
+  }, [isSchoolOrCollege, effectiveCenterId]);
   const queryClient = useQueryClient();
 
   // Centers for INSTITUTION_ADMIN picker

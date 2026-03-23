@@ -23,8 +23,8 @@ interface AssignmentResponse {
   description?: string;
   type: 'HOMEWORK' | 'CLASSWORK' | 'PROJECT' | 'QUIZ' | 'PRACTICE';
   dueDate: string;
-  totalMarks: number;
-  passingMarks: number;
+  totalMarks?: number;
+  passingMarks?: number;
   instructions?: string;
   attachmentUrl?: string;
   status: 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'CANCELLED';
@@ -52,8 +52,6 @@ interface CreateAssignmentRequest {
   description?: string;
   type: string;
   dueDate: string;
-  totalMarks: number;
-  passingMarks: number;
   instructions?: string;
   attachmentUrl?: string;
 }
@@ -99,8 +97,6 @@ export function CreateAssignmentModal({
   const [form, setForm] = useState<Partial<CreateAssignmentRequest>>({
     centerId,
     type: 'HOMEWORK',
-    totalMarks: 100,
-    passingMarks: 40,
   });
 
   const createMutation = useMutation({
@@ -239,35 +235,6 @@ export function CreateAssignmentModal({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-1">
-                  Total Marks
-                  <span className="ml-2 text-xs text-white/30">(system default)</span>
-                </label>
-                <input
-                  type="number"
-                  className="input w-full opacity-50 cursor-not-allowed"
-                  value={form.totalMarks ?? 100}
-                  disabled
-                  title="Managed by system"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-1">
-                  Passing Marks
-                  <span className="ml-2 text-xs text-white/30">(system default)</span>
-                </label>
-                <input
-                  type="number"
-                  className="input w-full opacity-50 cursor-not-allowed"
-                  value={form.passingMarks ?? 40}
-                  disabled
-                  title="Managed by system"
-                />
-              </div>
-            </div>
-
             <div>
               <label className="block text-xs font-medium text-white/60 mb-1.5">Instructions</label>
               <textarea
@@ -312,7 +279,7 @@ function GradeModal({
 }: {
   assignmentId: string;
   submission: AssignmentSubmissionResponse;
-  totalMarks: number;
+  totalMarks?: number;
   onClose: () => void;
 }) {
   const qc = useQueryClient();

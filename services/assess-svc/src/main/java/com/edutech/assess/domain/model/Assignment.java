@@ -45,11 +45,11 @@ public class Assignment {
     @Column(name = "due_date")
     private Instant dueDate;
 
-    @Column(name = "total_marks", nullable = false)
-    private double totalMarks;
+    @Column(name = "total_marks")
+    private Double totalMarks;
 
-    @Column(name = "passing_marks", nullable = false)
-    private double passingMarks;
+    @Column(name = "passing_marks")
+    private Double passingMarks;
 
     @Column(columnDefinition = "TEXT")
     private String instructions;
@@ -77,7 +77,7 @@ public class Assignment {
 
     public static Assignment create(UUID batchId, UUID centerId, UUID createdByUserId,
                                     String title, String description, AssignmentType type,
-                                    Instant dueDate, double totalMarks, double passingMarks,
+                                    Instant dueDate, Double totalMarks, Double passingMarks,
                                     String instructions, String attachmentUrl) {
         Assignment a = new Assignment();
         a.batchId = batchId;
@@ -128,7 +128,7 @@ public class Assignment {
 
     public void updateDetails(String title, String description, String instructions,
                                String attachmentUrl, Instant dueDate,
-                               double totalMarks, double passingMarks) {
+                               Double totalMarks, Double passingMarks) {
         if (this.status != AssignmentStatus.DRAFT) {
             throw new IllegalStateException("Only DRAFT assignments can be updated");
         }
@@ -137,8 +137,8 @@ public class Assignment {
         if (instructions != null) this.instructions = instructions;
         if (attachmentUrl != null) this.attachmentUrl = attachmentUrl;
         if (dueDate != null) this.dueDate = dueDate;
-        if (totalMarks > 0) this.totalMarks = totalMarks;
-        if (passingMarks >= 0) this.passingMarks = passingMarks;
+        if (totalMarks != null) this.totalMarks = totalMarks;
+        if (passingMarks != null) this.passingMarks = passingMarks;
         this.updatedAt = Instant.now();
     }
 
@@ -162,8 +162,8 @@ public class Assignment {
     public String getDescription() { return description; }
     public AssignmentType getType() { return type; }
     public Instant getDueDate() { return dueDate; }
-    public double getTotalMarks() { return totalMarks; }
-    public double getPassingMarks() { return passingMarks; }
+    public Double getTotalMarks() { return totalMarks; }
+    public Double getPassingMarks() { return passingMarks; }
     public String getInstructions() { return instructions; }
     public String getAttachmentUrl() { return attachmentUrl; }
     public AssignmentStatus getStatus() { return status; }
