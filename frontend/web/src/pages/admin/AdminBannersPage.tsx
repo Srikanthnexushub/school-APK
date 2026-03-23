@@ -56,9 +56,10 @@ const audienceColors: Record<string, string> = {
 };
 
 const bannerTypeColors: Record<string, string> = {
-  HERO:   'bg-sky-500/15 text-sky-400',
-  TICKER: 'bg-violet-500/15 text-violet-400',
-  VIDEO:  'bg-rose-500/15 text-rose-400',
+  HERO:         'bg-sky-500/15 text-sky-400',
+  TICKER:       'bg-violet-500/15 text-violet-400',
+  VIDEO:        'bg-rose-500/15 text-rose-400',
+  FOOTER_VIDEO: 'bg-amber-500/15 text-amber-400',
 };
 
 // ─── Banner Form Modal ────────────────────────────────────────────────────────
@@ -199,7 +200,7 @@ function BannerFormModal({
                   />
                 </label>
               </div>
-              {form.bannerType === 'VIDEO' && !form.videoUrl && (
+              {(form.bannerType === 'VIDEO' || form.bannerType === 'FOOTER_VIDEO') && !form.videoUrl && (
                 <p className="text-xs text-amber-400/80 mt-1">⚠ A Video URL is required for Video banners.</p>
               )}
             </div>
@@ -247,7 +248,8 @@ function BannerFormModal({
                 >
                   <option value="HERO">Hero Carousel</option>
                   <option value="TICKER">Running Ticker</option>
-                  <option value="VIDEO">Video Advertisement</option>
+                  <option value="VIDEO">Video Advertisement (Header)</option>
+                  <option value="FOOTER_VIDEO">Video Advertisement (Footer)</option>
                 </select>
               </div>
             </div>
@@ -487,7 +489,7 @@ export default function AdminBannersPage() {
                   </td>
                   <td className="py-3 pr-4">
                     <span className={cn('badge text-xs', bannerTypeColors[banner.bannerType ?? 'HERO'] ?? 'bg-white/10 text-white/40')}>
-                      {banner.bannerType === 'TICKER' ? 'Ticker' : banner.bannerType === 'VIDEO' ? 'Video' : 'Hero'}
+                      {banner.bannerType === 'TICKER' ? 'Ticker' : banner.bannerType === 'VIDEO' ? 'Video' : banner.bannerType === 'FOOTER_VIDEO' ? 'Footer Video' : 'Hero'}
                     </span>
                   </td>
                   <td className="py-3 pr-4">
