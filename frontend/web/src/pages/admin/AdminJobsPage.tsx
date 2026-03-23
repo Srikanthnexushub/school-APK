@@ -386,16 +386,6 @@ function MyPostingsTab({ centerId, centerType = 'COACHING_CENTER' }: { centerId:
   const [filterStatus, setFilterStatus] = useState('');
   const [filterRole, setFilterRole]   = useState('');
 
-  // Auto-open create modal for school/college centers
-  const autoOpenedRef = useRef(false);
-  useEffect(() => {
-    const isSchoolOrCollege = centerType === 'SCHOOL' || centerType === 'COLLEGE';
-    if (!autoOpenedRef.current && isSchoolOrCollege) {
-      autoOpenedRef.current = true;
-      setShowModal(true);
-    }
-  }, [centerType]);
-
   const { data: jobs = [], isLoading, refetch } = useQuery<JobPosting[]>({
     queryKey: ['jobs', centerId],
     queryFn: async () => {

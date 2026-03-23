@@ -678,14 +678,6 @@ export default function AdminLibraryPage() {
   const centerType: string = centerInfo?.centerType ?? 'COACHING_CENTER';
   const isSchoolOrCollege = centerType === 'SCHOOL' || centerType === 'COLLEGE';
 
-  // Auto-open upload wizard for school/college centers
-  const autoOpenedRef = useRef(false);
-  useEffect(() => {
-    if (!autoOpenedRef.current && isSchoolOrCollege && effectiveCenterId) {
-      autoOpenedRef.current = true;
-      setShowUpload(true);
-    }
-  }, [isSchoolOrCollege, effectiveCenterId]);
   const queryClient = useQueryClient();
 
   // Centers for INSTITUTION_ADMIN picker
