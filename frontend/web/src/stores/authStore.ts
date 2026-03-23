@@ -48,11 +48,17 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'edupath-auth',
       onRehydrateStorage: () => (state) => {
-        // On startup: if the access token is expired and there is no refresh
-        // token to silently rotate it, wipe the persisted session immediately
-        // so ProtectedRoute always starts from a clean unauthenticated state.
-        if (state?.token && isJwtExpired(state.token) && !state.refreshToken) {
-          state.logout();
+        if (!state?.token) return;
+        if (isJwtExpired(state.token)) {
+          // Access token is expired. If there is no refresh token either, wipe
+          // everything immediately. If there IS a refresh token, at least null
+          // out the expired access token so the request interceptor never
+          // injects it and overwrites a fresh token obtained during login.
+          if (!state.refreshToken) {
+            state.logout();
+          } else {
+            state.setTokens('', state.refreshToken); // clear stale access token
+          }
         }
       },
     }

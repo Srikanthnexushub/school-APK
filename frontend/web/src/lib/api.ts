@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useAuthStore } from '../stores/authStore';
+import { useAuthStore, isJwtExpired } from '../stores/authStore';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? '',
@@ -9,7 +9,9 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  // Only inject the stored token if it is not expired — prevents a stale
+  // session token from overwriting a freshly-obtained token on the same request
+  if (token && !isJwtExpired(token)) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 

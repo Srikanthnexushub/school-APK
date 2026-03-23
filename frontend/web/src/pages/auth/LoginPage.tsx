@@ -115,6 +115,7 @@ export default function LoginPage() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const [showPw, setShowPw] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaKey, setCaptchaKey] = useState(0);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isGithubLoading, setIsGithubLoading] = useState(false);
   const [activeFeature, setActiveFeature] = useState(0);
@@ -274,6 +275,7 @@ export default function LoginPage() {
       const axiosErr = err as { response?: { data?: { detail?: string; title?: string } } };
       toast.error(axiosErr.response?.data?.detail ?? axiosErr.response?.data?.title ?? 'Login failed');
       setCaptchaToken(null);
+      setCaptchaKey((k) => k + 1); // force CaptchaWidget remount → fresh challenge
     }
   }
 
@@ -594,7 +596,7 @@ export default function LoginPage() {
                   </Link>
                 </div>
 
-                <CaptchaWidget onVerify={handleCaptchaVerify} />
+                <CaptchaWidget key={captchaKey} onVerify={handleCaptchaVerify} />
 
                 <button
                   type="submit"
