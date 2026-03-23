@@ -6,6 +6,7 @@ import com.edutech.auth.application.dto.ChangePasswordRequest;
 import com.edutech.auth.application.dto.RegisterChildRequest;
 import com.edutech.auth.application.dto.RegisterChildResponse;
 import com.edutech.auth.application.dto.ForgotPasswordRequest;
+import com.edutech.auth.application.dto.GitHubAuthRequest;
 import com.edutech.auth.application.dto.GoogleAuthRequest;
 import com.edutech.auth.application.dto.LoginRequest;
 import com.edutech.auth.application.dto.PasswordResetOtpVerifyResponse;
@@ -16,6 +17,7 @@ import com.edutech.auth.application.dto.TokenPair;
 import com.edutech.auth.application.dto.UpdateNameRequest;
 import com.edutech.auth.application.dto.UserResponse;
 import com.edutech.auth.api.mapper.AuthMapper;
+import com.edutech.auth.application.service.GitHubOAuthService;
 import com.edutech.auth.application.service.GoogleOAuthService;
 import com.edutech.auth.domain.model.User;
 import com.edutech.auth.domain.port.in.AuthenticateUserUseCase;
@@ -59,6 +61,7 @@ public class AuthController {
     private final AuthMapper authMapper;
     private final TrustedProxyValidator trustedProxyValidator;
     private final GoogleOAuthService googleOAuthService;
+    private final GitHubOAuthService gitHubOAuthService;
     private final UserRegistrationService userRegistrationService;
 
     public AuthController(RegisterUserUseCase registerUserUseCase,
@@ -71,6 +74,7 @@ public class AuthController {
                           AuthMapper authMapper,
                           TrustedProxyValidator trustedProxyValidator,
                           GoogleOAuthService googleOAuthService,
+                          GitHubOAuthService gitHubOAuthService,
                           UserRegistrationService userRegistrationService) {
         this.registerUserUseCase = registerUserUseCase;
         this.authenticateUserUseCase = authenticateUserUseCase;
@@ -82,6 +86,7 @@ public class AuthController {
         this.authMapper = authMapper;
         this.trustedProxyValidator = trustedProxyValidator;
         this.googleOAuthService = googleOAuthService;
+        this.gitHubOAuthService = gitHubOAuthService;
         this.userRegistrationService = userRegistrationService;
     }
 
@@ -211,6 +216,17 @@ public class AuthController {
     public TokenPair googleSignIn(@Valid @RequestBody GoogleAuthRequest request,
                                   HttpServletRequest servletRequest) {
         return googleOAuthService.authenticate(
+            request,
+            servletRequest.getHeader("User-Agent"),
+            servletRequest.getHeader("X-Device-Id")
+        );
+    }
+
+    @PostMapping("/github")
+    @Operation(summary = "Sign in or register via GitHub OAuth2 authorization code")
+    public TokenPair githubSignIn(@Valid @RequestBody GitHubAuthRequest request,
+                                  HttpServletRequest servletRequest) {
+        return gitHubOAuthService.authenticate(
             request,
             servletRequest.getHeader("User-Agent"),
             servletRequest.getHeader("X-Device-Id")
