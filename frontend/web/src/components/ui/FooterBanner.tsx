@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
-import { ExternalLink, Volume2, VolumeX, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ExternalLink, Volume2, VolumeX, ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
 import api from '../../lib/api';
 
 interface BannerResponse {
@@ -31,6 +31,7 @@ export default function FooterBanner({ audience }: FooterBannerProps) {
   const rotationMs = parseInt(import.meta.env.VITE_BANNER_ROTATION_MS ?? '8000', 10);
   const [current, setCurrent] = useState(0);
   const [muted, setMuted] = useState(true);
+  const [paused, setPaused] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -47,9 +48,9 @@ export default function FooterBanner({ audience }: FooterBannerProps) {
   // Show only FOOTER_VIDEO banners
   const banners = allBanners.filter((b) => b.bannerType === 'FOOTER_VIDEO');
 
-  // Auto-advance interval
+  // Auto-advance interval — stops when paused
   useEffect(() => {
-    if (banners.length <= 1) {
+    if (banners.length <= 1 || paused) {
       if (intervalRef.current) clearInterval(intervalRef.current);
       return;
     }
@@ -59,15 +60,25 @@ export default function FooterBanner({ audience }: FooterBannerProps) {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [banners.length, rotationMs]);
+  }, [banners.length, rotationMs, paused]);
+
+  // Play/pause the video element when paused state changes
+  useEffect(() => {
+    if (!videoRef.current) return;
+    if (paused) {
+      videoRef.current.pause();
+    } else {
+      videoRef.current.play().catch(() => {});
+    }
+  }, [paused]);
 
   // Reset video on banner change
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.load();
-      videoRef.current.play().catch(() => {});
+      if (!paused) videoRef.current.play().catch(() => {});
     }
-  }, [current]);
+  }, [current]); // eslint-disable-line
 
   if (banners.length === 0) return null;
 
@@ -140,6 +151,16 @@ export default function FooterBanner({ audience }: FooterBannerProps) {
                   {banner.linkLabel}
                   <ExternalLink className="w-3 h-3" />
                 </a>
+              )}
+
+              {/* Play / Pause toggle (only for video banners) */}
+              {banner.videoUrl && (
+                <button
+                  onClick={() => setPaused((p) => !p)}
+                  className="p-1.5 rounded-lg bg-black/30 border border-white/15 text-white/70 hover:text-white transition-colors"
+                >
+                  {paused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                </button>
               )}
 
               {/* Mute toggle (only for video banners) */}
