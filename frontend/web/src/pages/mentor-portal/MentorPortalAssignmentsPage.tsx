@@ -1,5 +1,6 @@
 // src/pages/mentor-portal/MentorPortalAssignmentsPage.tsx
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookCheck, Plus, X, Loader2, AlertTriangle, ChevronRight,
@@ -137,19 +138,20 @@ export function CreateAssignmentModal({
     createMutation.mutate(form as CreateAssignmentRequest);
   }
 
-  return (
+  return createPortal(
     <>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose}
         className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
       />
+      <div className="fixed inset-0 z-[51] flex items-center justify-center pointer-events-none px-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ duration: 0.2 }}
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[51] w-full max-w-lg"
+        className="pointer-events-auto w-full max-w-lg"
       >
         <div className="bg-surface-50 border border-white/10 rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
           {/* Fixed header */}
@@ -294,7 +296,9 @@ export function CreateAssignmentModal({
           </div>
         </div>
       </motion.div>
-    </>
+      </div>
+    </>,
+    document.body
   );
 }
 
@@ -329,19 +333,20 @@ function GradeModal({
     onError: () => toast.error('Failed to grade submission.'),
   });
 
-  return (
+  return createPortal(
     <>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         onClick={onClose}
         className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
       />
+      <div className="fixed inset-0 z-[61] flex items-center justify-center pointer-events-none px-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ duration: 0.2 }}
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[61] w-full max-w-md"
+        className="pointer-events-auto w-full max-w-md"
       >
         <div className="bg-surface-50 border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
@@ -397,7 +402,9 @@ function GradeModal({
           </div>
         </div>
       </motion.div>
-    </>
+      </div>
+    </>,
+    document.body
   );
 }
 

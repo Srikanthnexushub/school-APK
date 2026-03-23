@@ -361,8 +361,8 @@ function CenterPicker({ onSelect }: { onSelect: (id: string) => void }) {
       <div className="flex items-center justify-center min-h-[400px] p-8">
         <div className="text-center">
           <Building2 className="w-10 h-10 text-white/15 mx-auto mb-3" />
-          <p className="text-white/40 text-sm">No centres found.</p>
-          <p className="text-white/25 text-xs mt-1">Create a centre first before managing staff.</p>
+          <p className="text-white/40 text-sm">No institutions found.</p>
+          <p className="text-white/25 text-xs mt-1">Create an institution first before managing staff.</p>
         </div>
       </div>
     );
@@ -374,7 +374,7 @@ function CenterPicker({ onSelect }: { onSelect: (id: string) => void }) {
         <h2 className="text-xl font-bold text-white flex items-center gap-2">
           <Users className="w-5 h-5 text-brand-400" /> Staff
         </h2>
-        <p className="text-sm text-white/40 mt-1">Select a centre to manage its staff.</p>
+        <p className="text-sm text-white/40 mt-1">Select an institution to manage its staff.</p>
       </div>
       <div className="space-y-2">
         {centers.map(c => (
@@ -406,6 +406,17 @@ export default function AdminStaffPage() {
 
   const [selectedCenterId, setSelectedCenterId] = useState('');
   const effectiveCenterId = centerId || selectedCenterId;
+
+  // Fetch center info for CenterType-aware labels
+  const { data: centerInfo } = useQuery({
+    queryKey: ['center-info', effectiveCenterId],
+    queryFn: () => api.get(`/api/v1/centers/${effectiveCenterId}`).then(r => r.data),
+    enabled: !!effectiveCenterId,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+  const centerType: string = centerInfo?.centerType ?? 'COACHING_CENTER';
+  const isSchoolOrCollege = centerType === 'SCHOOL' || centerType === 'COLLEGE';
 
   const [subTab,      setSubTab]      = useState<SubTab>('directory');
   const [showCreate,  setShowCreate]  = useState(false);
@@ -496,10 +507,13 @@ export default function AdminStaffPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-brand-400" /> Staff Directory
+                <Users className="w-5 h-5 text-brand-400" />
+                {isSchoolOrCollege ? 'Staff & Faculty' : 'Staff Directory'}
               </h1>
               <p className="text-sm text-white/40 mt-0.5">
-                Manage all staff members, roles, qualifications, and invitations
+                {isSchoolOrCollege
+                  ? 'Manage teachers, faculty, and support staff at your institution.'
+                  : 'Manage all staff members, roles, qualifications, and invitations.'}
               </p>
             </div>
             <button

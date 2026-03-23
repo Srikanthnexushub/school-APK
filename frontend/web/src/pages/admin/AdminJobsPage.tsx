@@ -378,7 +378,7 @@ function JobCardSkeleton() {
 
 // ─── My Postings Sub-tab ──────────────────────────────────────────────────────
 
-function MyPostingsTab({ centerId }: { centerId: string }) {
+function MyPostingsTab({ centerId, centerType = 'COACHING_CENTER' }: { centerId: string; centerType?: string }) {
   const queryClient   = useQueryClient();
   const [showModal, setShowModal]     = useState(false);
   const [editingJob, setEditingJob]   = useState<JobPosting | null>(null);
@@ -442,7 +442,9 @@ function MyPostingsTab({ centerId }: { centerId: string }) {
             <Briefcase className="w-5 h-5 text-brand-400" /> Job Postings
           </h2>
           <p className="text-sm text-white/40 mt-0.5">
-            Manage open positions and hiring campaigns for your institution
+            {(centerType === 'SCHOOL' || centerType === 'COLLEGE')
+              ? 'Manage open positions and vacancies at your institution.'
+              : 'Manage open positions and hiring campaigns for your centre.'}
           </p>
         </div>
         <button
@@ -842,8 +844,8 @@ function CenterPicker({
       <div className="flex items-center justify-center min-h-[400px] p-8">
         <div className="text-center">
           <Building2 className="w-10 h-10 text-white/15 mx-auto mb-3" />
-          <p className="text-white/40 text-sm">No centres found.</p>
-          <p className="text-white/25 text-xs mt-1">Create a centre first before managing jobs.</p>
+          <p className="text-white/40 text-sm">No institutions found.</p>
+          <p className="text-white/25 text-xs mt-1">Create an institution first before managing jobs.</p>
         </div>
       </div>
     );
@@ -855,7 +857,7 @@ function CenterPicker({
         <h2 className="text-xl font-bold text-white flex items-center gap-2">
           <Briefcase className="w-5 h-5 text-brand-400" /> Jobs
         </h2>
-        <p className="text-sm text-white/40 mt-1">Select a centre to manage its job postings.</p>
+        <p className="text-sm text-white/40 mt-1">Select an institution to manage its job postings.</p>
       </div>
       <div className="space-y-2">
         {centers.map(c => (
@@ -887,6 +889,16 @@ export default function AdminJobsPage() {
   const [selectedCenterId, setSelectedCenterId] = useState('');
 
   const effectiveCenterId = centerId || selectedCenterId;
+
+  // Fetch center info for CenterType-aware labels
+  const { data: centerInfo } = useQuery({
+    queryKey: ['center-info', effectiveCenterId],
+    queryFn: () => api.get(`/api/v1/centers/${effectiveCenterId}`).then(r => r.data),
+    enabled: !!effectiveCenterId,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+  const centerType: string = centerInfo?.centerType ?? 'COACHING_CENTER';
 
   // Institution-level admins have no centerId in JWT — show center picker first
   if (!effectiveCenterId) {
@@ -928,7 +940,7 @@ export default function AdminJobsPage() {
         transition={{ duration: 0.15 }}
         className="flex-1 p-6 lg:p-8 max-w-5xl mx-auto w-full"
       >
-        {subTab === 'my-postings' && <MyPostingsTab centerId={effectiveCenterId} />}
+        {subTab === 'my-postings' && <MyPostingsTab centerId={effectiveCenterId} centerType={centerType} />}
         {subTab === 'job-board'   && <JobBoardTab />}
       </motion.div>
     </div>
