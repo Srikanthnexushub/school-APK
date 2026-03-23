@@ -23,6 +23,7 @@ interface NavItem {
   label: string;
   to: string;
   badge?: number;
+  disabled?: boolean;
 }
 
 const studentNav: NavItem[] = [
@@ -66,7 +67,7 @@ const parentNav: NavItem[] = [
   { icon: Library,         label: 'Library',       to: '/parent/library' },
   { icon: BookOpen,        label: 'Question Bank', to: '/parent/question-bank' },
   { icon: Bot,             label: 'Copilot',       to: '/parent/copilot' },
-  { icon: Briefcase,       label: 'Job Board',     to: '/parent/jobs' },
+  { icon: Briefcase,       label: 'Job Board',     to: '/parent/jobs',       disabled: true },
   { icon: Settings,        label: 'Profile',       to: '/parent/profile' },
 ];
 
@@ -78,7 +79,7 @@ const mentorNav: NavItem[] = [
   { icon: BookCheck,       label: 'Assignments',   to: '/mentor-portal/assignments' },
   { icon: Award,           label: 'My Performance',to: '/mentor-portal/performance' },
   { icon: Library,         label: 'Library',       to: '/mentor-portal/library' },
-  { icon: Briefcase,       label: 'Job Board',     to: '/mentor-portal/jobs' },
+  { icon: Briefcase,       label: 'Job Board',     to: '/mentor-portal/jobs', disabled: true },
 ];
 
 function getNavItems(role?: string): NavItem[] {
@@ -293,8 +294,25 @@ function SidebarContent({
 
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ icon: Icon, label, to, badge }) => {
+        {navItems.map(({ icon: Icon, label, to, badge, disabled }) => {
           const tabActive = isTabActive(to);
+          if (disabled) {
+            return collapsed ? (
+              <CollapseTooltip key={to} label={`${label} (coming soon)`}>
+                <span className="flex items-center justify-center p-2.5 rounded-xl text-white/20 cursor-not-allowed relative">
+                  <Icon style={{ width: 18, height: 18 }} className="flex-shrink-0" />
+                </span>
+              </CollapseTooltip>
+            ) : (
+              <span
+                key={to}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/20 cursor-not-allowed select-none"
+              >
+                <Icon style={{ width: 18, height: 18 }} className="flex-shrink-0" />
+                <span className="flex-1">{label}</span>
+              </span>
+            );
+          }
           return collapsed ? (
             <CollapseTooltip key={to} label={label}>
               <NavLink
