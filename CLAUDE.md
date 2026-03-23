@@ -1,10 +1,12 @@
 # EduTech AI Platform — Claude Code Session Guide
 
 ## ⛔ PERMISSION RULE — READ THIS FIRST
-**ANY modification, refactor, bug fix, or change to ANY code, test, config, or migration file requires EXPLICIT USER PERMISSION before acting.**
+**ANY modification, refactor, bug fix, or change to ANY code, test, config, migration file, or database (Postgres/Docker) requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes.
-- This includes "small" fixes, dependency updates, and "obvious" improvements.
+- This includes "small" fixes, dependency updates, "obvious" improvements, and ALL existing frozen features.
+- NEVER assume a previously committed fix is complete without verifying it works end-to-end (DB → backend → API → frontend).
 - Memory files at `~/.claude/projects/.../memory/` track all frozen fixes — read `frozen-fixes.md` before touching any file.
+- ⛔ Freezing a fix in memory/CLAUDE.md does NOT mean it was verified working — always test before declaring fixed.
 
 ---
 
