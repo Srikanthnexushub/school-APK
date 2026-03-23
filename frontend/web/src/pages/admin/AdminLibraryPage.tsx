@@ -40,7 +40,7 @@ interface ContentItemResponse {
   createdAt: string;
 }
 
-interface CenterResponse { id: string; name: string; city?: string; }
+interface CenterResponse { id: string; name: string; city?: string; centerType?: string; }
 
 interface PresignedUploadResponse {
   uploadUrl: string;
@@ -698,6 +698,13 @@ export default function AdminLibraryPage() {
     },
     enabled: isInst && !centerId,
   });
+
+  // Auto-select for SCHOOL/COLLEGE — skip picker (coaching centers still see picker)
+  useEffect(() => {
+    if (!centerId && centers.length > 0 && centers.every(c => c.centerType !== 'COACHING_CENTER')) {
+      setSelectedCenterId(centers[0].id);
+    }
+  }, [centers, centerId]); // eslint-disable-line
 
   // Library content list
   const { data: pageData, isLoading } = useQuery({

@@ -336,7 +336,7 @@ function StaffCard({ member, centerId, onRefresh }: {
 
 // ─── Center Picker (for INSTITUTION_ADMIN with no centerId in JWT) ────────────
 
-interface CenterOption { id: string; name: string; code?: string; }
+interface CenterOption { id: string; name: string; code?: string; centerType?: string; }
 
 function CenterPicker({ onSelect }: { onSelect: (id: string) => void }) {
   const { data: centers = [], isLoading } = useQuery<CenterOption[]>({
@@ -348,7 +348,15 @@ function CenterPicker({ onSelect }: { onSelect: (id: string) => void }) {
     },
   });
 
-  if (isLoading) {
+  // Auto-select for SCHOOL/COLLEGE — skip picker (coaching centers still see picker)
+  const allSchoolOrCollege = centers.length > 0 && centers.every(c => c.centerType !== 'COACHING_CENTER');
+  useEffect(() => {
+    if (allSchoolOrCollege) {
+      onSelect(centers[0].id);
+    }
+  }, [allSchoolOrCollege]); // eslint-disable-line
+
+  if (isLoading || allSchoolOrCollege) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-6 h-6 text-brand-400 animate-spin" />
