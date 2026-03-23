@@ -5,8 +5,10 @@
 - Ask first. Act only after the user says yes.
 - This includes "small" fixes, dependency updates, "obvious" improvements, and ALL existing frozen features.
 - NEVER assume a previously committed fix is complete without verifying it works end-to-end (DB → backend → API → frontend).
+- NEVER declare a feature "done" or "frozen" without proving it works in the browser.
 - Memory files at `~/.claude/projects/.../memory/` track all frozen fixes — read `frozen-fixes.md` before touching any file.
-- ⛔ Freezing a fix in memory/CLAUDE.md does NOT mean it was verified working — always test before declaring fixed.
+- ⛔ Freezing a fix in memory/CLAUDE.md does NOT mean it was verified working — test first, freeze after.
+- ⛔ ANY change to an existing frozen feature (even a "bug fix") requires explicit user permission — no exceptions.
 
 ---
 
@@ -305,7 +307,9 @@ Use Python `urllib.request` for API calls with passwords that contain `!`.
 
 | FOOTER_VIDEO banner type — compact video ad strip in footer (Fix #98) — New `BannerType.FOOTER_VIDEO` enum value (4th, after HERO/TICKER/VIDEO). `V23__extend_banner_type_footer_video.sql` drops+recreates `chk_banner_type` CHECK constraint to include FOOTER_VIDEO; applied manually as superuser (DB user lacks DDL rights); flyway_schema_history row inserted with checksum `359464780`. `FooterBanner.tsx` rewritten from 48px HERO text strip to 160px compact video player: filters `bannerType==='FOOTER_VIDEO'`, supports videoUrl/imageUrl/linkUrl/linkLabel; play/pause toggle (paused state stops auto-advance interval + calls `videoRef.pause()/play()`); mute toggle; prev/next chevrons + dot nav for multiple banners. `AdminBannersPage.tsx`: FOOTER_VIDEO dropdown option + amber badge + renamed VIDEO option to "Video Advertisement (Header)". DB record: SchoolWear Pro banner (`id=ad70e9f6`) audience=ALL active. ⛔ NEVER add `loop` to `<video>` (suppresses onEnded → cyclic rotation breaks). ⛔ NEVER conflate with VIDEO type (VIDEO=header full-bleed, FOOTER_VIDEO=footer 160px strip). ⛔ NEVER remove `if (!paused)` guard before play() in banner-switch useEffect. Flyway DDL pattern: center_schema ALTER TABLE = always run as srikanth superuser + insert flyway_schema_history row manually. ⛔ ASK PERMISSION. | `center-svc: BannerType.java, V23__extend_banner_type_footer_video.sql`; `frontend: FooterBanner.tsx, AdminBannersPage.tsx` | 83bff7a + 245261c |
 
-Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (98+ fixes)
+| centerType persisted through self-register + auto-open removed (Fix #99) — Two cascading bugs: (1) Root cause of Fix #97 never working: `InstitutionSelfRegisterRequest` had no `centerType` field — frontend sent `SCHOOL`/`COLLEGE` but backend silently dropped it, defaulting all centers to `COACHING_CENTER`. Fixed: added `CenterType centerType` field to DTO; `CoachingCenter.selfRegister()` accepts + calls `setCenterType()`; `CenterService.selfRegisterCenter()` passes `request.centerType()`. DB: corrected 3 centers (nexus, AI Nexus Learning Hub, Delhi public school) from COACHING_CENTER → SCHOOL. (2) Fix #96's `autoOpenedRef + useEffect` auto-open pattern fired the moment a user navigated to Jobs/Staff/Library tabs — exposing itself now that centers are properly SCHOOL. Removed auto-open entirely from `AdminJobsPage`, `AdminStaffPage`, `AdminLibraryPage`. ⛔ NEVER add auto-open-on-mount to any page. ⛔ NEVER remove `centerType` field from `InstitutionSelfRegisterRequest`. ⛔ ALL changes to existing features require explicit user permission. ⛔ ASK PERMISSION. | `center-svc: InstitutionSelfRegisterRequest.java, CoachingCenter.java, CenterService.java`; `frontend: AdminJobsPage.tsx, AdminStaffPage.tsx, AdminLibraryPage.tsx` | a1fc68d + d0688db |
+
+Full frozen fix list: `~/.claude/projects/.../memory/frozen-fixes.md` (99+ fixes)
 
 ---
 
