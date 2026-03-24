@@ -84,15 +84,42 @@ info "Environment loaded from ${ENV_FILE}"
 mkdir -p "${LOGS_DIR}" "${PIDS_DIR}"
 
 # ── infrastructure ─────────────────────────────────────────────────────────────
-section "Infrastructure (Docker)"
+section "Infrastructure (Native + Docker UI)"
 
-# Postgres runs LOCALLY via Homebrew (postgresql@16) — NOT in Docker.
-# Docker only manages Redis, Kafka, Mailhog, MinIO and their UI companions.
-info "Starting Redis / Kafka / Mailhog / MinIO containers (skipping Docker Postgres — using local native Postgres)..."
+# All primary infra runs NATIVELY via Homebrew / LaunchAgents — NOT in Docker.
+#   Postgres  : brew services start postgresql@16   (native, port 5432)
+#   Redis     : brew services start redis            (native, port 6379)
+#   Kafka     : launchctl load ~/Library/LaunchAgents/com.edutech.kafka-native.plist (native, port 9092)
+#   MinIO     : launchd LaunchAgent com.edutech.minio-native.plist  (native, port 9002)
+#   MailHog   : launchctl load ~/Library/LaunchAgents/com.edutech.mailhog-native.plist (native, ports 1025/8025)
+#   pgAdmin   : /Applications/pgAdmin\ 4.app  (native macOS app)
+# Docker only runs UI companions: kafka-ui (Kafka browser UI) and redis-commander (Redis browser UI).
+
+# Ensure native Redis is running (auto-started at login via homebrew.mxcl.redis.plist)
+if ! redis-cli -a "${REDIS_PASSWORD:-redis_dev_pass_2026}" ping 2>/dev/null | grep -q PONG; then
+  info "Native Redis not responding — starting via Homebrew..."
+  brew services start redis 2>/dev/null || true
+fi
+
+# Ensure native Kafka is running (auto-started via com.edutech.kafka-native.plist)
+if ! /usr/local/Cellar/kafka/*/libexec/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list &>/dev/null; then
+  info "Native Kafka not responding — loading LaunchAgent..."
+  launchctl load ~/Library/LaunchAgents/com.edutech.kafka-native.plist 2>/dev/null || true
+  sleep 5
+fi
+
+# Ensure native MailHog is running (auto-started via com.edutech.mailhog-native.plist)
+if ! curl -s --max-time 2 http://localhost:8025 &>/dev/null; then
+  info "Native MailHog not responding — loading LaunchAgent..."
+  launchctl load ~/Library/LaunchAgents/com.edutech.mailhog-native.plist 2>/dev/null || true
+fi
+
+# Start Docker UI companions only (kafka-ui, redis-commander)
+info "Starting Kafka UI + Redis Commander containers..."
 docker compose \
   --file "${COMPOSE_FILE}" \
   --env-file "${ENV_FILE}" \
-  up -d redis kafka kafka-ui minio pgadmin redis-commander mailhog 2>&1 | tail -5
+  up -d kafka-ui redis-commander 2>&1 | tail -5
 
 # Add Homebrew postgres to PATH so pg_isready is available
 export PATH="/usr/local/Cellar/postgresql@16/$(ls /usr/local/Cellar/postgresql@16/ 2>/dev/null | head -1)/bin:${PATH}"
@@ -112,10 +139,10 @@ for i in $(seq 1 30); do
   sleep 2
 done
 
-# wait for Redis
-info "Waiting for Redis on port ${REDIS_PORT:-6379}..."
+# wait for native Redis
+info "Waiting for native Redis on port ${REDIS_PORT:-6379}..."
 for i in $(seq 1 15); do
-  if docker exec edutech-redis redis-cli -a "${REDIS_PASSWORD:-redis_dev_pass_2026}" ping 2>/dev/null | grep -q PONG; then
+  if redis-cli -a "${REDIS_PASSWORD:-redis_dev_pass_2026}" ping 2>/dev/null | grep -q PONG; then
     info "Redis is ready."
     break
   fi
