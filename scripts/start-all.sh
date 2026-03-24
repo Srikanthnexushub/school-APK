@@ -84,16 +84,18 @@ info "Environment loaded from ${ENV_FILE}"
 mkdir -p "${LOGS_DIR}" "${PIDS_DIR}"
 
 # ── infrastructure ─────────────────────────────────────────────────────────────
-section "Infrastructure (Native + Docker UI)"
+section "Infrastructure (100% Native)"
 
-# All primary infra runs NATIVELY via Homebrew / LaunchAgents — NOT in Docker.
-#   Postgres  : brew services start postgresql@16   (native, port 5432)
-#   Redis     : brew services start redis            (native, port 6379)
-#   Kafka     : launchctl load ~/Library/LaunchAgents/com.edutech.kafka-native.plist (native, port 9092)
-#   MinIO     : launchd LaunchAgent com.edutech.minio-native.plist  (native, port 9002)
-#   MailHog   : launchctl load ~/Library/LaunchAgents/com.edutech.mailhog-native.plist (native, ports 1025/8025)
-#   pgAdmin   : /Applications/pgAdmin\ 4.app  (native macOS app)
-# Docker only runs UI companions: kafka-ui (Kafka browser UI) and redis-commander (Redis browser UI).
+# ALL infra runs NATIVELY via Homebrew / LaunchAgents — NO Docker services required.
+#   Postgres        : brew services start postgresql@16          (native, port 5432)
+#   Redis           : brew services start redis                  (native, port 6379)
+#   Kafka           : com.edutech.kafka-native.plist             (native, port 9092)
+#   MinIO           : com.edutech.minio-native.plist             (native, port 9002)
+#   MailHog         : com.edutech.mailhog-native.plist           (native, ports 1025/8025)
+#   pgAdmin         : /Applications/pgAdmin\ 4.app               (native macOS app)
+#   Kafka UI        : com.edutech.kafka-ui-native.plist          (native JAR, port 9080)
+#   Redis Commander : com.edutech.redis-commander-native.plist   (native npm, port 8888)
+# Docker is only needed for backup minio (not started) — Docker Desktop can be off.
 
 # Ensure native Redis is running (auto-started at login via homebrew.mxcl.redis.plist)
 if ! redis-cli -a "${REDIS_PASSWORD:-redis_dev_pass_2026}" ping 2>/dev/null | grep -q PONG; then
@@ -114,12 +116,20 @@ if ! curl -s --max-time 2 http://localhost:8025 &>/dev/null; then
   launchctl load ~/Library/LaunchAgents/com.edutech.mailhog-native.plist 2>/dev/null || true
 fi
 
-# Start Docker UI companions only (kafka-ui, redis-commander)
-info "Starting Kafka UI + Redis Commander containers..."
-docker compose \
-  --file "${COMPOSE_FILE}" \
-  --env-file "${ENV_FILE}" \
-  up -d kafka-ui redis-commander 2>&1 | tail -5
+# Ensure native Kafka UI is running (kafbat v1.0.0 JAR, port 9080)
+if ! curl -s --max-time 2 http://localhost:9080 &>/dev/null; then
+  info "Native Kafka UI not responding — loading LaunchAgent..."
+  launchctl load ~/Library/LaunchAgents/com.edutech.kafka-ui-native.plist 2>/dev/null || true
+fi
+
+# Ensure native Redis Commander is running (npm redis-commander, port 8888)
+if ! curl -s --max-time 2 http://localhost:8888 &>/dev/null; then
+  info "Native Redis Commander not responding — loading LaunchAgent..."
+  launchctl load ~/Library/LaunchAgents/com.edutech.redis-commander-native.plist 2>/dev/null || true
+fi
+
+# All infrastructure is now 100% native — no Docker services needed.
+# Docker is only used for backup minio (port 9000/9001) which is not started by default.
 
 # Add Homebrew postgres to PATH so pg_isready is available
 export PATH="/usr/local/Cellar/postgresql@16/$(ls /usr/local/Cellar/postgresql@16/ 2>/dev/null | head -1)/bin:${PATH}"

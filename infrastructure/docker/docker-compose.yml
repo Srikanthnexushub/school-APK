@@ -118,23 +118,32 @@ services:
   #   networks:
   #     - edutech-network
 
-  # ---------------------------------------------------------------------------
-  # Kafka UI — browser-based topic/consumer group management (dev only)
-  # Connects to NATIVE Kafka on host.docker.internal:9092 (not Docker kafka).
-  # ---------------------------------------------------------------------------
-  kafka-ui:
-    image: provectuslabs/kafka-ui:v0.7.2
-    container_name: edutech-kafka-ui
-    restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    environment:
-      KAFKA_CLUSTERS_0_NAME: ${KAFKA_UI_CLUSTER_NAME}
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: host.docker.internal:9092
-    ports:
-      - "${KAFKA_UI_PORT}:8080"
-    networks:
-      - edutech-network
+  #------------------------------------------------------------------------------
+  # Kafka UI — NATIVE (NOT Docker)
+  # Primary Kafka UI: kafbat/kafka-ui v1.0.0 JAR on localhost:9080
+  #   JAR        : /usr/local/share/kafka-ui/kafbat-ui-v1.0.0.jar
+  #   Start      : launchctl load ~/Library/LaunchAgents/com.edutech.kafka-ui-native.plist
+  #   Stop       : launchctl unload ~/Library/LaunchAgents/com.edutech.kafka-ui-native.plist
+  #   Start script: /usr/local/bin/kafka-ui-native-start.sh
+  #   Web UI     : http://localhost:9080
+  #   Connects to: localhost:9092 (native Kafka)
+  #   Note: v1.0.0 required for Java 17 compat (v1.1.0+ requires Java 21)
+  # ⛔ Do NOT start edutech-kafka-ui Docker container — port 9080 taken by native.
+  # This Docker service definition is kept for reference / cloud migration only.
+  #------------------------------------------------------------------------------
+  # kafka-ui:
+  #   image: provectuslabs/kafka-ui:v0.7.2
+  #   container_name: edutech-kafka-ui
+  #   restart: unless-stopped
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   environment:
+  #     KAFKA_CLUSTERS_0_NAME: ${KAFKA_UI_CLUSTER_NAME}
+  #     KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: host.docker.internal:9092
+  #   ports:
+  #     - "${KAFKA_UI_PORT}:8080"
+  #   networks:
+  #     - edutech-network
   #------------------------------------------------------------------------------
   # MinIO S3 — BACKUP ONLY
   # Primary S3: native MinIO via Homebrew launchd
@@ -184,22 +193,30 @@ services:
   #   networks:
   #     - edutech-network
 
-  # ---------------------------------------------------------------------------
-  # Redis Commander — Redis GUI (dev only)
-  # Connects to NATIVE Redis on host.docker.internal:6379 (not Docker redis).
-  # ---------------------------------------------------------------------------
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    container_name: edutech-redis-commander
-    restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    environment:
-      REDIS_HOSTS: local:host.docker.internal:6379:0:${REDIS_PASSWORD}
-    ports:
-      - "${REDIS_COMMANDER_PORT}:8081"
-    networks:
-      - edutech-network
+  #------------------------------------------------------------------------------
+  # Redis Commander — NATIVE (NOT Docker)
+  # Primary Redis Commander: npm redis-commander@0.9.0 on localhost:8888
+  #   Install    : npm install -g redis-commander@0.9.0
+  #   Start      : launchctl load ~/Library/LaunchAgents/com.edutech.redis-commander-native.plist
+  #   Stop       : launchctl unload ~/Library/LaunchAgents/com.edutech.redis-commander-native.plist
+  #   Start script: /usr/local/bin/redis-commander-native-start.sh
+  #   Web UI     : http://localhost:8888
+  #   Connects to: localhost:6379 (native Redis)
+  # ⛔ Do NOT start edutech-redis-commander Docker container — port 8888 taken by native.
+  # This Docker service definition is kept for reference / cloud migration only.
+  #------------------------------------------------------------------------------
+  # redis-commander:
+  #   image: rediscommander/redis-commander:latest
+  #   container_name: edutech-redis-commander
+  #   restart: unless-stopped
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   environment:
+  #     REDIS_HOSTS: local:host.docker.internal:6379:0:${REDIS_PASSWORD}
+  #   ports:
+  #     - "${REDIS_COMMANDER_PORT}:8081"
+  #   networks:
+  #     - edutech-network
 
   #------------------------------------------------------------------------------
   # MailHog — NATIVE (NOT Docker)
