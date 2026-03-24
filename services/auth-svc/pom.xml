@@ -12,6 +12,7 @@
     </parent>
 
     <artifactId>auth-svc</artifactId>
+    <packaging>war</packaging>
     <name>EduTech :: Service :: Auth</name>
     <description>
         Authentication and authorisation service. Owns: users, roles, permissions,
@@ -25,6 +26,13 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Tomcat provided by external server (WAR deployment) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Security (RBAC, filter chain) -->
@@ -219,10 +227,13 @@
 
     <build>
         <plugins>
-            <!-- Repackage into executable fat JAR -->
+            <!-- Repackage: deployable WAR + executable WAR (keeps start-all.sh working) -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <classifier>exec</classifier>
+                </configuration>
             </plugin>
             <!-- Integration tests -->
             <plugin>

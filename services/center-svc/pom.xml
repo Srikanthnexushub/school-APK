@@ -12,6 +12,7 @@
     </parent>
 
     <artifactId>center-svc</artifactId>
+    <packaging>war</packaging>
     <name>EduTech :: Service :: Coaching Center</name>
     <description>
         Multi-tenant coaching center management service. Owns: centers, batches,
@@ -24,6 +25,13 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Tomcat provided by external server (WAR deployment) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -156,9 +164,13 @@
 
     <build>
         <plugins>
+            <!-- Repackage: deployable WAR + executable WAR (keeps start-all.sh working) -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <classifier>exec</classifier>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
