@@ -79,7 +79,7 @@ public class AssignmentController {
     @Operation(summary = "Update an assignment (DRAFT only)")
     public AssignmentResponse updateAssignment(
             @PathVariable UUID id,
-            @RequestBody UpdateAssignmentRequest request,
+            @Valid @RequestBody UpdateAssignmentRequest request,
             @AuthenticationPrincipal AuthPrincipal principal) {
         return assignmentService.updateAssignment(id, request, principal);
     }
@@ -114,7 +114,7 @@ public class AssignmentController {
     @Operation(summary = "Submit an assignment (students only)")
     public AssignmentSubmissionResponse submitAssignment(
             @PathVariable UUID id,
-            @RequestBody SubmitAssignmentRequest request,
+            @Valid @RequestBody SubmitAssignmentRequest request,
             @AuthenticationPrincipal AuthPrincipal principal) {
         return assignmentService.submitAssignment(id, request, principal);
     }
