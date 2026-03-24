@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 100+ frozen fixes as of Fix #100 (commit `4dcff0b`).
+- Read `memory/frozen-fixes.md` before touching any file. 103+ frozen fixes as of Fix #103 (commit `b7c57fa`).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -22,22 +22,23 @@ Before any new UI component, navigation, or feature — answer these first:
 
 ## Start Services
 
-> **Postgres runs LOCALLY** via Homebrew `postgresql@16` — NOT in Docker.
+> **ALL infrastructure is 100% NATIVE** — Docker Desktop can be OFF.
+> Postgres, Redis, Kafka, MinIO, MailHog, Kafka UI, Redis Commander all run natively via Homebrew/LaunchAgents.
 
 ```bash
 brew services start postgresql@16          # ensure Postgres is up (after reboot)
 bash scripts/start-all.sh --no-build       # smart start (auto-rebuilds changed services)
 bash scripts/start-all.sh                  # full build + start
-bash scripts/start-all.sh --infra-only     # Docker infra only (Redis/Kafka)
 ```
 
 **Redis down (CAPTCHA broken):**
 ```bash
-while IFS='=' read -r key val; do [[ -z "$key" || "$key" == \#* ]] && continue; export "$key=$val"; done < .env
-docker compose -f infrastructure/docker/docker-compose.yml up -d redis
+brew services restart redis
+redis-cli -a <REDIS_PASSWORD> ping   # should return PONG
 ```
 
 For all other startup problems → `memory/startup-troubleshooting.md`
+Infrastructure details → `memory/quick-ref-infra.md`
 
 ---
 
@@ -55,14 +56,30 @@ For all other startup problems → `memory/startup-troubleshooting.md`
 | mentor-svc | 8088 | Tomcat WAR |
 | student-profile-svc | 8090 | Tomcat WAR |
 | notification-svc | 8094 | Tomcat WAR |
-| ai-gateway-svc | 8086 | Tomcat WAR (WebFlux+Netty client) |
-| exam-tracker-svc | 8092 | Tomcat WAR |
-| career-oracle-svc | 8095 | Tomcat WAR |
-| performance-svc | 8096 | Tomcat WAR |
-| psych-svc | 8097 | Tomcat WAR |
+| exam-tracker-svc | 8091 | Tomcat WAR |
+| career-oracle-svc | 8087 | Tomcat WAR |
+| performance-svc | 8092 | Tomcat WAR |
+| psych-svc | 8085 | Tomcat WAR |
+| ai-gateway-svc | 8086 | Exec WAR — standalone Netty (NOT Tomcat, see Fix #103) |
 
 Health check: `curl http://localhost:{port}/actuator/health`
 Tomcat deployment details → `memory/tomcat-deployment.md`
+
+---
+
+## Infrastructure Ports (all native — Docker Desktop NOT required)
+
+| Service | Port | Start command |
+|---|---|---|
+| Postgres | 5432 | `brew services start postgresql@16` |
+| Redis | 6379 | `brew services start redis` |
+| Kafka | 9092 | `launchctl load ~/Library/LaunchAgents/com.edutech.kafka-native.plist` |
+| MinIO API | 9002 | `launchctl load ~/Library/LaunchAgents/com.edutech.minio-native.plist` |
+| MinIO Console | 9003 | (same plist) |
+| MailHog SMTP | 1025 | `launchctl load ~/Library/LaunchAgents/com.edutech.mailhog-native.plist` |
+| MailHog UI | 8025 | (same plist) |
+| Kafka UI | 9080 | `launchctl load ~/Library/LaunchAgents/com.edutech.kafka-ui-native.plist` |
+| Redis Commander | 8888 | `launchctl load ~/Library/LaunchAgents/com.edutech.redis-commander-native.plist` |
 
 ---
 
@@ -87,7 +104,7 @@ Full credentials + E2E demo data → `memory/quick-ref-auth-users.md`, `memory/e
 - **Gateways only**: frontend → api-gateway (8180) or student-gateway (8089). Never call services directly.
 - **Captcha bypass** (E2E/dev): `captchaToken: "E2E-LOCAL-BYPASS-DO-NOT-USE-IN-PROD:bypass"`
 - **Page<T>**: `Array.isArray(d) ? d : (d.content ?? [])`
-- **Tomcat WAR**: 12 services run as WARs. api-gateway + student-gateway stay on embedded Netty (spring-cloud-gateway).
+- **Tomcat WAR**: 11 services run as Tomcat WARs. api-gateway + student-gateway on Netty (spring-cloud-gateway). ai-gateway-svc runs as exec WAR (standalone Netty) — NOT Tomcat.
 
 Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `memory/tomcat-deployment.md`
 
@@ -95,7 +112,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (100 fixes, latest: Fix #100 `4dcff0b` — Tomcat WAR migration).
+Full list → `memory/frozen-fixes.md` (103 fixes, latest: Fix #103 `b7c57fa` — exec WAR support + all 14 services UP).
 Read it before touching any existing file.
 
 ---
