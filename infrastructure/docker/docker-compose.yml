@@ -121,14 +121,20 @@ services:
     networks:
       - edutech-network
   #------------------------------------------------------------------------------
-  #S3
+  # S3 — BACKUP ONLY
+  # Primary S3: native MinIO via Homebrew launchd on port 9002/9003
+  #   managed by: com.edutech.minio-native (~/Library/LaunchAgents/)
+  #   data dir:   /usr/local/var/minio-native
+  #   console:    http://localhost:9003
+  # This Docker MinIO is kept as backup on port 9000/9001.
+  # To restore: change MINIO_ENDPOINT in .env to http://localhost:9000
   #------------------------------------------------------------------------------
   minio:
     image: minio/minio
     container_name: minio
     ports:
-      - "9000:9000"    # API endpoint (S3-compatible)
-      - "9001:9001"    # Web console UI
+      - "9000:9000"    # API endpoint (S3-compatible) — BACKUP
+      - "9001:9001"    # Web console UI — BACKUP
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin123
