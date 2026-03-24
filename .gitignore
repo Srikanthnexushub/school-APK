@@ -86,6 +86,13 @@ docs/screenshots/
 
 ### Redis persistence (local dev) ###
 dump.rdb
+appendonlydir/
+
+### Stray TestContainers shaded class files ###
+org/
 
 ### Runtime log rotation watchdog backups ###
 logs/*.watchdog.*
+
+### PID files (runtime, not source) ###
+.pids/
