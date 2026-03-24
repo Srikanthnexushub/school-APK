@@ -271,7 +271,11 @@ start_svc() {
 
   info "Starting ${name} on port ${port}..."
 
+  # Find runnable artifact: prefer plain .jar, fall back to -exec.war (WAR-packaged services)
   JAR=$(find "${ROOT_DIR}/${module_path}/target" -name "*.jar" -not -name "*sources*" 2>/dev/null | head -1)
+  if [[ -z "${JAR}" ]]; then
+    JAR=$(find "${ROOT_DIR}/${module_path}/target" -name "*-exec.war" 2>/dev/null | head -1)
+  fi
 
   # ── stale-JAR guard ────────────────────────────────────────────────────────
   # When --no-build is passed, check if any source file is newer than the JAR.
@@ -286,6 +290,9 @@ start_svc() {
       warn "${name}: source changed since last build (${stale_src##*/}) — rebuilding..."
       mvn package -pl "${module_path}" -am -DskipTests --no-transfer-progress -q 2>/dev/null
       JAR=$(find "${ROOT_DIR}/${module_path}/target" -name "*.jar" -not -name "*sources*" 2>/dev/null | head -1)
+      if [[ -z "${JAR}" ]]; then
+        JAR=$(find "${ROOT_DIR}/${module_path}/target" -name "*-exec.war" 2>/dev/null | head -1)
+      fi
       info "${name}: rebuilt OK."
     fi
   fi
