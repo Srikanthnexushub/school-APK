@@ -438,4 +438,135 @@ class AssessControllerIT {
         // GlobalExceptionHandler maps MethodArgumentNotValidException to 422
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
     }
+
+    // =========================================================================
+    // Security hardening tests
+    // =========================================================================
+
+    @org.junit.jupiter.api.Nested
+    @DisplayName("Security hardening")
+    class SecurityHardeningIT {
+
+        // =====================================================================
+        // Security Test 1: Cross-student isolation
+        // A student cannot submit to an exam they are not enrolled in.
+        // =====================================================================
+
+        @Test
+        @DisplayName("POST /api/v1/exams/{examId}/submissions — student B cannot submit to student A's exam → 403 or 404")
+        void crossStudentIsolation_studentBCannotSubmitToStudentAExam() {
+            // --- Arrange: create and publish exam as admin ---
+            mockAuth(adminPrincipal);
+            UUID examId = restTemplate.exchange(
+                    "/api/v1/exams",
+                    HttpMethod.POST,
+                    authEntity(buildExamRequest("Security IT — Cross-Student Isolation")),
+                    ExamResponse.class).getBody().id();
+
+            restTemplate.exchange(
+                    "/api/v1/exams/" + examId + "/publish",
+                    HttpMethod.PUT,
+                    authEntity(),
+                    ExamResponse.class);
+
+            // --- Enroll only student A (the existing studentPrincipal) ---
+            mockAuth(studentPrincipal);
+            ResponseEntity<Map> enrollResponse = restTemplate.exchange(
+                    "/api/v1/exams/" + examId + "/enrollments",
+                    HttpMethod.POST,
+                    authEntity(),
+                    Map.class);
+            assertThat(enrollResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+
+            // --- Build student B — a completely different user, NOT enrolled ---
+            UUID studentBId = UUID.randomUUID();
+            AuthPrincipal studentBPrincipal = new AuthPrincipal(
+                    studentBId, "student-b@test.com", Role.STUDENT, null, "fp-student-b");
+
+            // Switch the JWT mock so any token now resolves to student B
+            mockAuth(studentBPrincipal);
+
+            // --- Act: student B attempts to start a submission ---
+            ResponseEntity<String> response = restTemplate.exchange(
+                    "/api/v1/exams/" + examId + "/submissions",
+                    HttpMethod.POST,
+                    authEntity(),
+                    String.class);
+
+            // --- Assert: must be rejected; 403 Forbidden or 404 Not Found are both acceptable ---
+            assertThat(response.getStatusCode().value())
+                    .as("Student B must not be able to submit to an exam they are not enrolled in")
+                    .isIn(403, 404);
+        }
+
+        // =====================================================================
+        // Security Test 2: Unauthenticated exam list access → 401
+        // =====================================================================
+
+        @Test
+        @DisplayName("GET /api/v1/exams without Authorization header — returns 401 Unauthorized")
+        void unauthenticatedExamAccess_returns401() {
+            // Ensure the validator rejects any token value (simulates absent/invalid token)
+            when(jwtTokenValidator.validate(anyString())).thenReturn(Optional.empty());
+
+            // Send request with no Authorization header
+            ResponseEntity<String> response = restTemplate.exchange(
+                    "/api/v1/exams",
+                    HttpMethod.GET,
+                    new HttpEntity<>(new HttpHeaders()),
+                    String.class);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+
+        // =====================================================================
+        // Security Test 3: Unauthenticated submission → 401
+        // =====================================================================
+
+        @Test
+        @DisplayName("POST /api/v1/exams/{examId}/submissions without Authorization header — returns 401 Unauthorized")
+        void unauthenticatedSubmission_returns401() {
+            // Create a known exam id to target (auth is active for setup only)
+            mockAuth(adminPrincipal);
+            UUID examId = restTemplate.exchange(
+                    "/api/v1/exams",
+                    HttpMethod.POST,
+                    authEntity(buildExamRequest("Security IT — Unauthenticated Submission")),
+                    ExamResponse.class).getBody().id();
+
+            // Now simulate absent/invalid token for the actual attack request
+            when(jwtTokenValidator.validate(anyString())).thenReturn(Optional.empty());
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                    "/api/v1/exams/" + examId + "/submissions",
+                    HttpMethod.POST,
+                    new HttpEntity<>(new HttpHeaders()),
+                    String.class);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+
+        // =====================================================================
+        // Security Test 4: Role boundary — PARENT cannot create an exam → 403
+        // =====================================================================
+
+        @Test
+        @DisplayName("POST /api/v1/exams with PARENT role token — returns 403 Forbidden")
+        void parentRoleCannotCreateExam_returns403() {
+            UUID parentId = UUID.randomUUID();
+            AuthPrincipal parentPrincipal = new AuthPrincipal(
+                    parentId, "parent@test.com", Role.PARENT, null, "fp-parent");
+
+            // Configure JWT mock to return a PARENT principal for any token
+            mockAuth(parentPrincipal);
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                    "/api/v1/exams",
+                    HttpMethod.POST,
+                    authEntity(buildExamRequest("Security IT — Parent Role Boundary")),
+                    String.class);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        }
+    }
 }

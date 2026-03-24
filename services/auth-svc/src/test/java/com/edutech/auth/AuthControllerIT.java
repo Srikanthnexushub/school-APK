@@ -6,6 +6,7 @@ import com.edutech.auth.domain.model.User;
 import com.edutech.auth.domain.port.out.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -482,5 +483,124 @@ class AuthControllerIT {
         assertThat(persisted.getRole())
             .as("User must be saved with the requested role")
             .isEqualTo(Role.STUDENT);
+    }
+
+    // ── Validation hardening ─────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("Validation hardening")
+    class ValidationHardening {
+
+        /**
+         * Registers a fresh user, activates them, logs in, and returns a valid
+         * Bearer access token — following the exact same pattern used by the
+         * surrounding tests.
+         */
+        private String obtainAccessToken() {
+            String email = "it-val-harden-" + System.nanoTime() + "@example.com";
+            registerAndGetBody(email);
+            activateUser(email);
+            ResponseEntity<String> loginResp = restTemplate.postForEntity(
+                baseUrl + "/api/v1/auth/login",
+                new HttpEntity<>(buildLoginJson(email, "Test@12345"), jsonHeaders()),
+                String.class
+            );
+            assertThat(loginResp.getStatusCode())
+                .as("Login prerequisite for validation hardening tests must return HTTP 200 OK")
+                .isEqualTo(HttpStatus.OK);
+            return extractAccessToken(loginResp.getBody());
+        }
+
+        @Test
+        @DisplayName("PATCH /api/v1/auth/me — blank firstName returns 400 Bad Request")
+        void patchMe_blankFirstName_returns400() {
+            String token = obtainAccessToken();
+            String body = """
+                {"firstName": "", "lastName": "Tester"}
+                """;
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                baseUrl + "/api/v1/auth/me",
+                HttpMethod.PATCH,
+                new HttpEntity<>(body, bearerHeaders(token)),
+                String.class
+            );
+
+            assertThat(response.getStatusCode())
+                .as("PATCH /me with blank firstName must return HTTP 400 Bad Request")
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        }
+
+        @Test
+        @DisplayName("PATCH /api/v1/auth/me — null firstName returns 400 Bad Request")
+        void patchMe_nullFirstName_returns400() {
+            String token = obtainAccessToken();
+            String body = """
+                {"firstName": null, "lastName": "Tester"}
+                """;
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                baseUrl + "/api/v1/auth/me",
+                HttpMethod.PATCH,
+                new HttpEntity<>(body, bearerHeaders(token)),
+                String.class
+            );
+
+            assertThat(response.getStatusCode())
+                .as("PATCH /me with null firstName must return HTTP 400 Bad Request")
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        }
+
+        @Test
+        @DisplayName("PATCH /api/v1/auth/me — firstName exceeding 100 chars returns 400 Bad Request")
+        void patchMe_firstNameTooLong_returns400() {
+            String token = obtainAccessToken();
+            // 101-character string — one character over the allowed maximum
+            String tooLong = "A".repeat(101);
+            String body = """
+                {"firstName": "%s", "lastName": "Tester"}
+                """.formatted(tooLong);
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                baseUrl + "/api/v1/auth/me",
+                HttpMethod.PATCH,
+                new HttpEntity<>(body, bearerHeaders(token)),
+                String.class
+            );
+
+            assertThat(response.getStatusCode())
+                .as("PATCH /me with firstName longer than 100 chars must return HTTP 400 Bad Request")
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        }
+
+        @Test
+        @DisplayName("GET /api/v1/auth/users/lookup — invalid email format returns 400 Bad Request")
+        void lookupUser_invalidEmailFormat_returns400() {
+            ResponseEntity<String> response = restTemplate.exchange(
+                baseUrl + "/api/v1/auth/users/lookup?email=not-an-email",
+                HttpMethod.GET,
+                new HttpEntity<>(new HttpHeaders()),
+                String.class
+            );
+
+            assertThat(response.getStatusCode())
+                .as("GET /users/lookup with a malformed email must return HTTP 400 Bad Request")
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        }
+
+        @Test
+        @DisplayName("GET /api/v1/auth/users/lookup — blank email returns 400 Bad Request")
+        void lookupUser_blankEmail_returns400() {
+            ResponseEntity<String> response = restTemplate.exchange(
+                baseUrl + "/api/v1/auth/users/lookup?email=",
+                HttpMethod.GET,
+                new HttpEntity<>(new HttpHeaders()),
+                String.class
+            );
+
+            assertThat(response.getStatusCode())
+                .as("GET /users/lookup with a blank email must return HTTP 400 Bad Request")
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        }
     }
 }

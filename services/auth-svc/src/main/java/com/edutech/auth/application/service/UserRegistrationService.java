@@ -92,15 +92,15 @@ public class UserRegistrationService implements RegisterUserUseCase {
             try {
                 otpService.sendOtp(request.parentEmail(), "PARENTAL_CONSENT", "email");
                 log.info("Parental consent requested: userId={} parentEmail={}",
-                         savedUser.getId(), request.parentEmail());
+                         savedUser.getId(), maskEmail(request.parentEmail()));
             } catch (Exception e) {
                 log.warn("Parental consent email failed (non-fatal): userId={} parentEmail={} error={}",
-                         savedUser.getId(), request.parentEmail(), e.getMessage());
+                         savedUser.getId(), maskEmail(request.parentEmail()), e.getMessage());
             }
         }
 
         log.info("User registered: id={} email={} role={}", savedUser.getId(),
-                 savedUser.getEmail(), savedUser.getRole());
+                 maskEmail(savedUser.getEmail()), savedUser.getRole());
 
         return tokenService.issueTokenPair(savedUser, request.deviceFingerprint());
     }
@@ -131,5 +131,13 @@ public class UserRegistrationService implements RegisterUserUseCase {
         log.info("Child account created by parent: id={} email={}", saved.getId(), saved.getEmail());
 
         return new RegisterChildResponse(saved.getId(), saved.getEmail());
+    }
+
+    /** Masks an email address for safe logging: alice@example.com → a***@example.com */
+    private static String maskEmail(String email) {
+        if (email == null) return null;
+        int at = email.indexOf('@');
+        if (at <= 0) return "***";
+        return email.charAt(0) + "***" + email.substring(at);
     }
 }

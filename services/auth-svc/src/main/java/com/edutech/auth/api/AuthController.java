@@ -34,6 +34,9 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -49,6 +52,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/auth")
 @Tag(name = "Authentication", description = "Registration, login, token refresh, logout")
+@Validated
 public class AuthController {
 
     private final RegisterUserUseCase registerUserUseCase;
@@ -161,7 +165,7 @@ public class AuthController {
     @SecurityRequirement(name = "BearerAuth")
     @Operation(summary = "Update current user's display name")
     public ResponseEntity<Void> updateMe(@AuthenticationPrincipal AuthPrincipal principal,
-                                         @RequestBody UpdateNameRequest request) {
+                                         @Valid @RequestBody UpdateNameRequest request) {
         User user = userRepository.findById(principal.userId()).orElseThrow();
         user.updateName(request.firstName(), request.lastName());
         userRepository.save(user);
@@ -204,7 +208,7 @@ public class AuthController {
     @GetMapping("/users/lookup")
     @SecurityRequirement(name = "BearerAuth")
     @Operation(summary = "Look up a user by email — used by parents to find their child's account")
-    public ResponseEntity<UserResponse> lookupByEmail(@RequestParam String email) {
+    public ResponseEntity<UserResponse> lookupByEmail(@RequestParam @Email @NotBlank String email) {
         return userRepository.findByEmail(email)
             .map(authMapper::toUserResponse)
             .map(ResponseEntity::ok)
