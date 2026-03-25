@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 104+ frozen fixes as of Fix #104 (commit `9b7d954`).
+- Read `memory/frozen-fixes.md` before touching any file. 108+ frozen fixes as of Fix #108 (2026-03-25 — student portal E2E bug sweep).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -112,8 +112,18 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (104 fixes, latest: Fix #104 `9b7d954` — security hardening: input validation, PII log masking, STOMP auth, ipSubnet fix).
+Full list → `memory/frozen-fixes.md` (108 fixes, latest: Fix #105–#108 — student portal E2E bugs: start-all.sh -maxdepth 1, student-gateway missing assignments route, V13 enrollment constraint, ExamPage 409 resume).
 Read it before touching any existing file.
+
+### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
+
+**DB migrations**: Every enum value addition in Java MUST have a corresponding Flyway migration in the SAME commit — never rely on manual DB changes. If you add a status to any enum that maps to a DB CHECK constraint, update the constraint in a new `V{N}__*.sql` migration file simultaneously.
+
+**Gateway routes**: When a new endpoint is added to any service that serves paths under `/api/v1/students/**`, you MUST add a specific route in `student-gateway/application.yml` BEFORE the `Path=/api/v1/students/**` catch-all. First-match-wins.
+
+**Flyway + DB ownership (this dev DB)**: Tables in `assess_db`, `auth_db`, etc. are owned by `srikanth` (superuser) because migrations ran as srikanth during initial setup. Future DDL migrations that use `ALTER TABLE` on these schemas must be run manually as `postgres`/`srikanth` superuser first, then inserted into `flyway_schema_history`. Fresh DBs are not affected (tables will be owned by the app user).
+
+**start-all.sh find**: All `find` calls in `start_svc()` use `-maxdepth 1` — never remove this. WAR packaging creates exploded `WEB-INF/lib/` inside `target/` and without depth limiting, the first match is a dependency JAR, not the service artifact.
 
 ---
 

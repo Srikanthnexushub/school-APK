@@ -42,16 +42,6 @@ section() { echo -e "\n${CYAN}${BOLD}═══ $* ═══${NC}"; }
 # ── prereq check ──────────────────────────────────────────────────────────────
 section "Prerequisites"
 
-if ! command -v docker &>/dev/null; then
-  error "Docker not found. Install Docker Desktop and retry."
-  exit 1
-fi
-
-if ! docker info &>/dev/null; then
-  error "Docker daemon is not running. Start Docker Desktop and retry."
-  exit 1
-fi
-
 if ! command -v java &>/dev/null; then
   error "Java not found. Install JDK 17+ and retry."
   exit 1
@@ -62,7 +52,6 @@ if ! command -v mvn &>/dev/null; then
   exit 1
 fi
 
-info "Docker: $(docker --version | head -1)"
 info "Java:   $(java -version 2>&1 | head -1)"
 info "Maven:  $(mvn -version 2>&1 | head -1)"
 
@@ -271,10 +260,12 @@ start_svc() {
 
   info "Starting ${name} on port ${port}..."
 
-  # Find runnable artifact: prefer plain .jar, fall back to -exec.war (WAR-packaged services)
-  JAR=$(find "${ROOT_DIR}/${module_path}/target" -name "*.jar" -not -name "*sources*" 2>/dev/null | head -1)
+  # Find runnable artifact at target/ root only (-maxdepth 1 avoids descending into
+  # the exploded WAR directory WEB-INF/lib/ which contains dependency JARs).
+  # Prefer plain .jar, fall back to -exec.war (WAR-packaged services like ai-gateway-svc).
+  JAR=$(find "${ROOT_DIR}/${module_path}/target" -maxdepth 1 -name "*.jar" -not -name "*sources*" 2>/dev/null | head -1)
   if [[ -z "${JAR}" ]]; then
-    JAR=$(find "${ROOT_DIR}/${module_path}/target" -name "*-exec.war" 2>/dev/null | head -1)
+    JAR=$(find "${ROOT_DIR}/${module_path}/target" -maxdepth 1 -name "*-exec.war" 2>/dev/null | head -1)
   fi
 
   # ── stale-JAR guard ────────────────────────────────────────────────────────
@@ -289,9 +280,9 @@ start_svc() {
     if [[ -n "${stale_src}" ]]; then
       warn "${name}: source changed since last build (${stale_src##*/}) — rebuilding..."
       mvn package -pl "${module_path}" -am -DskipTests --no-transfer-progress -q 2>/dev/null
-      JAR=$(find "${ROOT_DIR}/${module_path}/target" -name "*.jar" -not -name "*sources*" 2>/dev/null | head -1)
+      JAR=$(find "${ROOT_DIR}/${module_path}/target" -maxdepth 1 -name "*.jar" -not -name "*sources*" 2>/dev/null | head -1)
       if [[ -z "${JAR}" ]]; then
-        JAR=$(find "${ROOT_DIR}/${module_path}/target" -name "*-exec.war" 2>/dev/null | head -1)
+        JAR=$(find "${ROOT_DIR}/${module_path}/target" -maxdepth 1 -name "*-exec.war" 2>/dev/null | head -1)
       fi
       info "${name}: rebuilt OK."
     fi

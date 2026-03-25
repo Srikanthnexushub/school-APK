@@ -205,7 +205,22 @@ export default function ExamPage() {
   const startMutation = useMutation({
     mutationFn: () => api.post(`/api/v1/exams/${examId}/submissions`),
     onSuccess: (res) => setSubmissionId(res.data?.id ?? null),
-    onError: () => { /* Submission may already exist — proceed anyway */ },
+    onError: async (err: unknown) => {
+      // 409 = max attempts reached OR an IN_PROGRESS submission already exists.
+      // In both cases fetch existing submissions and resume the most recent IN_PROGRESS one.
+      const axErr = err as { response?: { status?: number } };
+      if (axErr.response?.status === 409) {
+        try {
+          const res = await api.get(`/api/v1/exams/${examId}/submissions`);
+          const list: Array<{ id: string; status: string; startedAt: string }> =
+            Array.isArray(res.data) ? res.data : [];
+          const inProgress = list
+            .filter(s => s.status === 'IN_PROGRESS')
+            .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())[0];
+          if (inProgress) setSubmissionId(inProgress.id);
+        } catch { /* ignore — exam page will show submit error if sid remains null */ }
+      }
+    },
   });
 
   useEffect(() => {
