@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 103+ frozen fixes as of Fix #103 (commit `b7c57fa`).
+- Read `memory/frozen-fixes.md` before touching any file. 104+ frozen fixes as of Fix #104 (commit `9b7d954`).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -112,7 +112,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (103 fixes, latest: Fix #103 `b7c57fa` — exec WAR support + all 14 services UP).
+Full list → `memory/frozen-fixes.md` (104 fixes, latest: Fix #104 `9b7d954` — security hardening: input validation, PII log masking, STOMP auth, ipSubnet fix).
 Read it before touching any existing file.
 
 ---
