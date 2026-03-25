@@ -6,5 +6,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "kafka.topics")
 public record KafkaTopicProperties(
     String centerEvents,
-    String auditImmutable
+    String auditImmutable,
+    String notificationSend
 ) {}

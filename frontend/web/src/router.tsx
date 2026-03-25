@@ -44,6 +44,16 @@ import ProjectLabPage from './pages/lab/ProjectLabPage';
 import StudentAssignmentsPage from './pages/assignments/StudentAssignmentsPage';
 import MentorPortalAssignmentsPage from './pages/mentor-portal/MentorPortalAssignmentsPage';
 import JobBoardPage from './pages/jobs/JobBoardPage';
+import StudentAttendancePage from './pages/attendance/StudentAttendancePage';
+import StudentFeesPage from './pages/fees/StudentFeesPage';
+import StudentAnnouncementsPage from './pages/announcements/StudentAnnouncementsPage';
+import ParentAttendancePage from './pages/parent/ParentAttendancePage';
+import ParentAnnouncementsPage from './pages/parent/ParentAnnouncementsPage';
+import MentorPortalAttendancePage from './pages/mentor-portal/MentorPortalAttendancePage';
+import MentorPortalAnnouncementsPage from './pages/mentor-portal/MentorPortalAnnouncementsPage';
+import AdminAnnouncementsPage from './pages/admin/AdminAnnouncementsPage';
+import AdminFeesPage from './pages/admin/AdminFeesPage';
+import AdminAttendancePage from './pages/admin/AdminAttendancePage';
 
 export const router = createBrowserRouter([
   {
@@ -94,8 +104,11 @@ export const router = createBrowserRouter([
       { path: 'exam-tracker', element: <ExamTrackerPage /> },
       { path: 'library', element: <StudentLibraryPage /> },
       { path: 'lab', element: <ProjectLabPage /> },
-      { path: 'assignments', element: <StudentAssignmentsPage /> },
-      { path: 'jobs',        element: <JobBoardPage /> },
+      { path: 'assignments',   element: <StudentAssignmentsPage /> },
+      { path: 'jobs',          element: <JobBoardPage /> },
+      { path: 'attendance',    element: <StudentAttendancePage /> },
+      { path: 'fees',          element: <StudentFeesPage /> },
+      { path: 'announcements', element: <StudentAnnouncementsPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'study-plan', element: <Navigate to="/ai-mentor" replace /> },
       { path: 'doubts', element: <Navigate to="/ai-mentor" replace /> },
@@ -117,8 +130,10 @@ export const router = createBrowserRouter([
       { path: 'fees', element: <ParentFeesPage /> },
       { path: 'psychometric', element: <ParentPsychometricPage /> },
       { path: 'question-bank', element: <ParentQuestionBankPage /> },
-      { path: 'library',       element: <ParentLibraryPage /> },
-      { path: 'jobs',          element: <JobBoardPage /> },
+      { path: 'library',        element: <ParentLibraryPage /> },
+      { path: 'jobs',           element: <JobBoardPage /> },
+      { path: 'attendance',     element: <ParentAttendancePage /> },
+      { path: 'announcements',  element: <ParentAnnouncementsPage /> },
     ],
   },
   {
@@ -132,8 +147,11 @@ export const router = createBrowserRouter([
       { index: true, element: <AdminPortalPage /> },
       { path: 'dashboard', element: <AdminPortalPage /> },
       { path: 'centers', element: <AdminPortalPage /> },
-      { path: 'batches', element: <AdminPortalPage /> },
-      { path: 'assessments', element: <AdminPortalPage /> },
+      { path: 'batches',        element: <AdminPortalPage /> },
+      { path: 'assessments',    element: <AdminPortalPage /> },
+      { path: 'attendance',     element: <AdminAttendancePage /> },
+      { path: 'announcements',  element: <AdminAnnouncementsPage /> },
+      { path: 'fees',           element: <AdminFeesPage /> },
     ],
   },
   {
@@ -151,8 +169,10 @@ export const router = createBrowserRouter([
       { path: 'exams',       element: <MentorPortalExamsPage /> },
       { path: 'assignments', element: <MentorPortalAssignmentsPage /> },
       { path: 'performance', element: <MentorPortalPerformancePage /> },
-      { path: 'library',     element: <MentorPortalLibraryPage /> },
-      { path: 'jobs',        element: <JobBoardPage /> },
+      { path: 'library',        element: <MentorPortalLibraryPage /> },
+      { path: 'jobs',           element: <JobBoardPage /> },
+      { path: 'attendance',     element: <MentorPortalAttendancePage /> },
+      { path: 'announcements',  element: <MentorPortalAnnouncementsPage /> },
     ],
   },
 ]);

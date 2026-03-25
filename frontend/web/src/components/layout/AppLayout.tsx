@@ -6,7 +6,7 @@ import {
   Users, Calendar, Settings, LogOut, BookOpen, Menu, X, ChevronLeft,
   Bell, Search, ChevronRight, BookOpenCheck, Library, Award,
   CreditCard, Beaker, UserCog, BookCheck, Building2, Upload, UserCheck,
-  Briefcase, Megaphone,
+  Briefcase, Megaphone, CalendarCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '../../stores/authStore';
@@ -38,7 +38,10 @@ const studentNav: NavItem[] = [
   { icon: Calendar,        label: 'Exam Tracker', to: '/exam-tracker' },
   { icon: Library,         label: 'Library',      to: '/library' },
   { icon: Beaker,          label: 'AI Lab',       to: '/lab' },
-  { icon: Briefcase,       label: 'Job Board',    to: '/jobs' },
+  { icon: CalendarCheck,   label: 'Attendance',   to: '/attendance' },
+  { icon: CreditCard,      label: 'Fees',         to: '/fees' },
+  { icon: Bell,            label: 'Announcements',to: '/announcements' },
+  { icon: Briefcase,       label: 'Job Board',    to: '/jobs',           disabled: true },
 ];
 
 function getAdminNav(role?: string): NavItem[] {
@@ -56,6 +59,9 @@ function getAdminNav(role?: string): NavItem[] {
     { icon: Brain,           label: 'Psychometric',       to: '/admin?tab=psychometric' },
     { icon: Library,         label: 'Library',            to: '/admin?tab=library' },
     ...(isSuperOrInst ? [{ icon: Megaphone, label: 'Banners', to: '/admin?tab=banners' }] : []),
+    { icon: CalendarCheck, label: 'Attendance',    to: '/admin/attendance' },
+    { icon: Megaphone,     label: 'Announcements', to: '/admin/announcements' },
+    { icon: CreditCard,    label: 'Fees',          to: '/admin/fees' },
   ];
 }
 
@@ -67,6 +73,8 @@ const parentNav: NavItem[] = [
   { icon: Library,         label: 'Library',       to: '/parent/library' },
   { icon: BookOpen,        label: 'Question Bank', to: '/parent/question-bank' },
   { icon: Bot,             label: 'Copilot',       to: '/parent/copilot' },
+  { icon: CalendarCheck,   label: 'Attendance',    to: '/parent/attendance' },
+  { icon: Bell,            label: 'Announcements', to: '/parent/announcements' },
   { icon: Briefcase,       label: 'Job Board',     to: '/parent/jobs',       disabled: true },
   { icon: Settings,        label: 'Profile',       to: '/parent/profile' },
 ];
@@ -79,6 +87,8 @@ const mentorNav: NavItem[] = [
   { icon: BookCheck,       label: 'Assignments',   to: '/mentor-portal/assignments' },
   { icon: Award,           label: 'My Performance',to: '/mentor-portal/performance' },
   { icon: Library,         label: 'Library',       to: '/mentor-portal/library' },
+  { icon: CalendarCheck,   label: 'Attendance',    to: '/mentor-portal/attendance' },
+  { icon: Megaphone,       label: 'Announcements', to: '/mentor-portal/announcements' },
   { icon: Briefcase,       label: 'Job Board',     to: '/mentor-portal/jobs', disabled: true },
 ];
 

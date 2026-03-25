@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 108+ frozen fixes as of Fix #108 (2026-03-25 — student portal E2E bug sweep).
+- Read `memory/frozen-fixes.md` before touching any file. 121+ frozen fixes as of Fix #121 (2026-03-25 — Attendance/Fees/Announcements modules, 10 pages, 3 ITs, router wiring).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -112,7 +112,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (108 fixes, latest: Fix #105–#108 — student portal E2E bugs: start-all.sh -maxdepth 1, student-gateway missing assignments route, V13 enrollment constraint, ExamPage 409 resume).
+Full list → `memory/frozen-fixes.md` (121 fixes, latest: Fix #117–#121 — Attendance/Fees/Announcements modules: backend services+controllers, V24–V27 migrations, 10 frontend pages, router wiring, 3 IT test files).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
