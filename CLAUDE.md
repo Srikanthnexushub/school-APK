@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 121+ frozen fixes as of Fix #121 (2026-03-25 — Attendance/Fees/Announcements modules, 10 pages, 3 ITs, router wiring).
+- Read `memory/frozen-fixes.md` before touching any file. 125+ frozen fixes as of Fix #125 (2026-03-28 — AdminBannersPage SUPER_ADMIN UI guard + AWS EC2 deployment scripts in data-backup/).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -112,7 +112,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (123 fixes, latest: Fix #122–#123 — banner write restricted to SUPER_ADMIN only; Accounts section + Billing report + parent fee reminders via Kafka IN_APP notifications).
+Full list → `memory/frozen-fixes.md` (125 fixes, latest: Fix #125 — AdminBannersPage Create/Edit/Delete buttons hidden for non-SUPER_ADMIN; Fix #124 — center-svc 135/135 IT tests passing).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
@@ -127,9 +127,32 @@ Read it before touching any existing file.
 
 ---
 
+## AWS Deployment (EC2 + RDS — Tier 1)
+
+**Deployment scripts**: `data-backup/scripts/` (backup) + `data-backup/scripts/ec2-setup/` (EC2 setup)
+
+**Build for production** (NEVER use -DskipITs — MfaServiceTest unit test fails; use -DskipTests):
+```bash
+mvn clean package -DskipTests -T 4 -Drevision=1.0.0-PROD
+```
+
+**Artifact breakdown** (15 services total):
+- **11 Tomcat WARs**: auth-svc, parent-svc, center-svc, assess-svc, psych-svc, student-profile-svc, exam-tracker-svc, performance-svc, career-oracle-svc, mentor-svc, notification-svc
+- **4 Exec (java -jar)**: ai-gateway-svc (exec WAR), api-gateway (JAR), student-gateway (JAR), **ai-mentor-svc (JAR — no WAR packaging)**
+- **1 Python sidecar**: python-ai-svc (FastAPI/Uvicorn, port 8095)
+
+**Local superuser for pg_dump**: `srikanth` (NOT `edutech_root` which doesn't exist). `.env` POSTGRES_ROOT_USER=srikanth, POSTGRES_ROOT_PASSWORD= (empty, peer auth).
+
+**EC2 setup order**: 01-java-kafka → 02-tomcat-instances (11 only) → 03-deploy-wars → 05-nginx → 06-systemd → 04-start-services
+
+**AWS state** → `memory/aws-deployment.md`
+
+---
+
 ## Env File
 
 `.env` in project root. Load: `while IFS='=' read -r key val; do [[ -z "$key" || "$key" == \#* ]] && continue; export "$key=$val"; done < .env`
 - `AI_DEFAULT_PROVIDER=OPENROUTER` (arcee-ai/trinity-large-preview:free)
 - `TWILIO_ACCOUNT_SID=dev_placeholder` → SMS logs only
 - `CAPTCHA_E2E_BYPASS_TOKEN=E2E-LOCAL-BYPASS-DO-NOT-USE-IN-PROD`
+- `POSTGRES_ROOT_USER=srikanth` (local superuser for pg_dump — bypasses RLS + large objects)

@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import api from '../../lib/api';
+import { useAuthStore } from '../../stores/authStore';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -340,6 +341,8 @@ function BannerFormModal({
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function AdminBannersPage() {
+  const { user } = useAuthStore();
+  const canWrite = user?.role === 'SUPER_ADMIN';
   const qc = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<BannerResponse | null>(null);
@@ -404,13 +407,15 @@ export default function AdminBannersPage() {
           <h2 className="text-xl font-bold text-white">Banners</h2>
           <p className="text-white/50 text-sm mt-0.5">Manage advertisement banners shown to users.</p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="btn-primary flex items-center gap-2 px-4 py-2.5 text-sm font-medium"
-        >
-          <Plus className="w-4 h-4" />
-          Create Banner
-        </button>
+        {canWrite && (
+          <button
+            onClick={() => setShowCreate(true)}
+            className="btn-primary flex items-center gap-2 px-4 py-2.5 text-sm font-medium"
+          >
+            <Plus className="w-4 h-4" />
+            Create Banner
+          </button>
+        )}
       </div>
 
       {/* Loading */}
@@ -433,13 +438,15 @@ export default function AdminBannersPage() {
         <div className="card text-center py-12">
           <Megaphone className="w-10 h-10 text-white/20 mx-auto mb-3" />
           <p className="text-white/50 text-sm">No banners yet.</p>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm mt-4"
-          >
-            <Plus className="w-4 h-4" />
-            Create First Banner
-          </button>
+          {canWrite && (
+            <button
+              onClick={() => setShowCreate(true)}
+              className="btn-primary inline-flex items-center gap-2 px-4 py-2 text-sm mt-4"
+            >
+              <Plus className="w-4 h-4" />
+              Create First Banner
+            </button>
+          )}
         </div>
       )}
 
@@ -493,19 +500,25 @@ export default function AdminBannersPage() {
                     </span>
                   </td>
                   <td className="py-3 pr-4">
-                    <button
-                      onClick={() => toggleMutation.mutate(banner.id)}
-                      disabled={toggleMutation.isPending}
-                      className={cn(
-                        'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
-                        banner.isActive
-                          ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25'
-                          : 'bg-white/5 text-white/30 hover:bg-white/10'
-                      )}
-                    >
-                      {banner.isActive ? <ToggleRight className="w-3.5 h-3.5" /> : <ToggleLeft className="w-3.5 h-3.5" />}
-                      {banner.isActive ? 'Active' : 'Off'}
-                    </button>
+                    {canWrite ? (
+                      <button
+                        onClick={() => toggleMutation.mutate(banner.id)}
+                        disabled={toggleMutation.isPending}
+                        className={cn(
+                          'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
+                          banner.isActive
+                            ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25'
+                            : 'bg-white/5 text-white/30 hover:bg-white/10'
+                        )}
+                      >
+                        {banner.isActive ? <ToggleRight className="w-3.5 h-3.5" /> : <ToggleLeft className="w-3.5 h-3.5" />}
+                        {banner.isActive ? 'Active' : 'Off'}
+                      </button>
+                    ) : (
+                      <span className={cn('badge text-xs', banner.isActive ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/5 text-white/30')}>
+                        {banner.isActive ? 'Active' : 'Off'}
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 pr-4 text-white/50 text-xs">{banner.displayOrder}</td>
                   <td className="py-3 pr-4 text-white/40 text-xs">
@@ -515,27 +528,29 @@ export default function AdminBannersPage() {
                     {banner.endDate ? new Date(banner.endDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—'}
                   </td>
                   <td className="py-3">
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => setEditing(banner)}
-                        className="p-1.5 rounded-lg hover:bg-white/5 text-white/30 hover:text-white/70 transition-colors"
-                        title="Edit"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (window.confirm('Delete this banner?')) {
-                            deleteMutation.mutate(banner.id);
-                          }
-                        }}
-                        disabled={deleteMutation.isPending}
-                        className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/30 hover:text-red-400 transition-colors disabled:opacity-50"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    {canWrite && (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => setEditing(banner)}
+                          className="p-1.5 rounded-lg hover:bg-white/5 text-white/30 hover:text-white/70 transition-colors"
+                          title="Edit"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm('Delete this banner?')) {
+                              deleteMutation.mutate(banner.id);
+                            }
+                          }}
+                          disabled={deleteMutation.isPending}
+                          className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/30 hover:text-red-400 transition-colors disabled:opacity-50"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

@@ -1,0 +1,14 @@
+# Ignore actual backup files — these contain sensitive data
+dumps/
+*.sql
+*.sql.gz
+*.dump
+*.rdb
+*.tar.gz
+*.tar
+*.zip
+logs/
+
+# Never commit
+.env.prod
+secrets/
