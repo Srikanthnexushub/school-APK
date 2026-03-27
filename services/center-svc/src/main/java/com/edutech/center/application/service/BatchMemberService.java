@@ -49,6 +49,10 @@ public class BatchMemberService implements ListBatchMembersUseCase {
     public BatchMemberResponse addMember(UUID batchId, AddBatchMemberRequest request, AuthPrincipal principal) {
         Batch batch = batchRepository.findById(batchId)
                 .orElseThrow(() -> new BatchNotFoundException(batchId));
+        // Students and parents may not add batch members
+        if (principal.isStudent() || principal.role() == com.edutech.center.domain.model.Role.PARENT) {
+            throw new CenterAccessDeniedException();
+        }
         if (!principal.belongsToCenter(batch.getCenterId()) && !principal.isSuperAdmin() && !principal.isInstitutionAdmin()) {
             throw new CenterAccessDeniedException();
         }

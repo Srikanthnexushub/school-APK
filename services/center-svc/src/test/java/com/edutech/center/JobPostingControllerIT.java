@@ -12,6 +12,8 @@ import com.edutech.center.domain.model.JobPostingStatus;
 import com.edutech.center.domain.model.JobType;
 import com.edutech.center.domain.model.Role;
 import com.edutech.center.domain.model.StaffRoleType;
+import com.edutech.center.domain.port.out.AiTaggingPort;
+import com.edutech.center.domain.port.out.DocumentStoragePort;
 import com.edutech.center.infrastructure.security.JwtTokenValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,13 +29,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.core.KafkaTemplate;
+import com.edutech.center.domain.port.out.CenterEventPublisher;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -49,8 +46,8 @@ import static org.mockito.Mockito.when;
 /**
  * HTTP-level integration tests for {@link com.edutech.center.api.JobPostingController}.
  *
- * <p>Uses a real PostgreSQL container via TestContainers with Flyway migrations
- * applied automatically. Kafka and the JWT validator are mocked — the JWT
+ * <p>Uses native local Postgres (env vars: POSTGRES_HOST/PORT/CENTER_SVC_DB_NAME/USERNAME/PASSWORD)
+ * with Flyway migrations applied automatically. Kafka and the JWT validator are mocked — the JWT
  * validator returns a pre-configured {@link AuthPrincipal} for any bearer token
  * so that Spring Security does not block requests.
  *
@@ -76,39 +73,28 @@ import static org.mockito.Mockito.when;
  * </ul>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
 @ActiveProfiles("test")
 @DisplayName("center-svc — JobPosting Controller HTTP Integration Tests")
 class JobPostingControllerIT {
-
-    // -------------------------------------------------------------------------
-    // Infrastructure: single shared PostgreSQL container
-    // -------------------------------------------------------------------------
-
-    @Container
-    static final PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:16-alpine")
-                    .withDatabaseName("center_jobs_test")
-                    .withUsername("jobs_user")
-                    .withPassword("jobs_pass");
-
-    @DynamicPropertySource
-    static void overrideDataSourceProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url",      postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
 
     // -------------------------------------------------------------------------
     // Mocked infrastructure beans
     // -------------------------------------------------------------------------
 
     @MockBean
-    @SuppressWarnings("rawtypes")
-    KafkaTemplate kafkaTemplate;
+    CenterEventPublisher centerEventPublisher;
 
     @MockBean
     JwtTokenValidator jwtTokenValidator;
+
+    @MockBean
+    DocumentStoragePort documentStoragePort;
+
+    @MockBean
+    io.minio.MinioClient minioClient;
+
+    @MockBean
+    AiTaggingPort aiTaggingPort;
 
     // -------------------------------------------------------------------------
     // Test collaborators
@@ -141,11 +127,6 @@ class JobPostingControllerIT {
         // Default auth: super-admin (can create centers)
         mockAuth(superAdminPrincipal);
 
-        // Kafka mock — suppress all publish calls
-        when(kafkaTemplate.send(anyString(), any())).thenReturn(
-                java.util.concurrent.CompletableFuture.completedFuture(null));
-        when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(
-                java.util.concurrent.CompletableFuture.completedFuture(null));
     }
 
     // -------------------------------------------------------------------------

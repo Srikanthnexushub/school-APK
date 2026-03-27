@@ -2,13 +2,13 @@ spring:
   application:
     name: center-svc-test
 
-  # Datasource — overridden by @DynamicPropertySource in IT classes
+  # Datasource — reads from environment (same vars used by the running service)
   datasource:
-    url: jdbc:postgresql://localhost:5432/test
-    username: test
-    password: test
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${CENTER_SVC_DB_NAME}
+    username: ${CENTER_SVC_DB_USERNAME}
+    password: ${CENTER_SVC_DB_PASSWORD}
     hikari:
-      maximum-pool-size: 5
+      maximum-pool-size: 2
       minimum-idle: 1
       connection-timeout: 10000
       idle-timeout: 30000
@@ -26,6 +26,10 @@ spring:
     locations: classpath:db/migration/center
     baseline-on-migrate: false
     placeholder-replacement: false
+
+  threads:
+    virtual:
+      enabled: false
 
   # Disable Redis auto-configuration for tests
   autoconfigure:

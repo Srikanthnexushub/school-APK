@@ -1,13 +1,16 @@
 package com.edutech.center;
 
 import com.edutech.center.application.dto.AuthPrincipal;
+import com.edutech.center.application.dto.CenterResponse;
 import com.edutech.center.application.dto.ConfirmUploadRequest;
 import com.edutech.center.application.dto.ContentItemResponse;
+import com.edutech.center.application.dto.CreateCenterRequest;
 import com.edutech.center.application.dto.PresignedUploadResponse;
 import com.edutech.center.domain.model.ContentType;
 import com.edutech.center.domain.model.Difficulty;
 import com.edutech.center.domain.model.ExamType;
 import com.edutech.center.domain.model.Role;
+import com.edutech.center.domain.port.out.AiTaggingPort;
 import com.edutech.center.domain.port.out.DocumentStoragePort;
 import com.edutech.center.infrastructure.security.JwtTokenValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,13 +27,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.core.KafkaTemplate;
+import com.edutech.center.domain.port.out.CenterEventPublisher;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 import java.util.Map;
@@ -45,6 +43,11 @@ import static org.mockito.Mockito.when;
 
 /**
  * HTTP-level integration tests for the Content Library feature.
+ *
+ * <p>Uses native local Postgres (env vars: POSTGRES_HOST/PORT/CENTER_SVC_DB_NAME/USERNAME/PASSWORD)
+ * with Flyway migrations applied automatically. Kafka, JWT validator, DocumentStoragePort, and
+ * MinioClient are mocked. A real center is created via API in @BeforeEach so that
+ * ContentService.centerRepository.findById() succeeds.
  *
  * Tests (15):
  *  1. presigned-upload returns uploadUrl + objectKey
@@ -64,32 +67,14 @@ import static org.mockito.Mockito.when;
  * 15. ExamType and Difficulty enum values accepted correctly
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
 @ActiveProfiles("test")
 @DisplayName("center-svc — ContentLibrary HTTP Integration Tests")
 class ContentLibraryIT {
 
-    // ── TestContainers ────────────────────────────────────────────────────────
-
-    @Container
-    static final PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:16-alpine")
-                    .withDatabaseName("center_library_test")
-                    .withUsername("library_user")
-                    .withPassword("library_pass");
-
-    @DynamicPropertySource
-    static void overrideDataSource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url",      postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
-
     // ── Mocked beans ──────────────────────────────────────────────────────────
 
     @MockBean
-    @SuppressWarnings("rawtypes")
-    KafkaTemplate kafkaTemplate;
+    CenterEventPublisher centerEventPublisher;
 
     @MockBean
     JwtTokenValidator jwtTokenValidator;
@@ -102,6 +87,9 @@ class ContentLibraryIT {
     @MockBean
     io.minio.MinioClient minioClient;
 
+    @MockBean
+    AiTaggingPort aiTaggingPort;
+
     // ── Test fixtures ─────────────────────────────────────────────────────────
 
     @Autowired
@@ -109,25 +97,18 @@ class ContentLibraryIT {
 
     static final UUID CENTER_ADMIN_USER_ID = UUID.randomUUID();
     static final UUID STUDENT_USER_ID      = UUID.randomUUID();
-    static final UUID CENTER_ID            = UUID.randomUUID();
+    static final UUID OWNER_ID             = UUID.randomUUID();
     static final String FAKE_TOKEN         = "lib-test-token";
+
+    // centerId is set in @BeforeEach after creating the center via API
+    UUID centerId;
 
     AuthPrincipal centerAdminPrincipal;
     AuthPrincipal studentPrincipal;
 
     @BeforeEach
     void setUp() {
-        centerAdminPrincipal = new AuthPrincipal(CENTER_ADMIN_USER_ID, "admin@lib-test.com",
-                Role.CENTER_ADMIN, CENTER_ID, "fp-lib-admin");
-        studentPrincipal = new AuthPrincipal(STUDENT_USER_ID, "student@lib-test.com",
-                Role.STUDENT, null, "fp-lib-student");
 
-        mockAuth(centerAdminPrincipal);
-
-        when(kafkaTemplate.send(anyString(), any())).thenReturn(
-                java.util.concurrent.CompletableFuture.completedFuture(null));
-        when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(
-                java.util.concurrent.CompletableFuture.completedFuture(null));
 
         // DocumentStoragePort stubs
         when(documentStoragePort.buildObjectKey(any(), anyString(), anyString()))
@@ -136,6 +117,21 @@ class ContentLibraryIT {
                 .thenReturn("https://minio.test/edutech-library/upload?sig=abc");
         when(documentStoragePort.generateDownloadUrl(anyString(), anyInt()))
                 .thenReturn("https://minio.test/edutech-library/download?sig=xyz");
+
+        // Create center via API as SUPER_ADMIN so centerRepository.findById() succeeds
+        AuthPrincipal superAdmin = new AuthPrincipal(UUID.randomUUID(), "superadmin@lib-test.com",
+                Role.SUPER_ADMIN, null, "fp-lib-super");
+        mockAuth(superAdmin);
+        centerId = createCenter("LIB" + UUID.randomUUID().toString().replace("-", "").substring(0, 6).toUpperCase());
+
+        // Per-test principals with real centerId
+        centerAdminPrincipal = new AuthPrincipal(CENTER_ADMIN_USER_ID, "admin@lib-test.com",
+                Role.CENTER_ADMIN, centerId, "fp-lib-admin");
+        studentPrincipal = new AuthPrincipal(STUDENT_USER_ID, "student@lib-test.com",
+                Role.STUDENT, null, "fp-lib-student");
+
+        // Default auth for tests: center admin
+        mockAuth(centerAdminPrincipal);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -154,21 +150,20 @@ class ContentLibraryIT {
     private <T> HttpEntity<T> authEntity(T body) { return new HttpEntity<>(body, authHeaders()); }
     private HttpEntity<Void> authEntity()         { return new HttpEntity<>(authHeaders()); }
 
-    private String contentBase() {
-        return "/api/v1/centers/" + CENTER_ID + "/content";
+    private UUID createCenter(String code) {
+        CreateCenterRequest req = new CreateCenterRequest(
+                "Test Center " + code, code,
+                "1 Main St", "Bangalore", "Karnataka", "560001",
+                "9876543210", code.toLowerCase() + "@test.com",
+                null, null, OWNER_ID, null);
+        ResponseEntity<CenterResponse> r = restTemplate.exchange(
+                "/api/v1/centers", HttpMethod.POST, authEntity(req), CenterResponse.class);
+        assertThat(r.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        return r.getBody().id();
     }
 
-    /** Creates a center row so FK constraint on content_items passes. */
-    @BeforeEach
-    void ensureCenterExists() {
-        // We rely on Flyway applying migrations; no center row is needed because
-        // ContentService checks CenterRepository which will return empty → 404.
-        // Tests that need a center use a center registered via the API or rely on
-        // mocked access checks. Since AuthPrincipal.belongsToCenter(CENTER_ID) is
-        // true for CENTER_ADMIN, hasAccess() returns true without a DB lookup.
-        // The FK constraint is skipped since content_items.center_id is not FK-enforced
-        // via JPA (it's a plain UUID column — the DB constraint exists but the test
-        // data goes through the JPA entity directly, not raw SQL INSERT).
+    private String contentBase() {
+        return "/api/v1/centers/" + centerId + "/content";
     }
 
     private ContentItemResponse confirmUpload(String objectKey, ContentType type) {
@@ -195,7 +190,7 @@ class ContentLibraryIT {
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isNotNull();
         assertThat(res.getBody().uploadUrl()).startsWith("https://minio.test");
-        assertThat(res.getBody().objectKey()).contains(CENTER_ID.toString());
+        assertThat(res.getBody().objectKey()).contains(centerId.toString());
         assertThat(res.getBody().expirySeconds()).isEqualTo(15 * 60);
     }
 
@@ -213,19 +208,19 @@ class ContentLibraryIT {
     @DisplayName("T03 — confirm saves content with PROCESSING status")
     void confirm_savesWithProcessingStatus() {
         ContentItemResponse body = confirmUpload(
-                CENTER_ID + "/documents/uuid/exam2023.pdf", ContentType.PDF);
+                centerId + "/documents/uuid/exam2023.pdf", ContentType.PDF);
 
         assertThat(body.id()).isNotNull();
         assertThat(body.status().name()).isEqualTo("PROCESSING");
         assertThat(body.title()).isEqualTo("Physics Chapter 5 - Wave Optics");
-        assertThat(body.centerId()).isEqualTo(CENTER_ID);
+        assertThat(body.centerId()).isEqualTo(centerId);
     }
 
     @Test
     @DisplayName("T04 — confirm with PREVIOUS_YEAR_PAPER type accepted (new enum value)")
     void confirm_newContentType_accepted() {
         ContentItemResponse body = confirmUpload(
-                CENTER_ID + "/documents/uuid/pyq2023.pdf", ContentType.PREVIOUS_YEAR_PAPER);
+                centerId + "/documents/uuid/pyq2023.pdf", ContentType.PREVIOUS_YEAR_PAPER);
         assertThat(body.type()).isEqualTo(ContentType.PREVIOUS_YEAR_PAPER);
     }
 
@@ -233,7 +228,7 @@ class ContentLibraryIT {
     @DisplayName("T05 — confirm persists all metadata fields")
     void confirm_metadataPersistedCorrectly() {
         ContentItemResponse body = confirmUpload(
-                CENTER_ID + "/documents/uuid/meta-test.pdf", ContentType.NOTES);
+                centerId + "/documents/uuid/meta-test.pdf", ContentType.NOTES);
 
         assertThat(body.subject()).isEqualTo("Physics");
         assertThat(body.board()).isEqualTo("CBSE");
@@ -261,7 +256,7 @@ class ContentLibraryIT {
     @DisplayName("T07 — GET download returns downloadUrl")
     void download_returnsPresignedUrl() {
         ContentItemResponse item = confirmUpload(
-                CENTER_ID + "/documents/uuid/dl-test.pdf", ContentType.PDF);
+                centerId + "/documents/uuid/dl-test.pdf", ContentType.PDF);
 
         ResponseEntity<Map> res = restTemplate.exchange(
                 contentBase() + "/" + item.id() + "/download",
@@ -276,7 +271,7 @@ class ContentLibraryIT {
     @DisplayName("T08 — download increments download_count")
     void download_incrementsCounter() {
         ContentItemResponse item = confirmUpload(
-                CENTER_ID + "/documents/uuid/counter-test.pdf", ContentType.PDF);
+                centerId + "/documents/uuid/counter-test.pdf", ContentType.PDF);
 
         // Trigger download
         restTemplate.exchange(contentBase() + "/" + item.id() + "/download",
@@ -302,7 +297,7 @@ class ContentLibraryIT {
     @Test
     @DisplayName("T10 — STUDENT can list content (read access)")
     void list_studentCanRead() {
-        confirmUpload(CENTER_ID + "/documents/uuid/student-read.pdf", ContentType.PDF);
+        confirmUpload(centerId + "/documents/uuid/student-read.pdf", ContentType.PDF);
         mockAuth(studentPrincipal);
 
         ResponseEntity<Map> res = restTemplate.exchange(
@@ -313,8 +308,8 @@ class ContentLibraryIT {
     @Test
     @DisplayName("T11 — list returns paginated content for center")
     void list_returnsPaginatedResults() {
-        confirmUpload(CENTER_ID + "/documents/uuid/page1.pdf", ContentType.PDF);
-        confirmUpload(CENTER_ID + "/documents/uuid/page2.pdf", ContentType.NOTES);
+        confirmUpload(centerId + "/documents/uuid/page1.pdf", ContentType.PDF);
+        confirmUpload(centerId + "/documents/uuid/page2.pdf", ContentType.NOTES);
 
         ResponseEntity<Map> res = restTemplate.exchange(
                 contentBase() + "?page=0&size=10",
@@ -329,7 +324,7 @@ class ContentLibraryIT {
     @DisplayName("T12 — archive soft-deletes item, removed from list")
     void archive_softDeletesAndDisappearsFromList() {
         ContentItemResponse item = confirmUpload(
-                CENTER_ID + "/documents/uuid/archive-me.pdf", ContentType.PDF);
+                centerId + "/documents/uuid/archive-me.pdf", ContentType.PDF);
 
         ResponseEntity<Void> deleteRes = restTemplate.exchange(
                 contentBase() + "/" + item.id(),
@@ -350,7 +345,7 @@ class ContentLibraryIT {
     @DisplayName("T13 — archive with STUDENT role → 403")
     void archive_studentForbidden() {
         ContentItemResponse item = confirmUpload(
-                CENTER_ID + "/documents/uuid/no-archive.pdf", ContentType.PDF);
+                centerId + "/documents/uuid/no-archive.pdf", ContentType.PDF);
         mockAuth(studentPrincipal);
 
         ResponseEntity<Void> res = restTemplate.exchange(
@@ -365,7 +360,7 @@ class ContentLibraryIT {
         for (ExamType et : ExamType.values()) {
             var req = new ConfirmUploadRequest(null, "Exam " + et.name(), null,
                     ContentType.PREVIOUS_YEAR_PAPER,
-                    CENTER_ID + "/docs/uuid/" + et.name().toLowerCase() + ".pdf",
+                    centerId + "/docs/uuid/" + et.name().toLowerCase() + ".pdf",
                     null, "application/pdf", null, null,
                     "Math", "CBSE", "10", (short) 2022, et, null, "ENGLISH", null);
             ResponseEntity<ContentItemResponse> res = restTemplate.postForEntity(
@@ -382,7 +377,7 @@ class ContentLibraryIT {
         for (Difficulty d : Difficulty.values()) {
             var req = new ConfirmUploadRequest(null, "Difficulty " + d.name(), null,
                     ContentType.NOTES,
-                    CENTER_ID + "/docs/uuid/" + d.name().toLowerCase() + ".pdf",
+                    centerId + "/docs/uuid/" + d.name().toLowerCase() + ".pdf",
                     null, "application/pdf", null, null,
                     "Science", "ICSE", "9", null, null, d, "ENGLISH", null);
             ResponseEntity<ContentItemResponse> res = restTemplate.postForEntity(

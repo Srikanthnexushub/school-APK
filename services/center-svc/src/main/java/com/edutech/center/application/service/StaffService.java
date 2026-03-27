@@ -71,7 +71,6 @@ public class StaffService {
                 req.roleType(), req.qualification(), req.yearsOfExperience(),
                 req.designation(), req.bio(),
                 null, null);
-        staff.reactivate(); // activate directly — no invitation email
 
         Teacher saved = teacherRepository.save(staff);
 

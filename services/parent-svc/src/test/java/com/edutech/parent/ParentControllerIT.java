@@ -26,13 +26,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 import java.time.LocalDate;
 import java.util.Map;
@@ -47,8 +40,9 @@ import static org.mockito.BDDMockito.given;
  * HTTP-layer integration tests for parent-svc controllers.
  *
  * Strategy:
- *   - RANDOM_PORT boots the full servlet stack with real DB (PostgreSQLContainer).
- *   - KafkaContainer satisfies spring-kafka auto-configuration.
+ *   - RANDOM_PORT boots the full servlet stack with real DB (native local Postgres,
+ *     env vars: POSTGRES_HOST/PORT/PARENT_SVC_DB_NAME/USERNAME/PASSWORD).
+ *   - Native local Kafka (KAFKA_BOOTSTRAP_SERVERS) satisfies spring-kafka auto-configuration.
  *   - JwtTokenValidator is @MockBean; for each test we configure it to return a
  *     controlled AuthPrincipal so the JwtAuthenticationFilter populates the
  *     SecurityContext without touching a real RSA key.
@@ -56,32 +50,8 @@ import static org.mockito.BDDMockito.given;
  *   - Tests cover: create profile, get profile, update profile, link student, 404 errors.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
 @ActiveProfiles("test")
 class ParentControllerIT {
-
-    // ---------------------------------------------------------------------------
-    // Infrastructure containers — shared across all tests in this class
-    // ---------------------------------------------------------------------------
-
-    @Container
-    static final PostgreSQLContainer<?> POSTGRES =
-            new PostgreSQLContainer<>(DockerImageName.parse("postgres:16-alpine"))
-                    .withDatabaseName("parent_db_it")
-                    .withUsername("parent_user")
-                    .withPassword("parent_pass");
-
-    @Container
-    static final KafkaContainer KAFKA =
-            new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.6.1"));
-
-    @DynamicPropertySource
-    static void overrideProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-        registry.add("spring.kafka.bootstrap-servers", KAFKA::getBootstrapServers);
-    }
 
     // ---------------------------------------------------------------------------
     // Injected test infrastructure
@@ -442,8 +412,8 @@ class ParentControllerIT {
     }
 
     @Test
-    @DisplayName("GET /api/v1/parents/{profileId}/students — 401 when no auth header")
-    void listLinkedStudents_returns401_whenUnauthenticated() {
+    @DisplayName("GET /api/v1/parents/{profileId}/students — 403 when no auth header")
+    void listLinkedStudents_returns403_whenUnauthenticated() {
         UUID anyProfileId = UUID.randomUUID();
 
         // No Authorization header
@@ -454,7 +424,8 @@ class ParentControllerIT {
                 Map.class
         );
 
-        // Spring Security returns 401 when no authentication is present
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        // Spring Security 6.x returns 403 (not 401) for unauthenticated requests
+        // when no AuthenticationEntryPoint / httpBasic is configured (Http403ForbiddenEntryPoint default)
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 }

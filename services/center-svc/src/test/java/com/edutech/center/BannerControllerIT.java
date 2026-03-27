@@ -8,6 +8,8 @@ import com.edutech.center.application.dto.UpdateBannerRequest;
 import com.edutech.center.domain.model.BannerAudience;
 import com.edutech.center.domain.model.BannerType;
 import com.edutech.center.domain.model.Role;
+import com.edutech.center.domain.port.out.AiTaggingPort;
+import com.edutech.center.domain.port.out.DocumentStoragePort;
 import com.edutech.center.infrastructure.security.JwtTokenValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,13 +25,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.core.KafkaTemplate;
+import com.edutech.center.domain.port.out.CenterEventPublisher;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 import java.util.Optional;
@@ -43,9 +40,9 @@ import static org.mockito.Mockito.when;
 /**
  * HTTP-level integration tests for {@link com.edutech.center.api.BannerController}.
  *
- * <p>Uses a real PostgreSQL container via TestContainers with Flyway migrations applied
- * automatically. Kafka and the JWT validator are mocked — the validator returns a
- * pre-configured {@link AuthPrincipal} for any bearer token.
+ * <p>Uses the native local PostgreSQL (env vars: POSTGRES_HOST/PORT/CENTER_SVC_DB_NAME).
+ * Flyway validates existing migrations. Kafka and the JWT validator are mocked — the
+ * validator returns a pre-configured {@link AuthPrincipal} for any bearer token.
  *
  * <p>Test coverage (19 tests):
  * <ul>
@@ -65,45 +62,34 @@ import static org.mockito.Mockito.when;
  *   <li>POST  /api/v1/banners              — VIDEO type banner with videoUrl → 201, videoUrl stored</li>
  *   <li>PUT   /api/v1/banners/{id}         — change HERO to VIDEO, videoUrl updated</li>
  *   <li>GET   /api/v1/banners?audience=ALL — active VIDEO banner returned with correct type+videoUrl</li>
- *   <li>POST  /api/v1/banners              — INSTITUTION_ADMIN creates banner → 201</li>
+ *   <li>POST  /api/v1/banners              — INSTITUTION_ADMIN creates banner → 403</li>
  *   <li>GET   /api/v1/banners/all          — INSTITUTION_ADMIN sees management view → 200</li>
- *   <li>DELETE /api/v1/banners/{id}        — INSTITUTION_ADMIN soft-deletes → 204</li>
+ *   <li>DELETE /api/v1/banners/{id}        — INSTITUTION_ADMIN soft-deletes → 403</li>
  * </ul>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
 @ActiveProfiles("test")
 @DisplayName("center-svc — BannerController HTTP Integration Tests")
 class BannerControllerIT {
-
-    // -------------------------------------------------------------------------
-    // Infrastructure: single shared PostgreSQL container
-    // -------------------------------------------------------------------------
-
-    @Container
-    static final PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:16-alpine")
-                    .withDatabaseName("center_banner_test")
-                    .withUsername("banner_user")
-                    .withPassword("banner_pass");
-
-    @DynamicPropertySource
-    static void overrideDataSourceProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url",      postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
 
     // -------------------------------------------------------------------------
     // Mocked infrastructure beans
     // -------------------------------------------------------------------------
 
     @MockBean
-    @SuppressWarnings("rawtypes")
-    KafkaTemplate kafkaTemplate;
+    CenterEventPublisher centerEventPublisher;
 
     @MockBean
     JwtTokenValidator jwtTokenValidator;
+
+    @MockBean
+    DocumentStoragePort documentStoragePort;
+
+    @MockBean
+    io.minio.MinioClient minioClient;
+
+    @MockBean
+    AiTaggingPort aiTaggingPort;
 
     // -------------------------------------------------------------------------
     // Test collaborators
@@ -139,11 +125,6 @@ class BannerControllerIT {
         // Default auth: super admin
         mockAuth(superAdminPrincipal);
 
-        // Kafka mock — suppress all publish calls
-        when(kafkaTemplate.send(anyString(), any())).thenReturn(
-                java.util.concurrent.CompletableFuture.completedFuture(null));
-        when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(
-                java.util.concurrent.CompletableFuture.completedFuture(null));
     }
 
     // -------------------------------------------------------------------------

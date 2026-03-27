@@ -38,9 +38,10 @@ public class AttendanceSummaryController {
 
     @GetMapping("/my-summary")
     @Operation(summary = "Requesting student's own attendance summary for this batch")
-    public AttendanceSummaryResponse getMyAttendance(@PathVariable UUID centerId,
-                                                     @PathVariable UUID batchId,
-                                                     @AuthenticationPrincipal AuthPrincipal principal) {
-        return summaryService.getMyAttendance(batchId, principal);
+    public List<AttendanceSummaryResponse> getMyAttendance(@PathVariable UUID centerId,
+                                                           @PathVariable UUID batchId,
+                                                           @AuthenticationPrincipal AuthPrincipal principal) {
+        AttendanceSummaryResponse summary = summaryService.getMyAttendance(batchId, principal);
+        return List.of(summary);
     }
 }

@@ -15,6 +15,8 @@ import com.edutech.center.application.dto.UpdateStaffRequest;
 import com.edutech.center.domain.model.Role;
 import com.edutech.center.domain.model.StaffRoleType;
 import com.edutech.center.domain.model.TeacherStatus;
+import com.edutech.center.domain.port.out.AiTaggingPort;
+import com.edutech.center.domain.port.out.DocumentStoragePort;
 import com.edutech.center.domain.port.out.TeacherRepository;
 import com.edutech.center.infrastructure.security.JwtTokenValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,20 +33,14 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.core.KafkaTemplate;
+import com.edutech.center.domain.port.out.CenterEventPublisher;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -68,35 +64,26 @@ import static org.mockito.Mockito.when;
  * </ul>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
 @ActiveProfiles("test")
 @DisplayName("center-svc — Teacher Onboarding HTTP Integration Tests")
 class TeacherControllerIT {
 
-    // ─── Infrastructure ───────────────────────────────────────────────────────
-
-    @Container
-    static final PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:16-alpine")
-                    .withDatabaseName("teacher_ctrl_test")
-                    .withUsername("center_user")
-                    .withPassword("center_pass");
-
-    @DynamicPropertySource
-    static void overrideDataSourceProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url",      postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
-
     // ─── Mocked infrastructure beans ──────────────────────────────────────────
 
     @MockBean
-    @SuppressWarnings("rawtypes")
-    KafkaTemplate kafkaTemplate;
+    CenterEventPublisher centerEventPublisher;
 
     @MockBean
     JwtTokenValidator jwtTokenValidator;
+
+    @MockBean
+    DocumentStoragePort documentStoragePort;
+
+    @MockBean
+    io.minio.MinioClient minioClient;
+
+    @MockBean
+    AiTaggingPort aiTaggingPort;
 
     // ─── Collaborators ────────────────────────────────────────────────────────
 
@@ -106,6 +93,9 @@ class TeacherControllerIT {
     @Autowired TeacherRepository teacherRepository;
 
     // ─── Shared identities ────────────────────────────────────────────────────
+
+    /** Per-run random suffix — prevents unique-constraint conflicts with previous test runs. */
+    private static final String R = UUID.randomUUID().toString().replace("-", "").substring(0, 6).toUpperCase();
 
     static final UUID OWNER_ID    = UUID.randomUUID();
     static final UUID TEACHER_UID = UUID.randomUUID();
@@ -120,10 +110,6 @@ class TeacherControllerIT {
                 Role.SUPER_ADMIN, null, "fp-super");
         mockAuth(superAdminPrincipal);
 
-        when(kafkaTemplate.send(anyString(), any()))
-                .thenReturn(CompletableFuture.completedFuture(null));
-        when(kafkaTemplate.send(anyString(), anyString(), any()))
-                .thenReturn(CompletableFuture.completedFuture(null));
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -185,7 +171,7 @@ class TeacherControllerIT {
     @Test
     @DisplayName("GET /centers/{id}/teachers/bulk-template — returns 200 with text/csv attachment")
     void getBulkTemplate_returns200WithCsvContent() {
-        UUID centerId = createCenter("TMPL01");
+        UUID centerId = createCenter("T1" + R);
         AuthPrincipal admin = new AuthPrincipal(OWNER_ID, "admin@tmpl.com",
                 Role.CENTER_ADMIN, centerId, "fp");
         mockAuth(admin);
@@ -209,13 +195,13 @@ class TeacherControllerIT {
     @Test
     @DisplayName("POST /centers/{id}/teachers/bulk-preview — valid CSV returns 200 with no errors")
     void bulkPreview_validCsv_returns200NoErrors() {
-        UUID centerId = createCenter("PRV01");
+        UUID centerId = createCenter("P1" + R);
         AuthPrincipal admin = new AuthPrincipal(OWNER_ID, "admin@prv.com",
                 Role.CENTER_ADMIN, centerId, "fp");
         mockAuth(admin);
 
         String csv = "First Name,Last Name,Email,Phone,Subjects,Employee ID\n" +
-                     "Ravi,Kumar,ravi.prv01@school.com,+919876543210,Mathematics,T-001\n";
+                     "Ravi,Kumar,ravi.p1" + R + "@school.com,+919876543210,Mathematics,T-001\n";
         ResponseEntity<BulkImportPreviewResponse> response = restTemplate.exchange(
                 "/api/v1/centers/" + centerId + "/teachers/bulk-preview",
                 HttpMethod.POST, csvUploadEntity(csv), BulkImportPreviewResponse.class);
@@ -232,7 +218,7 @@ class TeacherControllerIT {
     @Test
     @DisplayName("POST /centers/{id}/teachers/bulk-preview — invalid email row returns 200 with errors list")
     void bulkPreview_invalidEmail_returns200WithErrors() {
-        UUID centerId = createCenter("PRV02");
+        UUID centerId = createCenter("P2" + R);
         AuthPrincipal admin = new AuthPrincipal(OWNER_ID, "admin@prv2.com",
                 Role.CENTER_ADMIN, centerId, "fp");
         mockAuth(admin);
@@ -256,13 +242,13 @@ class TeacherControllerIT {
     @Test
     @DisplayName("POST /centers/{id}/teachers/bulk-confirm — valid CSV returns 201 with imported count")
     void bulkConfirm_validCsv_returns201() {
-        UUID centerId = createCenter("CNF01");
+        UUID centerId = createCenter("C1" + R);
         AuthPrincipal admin = new AuthPrincipal(OWNER_ID, "admin@cnf.com",
                 Role.CENTER_ADMIN, centerId, "fp");
         mockAuth(admin);
 
         String csv = "First Name,Last Name,Email,Phone,Subjects,Employee ID\n" +
-                     "Ravi,Kumar,ravi.cnf01@school.com,+919876543210,Mathematics,T-001\n";
+                     "Ravi,Kumar,ravi.c1" + R + "@school.com,+919876543210,Mathematics,T-001\n";
         ResponseEntity<BulkImportConfirmResponse> response = restTemplate.exchange(
                 "/api/v1/centers/" + centerId + "/teachers/bulk-confirm",
                 HttpMethod.POST, csvUploadEntity(csv), BulkImportConfirmResponse.class);
@@ -277,7 +263,7 @@ class TeacherControllerIT {
     @Test
     @DisplayName("POST /centers/{id}/teachers/bulk-confirm — CSV with errors and skipErrors=false returns 400")
     void bulkConfirm_withErrors_skipFalse_returns400() {
-        UUID centerId = createCenter("CNF02");
+        UUID centerId = createCenter("C2" + R);
         AuthPrincipal admin = new AuthPrincipal(OWNER_ID, "admin@cnf2.com",
                 Role.CENTER_ADMIN, centerId, "fp");
         mockAuth(admin);
@@ -302,12 +288,13 @@ class TeacherControllerIT {
     void invitationLookup_validToken_returns200() {
         // Setup: create center + confirm CSV import to create a stub
         mockAuth(superAdminPrincipal);
-        UUID centerId = createCenter("INV01");
+        String invCode = "I1" + R;
+        UUID centerId = createCenter(invCode);
         AuthPrincipal admin = new AuthPrincipal(OWNER_ID, "admin@inv.com",
                 Role.CENTER_ADMIN, centerId, "fp");
         mockAuth(admin);
 
-        String uniqueEmail = "ravi.inv01@school.com";
+        String uniqueEmail = "ravi.i1" + R + "@school.com";
         String csv = "First Name,Last Name,Email,Phone,Subjects,Employee ID\n" +
                      "Ravi,Kumar," + uniqueEmail + ",+919876543210,Mathematics,T-001\n";
         restTemplate.exchange("/api/v1/centers/" + centerId + "/teachers/bulk-confirm",
@@ -332,7 +319,7 @@ class TeacherControllerIT {
         assertThat(body.firstName()).isEqualTo("Ravi");
         assertThat(body.lastName()).isEqualTo("Kumar");
         assertThat(body.centerId()).isEqualTo(centerId);
-        assertThat(body.centerName()).isEqualTo("Teacher IT Academy INV01");
+        assertThat(body.centerName()).isEqualTo("Teacher IT Academy " + invCode);
     }
 
     @Test
@@ -353,15 +340,15 @@ class TeacherControllerIT {
     @DisplayName("POST /centers/{id}/teachers/self-register — returns 201 with PENDING_APPROVAL status")
     void selfRegister_returns201WithPendingStatus() {
         mockAuth(superAdminPrincipal);
-        UUID centerId = createCenter("SR01");
+        UUID centerId = createCenter("S1" + R);
 
         // Switch to teacher principal for self-register
-        AuthPrincipal teacher = new AuthPrincipal(TEACHER_UID, "teacher.sr01@school.com",
+        AuthPrincipal teacher = new AuthPrincipal(TEACHER_UID, "teacher.s1" + R + "@school.com",
                 Role.TEACHER, null, "fp-teacher");
         mockAuth(teacher);
 
         TeacherSelfRegisterRequest request = new TeacherSelfRegisterRequest(
-                "Meera", "Nair", "meera.sr01@school.com", "+919876543299", "Chemistry", null);
+                "Meera", "Nair", "meera.s1" + R + "@school.com", "+919876543299", "Chemistry", null);
 
         ResponseEntity<TeacherResponse> response = restTemplate.exchange(
                 "/api/v1/centers/" + centerId + "/teachers/self-register",
@@ -379,15 +366,15 @@ class TeacherControllerIT {
     @DisplayName("POST /centers/{id}/teachers/self-register — duplicate self-registration returns 409")
     void selfRegister_duplicate_returns409() {
         mockAuth(superAdminPrincipal);
-        UUID centerId = createCenter("SR02");
+        UUID centerId = createCenter("S2" + R);
 
         UUID teacherUid = UUID.randomUUID();
-        AuthPrincipal teacher = new AuthPrincipal(teacherUid, "teacher.sr02@school.com",
+        AuthPrincipal teacher = new AuthPrincipal(teacherUid, "teacher.s2" + R + "@school.com",
                 Role.TEACHER, null, "fp-teacher");
         mockAuth(teacher);
 
         TeacherSelfRegisterRequest request = new TeacherSelfRegisterRequest(
-                "Arjun", "Singh", "arjun.sr02@school.com", null, "History", null);
+                "Arjun", "Singh", "arjun.s2" + R + "@school.com", null, "History", null);
 
         // First registration
         restTemplate.exchange("/api/v1/centers/" + centerId + "/teachers/self-register",
@@ -409,16 +396,17 @@ class TeacherControllerIT {
     @DisplayName("GET /centers/{id}/teachers/pending — CENTER_ADMIN returns 200 with pending list")
     void listPending_returns200WithPendingTeachers() {
         mockAuth(superAdminPrincipal);
-        UUID centerId = createCenter("PEND01");
+        UUID centerId = createCenter("PN" + R);
 
         // Self-register a teacher
         UUID teacherUid = UUID.randomUUID();
-        AuthPrincipal teacher = new AuthPrincipal(teacherUid, "pending01@school.com",
+        String pendingEmail = "pend." + R + "@school.com";
+        AuthPrincipal teacher = new AuthPrincipal(teacherUid, pendingEmail,
                 Role.TEACHER, null, "fp-t");
         mockAuth(teacher);
         restTemplate.exchange("/api/v1/centers/" + centerId + "/teachers/self-register",
                 HttpMethod.POST,
-                authEntity(new TeacherSelfRegisterRequest("P", "End", "pending01@school.com", null, "Economics", null)),
+                authEntity(new TeacherSelfRegisterRequest("P", "End", pendingEmail, null, "Economics", null)),
                 TeacherResponse.class);
 
         // Switch to admin to list pending
@@ -444,17 +432,18 @@ class TeacherControllerIT {
     @DisplayName("POST /centers/{id}/teachers/{tid}/approve — returns 200 with ACTIVE status")
     void approve_returns200WithActiveStatus() {
         mockAuth(superAdminPrincipal);
-        UUID centerId = createCenter("APR01");
+        UUID centerId = createCenter("AP" + R);
 
         // Self-register
         UUID teacherUid = UUID.randomUUID();
-        AuthPrincipal teacher = new AuthPrincipal(teacherUid, "apr01@school.com",
+        String aprEmail = "apr." + R + "@school.com";
+        AuthPrincipal teacher = new AuthPrincipal(teacherUid, aprEmail,
                 Role.TEACHER, null, "fp-t");
         mockAuth(teacher);
         TeacherResponse pending = restTemplate.exchange(
                 "/api/v1/centers/" + centerId + "/teachers/self-register",
                 HttpMethod.POST,
-                authEntity(new TeacherSelfRegisterRequest("App", "Rov", "apr01@school.com", null, "Physics", null)),
+                authEntity(new TeacherSelfRegisterRequest("App", "Rov", aprEmail, null, "Physics", null)),
                 TeacherResponse.class).getBody();
         UUID teacherId = pending.id();
 
@@ -480,17 +469,18 @@ class TeacherControllerIT {
     @DisplayName("POST /centers/{id}/teachers/{tid}/reject — returns 200 with INACTIVE status")
     void reject_returns200WithInactiveStatus() {
         mockAuth(superAdminPrincipal);
-        UUID centerId = createCenter("REJ01");
+        UUID centerId = createCenter("RJ" + R);
 
         // Self-register
         UUID teacherUid = UUID.randomUUID();
-        AuthPrincipal teacher = new AuthPrincipal(teacherUid, "rej01@school.com",
+        String rejEmail = "rej." + R + "@school.com";
+        AuthPrincipal teacher = new AuthPrincipal(teacherUid, rejEmail,
                 Role.TEACHER, null, "fp-t");
         mockAuth(teacher);
         TeacherResponse pending = restTemplate.exchange(
                 "/api/v1/centers/" + centerId + "/teachers/self-register",
                 HttpMethod.POST,
-                authEntity(new TeacherSelfRegisterRequest("Rej", "Ect", "rej01@school.com", null, "Biology", null)),
+                authEntity(new TeacherSelfRegisterRequest("Rej", "Ect", rejEmail, null, "Biology", null)),
                 TeacherResponse.class).getBody();
         UUID teacherId = pending.id();
 
@@ -518,13 +508,13 @@ class TeacherControllerIT {
     @DisplayName("POST /centers/{id}/teachers/accept-invitation — returns 200 and teacher becomes ACTIVE")
     void acceptInvitation_returns200AndActivatesStub() {
         mockAuth(superAdminPrincipal);
-        UUID centerId = createCenter("ACC01");
+        UUID centerId = createCenter("AC" + R);
 
         // Confirm CSV import to create stub
         AuthPrincipal admin = new AuthPrincipal(OWNER_ID, "admin@acc.com",
                 Role.CENTER_ADMIN, centerId, "fp");
         mockAuth(admin);
-        String uniqueEmail = "ravi.acc01@school.com";
+        String uniqueEmail = "ravi.ac" + R + "@school.com";
         String csv = "First Name,Last Name,Email,Phone,Subjects,Employee ID\n" +
                      "Ravi,Kumar," + uniqueEmail + ",+919876543210,Mathematics,T-001\n";
         restTemplate.exchange("/api/v1/centers/" + centerId + "/teachers/bulk-confirm",
@@ -564,7 +554,7 @@ class TeacherControllerIT {
     @DisplayName("POST /centers/{id}/teachers/accept-invitation — invalid token returns 400")
     void acceptInvitation_invalidToken_returns400() {
         mockAuth(superAdminPrincipal);
-        UUID centerId = createCenter("ACC02");
+        UUID centerId = createCenter("A2" + R);
         AuthPrincipal teacher = new AuthPrincipal(UUID.randomUUID(), "t@t.com", Role.TEACHER, null, "fp");
         mockAuth(teacher);
 
@@ -585,13 +575,13 @@ class TeacherControllerIT {
     @DisplayName("POST /centers/{id}/staff — returns 201 with INVITATION_SENT and staff profile fields")
     void createStaff_returns201WithInvitationSentAndProfileFields() {
         mockAuth(superAdminPrincipal);
-        UUID centerId = createCenter("STF01");
+        UUID centerId = createCenter("SF1" + R);
         AuthPrincipal admin = new AuthPrincipal(OWNER_ID, "admin@stf01.com",
                 Role.CENTER_ADMIN, centerId, "fp");
         mockAuth(admin);
 
         CreateStaffRequest req = new CreateStaffRequest(
-                "Priya", "Sharma", "priya.stf01@school.com", "+919876543210",
+                "Priya", "Sharma", "priya.sf1" + R + "@school.com", "+919876543210",
                 "EMP-101", StaffRoleType.HOD,
                 "Head of Mathematics Department",
                 "Mathematics,Physics", "Bengaluru",
@@ -623,13 +613,13 @@ class TeacherControllerIT {
     @DisplayName("POST /centers/{id}/staff — duplicate email in same center returns 409")
     void createStaff_duplicateEmail_returns409() {
         mockAuth(superAdminPrincipal);
-        UUID centerId = createCenter("STF02");
+        UUID centerId = createCenter("SF2" + R);
         AuthPrincipal admin = new AuthPrincipal(OWNER_ID, "admin@stf02.com",
                 Role.CENTER_ADMIN, centerId, "fp");
         mockAuth(admin);
 
         CreateStaffRequest req = new CreateStaffRequest(
-                "Amit", "Verma", "amit.stf02@school.com", null,
+                "Amit", "Verma", "amit.sf2" + R + "@school.com", null,
                 null, StaffRoleType.TEACHER, "Senior Teacher",
                 "Biology", null, "B.Sc Biology, B.Ed", 3, null);
 
@@ -653,14 +643,14 @@ class TeacherControllerIT {
     @DisplayName("PATCH /centers/{id}/staff/{sid} — updates only supplied fields, leaves others unchanged")
     void updateStaff_partialUpdate_appliesOnlyNonNullFields() {
         mockAuth(superAdminPrincipal);
-        UUID centerId = createCenter("STF03");
+        UUID centerId = createCenter("SF3" + R);
         AuthPrincipal admin = new AuthPrincipal(OWNER_ID, "admin@stf03.com",
                 Role.CENTER_ADMIN, centerId, "fp");
         mockAuth(admin);
 
         // Create
         CreateStaffRequest create = new CreateStaffRequest(
-                "Lakshmi", "Nair", "lakshmi.stf03@school.com", "+911234567890",
+                "Lakshmi", "Nair", "lakshmi.sf3" + R + "@school.com", "+911234567890",
                 "EMP-202", StaffRoleType.COORDINATOR, "Academic Coordinator",
                 "English,History", "Chennai", "MA English, B.Ed", 5, "A dedicated educator.");
 
@@ -698,13 +688,13 @@ class TeacherControllerIT {
     @DisplayName("DELETE /centers/{id}/staff/{sid} — returns 200 with INACTIVE status")
     void deactivateStaff_returns200WithInactiveStatus() {
         mockAuth(superAdminPrincipal);
-        UUID centerId = createCenter("STF04");
+        UUID centerId = createCenter("SF4" + R);
         AuthPrincipal admin = new AuthPrincipal(OWNER_ID, "admin@stf04.com",
                 Role.CENTER_ADMIN, centerId, "fp");
         mockAuth(admin);
 
         CreateStaffRequest create = new CreateStaffRequest(
-                "Rahul", "Gupta", "rahul.stf04@school.com", null,
+                "Rahul", "Gupta", "rahul.sf4" + R + "@school.com", null,
                 "EMP-303", StaffRoleType.LAB_ASSISTANT, "Chemistry Lab Assistant",
                 "Chemistry", "Mumbai", "B.Sc Chemistry", 2, null);
 
@@ -730,20 +720,20 @@ class TeacherControllerIT {
     @DisplayName("GET /centers/{id}/staff?roleType=HOD — returns only HOD staff")
     void listStaff_filterByRoleType_returnsMatchingOnly() {
         mockAuth(superAdminPrincipal);
-        UUID centerId = createCenter("STF05");
+        UUID centerId = createCenter("SF5" + R);
         AuthPrincipal admin = new AuthPrincipal(OWNER_ID, "admin@stf05.com",
                 Role.CENTER_ADMIN, centerId, "fp");
         mockAuth(admin);
 
         // Create one HOD and one TEACHER
         restTemplate.exchange("/api/v1/centers/" + centerId + "/staff", HttpMethod.POST,
-                authEntity(new CreateStaffRequest("Anita", "Reddy", "anita.stf05@school.com",
+                authEntity(new CreateStaffRequest("Anita", "Reddy", "anita.sf5" + R + "@school.com",
                         null, null, StaffRoleType.HOD, "HOD Chemistry",
                         "Chemistry", null, "M.Sc Chemistry", 12, null)),
                 TeacherResponse.class);
 
         restTemplate.exchange("/api/v1/centers/" + centerId + "/staff", HttpMethod.POST,
-                authEntity(new CreateStaffRequest("Kiran", "Rao", "kiran.stf05@school.com",
+                authEntity(new CreateStaffRequest("Kiran", "Rao", "kiran.sf5" + R + "@school.com",
                         null, null, StaffRoleType.TEACHER, "Physics Teacher",
                         "Physics", null, "M.Sc Physics", 4, null)),
                 TeacherResponse.class);
@@ -767,20 +757,20 @@ class TeacherControllerIT {
     @DisplayName("GET /centers/{id}/staff?status=INVITATION_SENT — returns only pending-invite staff")
     void listStaff_filterByStatus_returnsMatchingOnly() {
         mockAuth(superAdminPrincipal);
-        UUID centerId = createCenter("STF06");
+        UUID centerId = createCenter("SF6" + R);
         AuthPrincipal admin = new AuthPrincipal(OWNER_ID, "admin@stf06.com",
                 Role.CENTER_ADMIN, centerId, "fp");
         mockAuth(admin);
 
         // Create two staff via invitation
         restTemplate.exchange("/api/v1/centers/" + centerId + "/staff", HttpMethod.POST,
-                authEntity(new CreateStaffRequest("Meena", "Pillai", "meena.stf06@school.com",
+                authEntity(new CreateStaffRequest("Meena", "Pillai", "meena.sf6" + R + "@school.com",
                         null, null, StaffRoleType.COUNSELOR, "Career Counselor",
                         null, null, "M.A Psychology", 6, null)),
                 TeacherResponse.class);
 
         restTemplate.exchange("/api/v1/centers/" + centerId + "/staff", HttpMethod.POST,
-                authEntity(new CreateStaffRequest("Deepa", "Nambiar", "deepa.stf06@school.com",
+                authEntity(new CreateStaffRequest("Deepa", "Nambiar", "deepa.sf6" + R + "@school.com",
                         null, null, StaffRoleType.LIBRARIAN, "Senior Librarian",
                         null, null, "M.Lib Science", 10, null)),
                 TeacherResponse.class);

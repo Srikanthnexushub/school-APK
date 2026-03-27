@@ -75,7 +75,7 @@ public class ContentService implements UploadContentUseCase {
     /** True if principal can upload/manage content (not read-only student/parent). */
     private boolean canUpload(AuthPrincipal principal, UUID centerId) {
         if (principal.isSuperAdmin() || principal.isInstitutionAdmin()) return true;
-        if (principal.belongsToCenter(centerId)) return true;
+        if (principal.isCenterAdmin() && principal.belongsToCenter(centerId)) return true;
         return teacherRepository.existsByUserIdAndCenterId(principal.userId(), centerId);
     }
 

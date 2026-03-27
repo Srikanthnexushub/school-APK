@@ -11,6 +11,7 @@ import com.edutech.center.application.exception.JobPostingNotFoundException;
 import com.edutech.center.application.exception.ScheduleConflictException;
 import com.edutech.center.application.exception.TeacherAlreadyAssignedException;
 import com.edutech.center.application.exception.TeacherNotFoundException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.net.URI;
+import java.util.NoSuchElementException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -49,6 +51,11 @@ public class GlobalExceptionHandler {
         return problem(HttpStatus.NOT_FOUND, "banner-not-found", ex.getMessage());
     }
 
+    @ExceptionHandler(NoSuchElementException.class)
+    public ProblemDetail handleNotFound(NoSuchElementException ex) {
+        return problem(HttpStatus.NOT_FOUND, "resource-not-found", ex.getMessage());
+    }
+
     @ExceptionHandler(DuplicateCenterCodeException.class)
     public ProblemDetail handleDuplicateCode(DuplicateCenterCodeException ex) {
         return problem(HttpStatus.CONFLICT, "duplicate-center-code", ex.getMessage());
@@ -62,6 +69,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ScheduleConflictException.class)
     public ProblemDetail handleScheduleConflict(ScheduleConflictException ex) {
         return problem(HttpStatus.CONFLICT, "schedule-conflict", ex.getMessage());
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        return problem(HttpStatus.CONFLICT, "duplicate-resource", "A resource with these attributes already exists");
     }
 
     @ExceptionHandler(CenterAccessDeniedException.class)

@@ -7,6 +7,8 @@ import com.edutech.center.application.dto.CenterResponse;
 import com.edutech.center.application.dto.CreateCenterRequest;
 import com.edutech.center.domain.model.AnnouncementTargetType;
 import com.edutech.center.domain.model.Role;
+import com.edutech.center.domain.port.out.AiTaggingPort;
+import com.edutech.center.domain.port.out.DocumentStoragePort;
 import com.edutech.center.infrastructure.security.JwtTokenValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,13 +24,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.core.KafkaTemplate;
+import com.edutech.center.domain.port.out.CenterEventPublisher;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 import java.util.Optional;
@@ -42,8 +39,8 @@ import static org.mockito.Mockito.when;
 /**
  * HTTP-level integration tests for {@link com.edutech.center.api.AnnouncementController}.
  *
- * <p>Uses a real PostgreSQL container via TestContainers with Flyway migrations applied
- * automatically. Kafka and the JWT validator are mocked.
+ * <p>Uses native local Postgres (env vars: POSTGRES_HOST/PORT/CENTER_SVC_DB_NAME/USERNAME/PASSWORD)
+ * with Flyway migrations applied automatically. Kafka and the JWT validator are mocked.
  *
  * <p>Test coverage (8 tests):
  * <ul>
@@ -58,31 +55,24 @@ import static org.mockito.Mockito.when;
  * </ul>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
 @ActiveProfiles("test")
 @DisplayName("center-svc — AnnouncementController HTTP Integration Tests")
 class AnnouncementControllerIT {
 
-    @Container
-    static final PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:16-alpine")
-                    .withDatabaseName("center_ann_test")
-                    .withUsername("ann_user")
-                    .withPassword("ann_pass");
-
-    @DynamicPropertySource
-    static void overrideDataSource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url",      postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
-
     @MockBean
-    @SuppressWarnings("rawtypes")
-    KafkaTemplate kafkaTemplate;
+    CenterEventPublisher centerEventPublisher;
 
     @MockBean
     JwtTokenValidator jwtTokenValidator;
+
+    @MockBean
+    DocumentStoragePort documentStoragePort;
+
+    @MockBean
+    io.minio.MinioClient minioClient;
+
+    @MockBean
+    AiTaggingPort aiTaggingPort;
 
     @Autowired
     TestRestTemplate restTemplate;
@@ -114,10 +104,6 @@ class AnnouncementControllerIT {
         centerAdminPrincipal = new AuthPrincipal(CENTER_ADMIN_ID, "ca@test.com", Role.CENTER_ADMIN, centerId, "fp-ca");
         studentPrincipal     = new AuthPrincipal(STUDENT_ID,      "st@test.com", Role.STUDENT,      centerId, "fp-st");
 
-        when(kafkaTemplate.send(anyString(), any())).thenReturn(
-                java.util.concurrent.CompletableFuture.completedFuture(null));
-        when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(
-                java.util.concurrent.CompletableFuture.completedFuture(null));
     }
 
     // -------------------------------------------------------------------------

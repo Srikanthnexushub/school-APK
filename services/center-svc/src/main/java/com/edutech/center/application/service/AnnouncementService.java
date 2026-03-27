@@ -45,6 +45,10 @@ public class AnnouncementService implements SendAnnouncementUseCase {
         if (!principal.belongsToCenter(cmd.centerId()) && !principal.isSuperAdmin() && !principal.isInstitutionAdmin()) {
             throw new CenterAccessDeniedException();
         }
+        // Only administrative roles may send announcements (not STUDENT, PARENT, or TEACHER)
+        if (!principal.isSuperAdmin() && !principal.isInstitutionAdmin() && !principal.isCenterAdmin()) {
+            throw new CenterAccessDeniedException();
+        }
 
         Announcement announcement = Announcement.create(
                 cmd.centerId(), cmd.title(), cmd.body(),

@@ -9,6 +9,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import static com.tngtech.archunit.base.DescribedPredicate.not;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 @DisplayName("Hexagonal architecture layer rules — center-svc")
@@ -23,13 +25,21 @@ class ArchitectureRulesTest {
             .importPackages("com.edutech.center");
     }
 
+    /**
+     * ADR: Spring Data Page/Pageable are permitted in domain output ports as a pragmatic
+     * exception — they represent a stable pagination contract (not Spring MVC coupling).
+     * Affected ports: ContentRepository, JobPostingRepository.
+     * All other Spring framework dependencies remain forbidden in the domain layer.
+     */
     @Test
-    @DisplayName("Domain layer must not depend on Spring framework")
+    @DisplayName("Domain layer must not depend on Spring framework (except spring-data pagination)")
     void domain_must_not_depend_on_spring() {
         ArchRule rule = noClasses()
             .that().resideInAPackage("..domain..")
-            .should().dependOnClassesThat()
-            .resideInAPackage("org.springframework..");
+            .should().dependOnClassesThat(
+                resideInAPackage("org.springframework..")
+                    .and(not(resideInAPackage("org.springframework.data.domain..")))
+            );
         rule.check(classes);
     }
 

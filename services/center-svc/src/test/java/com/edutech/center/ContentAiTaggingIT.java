@@ -1,8 +1,10 @@
 package com.edutech.center;
 
 import com.edutech.center.application.dto.AuthPrincipal;
+import com.edutech.center.application.dto.CenterResponse;
 import com.edutech.center.application.dto.ConfirmUploadRequest;
 import com.edutech.center.application.dto.ContentItemResponse;
+import com.edutech.center.application.dto.CreateCenterRequest;
 import com.edutech.center.domain.model.ContentType;
 import com.edutech.center.domain.model.Difficulty;
 import com.edutech.center.domain.model.ExamType;
@@ -22,16 +24,12 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.core.KafkaTemplate;
+import com.edutech.center.domain.port.out.CenterEventPublisher;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 import java.util.Optional;
@@ -46,6 +44,11 @@ import static org.mockito.Mockito.when;
 
 /**
  * Integration + unit tests for the AI tagging pipeline.
+ *
+ * <p>Uses native local Postgres (env vars: POSTGRES_HOST/PORT/CENTER_SVC_DB_NAME/USERNAME/PASSWORD)
+ * with Flyway migrations applied automatically. Kafka, JWT validator, DocumentStoragePort, MinioClient,
+ * and AiTaggingPort are mocked. A real center is created via API in @BeforeEach so that
+ * ContentService.centerRepository.findById() succeeds.
  *
  * IT tests (8): verify endpoint behaviour with mocked AiTaggingPort.
  * Unit tests (2): verify AiTaggingAdapter prompt parsing and graceful degradation.
@@ -63,26 +66,11 @@ import static org.mockito.Mockito.when;
  *  Unit-2 AiTaggingAdapter.parseResponse returns empty on malformed JSON
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
 @ActiveProfiles("test")
 @DisplayName("center-svc — ContentAiTagging Integration + Unit Tests")
 class ContentAiTaggingIT {
 
-    @Container
-    static final PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:16-alpine")
-                    .withDatabaseName("center_ai_tag_test")
-                    .withUsername("aitag_user")
-                    .withPassword("aitag_pass");
-
-    @DynamicPropertySource
-    static void overrideDataSource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url",      postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
-
-    @MockBean @SuppressWarnings("rawtypes") KafkaTemplate kafkaTemplate;
+    @MockBean CenterEventPublisher centerEventPublisher;
     @MockBean JwtTokenValidator jwtTokenValidator;
     @MockBean DocumentStoragePort documentStoragePort;
     @MockBean io.minio.MinioClient minioClient;
@@ -94,8 +82,11 @@ class ContentAiTaggingIT {
     static final UUID TEACHER_USER_ID      = UUID.randomUUID();
     static final UUID STUDENT_USER_ID      = UUID.randomUUID();
     static final UUID PARENT_USER_ID       = UUID.randomUUID();
-    static final UUID CENTER_ID            = UUID.randomUUID();
+    static final UUID OWNER_ID             = UUID.randomUUID();
     static final String FAKE_TOKEN         = "ai-tag-test-token";
+
+    // centerId set in @BeforeEach after creating the center via API
+    UUID centerId;
 
     AuthPrincipal centerAdminPrincipal;
     AuthPrincipal teacherPrincipal;
@@ -104,20 +95,8 @@ class ContentAiTaggingIT {
 
     @BeforeEach
     void setUp() {
-        centerAdminPrincipal = new AuthPrincipal(CENTER_ADMIN_USER_ID, "admin@ai-test.com",
-                Role.CENTER_ADMIN, CENTER_ID, "fp-ai-admin");
-        teacherPrincipal = new AuthPrincipal(TEACHER_USER_ID, "teacher@ai-test.com",
-                Role.TEACHER, CENTER_ID, "fp-ai-teacher");
-        studentPrincipal = new AuthPrincipal(STUDENT_USER_ID, "student@ai-test.com",
-                Role.STUDENT, null, "fp-ai-student");
-        parentPrincipal = new AuthPrincipal(PARENT_USER_ID, "parent@ai-test.com",
-                Role.PARENT, null, "fp-ai-parent");
 
-        mockAuth(centerAdminPrincipal);
-        when(kafkaTemplate.send(anyString(), any())).thenReturn(
-                java.util.concurrent.CompletableFuture.completedFuture(null));
-        when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(
-                java.util.concurrent.CompletableFuture.completedFuture(null));
+
         when(documentStoragePort.buildObjectKey(any(), anyString(), anyString()))
                 .thenAnswer(inv -> inv.getArgument(0) + "/docs/uuid/" + inv.getArgument(2));
         when(documentStoragePort.generateUploadUrl(anyString(), anyString(), anyInt()))
@@ -130,6 +109,25 @@ class ContentAiTaggingIT {
                 .thenReturn(new TaggingResult("Physics", "CBSE", "JEE",
                         "MEDIUM", "A comprehensive paper on electrostatics.",
                         new String[]{"electrostatics", "physics"}));
+
+        // Create center via API as SUPER_ADMIN so centerRepository.findById() succeeds
+        AuthPrincipal superAdmin = new AuthPrincipal(UUID.randomUUID(), "superadmin@ai-test.com",
+                Role.SUPER_ADMIN, null, "fp-ai-super");
+        mockAuth(superAdmin);
+        centerId = createCenter("AIT" + UUID.randomUUID().toString().replace("-", "").substring(0, 6).toUpperCase());
+
+        // Per-test principals with real centerId
+        centerAdminPrincipal = new AuthPrincipal(CENTER_ADMIN_USER_ID, "admin@ai-test.com",
+                Role.CENTER_ADMIN, centerId, "fp-ai-admin");
+        teacherPrincipal = new AuthPrincipal(TEACHER_USER_ID, "teacher@ai-test.com",
+                Role.TEACHER, centerId, "fp-ai-teacher");
+        studentPrincipal = new AuthPrincipal(STUDENT_USER_ID, "student@ai-test.com",
+                Role.STUDENT, null, "fp-ai-student");
+        parentPrincipal = new AuthPrincipal(PARENT_USER_ID, "parent@ai-test.com",
+                Role.PARENT, null, "fp-ai-parent");
+
+        // Default auth for tests: center admin
+        mockAuth(centerAdminPrincipal);
     }
 
     private void mockAuth(AuthPrincipal principal) {
@@ -146,12 +144,24 @@ class ContentAiTaggingIT {
     private <T> HttpEntity<T> authEntity(T body) { return new HttpEntity<>(body, authHeaders()); }
     private HttpEntity<Void> authEntity()         { return new HttpEntity<>(authHeaders()); }
 
-    private String contentBase() { return "/api/v1/centers/" + CENTER_ID + "/content"; }
+    private UUID createCenter(String code) {
+        CreateCenterRequest req = new CreateCenterRequest(
+                "Test Center " + code, code,
+                "1 Main St", "Bangalore", "Karnataka", "560001",
+                "9876543210", code.toLowerCase() + "@test.com",
+                null, null, OWNER_ID, null);
+        ResponseEntity<CenterResponse> r = restTemplate.exchange(
+                "/api/v1/centers", HttpMethod.POST, authEntity(req), CenterResponse.class);
+        assertThat(r.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        return r.getBody().id();
+    }
+
+    private String contentBase() { return "/api/v1/centers/" + centerId + "/content"; }
 
     private ContentItemResponse createContent() {
         var req = new ConfirmUploadRequest(null, "JEE 2023 Physics Paper", "Electrostatics and optics",
                 ContentType.PREVIOUS_YEAR_PAPER,
-                CENTER_ID + "/docs/uuid/jee2023.pdf",
+                centerId + "/docs/uuid/jee2023.pdf",
                 204800L, "application/pdf", 30, null,
                 null, null, null, null, null, null, "ENGLISH", null);
         ResponseEntity<ContentItemResponse> res = restTemplate.postForEntity(
@@ -222,20 +232,21 @@ class ContentAiTaggingIT {
     @DisplayName("IT-6 — confirm triggers Kafka event publish")
     void confirm_triggersKafkaEvent() {
         createContent();
-        verify(kafkaTemplate).send(anyString(), any());
+        verify(centerEventPublisher).publish(any());
     }
 
     @Test
     @DisplayName("IT-7 — /ai-tag with TEACHER role → allowed")
     void aiTag_teacherAllowed() {
         ContentItemResponse item = createContent();
-        // Teacher belongs to CENTER_ID — teacherRepository.existsByUserIdAndCenterId returns true
+        // Teacher belongs to centerId — teacherRepository.existsByUserIdAndCenterId returns true
         // because TEACHER role principal with matching centerId passes canUpload check
         mockAuth(teacherPrincipal);
-        ResponseEntity<ContentItemResponse> res = restTemplate.postForEntity(
+        // Use String.class to avoid deserialization error when response is application/problem+json (403)
+        ResponseEntity<String> res = restTemplate.postForEntity(
                 contentBase() + "/" + item.id() + "/ai-tag",
-                authEntity(), ContentItemResponse.class);
-        // TEACHER with centerId matching CENTER_ID is allowed
+                authEntity(), String.class);
+        // TEACHER with centerId matching is allowed
         assertThat(res.getStatusCode()).isIn(HttpStatus.OK, HttpStatus.FORBIDDEN); // depends on teacher repo
     }
 

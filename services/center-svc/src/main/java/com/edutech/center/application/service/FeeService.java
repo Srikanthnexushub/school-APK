@@ -51,6 +51,10 @@ public class FeeService implements CreateFeeStructureUseCase {
         // Load center first (needed for both existence check and adminUserId comparison).
         var center = centerRepository.findById(centerId)
             .orElseThrow(() -> new CenterNotFoundException(centerId));
+        // Students and parents may not manage fee structures
+        if (principal.isStudent() || principal.role() == com.edutech.center.domain.model.Role.PARENT) {
+            throw new CenterAccessDeniedException();
+        }
         if (!principal.belongsToCenter(centerId, center.getAdminUserId())) {
             throw new CenterAccessDeniedException();
         }

@@ -12,6 +12,8 @@ import com.edutech.center.application.dto.UpdateCenterRequest;
 import com.edutech.center.domain.model.BatchStatus;
 import com.edutech.center.domain.model.CenterStatus;
 import com.edutech.center.domain.model.Role;
+import com.edutech.center.domain.port.out.AiTaggingPort;
+import com.edutech.center.domain.port.out.DocumentStoragePort;
 import com.edutech.center.infrastructure.security.JwtTokenValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,13 +28,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.core.KafkaTemplate;
+import com.edutech.center.domain.port.out.CenterEventPublisher;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDate;
 import java.util.Map;
@@ -47,8 +44,8 @@ import static org.mockito.Mockito.when;
 /**
  * HTTP-level integration tests for center-svc controllers.
  *
- * <p>Uses a real PostgreSQL container via TestContainers with Flyway migrations
- * applied automatically. Kafka and the JWT validator are mocked — the JWT
+ * <p>Uses native local Postgres (env vars: POSTGRES_HOST/PORT/CENTER_SVC_DB_NAME/USERNAME/PASSWORD)
+ * with Flyway migrations applied automatically. Kafka and the JWT validator are mocked — the JWT
  * validator returns a pre-configured {@link AuthPrincipal} for any bearer token
  * so that Spring Security does not block requests.
  *
@@ -65,39 +62,28 @@ import static org.mockito.Mockito.when;
  * </ul>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
 @ActiveProfiles("test")
 @DisplayName("center-svc — Controller HTTP Integration Tests")
 class CenterControllerIT {
-
-    // -------------------------------------------------------------------------
-    // Infrastructure: single shared PostgreSQL container
-    // -------------------------------------------------------------------------
-
-    @Container
-    static final PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:16-alpine")
-                    .withDatabaseName("center_ctrl_test")
-                    .withUsername("center_user")
-                    .withPassword("center_pass");
-
-    @DynamicPropertySource
-    static void overrideDataSourceProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url",      postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
 
     // -------------------------------------------------------------------------
     // Mocked infrastructure beans
     // -------------------------------------------------------------------------
 
     @MockBean
-    @SuppressWarnings("rawtypes")
-    KafkaTemplate kafkaTemplate;
+    CenterEventPublisher centerEventPublisher;
 
     @MockBean
     JwtTokenValidator jwtTokenValidator;
+
+    @MockBean
+    DocumentStoragePort documentStoragePort;
+
+    @MockBean
+    io.minio.MinioClient minioClient;
+
+    @MockBean
+    AiTaggingPort aiTaggingPort;
 
     // -------------------------------------------------------------------------
     // Test collaborators
@@ -109,6 +95,9 @@ class CenterControllerIT {
     // -------------------------------------------------------------------------
     // Shared test identities
     // -------------------------------------------------------------------------
+
+    /** Per-run random suffix — prevents unique-constraint conflicts with previous test runs. */
+    private static final String R = UUID.randomUUID().toString().replace("-", "").substring(0, 6).toUpperCase();
 
     static final UUID OWNER_ID = UUID.randomUUID();
 
@@ -128,11 +117,7 @@ class CenterControllerIT {
         // Default auth: super-admin
         mockAuth(superAdminPrincipal);
 
-        // Kafka mock
-        when(kafkaTemplate.send(anyString(), any())).thenReturn(
-                java.util.concurrent.CompletableFuture.completedFuture(null));
-        when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(
-                java.util.concurrent.CompletableFuture.completedFuture(null));
+
     }
 
     // -------------------------------------------------------------------------
@@ -196,7 +181,8 @@ class CenterControllerIT {
     @Test
     @DisplayName("POST /api/v1/centers — returns 201 Created with ACTIVE center body")
     void createCenter_returns201WithActiveStatus() {
-        CreateCenterRequest request = buildCenterRequest("CTRL01");
+        String code = "C01" + R;
+        CreateCenterRequest request = buildCenterRequest(code);
 
         ResponseEntity<CenterResponse> response = restTemplate.exchange(
                 "/api/v1/centers",
@@ -208,8 +194,8 @@ class CenterControllerIT {
         CenterResponse body = response.getBody();
         assertThat(body).isNotNull();
         assertThat(body.id()).isNotNull();
-        assertThat(body.code()).isEqualTo("CTRL01");
-        assertThat(body.name()).isEqualTo("EduTech Academy CTRL01");
+        assertThat(body.code()).isEqualTo(code);
+        assertThat(body.name()).isEqualTo("EduTech Academy " + code);
         assertThat(body.city()).isEqualTo("Bangalore");
         assertThat(body.state()).isEqualTo("Karnataka");
         assertThat(body.status()).isEqualTo(CenterStatus.ACTIVE);
@@ -225,10 +211,11 @@ class CenterControllerIT {
     @DisplayName("GET /api/v1/centers/{centerId} — returns 200 with center details")
     void getCenter_returns200WithCenterDetails() {
         // Create center first
+        String code = "C02" + R;
         CenterResponse created = restTemplate.exchange(
                 "/api/v1/centers",
                 HttpMethod.POST,
-                authEntity(buildCenterRequest("GETTEST")),
+                authEntity(buildCenterRequest(code)),
                 CenterResponse.class).getBody();
         UUID centerId = created.id();
 
@@ -243,8 +230,8 @@ class CenterControllerIT {
         CenterResponse body = response.getBody();
         assertThat(body).isNotNull();
         assertThat(body.id()).isEqualTo(centerId);
-        assertThat(body.code()).isEqualTo("GETTEST");
-        assertThat(body.name()).isEqualTo("EduTech Academy GETTEST");
+        assertThat(body.code()).isEqualTo(code);
+        assertThat(body.name()).isEqualTo("EduTech Academy " + code);
     }
 
     // =========================================================================
@@ -255,15 +242,16 @@ class CenterControllerIT {
     @DisplayName("GET /api/v1/centers/lookup?code=LOOKUP01 — returns 200 with lookup data (public endpoint)")
     void lookupCenter_returns200ForKnownCode() {
         // Create the center first (as admin)
+        String code = "C03" + R;
         restTemplate.exchange(
                 "/api/v1/centers",
                 HttpMethod.POST,
-                authEntity(buildCenterRequest("LOOKUP01")),
+                authEntity(buildCenterRequest(code)),
                 CenterResponse.class);
 
         // Lookup without any Authorization header (SecurityConfig permits /api/v1/centers/lookup)
         ResponseEntity<CenterLookupResponse> response = restTemplate.exchange(
-                "/api/v1/centers/lookup?code=LOOKUP01",
+                "/api/v1/centers/lookup?code=" + code,
                 HttpMethod.GET,
                 new HttpEntity<>(new HttpHeaders()),
                 CenterLookupResponse.class);
@@ -272,7 +260,7 @@ class CenterControllerIT {
         CenterLookupResponse body = response.getBody();
         assertThat(body).isNotNull();
         assertThat(body.id()).isNotNull();
-        assertThat(body.name()).isEqualTo("EduTech Academy LOOKUP01");
+        assertThat(body.name()).isEqualTo("EduTech Academy " + code);
         assertThat(body.city()).isEqualTo("Bangalore");
     }
 
@@ -299,7 +287,7 @@ class CenterControllerIT {
         CenterResponse created = restTemplate.exchange(
                 "/api/v1/centers",
                 HttpMethod.POST,
-                authEntity(buildCenterRequest("UPDTEST")),
+                authEntity(buildCenterRequest("C04" + R)),
                 CenterResponse.class).getBody();
         UUID centerId = created.id();
 
@@ -343,7 +331,7 @@ class CenterControllerIT {
         CenterResponse center = restTemplate.exchange(
                 "/api/v1/centers",
                 HttpMethod.POST,
-                authEntity(buildCenterRequest("BATCHOWN")),
+                authEntity(buildCenterRequest("C05" + R)),
                 CenterResponse.class).getBody();
         UUID centerId = center.id();
 
@@ -352,10 +340,11 @@ class CenterControllerIT {
                 Role.CENTER_ADMIN, centerId, "fp-owner");
         mockAuth(ownerPrincipal);
 
+        String batchCode = "PH6" + R;
         ResponseEntity<BatchResponse> response = restTemplate.exchange(
                 "/api/v1/centers/" + centerId + "/batches",
                 HttpMethod.POST,
-                authEntity(buildBatchRequest("Physics Batch 2026", "PHY2026B")),
+                authEntity(buildBatchRequest("Physics Batch 2026", batchCode)),
                 BatchResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
@@ -364,7 +353,7 @@ class CenterControllerIT {
         assertThat(body.id()).isNotNull();
         assertThat(body.centerId()).isEqualTo(centerId);
         assertThat(body.name()).isEqualTo("Physics Batch 2026");
-        assertThat(body.code()).isEqualTo("PHY2026B");
+        assertThat(body.code()).isEqualTo(batchCode);
         assertThat(body.subject()).isEqualTo("Mathematics");
         assertThat(body.maxStudents()).isEqualTo(35);
         assertThat(body.enrolledCount()).isEqualTo(0);
@@ -383,7 +372,7 @@ class CenterControllerIT {
         CenterResponse center = restTemplate.exchange(
                 "/api/v1/centers",
                 HttpMethod.POST,
-                authEntity(buildCenterRequest("ACTCTR")),
+                authEntity(buildCenterRequest("C06" + R)),
                 CenterResponse.class).getBody();
         UUID centerId = center.id();
 
@@ -395,7 +384,7 @@ class CenterControllerIT {
         BatchResponse batch = restTemplate.exchange(
                 "/api/v1/centers/" + centerId + "/batches",
                 HttpMethod.POST,
-                authEntity(buildBatchRequest("Chemistry Batch 2026", "CHEM26A")),
+                authEntity(buildBatchRequest("Chemistry Batch 2026", "CH7" + R)),
                 BatchResponse.class).getBody();
         UUID batchId = batch.id();
         assertThat(batch.status()).isEqualTo(BatchStatus.UPCOMING);
@@ -428,7 +417,7 @@ class CenterControllerIT {
         ResponseEntity<String> response = restTemplate.exchange(
                 "/api/v1/centers",
                 HttpMethod.POST,
-                authEntity(buildCenterRequest("FORBID")),
+                authEntity(buildCenterRequest("C07" + R)),
                 String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
@@ -441,18 +430,19 @@ class CenterControllerIT {
     @Test
     @DisplayName("POST /api/v1/centers with duplicate code — returns 409 Conflict")
     void createCenter_duplicateCode_returns409() {
-        // Create first center with code DUPCTRL
+        // Create first center with a unique-per-run duplicate code
+        String dupCode = "C08" + R;
         restTemplate.exchange(
                 "/api/v1/centers",
                 HttpMethod.POST,
-                authEntity(buildCenterRequest("DUPCTRL")),
+                authEntity(buildCenterRequest(dupCode)),
                 CenterResponse.class);
 
         // Attempt to create second center with same code
         ResponseEntity<String> response = restTemplate.exchange(
                 "/api/v1/centers",
                 HttpMethod.POST,
-                authEntity(buildCenterRequest("DUPCTRL")),
+                authEntity(buildCenterRequest(dupCode)),
                 String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);

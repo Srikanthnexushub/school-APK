@@ -1,8 +1,10 @@
 package com.edutech.center;
 
 import com.edutech.center.application.dto.AuthPrincipal;
+import com.edutech.center.application.dto.CenterResponse;
 import com.edutech.center.application.dto.ConfirmUploadRequest;
 import com.edutech.center.application.dto.ContentItemResponse;
+import com.edutech.center.application.dto.CreateCenterRequest;
 import com.edutech.center.domain.model.ContentType;
 import com.edutech.center.domain.model.Difficulty;
 import com.edutech.center.domain.model.ExamType;
@@ -23,13 +25,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.core.KafkaTemplate;
+import com.edutech.center.domain.port.out.CenterEventPublisher;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 import java.util.Map;
@@ -45,6 +42,11 @@ import static org.mockito.Mockito.when;
 /**
  * Integration tests for the global library search & discovery endpoints.
  *
+ * <p>Uses native local Postgres (env vars: POSTGRES_HOST/PORT/CENTER_SVC_DB_NAME/USERNAME/PASSWORD)
+ * with Flyway migrations applied automatically. Kafka, JWT validator, DocumentStoragePort, MinioClient,
+ * and AiTaggingPort are mocked. A real center is created via API in @BeforeEach so that
+ * ContentService.centerRepository.findById() succeeds.
+ *
  * Tests (10):
  *  1. /library/search with no params returns all AVAILABLE content
  *  2. /library/search?q=keyword finds by title (FTS)
@@ -58,26 +60,11 @@ import static org.mockito.Mockito.when;
  * 10. empty search result returns empty page (not 500)
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
 @ActiveProfiles("test")
 @DisplayName("center-svc — ContentSearch HTTP Integration Tests")
 class ContentSearchIT {
 
-    @Container
-    static final PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:16-alpine")
-                    .withDatabaseName("center_search_test")
-                    .withUsername("search_user")
-                    .withPassword("search_pass");
-
-    @DynamicPropertySource
-    static void overrideDataSource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url",      postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
-
-    @MockBean @SuppressWarnings("rawtypes") KafkaTemplate kafkaTemplate;
+    @MockBean CenterEventPublisher centerEventPublisher;
     @MockBean JwtTokenValidator jwtTokenValidator;
     @MockBean DocumentStoragePort documentStoragePort;
     @MockBean io.minio.MinioClient minioClient;
@@ -86,18 +73,18 @@ class ContentSearchIT {
     @Autowired TestRestTemplate restTemplate;
 
     static final UUID CENTER_ADMIN_USER_ID = UUID.randomUUID();
-    static final UUID CENTER_ID            = UUID.randomUUID();
+    static final UUID OWNER_ID             = UUID.randomUUID();
     static final String FAKE_TOKEN         = "search-test-token";
+
+    // centerId set in @BeforeEach after creating the center via API
+    UUID centerId;
+
+    AuthPrincipal centerAdminPrincipal;
 
     @BeforeEach
     void setUp() {
-        AuthPrincipal principal = new AuthPrincipal(CENTER_ADMIN_USER_ID, "admin@search-test.com",
-                Role.CENTER_ADMIN, CENTER_ID, "fp-search-admin");
-        when(jwtTokenValidator.validate(anyString())).thenReturn(Optional.of(principal));
-        when(kafkaTemplate.send(anyString(), any())).thenReturn(
-                java.util.concurrent.CompletableFuture.completedFuture(null));
-        when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(
-                java.util.concurrent.CompletableFuture.completedFuture(null));
+
+
         when(documentStoragePort.buildObjectKey(any(), anyString(), anyString()))
                 .thenAnswer(inv -> inv.getArgument(0) + "/docs/uuid/" + inv.getArgument(2));
         when(documentStoragePort.generateUploadUrl(anyString(), anyString(), anyInt()))
@@ -106,6 +93,17 @@ class ContentSearchIT {
                 .thenReturn("https://minio.test/download?sig=xyz");
         when(aiTaggingPort.suggestTags(anyString(), any()))
                 .thenReturn(com.edutech.center.domain.model.TaggingResult.empty());
+
+        // Create center via API as SUPER_ADMIN so centerRepository.findById() succeeds
+        AuthPrincipal superAdmin = new AuthPrincipal(UUID.randomUUID(), "superadmin@search-test.com",
+                Role.SUPER_ADMIN, null, "fp-search-super");
+        when(jwtTokenValidator.validate(anyString())).thenReturn(Optional.of(superAdmin));
+        centerId = createCenter("SCH" + UUID.randomUUID().toString().replace("-", "").substring(0, 6).toUpperCase());
+
+        // Default principal for search tests: CENTER_ADMIN with real centerId
+        centerAdminPrincipal = new AuthPrincipal(CENTER_ADMIN_USER_ID, "admin@search-test.com",
+                Role.CENTER_ADMIN, centerId, "fp-search-admin");
+        when(jwtTokenValidator.validate(anyString())).thenReturn(Optional.of(centerAdminPrincipal));
     }
 
     private HttpHeaders authHeaders() {
@@ -118,14 +116,26 @@ class ContentSearchIT {
     private HttpEntity<Void> authEntity()         { return new HttpEntity<>(authHeaders()); }
     private <T> HttpEntity<T> authEntity(T body)  { return new HttpEntity<>(body, authHeaders()); }
 
-    private String contentBase() { return "/api/v1/centers/" + CENTER_ID + "/content"; }
+    private UUID createCenter(String code) {
+        CreateCenterRequest req = new CreateCenterRequest(
+                "Test Center " + code, code,
+                "1 Main St", "Bangalore", "Karnataka", "560001",
+                "9876543210", code.toLowerCase() + "@test.com",
+                null, null, OWNER_ID, null);
+        ResponseEntity<CenterResponse> r = restTemplate.exchange(
+                "/api/v1/centers", HttpMethod.POST, authEntity(req), CenterResponse.class);
+        assertThat(r.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        return r.getBody().id();
+    }
+
+    private String contentBase() { return "/api/v1/centers/" + centerId + "/content"; }
 
     /** Seeds a content item via confirm, then manually marks it AVAILABLE via ai-tag (empty result). */
     private ContentItemResponse seed(String title, String subject, String board,
                                       Short year, ExamType examType, Difficulty difficulty) {
         var req = new ConfirmUploadRequest(null, title, "Description for " + title,
                 ContentType.PREVIOUS_YEAR_PAPER,
-                CENTER_ID + "/docs/uuid/" + title.replaceAll("\\s", "-") + ".pdf",
+                centerId + "/docs/uuid/" + title.replaceAll("\\s", "-") + ".pdf",
                 102400L, "application/pdf", 20, null,
                 subject, board, "12", year, examType, difficulty, "ENGLISH",
                 List.of(subject != null ? subject.toLowerCase() : "general"));

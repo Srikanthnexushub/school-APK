@@ -14,8 +14,11 @@ import com.edutech.center.application.service.CenterService;
 import com.edutech.center.domain.model.BatchStatus;
 import com.edutech.center.domain.model.CenterStatus;
 import com.edutech.center.domain.model.Role;
+import com.edutech.center.domain.port.out.AiTaggingPort;
 import com.edutech.center.domain.port.out.BatchRepository;
+import com.edutech.center.domain.port.out.CenterEventPublisher;
 import com.edutech.center.domain.port.out.CenterRepository;
+import com.edutech.center.domain.port.out.DocumentStoragePort;
 import com.edutech.center.infrastructure.security.JwtTokenValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,13 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -38,56 +35,41 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
 
 /**
  * Integration tests for center-svc: center creation, duplicate-code rejection,
- * institution-code lookup, and batch creation/retrieval — backed by a real
- * PostgreSQL container running Flyway migrations.
+ * institution-code lookup, and batch creation/retrieval — backed by native local
+ * Postgres (env vars: POSTGRES_HOST/PORT/CENTER_SVC_DB_NAME/USERNAME/PASSWORD) with Flyway migrations.
  *
  * <p>JWT validation and Kafka/Redis are mocked so tests focus solely on
  * the database-facing application and persistence layers.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@Testcontainers
 @ActiveProfiles("test")
 @DisplayName("center-svc — Center Operations Integration Tests")
 class CenterOperationsIT {
 
     // ---------------------------------------------------------------------------
-    // Infrastructure: single shared PostgreSQL container (reused across tests)
-    // ---------------------------------------------------------------------------
-
-    @Container
-    static final PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:16-alpine")
-                    .withDatabaseName("center_test")
-                    .withUsername("center_user")
-                    .withPassword("center_pass");
-
-    @DynamicPropertySource
-    static void overrideDataSourceProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url",      postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
-
-    // ---------------------------------------------------------------------------
     // Mocked infrastructure beans (Kafka, Redis, JWT)
     // ---------------------------------------------------------------------------
-
-    /** Mocked so Kafka producer does not try to connect to a real broker. */
-    @MockBean
-    @SuppressWarnings("rawtypes")
-    KafkaTemplate kafkaTemplate;
 
     /**
      * Mocked so the Spring context starts without a real RSA public-key file.
      */
     @MockBean
     JwtTokenValidator jwtTokenValidator;
+
+    @MockBean
+    DocumentStoragePort documentStoragePort;
+
+    @MockBean
+    io.minio.MinioClient minioClient;
+
+    @MockBean
+    AiTaggingPort aiTaggingPort;
+
+    @MockBean
+    CenterEventPublisher centerEventPublisher;
 
     // ---------------------------------------------------------------------------
     // Application-layer services under test
@@ -113,6 +95,9 @@ class CenterOperationsIT {
     // Shared test identities
     // ---------------------------------------------------------------------------
 
+    /** Per-run random suffix — prevents unique-constraint conflicts with previous test runs. */
+    private static final String R = UUID.randomUUID().toString().replace("-", "").substring(0, 6);
+
     static final UUID OWNER_ID = UUID.randomUUID();
 
     AuthPrincipal superAdminPrincipal;
@@ -123,11 +108,6 @@ class CenterOperationsIT {
         superAdminPrincipal = new AuthPrincipal(OWNER_ID, "admin@test.com",
                 Role.SUPER_ADMIN, null, "fp-admin");
 
-        // Kafka mock: return a completed future so event publishing does not block
-        when(kafkaTemplate.send(anyString(), any())).thenReturn(
-                java.util.concurrent.CompletableFuture.completedFuture(null));
-        when(kafkaTemplate.send(anyString(), anyString(), any())).thenReturn(
-                java.util.concurrent.CompletableFuture.completedFuture(null));
     }
 
     // ---------------------------------------------------------------------------
@@ -158,13 +138,14 @@ class CenterOperationsIT {
     @Test
     @DisplayName("createCenter — persists center to center_schema.centers with ACTIVE status and unique code")
     void createCenter_persistsWithCode() {
+        String code = "E1" + R;
         CenterResponse response = centerService.createCenter(
-                buildCenterRequest("ETBLR01"), superAdminPrincipal);
+                buildCenterRequest(code), superAdminPrincipal);
 
         assertThat(response).isNotNull();
         assertThat(response.id()).isNotNull();
-        assertThat(response.code()).isEqualTo("ETBLR01");
-        assertThat(response.name()).isEqualTo("EduTech Academy ETBLR01");
+        assertThat(response.code()).isEqualTo(code);
+        assertThat(response.name()).isEqualTo("EduTech Academy " + code);
         assertThat(response.city()).isEqualTo("Bangalore");
         assertThat(response.state()).isEqualTo("Karnataka");
         assertThat(response.status()).isEqualTo(CenterStatus.ACTIVE);
@@ -173,9 +154,9 @@ class CenterOperationsIT {
 
         // Verify persistence via repository
         Optional<com.edutech.center.domain.model.CoachingCenter> persisted =
-                centerRepository.findByCode("ETBLR01");
+                centerRepository.findByCode(code);
         assertThat(persisted).isPresent();
-        assertThat(persisted.get().getCode()).isEqualTo("ETBLR01");
+        assertThat(persisted.get().getCode()).isEqualTo(code);
         assertThat(persisted.get().getStatus()).isEqualTo(CenterStatus.ACTIVE);
     }
 
@@ -186,10 +167,11 @@ class CenterOperationsIT {
     @Test
     @DisplayName("createCenter — throws DuplicateCenterCodeException when code is already taken")
     void createCenter_duplicateCode_throws() {
-        centerService.createCenter(buildCenterRequest("DUPCODE"), superAdminPrincipal);
+        String dupCode = "E2" + R;
+        centerService.createCenter(buildCenterRequest(dupCode), superAdminPrincipal);
 
         assertThatThrownBy(() ->
-                centerService.createCenter(buildCenterRequest("DUPCODE"), superAdminPrincipal))
+                centerService.createCenter(buildCenterRequest(dupCode), superAdminPrincipal))
                 .isInstanceOf(DuplicateCenterCodeException.class);
     }
 
@@ -204,7 +186,7 @@ class CenterOperationsIT {
                 Role.TEACHER, null, "fp");
 
         assertThatThrownBy(() ->
-                centerService.createCenter(buildCenterRequest("NOADMIN"), nonAdmin))
+                centerService.createCenter(buildCenterRequest("E3" + R), nonAdmin))
                 .isInstanceOf(CenterAccessDeniedException.class);
     }
 
@@ -215,13 +197,14 @@ class CenterOperationsIT {
     @Test
     @DisplayName("lookupByCode — returns CenterLookupResponse (id, name, city) for a known code")
     void lookupByInstitutionCode_returnsCenter() {
-        centerService.createCenter(buildCenterRequest("LOOKUP1"), superAdminPrincipal);
+        String code = "E4" + R;
+        centerService.createCenter(buildCenterRequest(code), superAdminPrincipal);
 
-        Optional<CenterLookupResponse> result = centerService.lookupByCode("LOOKUP1");
+        Optional<CenterLookupResponse> result = centerService.lookupByCode(code);
 
         assertThat(result).isPresent();
         assertThat(result.get().id()).isNotNull();
-        assertThat(result.get().name()).isEqualTo("EduTech Academy LOOKUP1");
+        assertThat(result.get().name()).isEqualTo("EduTech Academy " + code);
         assertThat(result.get().city()).isEqualTo("Bangalore");
     }
 
@@ -246,16 +229,17 @@ class CenterOperationsIT {
     void createBatch_linkedToCenter() {
         // Arrange: create a center first
         CenterResponse center = centerService.createCenter(
-                buildCenterRequest("BATCH01"), superAdminPrincipal);
+                buildCenterRequest("E5" + R), superAdminPrincipal);
 
         UUID centerId = center.id();
         // Build a center-admin principal that belongs to this center
         AuthPrincipal ownerPrincipal = new AuthPrincipal(OWNER_ID, "owner@test.com",
                 Role.CENTER_ADMIN, centerId, "fp-owner");
 
+        String batchCode = "PY" + R;
         CreateBatchRequest batchRequest = new CreateBatchRequest(
                 "Physics Batch 2026",
-                "PHY2026A",
+                batchCode,
                 "Physics",
                 null, // no teacher assigned yet
                 40,
@@ -269,7 +253,7 @@ class CenterOperationsIT {
         assertThat(response.id()).isNotNull();
         assertThat(response.centerId()).isEqualTo(centerId);
         assertThat(response.name()).isEqualTo("Physics Batch 2026");
-        assertThat(response.code()).isEqualTo("PHY2026A");
+        assertThat(response.code()).isEqualTo(batchCode);
         assertThat(response.subject()).isEqualTo("Physics");
         assertThat(response.maxStudents()).isEqualTo(40);
         assertThat(response.enrolledCount()).isEqualTo(0);
@@ -292,14 +276,14 @@ class CenterOperationsIT {
     @DisplayName("updateBatch — batch transitions from UPCOMING to ACTIVE when activated")
     void createBatch_andActivate_statusTransition() {
         CenterResponse center = centerService.createCenter(
-                buildCenterRequest("ACTBATCH"), superAdminPrincipal);
+                buildCenterRequest("E6" + R), superAdminPrincipal);
         UUID centerId = center.id();
 
         AuthPrincipal ownerPrincipal = new AuthPrincipal(OWNER_ID, "owner@test.com",
                 Role.CENTER_ADMIN, centerId, "fp");
 
         BatchResponse created = batchService.createBatch(centerId, new CreateBatchRequest(
-                "Maths Batch 2026", "MATH2026A", "Mathematics",
+                "Maths Batch 2026", "MA" + R, "Mathematics",
                 null, 30,
                 LocalDate.now().plusDays(1),
                 LocalDate.now().plusDays(90)
@@ -331,20 +315,22 @@ class CenterOperationsIT {
     @DisplayName("listBatches — filtering by UPCOMING status returns only UPCOMING batches")
     void listBatches_filterByStatus() {
         CenterResponse center = centerService.createCenter(
-                buildCenterRequest("LISTBATCH"), superAdminPrincipal);
+                buildCenterRequest("E7" + R), superAdminPrincipal);
         UUID centerId = center.id();
 
         AuthPrincipal ownerPrincipal = new AuthPrincipal(OWNER_ID, "owner@test.com",
                 Role.CENTER_ADMIN, centerId, "fp");
 
+        String chemCode = "CH" + R;
+        String bioCode  = "BI" + R;
         // Create two batches
         BatchResponse b1 = batchService.createBatch(centerId, new CreateBatchRequest(
-                "Chemistry Upcoming", "CHEM01", "Chemistry",
+                "Chemistry Upcoming", chemCode, "Chemistry",
                 null, 25, LocalDate.now().plusDays(5), LocalDate.now().plusDays(100)
         ), ownerPrincipal);
 
         BatchResponse b2 = batchService.createBatch(centerId, new CreateBatchRequest(
-                "Biology Active", "BIO01", "Biology",
+                "Biology Active", bioCode, "Biology",
                 null, 25, LocalDate.now().plusDays(1), LocalDate.now().plusDays(100)
         ), ownerPrincipal);
 
@@ -360,7 +346,7 @@ class CenterOperationsIT {
         assertThat(upcoming)
                 .isNotEmpty()
                 .allSatisfy(b -> assertThat(b.status()).isEqualTo(BatchStatus.UPCOMING));
-        assertThat(upcoming).extracting(BatchResponse::code).contains("CHEM01");
-        assertThat(upcoming).extracting(BatchResponse::code).doesNotContain("BIO01");
+        assertThat(upcoming).extracting(BatchResponse::code).contains(chemCode);
+        assertThat(upcoming).extracting(BatchResponse::code).doesNotContain(bioCode);
     }
 }
