@@ -17,4 +17,7 @@ interface SpringDataFeePaymentRepository extends JpaRepository<FeePayment, UUID>
     @Query("SELECT p FROM FeePayment p WHERE p.parentId = :parentId AND p.studentId = :studentId ORDER BY p.paymentDate DESC")
     List<FeePayment> findByParentIdAndStudentId(@Param("parentId") UUID parentId,
                                                 @Param("studentId") UUID studentId);
+
+    @Query("SELECT p FROM FeePayment p WHERE p.centerId = :centerId ORDER BY p.paymentDate DESC")
+    List<FeePayment> findByCenterId(@Param("centerId") UUID centerId);
 }

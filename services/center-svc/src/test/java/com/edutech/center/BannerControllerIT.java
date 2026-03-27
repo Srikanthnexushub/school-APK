@@ -730,12 +730,12 @@ class BannerControllerIT {
     }
 
     // =========================================================================
-    // Test 17: POST /api/v1/banners as INSTITUTION_ADMIN → 201
+    // Test 17: POST /api/v1/banners as INSTITUTION_ADMIN → 403 (write restricted to SUPER_ADMIN)
     // =========================================================================
 
     @Test
-    @DisplayName("POST /api/v1/banners — INSTITUTION_ADMIN creates banner → 201, id not null")
-    void createBanner_institutionAdmin_succeeds() {
+    @DisplayName("POST /api/v1/banners — INSTITUTION_ADMIN creates banner → 403 Forbidden")
+    void createBanner_institutionAdmin_forbidden() {
         mockAuth(institutionAdminPrincipal);
 
         CreateBannerRequest req = new CreateBannerRequest(
@@ -755,12 +755,7 @@ class BannerControllerIT {
                 authEntity(req),
                 BannerResponse.class);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        BannerResponse body = response.getBody();
-        assertThat(body).isNotNull();
-        assertThat(body.id()).isNotNull();
-        assertThat(body.title()).isEqualTo("Institution Admin Banner");
-        assertThat(body.isActive()).isTrue();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     // =========================================================================
@@ -786,12 +781,12 @@ class BannerControllerIT {
     }
 
     // =========================================================================
-    // Test 19: DELETE /api/v1/banners/{id} as INSTITUTION_ADMIN → 204
+    // Test 19: DELETE /api/v1/banners/{id} as INSTITUTION_ADMIN → 403 (write restricted to SUPER_ADMIN)
     // =========================================================================
 
     @Test
-    @DisplayName("DELETE /api/v1/banners/{id} — INSTITUTION_ADMIN soft-deletes → 204")
-    void deleteBanner_institutionAdmin_succeeds() {
+    @DisplayName("DELETE /api/v1/banners/{id} — INSTITUTION_ADMIN soft-deletes → 403 Forbidden")
+    void deleteBanner_institutionAdmin_forbidden() {
         mockAuth(superAdminPrincipal);
         String title = "Inst Admin Deletable " + UUID.randomUUID();
         UUID id = createBanner(title, BannerAudience.ALL);
@@ -803,6 +798,6 @@ class BannerControllerIT {
                 authEntity(),
                 Void.class);
 
-        assertThat(deleteResp.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(deleteResp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 }

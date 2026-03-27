@@ -47,4 +47,9 @@ class StudentLinkPersistenceAdapter implements StudentLinkRepository {
     public List<StudentLink> findActiveByParentId(UUID parentId) {
         return repository.findActiveByParentId(parentId);
     }
+
+    @Override
+    public List<StudentLink> findActiveByCenterId(UUID centerId) {
+        return repository.findActiveByCenterId(centerId);
+    }
 }

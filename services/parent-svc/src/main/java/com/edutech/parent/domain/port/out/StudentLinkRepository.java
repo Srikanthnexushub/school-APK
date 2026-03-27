@@ -14,4 +14,5 @@ public interface StudentLinkRepository {
     Optional<StudentLink> findByParentIdAndStudentId(UUID parentId, UUID studentId);
     List<StudentLink> findActiveByStudentId(UUID studentId);
     List<StudentLink> findActiveByParentId(UUID parentId);
+    List<StudentLink> findActiveByCenterId(UUID centerId);
 }

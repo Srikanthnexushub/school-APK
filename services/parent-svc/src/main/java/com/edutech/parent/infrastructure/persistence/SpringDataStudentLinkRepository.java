@@ -24,4 +24,7 @@ interface SpringDataStudentLinkRepository extends JpaRepository<StudentLink, UUI
 
     @Query("SELECT l FROM StudentLink l WHERE l.studentId = :studentId AND l.status = 'ACTIVE'")
     List<StudentLink> findActiveByStudentId(@Param("studentId") UUID studentId);
+
+    @Query("SELECT l FROM StudentLink l WHERE l.centerId = :centerId AND l.status = 'ACTIVE'")
+    List<StudentLink> findActiveByCenterId(@Param("centerId") UUID centerId);
 }

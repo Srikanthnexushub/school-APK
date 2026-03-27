@@ -12,4 +12,5 @@ public interface FeePaymentRepository {
     Optional<FeePayment> findById(UUID id);
     List<FeePayment> findByParentId(UUID parentId);
     List<FeePayment> findByParentIdAndStudentId(UUID parentId, UUID studentId);
+    List<FeePayment> findByCenterId(UUID centerId);
 }

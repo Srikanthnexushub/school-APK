@@ -37,4 +37,9 @@ class FeePaymentPersistenceAdapter implements FeePaymentRepository {
     public List<FeePayment> findByParentIdAndStudentId(UUID parentId, UUID studentId) {
         return repository.findByParentIdAndStudentId(parentId, studentId);
     }
+
+    @Override
+    public List<FeePayment> findByCenterId(UUID centerId) {
+        return repository.findByCenterId(centerId);
+    }
 }

@@ -53,6 +53,7 @@ import MentorPortalAttendancePage from './pages/mentor-portal/MentorPortalAttend
 import MentorPortalAnnouncementsPage from './pages/mentor-portal/MentorPortalAnnouncementsPage';
 import AdminAnnouncementsPage from './pages/admin/AdminAnnouncementsPage';
 import AdminFeesPage from './pages/admin/AdminFeesPage';
+import AdminBillingPage from './pages/admin/AdminBillingPage';
 import AdminAttendancePage from './pages/admin/AdminAttendancePage';
 
 export const router = createBrowserRouter([
@@ -152,6 +153,7 @@ export const router = createBrowserRouter([
       { path: 'attendance',     element: <AdminAttendancePage /> },
       { path: 'announcements',  element: <AdminAnnouncementsPage /> },
       { path: 'fees',           element: <AdminFeesPage /> },
+      { path: 'billing',        element: <AdminBillingPage /> },
     ],
   },
   {

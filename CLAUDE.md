@@ -112,7 +112,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (121 fixes, latest: Fix #117–#121 — Attendance/Fees/Announcements modules: backend services+controllers, V24–V27 migrations, 10 frontend pages, router wiring, 3 IT test files).
+Full list → `memory/frozen-fixes.md` (123 fixes, latest: Fix #122–#123 — banner write restricted to SUPER_ADMIN only; Accounts section + Billing report + parent fee reminders via Kafka IN_APP notifications).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -6,7 +6,7 @@ import {
   Users, Calendar, Settings, LogOut, BookOpen, Menu, X, ChevronLeft,
   Bell, Search, ChevronRight, BookOpenCheck, Library, Award,
   CreditCard, Beaker, UserCog, BookCheck, Building2, Upload, UserCheck,
-  Briefcase, Megaphone, CalendarCheck,
+  Briefcase, Megaphone, CalendarCheck, Receipt,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '../../stores/authStore';
@@ -24,6 +24,7 @@ interface NavItem {
   to: string;
   badge?: number;
   disabled?: boolean;
+  sectionLabel?: string;
 }
 
 const studentNav: NavItem[] = [
@@ -61,6 +62,7 @@ function getAdminNav(role?: string): NavItem[] {
     ...(isSuperOrInst ? [{ icon: Megaphone, label: 'Banners', to: '/admin?tab=banners' }] : []),
     { icon: CalendarCheck, label: 'Attendance',    to: '/admin/attendance' },
     { icon: Megaphone,     label: 'Announcements', to: '/admin/announcements' },
+    { icon: Receipt,       label: 'Billing',       to: '/admin/billing',  sectionLabel: 'Accounts' },
     { icon: CreditCard,    label: 'Fees',          to: '/admin/fees' },
   ];
 }
@@ -304,27 +306,24 @@ function SidebarContent({
 
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ icon: Icon, label, to, badge, disabled }) => {
+        {navItems.map(({ icon: Icon, label, to, badge, disabled, sectionLabel }) => {
           const tabActive = isTabActive(to);
-          if (disabled) {
-            return collapsed ? (
-              <CollapseTooltip key={to} label={`${label} (coming soon)`}>
+
+          const entry = disabled ? (
+            collapsed ? (
+              <CollapseTooltip label={`${label} (coming soon)`}>
                 <span className="flex items-center justify-center p-2.5 rounded-xl text-white/20 cursor-not-allowed relative">
                   <Icon style={{ width: 18, height: 18 }} className="flex-shrink-0" />
                 </span>
               </CollapseTooltip>
             ) : (
-              <span
-                key={to}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/20 cursor-not-allowed select-none"
-              >
+              <span className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/20 cursor-not-allowed select-none">
                 <Icon style={{ width: 18, height: 18 }} className="flex-shrink-0" />
                 <span className="flex-1">{label}</span>
               </span>
-            );
-          }
-          return collapsed ? (
-            <CollapseTooltip key={to} label={label}>
+            )
+          ) : collapsed ? (
+            <CollapseTooltip label={label}>
               <NavLink
                 to={to}
                 end={endPaths.includes(to)}
@@ -354,7 +353,6 @@ function SidebarContent({
             </CollapseTooltip>
           ) : (
             <NavLink
-              key={to}
               to={to}
               end={endPaths.includes(to)}
               onClick={onNavigate}
@@ -386,6 +384,17 @@ function SidebarContent({
                 );
               }}
             </NavLink>
+          );
+
+          return (
+            <Fragment key={to}>
+              {sectionLabel && !collapsed && (
+                <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/25 select-none">
+                  {sectionLabel}
+                </p>
+              )}
+              {entry}
+            </Fragment>
           );
         })}
       </nav>
