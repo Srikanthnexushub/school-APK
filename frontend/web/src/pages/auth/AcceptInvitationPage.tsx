@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { BookOpen, Eye, EyeOff, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
-import { cn } from '../../lib/utils';
+import { cn, randomUUID } from '../../lib/utils';
 import CaptchaWidget from '../../components/CaptchaWidget';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -81,7 +81,7 @@ export default function AcceptInvitationPage() {
       if (!captchaToken) { toast.error('Please complete the captcha'); return; }
 
       // 1. Register the teacher's account via standard auth flow
-      const deviceId = crypto.randomUUID();
+      const deviceId = randomUUID();
       const regRes = await api.post('/api/v1/auth/register', {
         firstName: info.firstName,
         lastName: info.lastName,

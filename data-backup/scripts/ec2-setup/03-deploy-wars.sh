@@ -43,7 +43,7 @@ echo "    Source: /opt/apps/"
 echo "    Exec:   /opt/apps/exec-jars/"
 echo
 
-PASS=0; FAIL=0
+PASS=0; FAIL=0; true  # initialize counters (avoid set -e trap on ((n++)) when n=0)
 
 # Deploy Tomcat WARs as ROOT.war
 echo "--- Tomcat WARs (12) ---"
@@ -54,7 +54,7 @@ for SVC in "${!TOMCAT_WARS[@]}"; do
 
   if [[ -z "$WAR" ]]; then
     echo -e "  ${RED}✗${NC} ${SVC}: WAR not found in /opt/apps/"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
     continue
   fi
 
@@ -70,7 +70,7 @@ for SVC in "${!TOMCAT_WARS[@]}"; do
   cp "$WAR" "$TARGET"
   SIZE=$(du -sh "$TARGET" | cut -f1)
   echo -e "  ${GREEN}✓${NC} ${SVC}: $(basename $WAR) → ROOT.war (${SIZE})"
-  ((PASS++))
+  PASS=$((PASS + 1))
 done
 
 echo
@@ -84,11 +84,11 @@ for SVC in "${EXEC_WARS[@]}"; do
   fi
   if [[ -z "$ARTIFACT" ]]; then
     echo -e "  ${RED}✗${NC} ${SVC}: not found in /opt/apps/exec-jars/"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
   else
     SIZE=$(du -sh "$ARTIFACT" | cut -f1)
     echo -e "  ${GREEN}✓${NC} ${SVC}: $(basename $ARTIFACT) (${SIZE}) — ready for java -jar"
-    $DRY_RUN || ((PASS++))
+    $DRY_RUN || PASS=$((PASS + 1))
   fi
 done
 

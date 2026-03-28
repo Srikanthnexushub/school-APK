@@ -20,7 +20,7 @@ import CaptchaWidget from '../../components/CaptchaWidget';
 import GoogleSignInButton from '../../components/GoogleSignInButton';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
-import { cn } from '../../lib/utils';
+import { cn, randomUUID } from '../../lib/utils';
 import { INDIA_STATES, getCitiesForState, WORLD_COUNTRIES, getDistricts, lookupPincode } from '../../utils/indiaLocations';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
@@ -448,7 +448,7 @@ export default function RegisterPage() {
   async function handleGoogleSuccess(accessToken: string) {
     setIsGoogleLoading(true);
     try {
-      const deviceId = crypto.randomUUID();
+      const deviceId = randomUUID();
       const res = await api.post('/api/v1/auth/google', { idToken: accessToken }, {
         headers: { 'X-Device-Id': deviceId },
       });
@@ -588,7 +588,7 @@ export default function RegisterPage() {
 
     setIsRegistering(true);
     try {
-      const deviceId = crypto.randomUUID();
+      const deviceId = randomUUID();
       setRegDeviceId(deviceId);
       const instWords = selectedRole === 'INSTITUTION_ADMIN' ? institutionName.trim().split(/\s+/) : [];
       const response = await api.post('/api/v1/auth/register', {
@@ -765,7 +765,7 @@ export default function RegisterPage() {
           const meRes = await axios.get('/api/v1/auth/me', { headers: { Authorization: `Bearer ${regToken}` } });
           const u = meRes.data;
           const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;
-          setAuth(regToken, { id: u.id, email: u.email, role: u.role, name }, regRefreshToken ?? '', regDeviceId ?? crypto.randomUUID());
+          setAuth(regToken, { id: u.id, email: u.email, role: u.role, name }, regRefreshToken ?? '', regDeviceId ?? randomUUID());
           await axios.post('/api/v1/parents', {
             name,
             phone: parentPhone || undefined,

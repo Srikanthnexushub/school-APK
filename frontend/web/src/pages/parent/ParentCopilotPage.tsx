@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, User, Send, Plus, Trash2, ChevronRight } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { cn, randomUUID } from '../../lib/utils';
 import api from '../../lib/api';
 import { toast } from 'sonner';
 
@@ -197,13 +197,13 @@ const greetingMessage = (id: string): Message => ({
 });
 
 function makeLocalConv(studentId: string | null): Conversation {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   return {
     id,
     apiId: null,
     preview: 'New conversation',
     timestamp: new Date(),
-    messages: [greetingMessage(crypto.randomUUID())],
+    messages: [greetingMessage(randomUUID())],
     studentId,
   };
 }
@@ -291,7 +291,7 @@ export default function ParentCopilotPage() {
     const studentId = activeConv.studentId ?? defaultStudentId;
 
     const userMsg: Message = {
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       role: 'user',
       content: trimmed,
       displayedContent: trimmed,
@@ -341,7 +341,7 @@ export default function ParentCopilotPage() {
         ? new Date(lastAssistantApiMsg.sentAt)
         : new Date();
 
-      const assistantMsgId = crypto.randomUUID();
+      const assistantMsgId = randomUUID();
       const assistantMsg: Message = {
         id: assistantMsgId,
         role: 'assistant',

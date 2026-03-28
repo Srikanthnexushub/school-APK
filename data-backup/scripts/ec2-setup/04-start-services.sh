@@ -41,13 +41,13 @@ sudo systemctl is-active kafka &>/dev/null || sudo systemctl start kafka
 sleep 3
 /opt/kafka/bin/kafka-topics.sh --bootstrap-server 127.0.0.1:9092 --list &>/dev/null && \
   echo -e "  ${GREEN}✓${NC} Kafka listening on 9092" || \
-  { echo -e "  ${RED}✗${NC} Kafka not ready"; ((FAIL++)); }
+  { echo -e "  ${RED}✗${NC} Kafka not ready"; FAIL=$((FAIL + 1)); }
 
 # ─── 1. auth-svc ──────────────────────────────────────────────────────────────
 echo "=== [1/8] auth-svc (Flyway: 6 migrations) ==="
 source "$ENV_FILE"
 /opt/apps/tomcat-auth-svc/bin/startup.sh > /dev/null
-health_check "auth-svc" 8182 40 || ((FAIL++))
+health_check "auth-svc" 8182 40 || FAIL=$((FAIL + 1))
 
 # ─── 2. Core domain services ───────────────────────────────────────────────────
 echo "=== [2/8] Core domain (center-svc has 28 migrations — allow 60s) ==="
@@ -62,7 +62,7 @@ echo "  Waiting for Flyway migrations (up to 60s)..."
 sleep 30
 for SVC_PORT in "center-svc:8083" "parent-svc:8082" "assess-svc:8084" "psych-svc:8085"; do
   SVC="${SVC_PORT%%:*}"; PORT="${SVC_PORT##*:}"
-  health_check "$SVC" "$PORT" 30 || ((FAIL++))
+  health_check "$SVC" "$PORT" 30 || FAIL=$((FAIL + 1))
 done
 
 # ─── 3. Student portal Tomcat services ────────────────────────────────────────
@@ -80,20 +80,20 @@ sleep 25
 for SVC_PORT in "student-profile-svc:8090" "exam-tracker-svc:8091" "performance-svc:8092" \
                 "career-oracle-svc:8087" "mentor-svc:8088" "notification-svc:8094"; do
   SVC="${SVC_PORT%%:*}"; PORT="${SVC_PORT##*:}"
-  health_check "$SVC" "$PORT" 30 || ((FAIL++))
+  health_check "$SVC" "$PORT" 30 || FAIL=$((FAIL + 1))
 done
 
 # ─── 3b. ai-mentor-svc (JAR — java -jar, no WAR packaging) ────────────────────
 echo "=== [3b/8] ai-mentor-svc (JAR) ==="
 source "$ENV_FILE"
 ARTIFACT=$(ls /opt/apps/exec-jars/ai-mentor-svc-*.jar 2>/dev/null | head -1)
-[[ -z "$ARTIFACT" ]] && { echo -e "  ${RED}✗${NC} ai-mentor-svc JAR not found"; ((FAIL++)); } || {
+[[ -z "$ARTIFACT" ]] && { echo -e "  ${RED}✗${NC} ai-mentor-svc JAR not found"; FAIL=$((FAIL + 1)); } || {
   nohup java -server -Xms256m -Xmx512m \
     -Djava.security.egd=file:/dev/urandom \
     -jar "$ARTIFACT" \
     > /opt/logs/ai-mentor-svc.log 2>&1 &
   echo $! > /opt/apps/ai-mentor-svc.pid
-  health_check "ai-mentor-svc" 8093 30 || ((FAIL++))
+  health_check "ai-mentor-svc" 8093 30 || FAIL=$((FAIL + 1))
 }
 
 # ─── 4. Python AI sidecar ──────────────────────────────────────────────────────
@@ -115,39 +115,39 @@ curl -sf http://127.0.0.1:8095/health &>/dev/null && \
 echo "=== [5/8] ai-gateway-svc (exec WAR — Netty) ==="
 source "$ENV_FILE"
 ARTIFACT=$(ls /opt/apps/exec-jars/ai-gateway-svc-*-exec.war 2>/dev/null | head -1)
-[[ -z "$ARTIFACT" ]] && { echo -e "  ${RED}✗${NC} ai-gateway-svc exec WAR not found"; ((FAIL++)); } || {
+[[ -z "$ARTIFACT" ]] && { echo -e "  ${RED}✗${NC} ai-gateway-svc exec WAR not found"; FAIL=$((FAIL + 1)); } || {
   nohup java -server -Xms256m -Xmx512m \
     -Djava.security.egd=file:/dev/urandom \
     -jar "$ARTIFACT" \
     > /opt/logs/ai-gateway-svc.log 2>&1 &
   echo $! > /opt/apps/ai-gateway-svc.pid
-  health_check "ai-gateway-svc" 8086 30 || ((FAIL++))
+  health_check "ai-gateway-svc" 8086 30 || FAIL=$((FAIL + 1))
 }
 
 # ─── 6. student-gateway ────────────────────────────────────────────────────────
 echo "=== [6/8] student-gateway (JAR — Spring Cloud Gateway) ==="
 source "$ENV_FILE"
 ARTIFACT=$(ls /opt/apps/exec-jars/student-gateway-*.jar 2>/dev/null | head -1)
-[[ -z "$ARTIFACT" ]] && { echo -e "  ${RED}✗${NC} student-gateway JAR not found"; ((FAIL++)); } || {
+[[ -z "$ARTIFACT" ]] && { echo -e "  ${RED}✗${NC} student-gateway JAR not found"; FAIL=$((FAIL + 1)); } || {
   nohup java -server -Xms256m -Xmx512m \
     -Djava.security.egd=file:/dev/urandom \
     -jar "$ARTIFACT" \
     > /opt/logs/student-gateway.log 2>&1 &
   echo $! > /opt/apps/student-gateway.pid
-  health_check "student-gateway" 8089 30 || ((FAIL++))
+  health_check "student-gateway" 8089 30 || FAIL=$((FAIL + 1))
 }
 
 # ─── 7. api-gateway — START LAST ───────────────────────────────────────────────
 echo "=== [7/8] api-gateway (JAR — Spring Cloud Gateway — STARTING LAST) ==="
 source "$ENV_FILE"
 ARTIFACT=$(ls /opt/apps/exec-jars/api-gateway-*.jar 2>/dev/null | head -1)
-[[ -z "$ARTIFACT" ]] && { echo -e "  ${RED}✗${NC} api-gateway JAR not found"; ((FAIL++)); } || {
+[[ -z "$ARTIFACT" ]] && { echo -e "  ${RED}✗${NC} api-gateway JAR not found"; FAIL=$((FAIL + 1)); } || {
   nohup java -server -Xms512m -Xmx1g \
     -Djava.security.egd=file:/dev/urandom \
     -jar "$ARTIFACT" \
     > /opt/logs/api-gateway.log 2>&1 &
   echo $! > /opt/apps/api-gateway.pid
-  health_check "api-gateway" 8180 30 || ((FAIL++))
+  health_check "api-gateway" 8180 30 || FAIL=$((FAIL + 1))
 }
 
 # ─── 8. Final health check — all 15 services ───────────────────────────────────
@@ -169,7 +169,7 @@ for SVC in "${!ALL_SERVICES[@]}"; do
   else
     echo -e "  ${RED}✗${NC} ${SVC}:${PORT} → HTTP ${STATUS}"
     ALL_UP=false
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
   fi
 done
 

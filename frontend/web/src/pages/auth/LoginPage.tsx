@@ -14,7 +14,7 @@ import CaptchaWidget from '../../components/CaptchaWidget';
 import GoogleSignInButton from '../../components/GoogleSignInButton';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
-import { cn } from '../../lib/utils';
+import { cn, randomUUID } from '../../lib/utils';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
 const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID ?? '';
@@ -176,7 +176,7 @@ export default function LoginPage() {
   async function handleGoogleSuccess(accessToken: string) {
     setIsGoogleLoading(true);
     try {
-      const deviceId = crypto.randomUUID();
+      const deviceId = randomUUID();
       const res = await api.post('/api/v1/auth/google', { idToken: accessToken }, {
         headers: { 'X-Device-Id': deviceId },
       });
@@ -204,7 +204,7 @@ export default function LoginPage() {
       toast.info('GitHub Sign-In is not configured on this server.');
       return;
     }
-    const state = crypto.randomUUID();
+    const state = randomUUID();
     sessionStorage.setItem('github_oauth_state', state);
     window.location.href = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=user:email&state=${state}`;
   }
@@ -212,7 +212,7 @@ export default function LoginPage() {
   async function handleGithubCallback(code: string) {
     setIsGithubLoading(true);
     try {
-      const deviceId = crypto.randomUUID();
+      const deviceId = randomUUID();
       const res = await api.post('/api/v1/auth/github', { code }, {
         headers: { 'X-Device-Id': deviceId },
       });
@@ -251,7 +251,7 @@ export default function LoginPage() {
 
   async function onSubmit(data: FormData) {
     try {
-      const deviceId = crypto.randomUUID();
+      const deviceId = randomUUID();
       const loginRes = await api.post('/api/v1/auth/login', {
         email: data.email,
         password: data.password,

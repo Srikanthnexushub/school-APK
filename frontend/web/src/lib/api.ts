@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useAuthStore, isJwtExpired } from '../stores/authStore';
+import { randomUUID } from './utils';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? '',
@@ -72,7 +73,7 @@ api.interceptors.response.use(
           refreshToken,
           deviceFingerprint: {
             userAgent: navigator.userAgent,
-            deviceId: deviceId ?? crypto.randomUUID(),
+            deviceId: deviceId ?? randomUUID(),
             // ipSubnet is not reliably available client-side; backend ignores it for fingerprint hash
             ipSubnet: '',
           },

@@ -112,7 +112,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (125 fixes, latest: Fix #125 — AdminBannersPage Create/Edit/Delete buttons hidden for non-SUPER_ADMIN; Fix #124 — center-svc 135/135 IT tests passing).
+Full list → `memory/frozen-fixes.md` (126 fixes, latest: Fix #126 — `randomUUID()` HTTP fallback; Fix #125 — AdminBannersPage SUPER_ADMIN guard).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
@@ -127,9 +127,60 @@ Read it before touching any existing file.
 
 ---
 
-## AWS Deployment (EC2 + RDS — Tier 1)
+## AWS Deployment (EC2 + RDS — Tier 1) — LIVE at http://13.203.158.45
 
 **Deployment scripts**: `data-backup/scripts/` (backup) + `data-backup/scripts/ec2-setup/` (EC2 setup)
+
+### Deploying a New Feature to Live EC2
+
+When you add a new feature, follow these steps to push it live:
+
+#### Frontend-only change (fastest — 2 min)
+```bash
+# 1. Build
+npx vite build   # Use npx vite build NOT npm run build (tsc fails on test file deps)
+
+# 2. Fix nginx ownership + deploy
+ssh -i ~/.ssh/edutech-key.pem -o KexAlgorithms=ecdh-sha2-nistp256 ec2-user@13.203.158.45 \
+  "sudo chown -R ec2-user:ec2-user /usr/share/nginx/html"
+scp -i ~/.ssh/edutech-key.pem -o KexAlgorithms=ecdh-sha2-nistp256 \
+  -r frontend/web/dist/. ec2-user@13.203.158.45:/usr/share/nginx/html/
+```
+
+#### Java service change (5-15 min per service)
+```bash
+# 1. Build only the changed service (fast — skip unchanged modules)
+mvn clean package -DskipTests -T 4 -Drevision=1.0.0-PROD \
+  -pl services/<service-name> -am
+
+# 2. Transfer WAR/JAR to EC2
+# For Tomcat WARs (11 services):
+SVC=auth-svc   # change this
+scp -i ~/.ssh/edutech-key.pem -o KexAlgorithms=ecdh-sha2-nistp256 \
+  services/$SVC/target/$SVC-1.0.0-PROD.war \
+  ec2-user@13.203.158.45:/opt/apps/
+
+# 3. Restart the service on EC2
+ssh -i ~/.ssh/edutech-key.pem -o KexAlgorithms=ecdh-sha2-nistp256 ec2-user@13.203.158.45 "
+  sudo systemctl stop edutech-$SVC
+  rm -rf /opt/apps/tomcat-$SVC/webapps/ROOT /opt/apps/tomcat-$SVC/webapps/ROOT.war
+  cp /opt/apps/$SVC-1.0.0-PROD.war /opt/apps/tomcat-$SVC/webapps/ROOT.war
+  sudo systemctl start edutech-$SVC
+  sleep 20
+  curl -s http://localhost:<PORT>/actuator/health
+"
+```
+
+#### Flyway DB migration (run before restarting the service)
+- New migration file in `src/main/resources/db/migration/<schema>/V{N}__*.sql` is picked up automatically when the service starts (Flyway runs on boot).
+- On RDS (EC2): no manual step needed — Flyway applies the migration on service restart.
+- **Exception**: `ALTER TABLE` on existing tables in **local dev DB** (tables owned by `srikanth` superuser) — must run manually as superuser first.
+
+#### EC2 SSH key
+```bash
+~/.ssh/edutech-key.pem    # always use: -o KexAlgorithms=ecdh-sha2-nistp256
+EC2: 13.203.158.45  (i-0e9a180c6cb8af4c3, ap-south-1, t3.large)
+```
 
 **Build for production** (NEVER use -DskipITs — MfaServiceTest unit test fails; use -DskipTests):
 ```bash
@@ -143,7 +194,7 @@ mvn clean package -DskipTests -T 4 -Drevision=1.0.0-PROD
 
 **Local superuser for pg_dump**: `srikanth` (NOT `edutech_root` which doesn't exist). `.env` POSTGRES_ROOT_USER=srikanth, POSTGRES_ROOT_PASSWORD= (empty, peer auth).
 
-**EC2 setup order**: 01-java-kafka → 02-tomcat-instances (11 only) → 03-deploy-wars → 05-nginx → 06-systemd → 04-start-services
+**EC2 setup order** (first-time only): 01-java-kafka → 02-tomcat-instances (11 only) → 03-deploy-wars → 05-nginx → 06-systemd → 04-start-services
 
 **AWS state** → `memory/aws-deployment.md`
 
