@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 125+ frozen fixes as of Fix #125 (2026-03-28 — AdminBannersPage SUPER_ADMIN UI guard + AWS EC2 deployment scripts in data-backup/).
+- Read `memory/frozen-fixes.md` before touching any file. 127+ frozen fixes as of Fix #127 (2026-03-28 — api-gateway missing 11 student-portal routes).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -120,6 +120,8 @@ Read it before touching any existing file.
 **DB migrations**: Every enum value addition in Java MUST have a corresponding Flyway migration in the SAME commit — never rely on manual DB changes. If you add a status to any enum that maps to a DB CHECK constraint, update the constraint in a new `V{N}__*.sql` migration file simultaneously.
 
 **Gateway routes**: When a new endpoint is added to any service that serves paths under `/api/v1/students/**`, you MUST add a specific route in `student-gateway/application.yml` BEFORE the `Path=/api/v1/students/**` catch-all. First-match-wins.
+
+**CRITICAL — dual-gateway rule (Fix #127)**: nginx proxies ALL `/api/` traffic → `api-gateway` (8180). `student-gateway` (8089) is NEVER hit by browser traffic. Any new student-facing route MUST be added to BOTH `api-gateway/application.yml` AND `student-gateway/application.yml`. Adding to student-gateway alone = 404 in the browser.
 
 **Flyway + DB ownership (this dev DB)**: Tables in `assess_db`, `auth_db`, etc. are owned by `srikanth` (superuser) because migrations ran as srikanth during initial setup. Future DDL migrations that use `ALTER TABLE` on these schemas must be run manually as `postgres`/`srikanth` superuser first, then inserted into `flyway_schema_history`. Fresh DBs are not affected (tables will be owned by the app user).
 
