@@ -66,6 +66,50 @@ spring:
           uri: ${ASSESS_SVC_URI}
           predicates:
             - Path=/api/v1/students/*/assignments
+        - id: student-profile-svc
+          uri: ${STUDENT_PROFILE_SVC_URI}
+          predicates:
+            - Path=/api/v1/students/**
+        - id: study-plans
+          uri: ${AI_MENTOR_SVC_URI}
+          predicates:
+            - Path=/api/v1/study-plans/**
+        - id: doubts
+          uri: ${AI_MENTOR_SVC_URI}
+          predicates:
+            - Path=/api/v1/doubts/**
+        - id: recommendations
+          uri: ${AI_MENTOR_SVC_URI}
+          predicates:
+            - Path=/api/v1/recommendations/**
+        - id: exam-tracker-svc
+          uri: ${EXAM_TRACKER_SVC_URI}
+          predicates:
+            - Path=/api/v1/exam-tracker/**
+        - id: performance-svc
+          uri: ${PERFORMANCE_SVC_URI}
+          predicates:
+            - Path=/api/v1/performance/**
+        - id: career-oracle-profiles
+          uri: ${CAREER_ORACLE_SVC_URI}
+          predicates:
+            - Path=/api/v1/career-profiles/**
+        - id: career-oracle-recommendations
+          uri: ${CAREER_ORACLE_SVC_URI}
+          predicates:
+            - Path=/api/v1/career-recommendations/**
+        - id: career-oracle-colleges
+          uri: ${CAREER_ORACLE_SVC_URI}
+          predicates:
+            - Path=/api/v1/college-predictions/**
+        - id: mentor-svc
+          uri: ${MENTOR_SVC_URI}
+          predicates:
+            - Path=/api/v1/mentors/**
+        - id: mentor-sessions
+          uri: ${MENTOR_SVC_URI}
+          predicates:
+            - Path=/api/v1/mentor-sessions/**
         - id: assess-svc-exams
           uri: ${ASSESS_SVC_URI}
           predicates:
