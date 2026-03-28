@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, ShieldCheck } from 'lucide-react';
+import { RefreshCw, ShieldCheck, AlertTriangle } from 'lucide-react';
 import api from '../lib/api';
 import { cn } from '../lib/utils';
 
@@ -7,22 +7,37 @@ interface Props {
   onVerify: (token: string | null) => void;
 }
 
+// Container background matches exactly what the server renders (rgb(22,22,35) canvas fill).
+// Using inline style so it is never overridden by any global light/dark CSS class.
+const IMG_BOX_STYLE: React.CSSProperties = {
+  width: 220,
+  height: 80,
+  background: 'rgb(22, 22, 35)',
+  flexShrink: 0,
+};
+
 export default function CaptchaWidget({ onVerify }: Props) {
   const [challengeId, setChallengeId] = useState('');
   const [imageDataUri, setImageDataUri] = useState('');
   const [answer, setAnswer] = useState('');
-  const [loading, setLoading] = useState(false);
+  // Start as loading=true so the spinner is visible immediately on mount
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [verified, setVerified] = useState(false);
 
   const fetchChallenge = useCallback(async () => {
     setLoading(true);
     setAnswer('');
     setVerified(false);
+    setError(false);
     onVerify(null);
     try {
-      const res = await api.get('/api/v1/captcha/challenge');
+      const res = await api.get(`/api/v1/captcha/challenge?t=${Date.now()}`);
       setChallengeId(res.data.id);
       setImageDataUri(res.data.imageDataUri);
+    } catch {
+      setError(true);
+      setImageDataUri('');
     } finally {
       setLoading(false);
     }
@@ -52,22 +67,32 @@ export default function CaptchaWidget({ onVerify }: Props) {
 
       {/* Image + refresh */}
       <div className="flex items-center gap-3">
+        {/* Fixed container — inline style prevents any CSS class override */}
         <div
-          className="relative rounded-xl overflow-hidden border border-white/10 flex-shrink-0"
-          style={{ width: 220, height: 80, background: '#16162b' }}
+          className="relative rounded-xl overflow-hidden border border-white/10"
+          style={IMG_BOX_STYLE}
         >
-          {loading ? (
-            <div className="flex items-center justify-center w-full h-full">
-              <div className="w-6 h-6 border-2 border-white/20 border-t-brand-400 rounded-full animate-spin" />
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-white/15 border-t-brand-400 rounded-full animate-spin" />
             </div>
-          ) : imageDataUri ? (
+          )}
+
+          {!loading && error && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
+              <AlertTriangle className="w-5 h-5 text-amber-400" />
+              <span className="text-[11px] text-white/50">Failed to load</span>
+            </div>
+          )}
+
+          {!loading && !error && imageDataUri && (
             <img
               src={imageDataUri}
               alt="CAPTCHA challenge"
-              className="w-full h-full object-cover select-none pointer-events-none"
+              className="absolute inset-0 w-full h-full object-fill select-none pointer-events-none"
               draggable={false}
             />
-          ) : null}
+          )}
         </div>
 
         <button
@@ -93,10 +118,11 @@ export default function CaptchaWidget({ onVerify }: Props) {
           autoCorrect="off"
           autoCapitalize="characters"
           spellCheck={false}
+          disabled={error}
           className={cn(
             'input w-full text-center font-mono text-xl tracking-[0.4em] uppercase pr-10 transition-colors',
             verified && 'border-green-500/60 bg-green-500/5',
-            !verified && answer.length > 0 && answer.length < 6 && 'border-white/20'
+            error && 'opacity-50 cursor-not-allowed',
           )}
         />
         {verified && (
@@ -104,8 +130,18 @@ export default function CaptchaWidget({ onVerify }: Props) {
         )}
       </div>
 
-      {answer.length === 6 && !verified && (
-        <p className="text-xs text-red-400">Keep typing — 6 characters required</p>
+      {error && (
+        <p className="text-xs text-amber-400/80 flex items-center gap-1.5">
+          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+          Could not load CAPTCHA.{' '}
+          <button
+            type="button"
+            onClick={fetchChallenge}
+            className="underline underline-offset-2 hover:text-amber-300 transition-colors"
+          >
+            Try again
+          </button>
+        </p>
       )}
     </div>
   );

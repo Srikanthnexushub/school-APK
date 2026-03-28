@@ -11,6 +11,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../lib/utils';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
+import { ExportMenu } from '../../components/ui/ExportMenu';
 
 interface MentorSession {
   id: string;
@@ -171,9 +172,21 @@ export default function MentorPortalSessionsPage() {
             Manage upcoming bookings and review your session history
           </p>
         </div>
-        <div className="flex items-center gap-2 text-white/40">
-          <Filter className="w-4 h-4" />
-          <span className="text-sm">{counts.ALL} total</span>
+        <div className="flex items-center gap-3">
+          <ExportMenu
+            csvData={filtered.map(s => ({
+              Student: s.studentName,
+              Subject: s.subject,
+              Date: new Date(s.scheduledAt).toLocaleString(),
+              Duration: `${s.durationMinutes}m`,
+              Status: s.status,
+            }))}
+            csvFilename="mentor-sessions"
+          />
+          <div className="flex items-center gap-2 text-white/40">
+            <Filter className="w-4 h-4" />
+            <span className="text-sm">{counts.ALL} total</span>
+          </div>
         </div>
       </div>
 

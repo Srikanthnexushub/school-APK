@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { CalendarCheck, TrendingUp, AlertTriangle } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
+import { ExportMenu } from '../../components/ui/ExportMenu';
 
 interface AttendanceSummary {
   batchId: string;
@@ -61,14 +62,29 @@ export default function StudentAttendancePage() {
 
   return (
     <div className="p-6 space-y-6 max-w-2xl mx-auto">
-      <div className="flex items-center gap-3">
-        <div className="p-2 rounded-xl bg-brand-500/10 border border-brand-500/20">
-          <CalendarCheck className="w-5 h-5 text-brand-400" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-brand-500/10 border border-brand-500/20">
+            <CalendarCheck className="w-5 h-5 text-brand-400" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-white">My Attendance</h1>
+            <p className="text-sm text-white/50">{profile?.batchName ?? 'Current batch'}</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-white">My Attendance</h1>
-          <p className="text-sm text-white/50">{profile?.batchName ?? 'Current batch'}</p>
-        </div>
+        {summary && (
+          <ExportMenu
+            csvData={[{
+              Attendance: `${summary.attendancePct}%`,
+              Present: summary.presentDays,
+              Absent: summary.absentDays,
+              Late: summary.lateDays,
+              Excused: summary.excusedDays,
+              Total: summary.totalDays,
+            }]}
+            csvFilename="attendance-summary"
+          />
+        )}
       </div>
 
       {isLoading ? (

@@ -19,6 +19,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../lib/utils';
 import { StatCard } from '../../components/ui/StatCard';
 import { Skeleton, StatCardSkeleton, CardSkeleton } from '../../components/ui/LoadingSkeleton';
+import { ExportMenu } from '../../components/ui/ExportMenu';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -106,11 +107,23 @@ function EnrolledExamsSection({
 }) {
   const navigate = useNavigate();
 
+  const csvData = enrollments.map(e => ({
+    Exam: e.examName,
+    Subject: e.subject,
+    Date: new Date(e.scheduledDate).toLocaleDateString(),
+    Status: e.status,
+    Score: e.score !== undefined ? `${e.score}%` : '',
+    Percentile: e.percentile !== undefined ? `P${e.percentile}` : '',
+  }));
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <ClipboardList className="w-5 h-5 text-brand-400" />
-        <h2 className="font-semibold text-white">Enrolled Exams</h2>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <ClipboardList className="w-5 h-5 text-brand-400" />
+          <h2 className="font-semibold text-white">Enrolled Exams</h2>
+        </div>
+        <ExportMenu csvData={csvData} csvFilename="exam-tracker" />
       </div>
 
       <div className="glass rounded-2xl overflow-hidden">

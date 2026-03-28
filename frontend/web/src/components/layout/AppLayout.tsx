@@ -6,8 +6,11 @@ import {
   Users, Calendar, Settings, LogOut, BookOpen, Menu, X, ChevronLeft,
   Bell, Search, ChevronRight, BookOpenCheck, Library, Award,
   CreditCard, Beaker, UserCog, BookCheck, Building2, Upload, UserCheck,
-  Briefcase, Megaphone, CalendarCheck, Receipt,
+  Briefcase, Megaphone, CalendarCheck, Receipt, GraduationCap,
+  Sun, Moon,
 } from 'lucide-react';
+import NexusEdLogo from '../NexusEdLogo';
+import { useThemeStore } from '../../stores/themeStore';
 import { toast } from 'sonner';
 import { useAuthStore } from '../../stores/authStore';
 import { Avatar } from '../ui/Avatar';
@@ -29,7 +32,8 @@ interface NavItem {
 
 const studentNav: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard',    to: '/dashboard' },
-  { icon: Bot,             label: 'AI Mentor',    to: '/ai-mentor', badge: 3 },
+  { icon: Bot,             label: 'AI Mentor',    to: '/ai-mentor' },
+  { icon: GraduationCap,  label: 'Academic Plan', to: '/academic-plan' },
   { icon: ClipboardList,   label: 'Assessments',  to: '/assessments' },
   { icon: BookCheck,       label: 'Assignments',  to: '/assignments' },
   { icon: BarChart3,       label: 'Performance',  to: '/performance' },
@@ -256,9 +260,7 @@ function SidebarContent({
       {/* Logo + collapse */}
       <div className={cn('flex items-center p-4 border-b border-white/5 h-14 flex-shrink-0', collapsed ? 'justify-center' : 'justify-between')}>
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="p-1.5 rounded-lg bg-brand-600/20 border border-brand-500/30 flex-shrink-0">
-            <BookOpen className="w-4 h-4 text-brand-400" />
-          </div>
+          <NexusEdLogo size={collapsed ? 22 : 24} className="flex-shrink-0" />
           {!collapsed && (
             <span className="font-bold text-white truncate">NexusEd</span>
           )}
@@ -447,6 +449,46 @@ function SidebarContent({
   );
 }
 
+function ThemeToggle() {
+  const { theme, toggleTheme } = useThemeStore();
+  const isDark = theme === 'dark';
+  return (
+    <motion.button
+      onClick={toggleTheme}
+      whileTap={{ scale: 0.88 }}
+      title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      className="relative p-2 rounded-xl hover:bg-white/5 text-white/40 hover:text-white transition-colors overflow-hidden"
+      aria-label="Toggle theme"
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        {isDark ? (
+          <motion.span
+            key="moon"
+            initial={{ rotate: -30, opacity: 0, scale: 0.6 }}
+            animate={{ rotate: 0, opacity: 1, scale: 1 }}
+            exit={{ rotate: 30, opacity: 0, scale: 0.6 }}
+            transition={{ duration: 0.22 }}
+            className="flex"
+          >
+            <Moon className="w-4 h-4" />
+          </motion.span>
+        ) : (
+          <motion.span
+            key="sun"
+            initial={{ rotate: 30, opacity: 0, scale: 0.6 }}
+            animate={{ rotate: 0, opacity: 1, scale: 1 }}
+            exit={{ rotate: -30, opacity: 0, scale: 0.6 }}
+            transition={{ duration: 0.22 }}
+            className="flex"
+          >
+            <Sun className="w-4 h-4 text-amber-500" />
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </motion.button>
+  );
+}
+
 function ProfileRing({ pct, onClick }: { pct: number; onClick: () => void }) {
   const r = 13;
   const circ = 2 * Math.PI * r;
@@ -631,6 +673,9 @@ export default function AppLayout() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Theme toggle */}
+            <ThemeToggle />
+
             {/* Notifications */}
             <div className="relative" ref={notifRef}>
               <button

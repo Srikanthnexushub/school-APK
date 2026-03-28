@@ -19,10 +19,10 @@ export default {
           950: '#1e1b4b',
         },
         surface: {
-          DEFAULT: '#0F1117',
-          50: '#1a1d27',
-          100: '#252836',
-          200: '#2d3147',
+          DEFAULT: 'rgb(var(--color-surface) / <alpha-value>)',
+          50:  'rgb(var(--color-surface-50) / <alpha-value>)',
+          100: 'rgb(var(--color-surface-100) / <alpha-value>)',
+          200: 'rgb(var(--color-surface-200) / <alpha-value>)',
         },
       },
       fontFamily: {

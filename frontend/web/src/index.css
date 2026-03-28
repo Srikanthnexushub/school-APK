@@ -4,9 +4,28 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── CSS SURFACE TOKENS ──────────────────────────────────────────────────── */
+
+.dark {
+  --color-surface:     15  17  23;
+  --color-surface-50:  26  29  39;
+  --color-surface-100: 37  40  54;
+  --color-surface-200: 45  49  71;
+  color-scheme: dark;
+}
+
+html:not(.dark) {
+  --color-surface:     242 240 255;
+  --color-surface-50:  252 251 255;
+  --color-surface-100: 234 231 255;
+  --color-surface-200: 222 218 255;
+  color-scheme: light;
+}
+
+/* ── BASE ─────────────────────────────────────────────────────────────────── */
+
 @layer base {
   * { box-sizing: border-box; }
-  html { color-scheme: dark; }
   body { @apply bg-surface text-white antialiased min-h-screen; }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { @apply bg-surface-50; }
@@ -14,13 +33,186 @@
   ::-webkit-scrollbar-thumb:hover { @apply bg-brand-700; }
 }
 
+/* ── COMPONENTS ──────────────────────────────────────────────────────────── */
+
 @layer components {
-  .glass { @apply bg-surface-50/60 backdrop-blur-md border border-white/5; }
+  .glass       { @apply bg-surface-50/60 backdrop-blur-md border border-white/5; }
   .glass-hover { @apply hover:bg-surface-50/80 hover:border-white/10 transition-all duration-200; }
   .gradient-text { @apply bg-gradient-to-r from-brand-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent; }
-  .card { @apply glass rounded-2xl p-6; }
+  .card        { @apply glass rounded-2xl p-6; }
   .btn-primary { @apply bg-brand-600 hover:bg-brand-500 text-white font-medium px-4 py-2 rounded-xl transition-all duration-200 active:scale-95; }
-  .btn-ghost { @apply hover:bg-white/5 text-white/70 hover:text-white px-4 py-2 rounded-xl transition-all duration-200; }
-  .input { @apply bg-surface-100 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-white/30 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all; }
-  .badge { @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium; }
+  .btn-ghost   { @apply hover:bg-white/5 text-white/70 hover:text-white px-4 py-2 rounded-xl transition-all duration-200; }
+  .input       { @apply bg-surface-100 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-white/30 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all; }
+  .badge       { @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ☀  LIGHT MODE  —  Pearl · Iridescent · Frosted Glass
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Body: soft aurora gradient over pearl base */
+html:not(.dark) body {
+  background-color: rgb(var(--color-surface));
+  background-image:
+    radial-gradient(ellipse 900px 700px at 10% 12%, rgba(139, 92, 246, 0.09) 0%, transparent 60%),
+    radial-gradient(ellipse 700px 600px at 88% 82%, rgba(99, 102, 241, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 600px 800px at 50% 108%, rgba(6, 182, 212, 0.06) 0%, transparent 60%);
+  color: rgb(22 18 40);
+}
+
+/* Scrollbar */
+html:not(.dark) ::-webkit-scrollbar-track { background: rgba(234, 231, 255, 0.50); }
+html:not(.dark) ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.28); border-radius: 9999px; }
+html:not(.dark) ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.52); }
+
+/* ── Glass: iridescent pearl card ── */
+@keyframes shimmer-iris {
+  0%   { background-position: 0%   50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0%   50%; }
+}
+
+html:not(.dark) .glass {
+  background-color: rgba(255, 255, 255, 0.68) !important;
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(220, 216, 255, 0.42) 28%,
+    rgba(196, 232, 255, 0.32) 58%,
+    rgba(255, 218, 240, 0.24) 100%
+  ) !important;
+  background-size: 300% 300%;
+  animation: shimmer-iris 12s ease infinite;
+  backdrop-filter: blur(24px) saturate(210%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.92) !important;
+  box-shadow:
+    0  4px 24px rgba(99, 102, 241, 0.10),
+    0  1px  4px rgba(139,  92, 246, 0.08),
+    inset 0  1px 0   rgba(255, 255, 255, 0.98),
+    inset 0  0   0 1px rgba(99, 102, 241, 0.05) !important;
+}
+
+html:not(.dark) .glass-hover:hover {
+  background-color: rgba(255, 255, 255, 0.84) !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+  box-shadow:
+    0  8px 36px rgba(99, 102, 241, 0.14),
+    0  2px  8px rgba(139,  92, 246, 0.10),
+    inset 0  1px 0   rgba(255, 255, 255, 1),
+    inset 0  0   0 1px rgba(99, 102, 241, 0.12) !important;
+  transition: box-shadow 0.25s, border-color 0.25s;
+}
+
+/* ── Input ── */
+html:not(.dark) .input {
+  background: rgba(255, 255, 255, 0.80) !important;
+  border-color: rgba(99, 102, 241, 0.22) !important;
+  color: rgb(22 18 40) !important;
+  box-shadow: inset 0 1px 3px rgba(22, 18, 40, 0.06) !important;
+}
+html:not(.dark) .input::placeholder { color: rgba(22, 18, 40, 0.35) !important; }
+html:not(.dark) .input:focus {
+  border-color: rgba(99, 102, 241, 0.65) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12), inset 0 1px 3px rgba(22, 18, 40, 0.04) !important;
+}
+
+/* ── btn-ghost ── */
+html:not(.dark) .btn-ghost {
+  color: rgba(22, 18, 40, 0.65) !important;
+}
+html:not(.dark) .btn-ghost:hover {
+  background: rgba(22, 18, 40, 0.06) !important;
+  color: rgb(22 18 40) !important;
+}
+
+/* ── Structural chrome ── */
+html:not(.dark) aside {
+  background: rgba(248, 246, 255, 0.91) !important;
+  border-right-color: rgba(99, 102, 241, 0.13) !important;
+  backdrop-filter: blur(24px) !important;
+}
+html:not(.dark) header {
+  background: rgba(255, 255, 255, 0.84) !important;
+  border-bottom-color: rgba(99, 102, 241, 0.10) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+}
+html:not(.dark) footer {
+  border-top-color: rgba(99, 102, 241, 0.10) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TEXT  —  white → deep ink at corresponding opacities
+   ═══════════════════════════════════════════════════════════════ */
+
+html:not(.dark) .text-white       { color: rgb(22 18 40)        !important; }
+html:not(.dark) .text-white\/80   { color: rgb(22 18 40 / 0.85) !important; }
+html:not(.dark) .text-white\/70   { color: rgb(22 18 40 / 0.72) !important; }
+html:not(.dark) .text-white\/60   { color: rgb(22 18 40 / 0.62) !important; }
+html:not(.dark) .text-white\/50   { color: rgb(22 18 40 / 0.52) !important; }
+html:not(.dark) .text-white\/40   { color: rgb(22 18 40 / 0.42) !important; }
+html:not(.dark) .text-white\/30   { color: rgb(22 18 40 / 0.34) !important; }
+html:not(.dark) .text-white\/25   { color: rgb(22 18 40 / 0.28) !important; }
+html:not(.dark) .text-white\/20   { color: rgb(22 18 40 / 0.22) !important; }
+html:not(.dark) .text-white\/15   { color: rgb(22 18 40 / 0.17) !important; }
+html:not(.dark) .text-white\/10   { color: rgb(22 18 40 / 0.12) !important; }
+html:not(.dark) .text-white\/5    { color: rgb(22 18 40 / 0.06) !important; }
+
+/* ═══════════════════════════════════════════════════════════════
+   BACKGROUND  —  bg-white/* → tinted ink depth layers
+   ═══════════════════════════════════════════════════════════════ */
+
+html:not(.dark) .bg-white\/5      { background-color: rgb(22 18 40 / 0.04) !important; }
+html:not(.dark) .bg-white\/10     { background-color: rgb(22 18 40 / 0.07) !important; }
+html:not(.dark) .bg-white\/15     { background-color: rgb(22 18 40 / 0.09) !important; }
+html:not(.dark) .bg-white\/20     { background-color: rgb(22 18 40 / 0.12) !important; }
+
+html:not(.dark) .hover\:bg-white\/5:hover   { background-color: rgb(22 18 40 / 0.05) !important; }
+html:not(.dark) .hover\:bg-white\/10:hover  { background-color: rgb(22 18 40 / 0.08) !important; }
+html:not(.dark) .hover\:bg-white\/15:hover  { background-color: rgb(22 18 40 / 0.11) !important; }
+
+/* ═══════════════════════════════════════════════════════════════
+   BORDERS  —  white/* → brand-tinted ink lines
+   ═══════════════════════════════════════════════════════════════ */
+
+html:not(.dark) .border-white\/5   { border-color: rgb(99 102 241 / 0.10) !important; }
+html:not(.dark) .border-white\/10  { border-color: rgb(99 102 241 / 0.15) !important; }
+html:not(.dark) .border-white\/20  { border-color: rgb(99 102 241 / 0.22) !important; }
+html:not(.dark) .divide-white\/5 > * + * { border-color: rgb(99 102 241 / 0.09) !important; }
+
+/* ═══════════════════════════════════════════════════════════════
+   INTERACTIVE + NAV
+   ═══════════════════════════════════════════════════════════════ */
+
+html:not(.dark) .bg-brand-500\/10  { background-color: rgba(99, 102, 241, 0.11) !important; }
+html:not(.dark) .bg-brand-500\/20  { background-color: rgba(99, 102, 241, 0.16) !important; }
+html:not(.dark) .bg-brand-600\/20  { background-color: rgba(79,  70, 229, 0.13) !important; }
+html:not(.dark) .bg-surface-100\/50 { background-color: rgba(234, 231, 255, 0.65) !important; }
+
+/* Tooltip + dropdown */
+html:not(.dark) .bg-surface-100 {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(99, 102, 241, 0.15) !important;
+  color: rgb(22 18 40) !important;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.14) !important;
+}
+html:not(.dark) .bg-surface-50 {
+  background: rgba(255, 255, 255, 0.97) !important;
+}
+
+/* Status colours */
+html:not(.dark) .text-red-400\/70   { color: rgba(220, 38, 38, 0.80) !important; }
+html:not(.dark) .hover\:text-red-400:hover { color: rgb(185, 28, 28) !important; }
+html:not(.dark) .hover\:bg-red-500\/10:hover { background-color: rgba(239, 68, 68, 0.09) !important; }
+
+/* ═══════════════════════════════════════════════════════════════
+   LOGIN PAGE
+   ═══════════════════════════════════════════════════════════════ */
+
+html:not(.dark) .login-panel-left {
+  background: linear-gradient(
+    145deg,
+    rgba(99, 102, 241, 0.07) 0%,
+    rgba(248, 246, 255, 0.55) 45%,
+    rgba(232, 242, 255, 0.45) 100%
+  ) !important;
 }

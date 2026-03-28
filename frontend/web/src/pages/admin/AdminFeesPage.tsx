@@ -5,6 +5,7 @@ import { CreditCard, Plus, X, IndianRupee, Archive, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
+import { ExportMenu } from '../../components/ui/ExportMenu';
 
 interface FeeStructure {
   id: string; name: string; description?: string;
@@ -100,6 +101,17 @@ export default function AdminFeesPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <ExportMenu
+            csvData={fees.map(f => ({
+              Name: f.name,
+              Amount: f.amount,
+              Frequency: FREQUENCY_LABELS[f.frequency] ?? f.frequency,
+              DueDay: f.dueDay,
+              LateFee: f.lateFeeAmount ?? '',
+              Status: f.status,
+            }))}
+            csvFilename="fee-structures"
+          />
           <button
             onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-sm font-semibold transition-colors"

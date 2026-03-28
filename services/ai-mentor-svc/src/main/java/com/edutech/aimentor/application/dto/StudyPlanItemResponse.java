@@ -19,5 +19,8 @@ public record StudyPlanItemResponse(
         LocalDate nextReviewAt,
         LocalDate lastReviewedAt,
         Integer quality,
+        Integer chapterNumber,
+        LocalDate chapterStartDate,
+        LocalDate chapterEndDate,
         Instant createdAt
 ) {}

@@ -327,10 +327,10 @@ export default function StudyPlanDetailPage() {
     >
       {/* Back link */}
       <a
-        href="/ai-mentor"
+        href="/academic-plan"
         className="inline-flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors text-sm"
       >
-        <ArrowLeft className="w-4 h-4" /> Back to AI Mentor
+        <ArrowLeft className="w-4 h-4" /> Back to Academic Plan
       </a>
 
       {/* Plan Header */}

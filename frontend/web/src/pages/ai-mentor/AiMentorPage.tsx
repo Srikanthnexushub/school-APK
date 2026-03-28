@@ -1,38 +1,18 @@
 import { useState } from 'react';
-import { useAuthStore } from '../../stores/authStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  BookOpen, MessageSquare, Lightbulb, Plus, RefreshCw, Bot,
+  MessageSquare, Lightbulb, RefreshCw, Bot,
   Clock, ChevronRight, Search, Send,
 } from 'lucide-react';
+import { ExportMenu } from '../../components/ui/ExportMenu';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { cn } from '../../lib/utils';
 import { Badge } from '../../components/ui/Badge';
-import { ProgressBar } from '../../components/ui/ProgressBar';
-import { Modal } from '../../components/ui/Modal';
-import { CardSkeleton, Skeleton } from '../../components/ui/LoadingSkeleton';
+import { Skeleton } from '../../components/ui/LoadingSkeleton';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-
-interface StudyPlanItem {
-  id: string;
-  subject: string;
-  topic: string;
-  priority: 'HIGH' | 'MEDIUM' | 'LOW';
-  completed: boolean;
-}
-
-interface StudyPlan {
-  id: string;
-  targetExam?: string;
-  status: 'ACTIVE' | 'COMPLETED' | 'PAUSED';
-  items?: StudyPlanItem[];
-  subjectAreas?: string[];
-  daysUntilExam?: number;
-  createdAt?: string;
-}
 
 interface DoubtTicket {
   id: string;
@@ -54,24 +34,6 @@ interface Recommendation {
 }
 
 // ─── Response Mappers ────────────────────────────────────────────────────────
-
-function mapPlan(raw: Record<string, unknown>): StudyPlan {
-  const rawItems = (raw.items as Record<string, unknown>[] | undefined) ?? [];
-  return {
-    id: raw.id as string,
-    targetExam: raw.title as string,
-    status: (raw.active as boolean) ? 'ACTIVE' : 'COMPLETED',
-    createdAt: raw.createdAt as string | undefined,
-    items: rawItems.map((item) => ({
-      id: item.id as string,
-      subject: item.subjectArea as string,
-      topic: item.topic as string,
-      priority: item.priorityLevel as 'HIGH' | 'MEDIUM' | 'LOW',
-      completed: item.quality !== null && item.quality !== undefined,
-    })),
-    subjectAreas: [...new Set(rawItems.map((i) => i.subjectArea as string))],
-  };
-}
 
 function mapDoubt(raw: Record<string, unknown>): DoubtTicket {
   return {
@@ -103,274 +65,23 @@ const SUBJECTS = [
   'English', 'History', 'Geography', 'Computer Science',
 ];
 
+const SUBJECT_AREA_MAP: Record<string, string> = {
+  'Mathematics': 'MATHEMATICS',
+  'Physics': 'PHYSICS',
+  'Chemistry': 'CHEMISTRY',
+  'Biology': 'BIOLOGY',
+  'English': 'ENGLISH',
+  'History': 'HISTORY',
+  'Geography': 'GEOGRAPHY',
+  'Computer Science': 'COMPUTER_SCIENCE',
+};
+
 const TYPE_VARIANTS: Record<string, 'info' | 'success' | 'warning' | 'default'> = {
   VIDEO: 'info',
   ARTICLE: 'default',
   PRACTICE: 'success',
   MOCK_TEST: 'warning',
 };
-
-// ─── Study Plans Tab ─────────────────────────────────────────────────────────
-
-const SUBJECT_AREA_MAP: Record<string, string> = {
-  Mathematics: 'MATHEMATICS',
-  Physics: 'PHYSICS',
-  Chemistry: 'CHEMISTRY',
-  Biology: 'BIOLOGY',
-  English: 'ENGLISH',
-  History: 'GENERAL',
-  Geography: 'GENERAL',
-  'Computer Science': 'GENERAL',
-};
-
-function StudyPlansTab() {
-  const queryClient = useQueryClient();
-  const user = useAuthStore((s) => s.user);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [targetExam, setTargetExam] = useState('');
-  const [daysUntil, setDaysUntil] = useState('');
-  const [weakSubjects, setWeakSubjects] = useState<string[]>([]);
-
-  const plansQuery = useQuery<StudyPlan[]>({
-    queryKey: ['study-plans'],
-    queryFn: () => api.get('/api/v1/study-plans').then((r) => { const d = r.data; const arr: Record<string, unknown>[] = Array.isArray(d) ? d : (d.content ?? []); return arr.map(mapPlan); }),
-    staleTime: 3 * 60 * 1000,
-  });
-
-  const createMutation = useMutation({
-    mutationFn: (payload: {
-      studentId: string;
-      title: string;
-      targetExamDate: string;
-      items: { subjectArea: string; topic: string; priorityLevel: string }[];
-    }) => api.post('/api/v1/study-plans', payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['study-plans'] });
-      setModalOpen(false);
-      setTargetExam('');
-      setDaysUntil('');
-      setWeakSubjects([]);
-      toast.success('Study plan created!');
-    },
-    onError: () => toast.error('Failed to create study plan'),
-  });
-
-  function handleCreate() {
-    if (!targetExam.trim()) {
-      toast.error('Enter a target exam name');
-      return;
-    }
-    const days = Number(daysUntil) || 90;
-    const targetDate = new Date();
-    targetDate.setDate(targetDate.getDate() + days);
-    const targetExamDate = targetDate.toISOString().split('T')[0];
-    const items = weakSubjects.map((s) => ({
-      subjectArea: SUBJECT_AREA_MAP[s] ?? 'GENERAL',
-      topic: s,
-      priorityLevel: 'HIGH',
-    }));
-    createMutation.mutate({
-      studentId: user?.id ?? '',
-      title: targetExam.trim(),
-      targetExamDate,
-      items,
-    });
-  }
-
-  function toggleSubject(s: string) {
-    setWeakSubjects((prev) =>
-      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s],
-    );
-  }
-
-  const plans = plansQuery.data ?? [];
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Your Study Plans</h2>
-        <button
-          onClick={() => setModalOpen(true)}
-          className="btn-primary flex items-center gap-2 text-sm"
-        >
-          <Plus className="w-4 h-4" /> Create New Plan
-        </button>
-      </div>
-
-      {plansQuery.isLoading ? (
-        <div className="grid gap-4">
-          {[...Array(3)].map((_, i) => (
-            <CardSkeleton key={i} />
-          ))}
-        </div>
-      ) : plans.length === 0 ? (
-        <div className="glass rounded-2xl p-12 flex flex-col items-center gap-4 text-white/40">
-          <BookOpen className="w-14 h-14 opacity-30" />
-          <p className="text-base">No study plans yet</p>
-          <button
-            onClick={() => setModalOpen(true)}
-            className="btn-primary flex items-center gap-2 text-sm"
-          >
-            <Plus className="w-4 h-4" /> Create Your First Plan
-          </button>
-        </div>
-      ) : (
-        <div className="grid gap-4">
-          {plans.map((plan) => {
-            const total = plan.items?.length ?? 0;
-            const done = plan.items?.filter((i) => i.completed).length ?? 0;
-            const pct = total > 0 ? (done / total) * 100 : 0;
-            const areas =
-              plan.subjectAreas ??
-              [...new Set(plan.items?.map((i) => i.subject) ?? [])];
-
-            return (
-              <motion.div
-                key={plan.id}
-                className="glass rounded-2xl p-5"
-                whileHover={{ scale: 1.005 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="text-white font-semibold">
-                      {plan.targetExam ?? 'Study Plan'}
-                    </h3>
-                    <p className="text-white/40 text-xs mt-0.5">
-                      Created{' '}
-                      {plan.createdAt
-                        ? new Date(plan.createdAt).toLocaleDateString()
-                        : 'recently'}
-                    </p>
-                  </div>
-                  <Badge
-                    variant={
-                      plan.status === 'ACTIVE'
-                        ? 'info'
-                        : plan.status === 'COMPLETED'
-                          ? 'success'
-                          : 'default'
-                    }
-                  >
-                    {plan.status}
-                  </Badge>
-                </div>
-
-                {areas.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mb-3">
-                    {areas.slice(0, 6).map((area) => (
-                      <span
-                        key={area}
-                        className="px-2 py-0.5 rounded-full text-xs bg-indigo-500/15 text-indigo-400 border border-indigo-500/20"
-                      >
-                        {area}
-                      </span>
-                    ))}
-                    {areas.length > 6 && (
-                      <span className="px-2 py-0.5 rounded-full text-xs bg-white/5 text-white/40">
-                        +{areas.length - 6}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {total > 0 && (
-                  <div className="mb-3 space-y-1">
-                    <div className="flex justify-between text-xs text-white/40">
-                      <span>Progress</span>
-                      <span>
-                        {done}/{total} items
-                      </span>
-                    </div>
-                    <ProgressBar
-                      value={done}
-                      max={total}
-                      color={pct >= 80 ? 'emerald' : 'brand'}
-                    />
-                  </div>
-                )}
-
-                <a
-                  href={`/ai-mentor/study-plans/${plan.id}`}
-                  className="flex items-center gap-1 text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
-                >
-                  Open Plan <ChevronRight className="w-3 h-3" />
-                </a>
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
-
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="Create Study Plan"
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm text-white/60 mb-1.5">
-              Target Exam
-            </label>
-            <input
-              className="input w-full"
-              placeholder="e.g. JEE Advanced 2026"
-              value={targetExam}
-              onChange={(e) => setTargetExam(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-white/60 mb-1.5">
-              Days Until Exam
-            </label>
-            <input
-              className="input w-full"
-              type="number"
-              placeholder="e.g. 90"
-              value={daysUntil}
-              onChange={(e) => setDaysUntil(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-white/60 mb-2">
-              Weak Subjects (select all that apply)
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {SUBJECTS.map((s) => (
-                <label key={s} className="flex items-center gap-2 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    checked={weakSubjects.includes(s)}
-                    onChange={() => toggleSubject(s)}
-                    className="w-4 h-4 rounded border-white/20 bg-white/5 text-indigo-500 focus:ring-indigo-500"
-                  />
-                  <span className="text-sm text-white/70 group-hover:text-white/90 transition-colors">
-                    {s}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button
-              onClick={() => setModalOpen(false)}
-              className="flex-1 px-4 py-2 rounded-xl border border-white/10 text-white/60 hover:text-white hover:bg-white/5 transition-all text-sm"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleCreate}
-              disabled={createMutation.isPending}
-              className="flex-1 btn-primary text-sm"
-            >
-              {createMutation.isPending ? 'Creating...' : 'Create Plan'}
-            </button>
-          </div>
-        </div>
-      </Modal>
-    </div>
-  );
-}
 
 // ─── Doubt Resolver Tab ──────────────────────────────────────────────────────
 
@@ -379,6 +90,7 @@ function DoubtResolverTab() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [newSubject, setNewSubject] = useState(SUBJECTS[0]);
   const [newQuestion, setNewQuestion] = useState('');
+  const [immediateDoubt, setImmediateDoubt] = useState<DoubtTicket | null>(null);
 
   const doubtsQuery = useQuery<DoubtTicket[]>({
     queryKey: ['doubts'],
@@ -390,6 +102,8 @@ function DoubtResolverTab() {
     mutationFn: (payload: { subjectArea: string; question: string }) =>
       api.post('/api/v1/doubts', payload),
     onSuccess: (response) => {
+      const newDoubt = mapDoubt(response.data as Record<string, unknown>);
+      setImmediateDoubt(newDoubt);
       queryClient.invalidateQueries({ queryKey: ['doubts'] });
       setNewQuestion('');
       setSelectedId(response.data.id);
@@ -399,7 +113,17 @@ function DoubtResolverTab() {
   });
 
   const doubts = doubtsQuery.data ?? [];
-  const selected = doubts.find((d) => d.id === selectedId);
+  // Use immediate response data if the list hasn't refreshed yet
+  const selected = doubts.find((d) => d.id === selectedId)
+    ?? (immediateDoubt?.id === selectedId ? immediateDoubt : undefined);
+
+  const csvData = doubts.map(d => ({
+    Subject: d.subject,
+    Question: d.questionText,
+    Status: d.status,
+    Answer: d.answer ?? '',
+    Date: d.createdAt ? new Date(d.createdAt).toLocaleDateString() : '',
+  }));
 
   function handleSubmit() {
     if (!newQuestion.trim()) {
@@ -421,8 +145,9 @@ function DoubtResolverTab() {
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-4" style={{ minHeight: '520px' }}>
       {/* Left: list */}
       <div className="lg:col-span-2 glass rounded-2xl overflow-hidden flex flex-col">
-        <div className="px-4 py-3 border-b border-white/5">
+        <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
           <h3 className="text-white font-semibold text-sm">My Doubts</h3>
+          <ExportMenu csvData={csvData} csvFilename="doubts" />
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -633,7 +358,12 @@ function RecommendationsTab() {
       {recsQuery.isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
-            <CardSkeleton key={i} />
+            <div key={i} className="glass rounded-2xl p-5 space-y-3">
+              <Skeleton className="h-6 w-16" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
           ))}
         </div>
       ) : recs.length === 0 ? (
@@ -693,14 +423,9 @@ function RecommendationsTab() {
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
-type Tab = 'plans' | 'doubts' | 'recommendations';
+type Tab = 'doubts' | 'recommendations';
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  {
-    id: 'plans',
-    label: 'Study Plans',
-    icon: <BookOpen className="w-4 h-4" />,
-  },
   {
     id: 'doubts',
     label: 'Doubt Resolver',
@@ -714,7 +439,7 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
 ];
 
 export default function AiMentorPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('plans');
+  const [activeTab, setActiveTab] = useState<Tab>('doubts');
 
   return (
     <motion.div
@@ -729,8 +454,7 @@ export default function AiMentorPage() {
           AI <span className="gradient-text">Mentor</span>
         </h1>
         <p className="text-white/40 text-sm mt-1">
-          Personalised study plans, instant doubt resolution, smart
-          recommendations
+          Instant doubt resolution and smart learning recommendations
         </p>
       </div>
 
@@ -762,7 +486,6 @@ export default function AiMentorPage() {
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.2 }}
         >
-          {activeTab === 'plans' && <StudyPlansTab />}
           {activeTab === 'doubts' && <DoubtResolverTab />}
           {activeTab === 'recommendations' && <RecommendationsTab />}
         </motion.div>

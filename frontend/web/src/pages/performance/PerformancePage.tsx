@@ -21,6 +21,7 @@ import { SubjectRadarChart } from '../../components/charts/RadarChart';
 import { AreaTrendChart } from '../../components/charts/AreaTrendChart';
 import { RingGauge } from '../../components/charts/RingGauge';
 import { Skeleton, ChartSkeleton } from '../../components/ui/LoadingSkeleton';
+import { ExportMenu } from '../../components/ui/ExportMenu';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -308,8 +309,20 @@ function WeakAreasTab({ studentId }: { studentId: string }) {
     );
   }
 
+  const csvData = sorted.map(a => ({
+    Subject: a.subject,
+    Topic: a.topic,
+    Mastery: `${a.masteryScore}%`,
+    Severity: a.severity,
+  }));
+
   return (
     <div className="space-y-4">
+      {sorted.length > 0 && (
+        <div className="flex justify-end">
+          <ExportMenu csvData={csvData} csvFilename="weak-areas" />
+        </div>
+      )}
       {sorted.length === 0 ? (
         <div className="glass rounded-2xl p-10 text-center text-white/30">
           No weak areas identified yet.

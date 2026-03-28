@@ -58,7 +58,7 @@ class StudyPlanServiceTest {
         UUID enrollmentId = UUID.randomUUID();
         CreateStudyPlanRequest request = new CreateStudyPlanRequest(
                 studentId, enrollmentId, "JEE Prep Plan", "Full JEE preparation",
-                LocalDate.now().plusMonths(6), List.of()
+                LocalDate.now().plusMonths(6), null, null, null, null, List.of()
         );
 
         StudyPlan savedPlan = StudyPlan.create(studentId, enrollmentId, "JEE Prep Plan",
@@ -89,7 +89,7 @@ class StudyPlanServiceTest {
         LocalDate targetDate = LocalDate.now().plusMonths(3);
         CreateStudyPlanRequest request = new CreateStudyPlanRequest(
                 studentId, enrollmentId, "NEET Prep", "NEET biology focus",
-                targetDate, List.of()
+                targetDate, null, null, null, null, List.of()
         );
 
         StudyPlan savedPlan = StudyPlan.create(studentId, enrollmentId, "NEET Prep",

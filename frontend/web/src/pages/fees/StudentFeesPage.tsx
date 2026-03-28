@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { CreditCard, IndianRupee, Calendar, AlertCircle } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
+import { ExportMenu } from '../../components/ui/ExportMenu';
 
 interface StudentProfile { batchId?: string; centerId?: string; }
 interface FeeStructure {
@@ -52,14 +53,31 @@ export default function StudentFeesPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-2xl mx-auto">
-      <div className="flex items-center gap-3">
-        <div className="p-2 rounded-xl bg-brand-500/10 border border-brand-500/20">
-          <CreditCard className="w-5 h-5 text-brand-400" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-brand-500/10 border border-brand-500/20">
+            <CreditCard className="w-5 h-5 text-brand-400" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-white">My Fees</h1>
+            <p className="text-sm text-white/50">Fee structures applicable to your batch</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-white">My Fees</h1>
-          <p className="text-sm text-white/50">Fee structures applicable to your batch</p>
-        </div>
+        <ExportMenu
+          csvData={activeAssignments.map(a => {
+            const fee = feeMap.get(a.feeStructureId);
+            return {
+              Name: fee?.name ?? '',
+              Amount: fee?.amount ?? '',
+              Frequency: fee ? (FREQUENCY_LABELS[fee.frequency] ?? fee.frequency) : '',
+              DueDay: fee?.dueDay ?? '',
+              LateFee: fee?.lateFeeAmount ?? '',
+              EffectiveFrom: new Date(a.effectiveFrom).toLocaleDateString(),
+              EffectiveTo: a.effectiveTo ? new Date(a.effectiveTo).toLocaleDateString() : 'Ongoing',
+            };
+          })}
+          csvFilename="my-fees"
+        />
       </div>
 
       {isLoading ? (

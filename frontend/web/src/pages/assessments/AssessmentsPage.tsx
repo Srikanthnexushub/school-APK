@@ -23,6 +23,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../lib/utils';
 import { Badge } from '../../components/ui/Badge';
 import { CardSkeleton } from '../../components/ui/LoadingSkeleton';
+import { ExportMenu } from '../../components/ui/ExportMenu';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -296,6 +297,16 @@ export default function AssessmentsPage() {
             <option value="ENROLLED">Enrolled</option>
             <option value="COMPLETED">Completed</option>
           </select>
+          <ExportMenu
+            csvData={filtered.map(e => ({
+              Name: e.name,
+              Subject: e.subject,
+              Difficulty: e.difficulty,
+              Status: e.status,
+              Score: e.score !== undefined ? `${e.score}%` : '',
+            }))}
+            csvFilename="assessments"
+          />
         </div>
       </div>
 

@@ -45,7 +45,11 @@ public class StudyPlanService implements CreateStudyPlanUseCase, GetStudyPlanUse
                 request.enrollmentId(),
                 request.title(),
                 request.description(),
-                request.targetExamDate()
+                request.targetExamDate(),
+                request.planType(),
+                request.board(),
+                request.startDate(),
+                request.endDate()
         );
 
         if (request.items() != null) {
@@ -53,12 +57,25 @@ public class StudyPlanService implements CreateStudyPlanUseCase, GetStudyPlanUse
                 PriorityLevel priority = itemRequest.priorityLevel() != null
                         ? itemRequest.priorityLevel()
                         : PriorityLevel.MEDIUM;
-                StudyPlanItem item = StudyPlanItem.create(
-                        studyPlan,
-                        itemRequest.subjectArea(),
-                        itemRequest.topic(),
-                        priority
-                );
+                StudyPlanItem item;
+                if (itemRequest.chapterNumber() != null || itemRequest.chapterStartDate() != null) {
+                    item = StudyPlanItem.createChapter(
+                            studyPlan,
+                            itemRequest.subjectArea(),
+                            itemRequest.topic(),
+                            priority,
+                            itemRequest.chapterNumber(),
+                            itemRequest.chapterStartDate(),
+                            itemRequest.chapterEndDate()
+                    );
+                } else {
+                    item = StudyPlanItem.create(
+                            studyPlan,
+                            itemRequest.subjectArea(),
+                            itemRequest.topic(),
+                            priority
+                    );
+                }
                 studyPlan.addItem(item);
             }
         }
@@ -137,6 +154,10 @@ public class StudyPlanService implements CreateStudyPlanUseCase, GetStudyPlanUse
                 plan.getTitle(),
                 plan.getDescription(),
                 plan.getTargetExamDate(),
+                plan.getPlanType(),
+                plan.getBoard(),
+                plan.getStartDate(),
+                plan.getEndDate(),
                 plan.isActive(),
                 itemResponses,
                 plan.getCreatedAt(),
@@ -156,6 +177,9 @@ public class StudyPlanService implements CreateStudyPlanUseCase, GetStudyPlanUse
                 item.getNextReviewAt(),
                 item.getLastReviewedAt(),
                 item.getQuality(),
+                item.getChapterNumber(),
+                item.getChapterStartDate(),
+                item.getChapterEndDate(),
                 item.getCreatedAt()
         );
     }

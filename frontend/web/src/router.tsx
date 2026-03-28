@@ -10,6 +10,7 @@ import StudentDashboardPage from './pages/dashboard/StudentDashboardPage';
 import AiMentorPage from './pages/ai-mentor/AiMentorPage';
 import StudyPlanDetailPage from './pages/ai-mentor/StudyPlanDetailPage';
 import DoubtsPage from './pages/ai-mentor/DoubtsPage';
+import AcademicPlanPage from './pages/academic-plan/AcademicPlanPage';
 import AssessmentsPage from './pages/assessments/AssessmentsPage';
 import ExamPage from './pages/assessments/ExamPage';
 import PerformancePage from './pages/performance/PerformancePage';
@@ -110,6 +111,8 @@ export const router = createBrowserRouter([
       { path: 'attendance',    element: <StudentAttendancePage /> },
       { path: 'fees',          element: <StudentFeesPage /> },
       { path: 'announcements', element: <StudentAnnouncementsPage /> },
+      { path: 'academic-plan', element: <AcademicPlanPage /> },
+      { path: 'academic-plan/:id', element: <StudyPlanDetailPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'study-plan', element: <Navigate to="/ai-mentor" replace /> },
       { path: 'doubts', element: <Navigate to="/ai-mentor" replace /> },

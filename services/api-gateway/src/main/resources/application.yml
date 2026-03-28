@@ -74,6 +74,10 @@ spring:
           uri: ${AI_MENTOR_SVC_URI}
           predicates:
             - Path=/api/v1/study-plans/**
+        - id: reminders
+          uri: ${AI_MENTOR_SVC_URI}
+          predicates:
+            - Path=/api/v1/reminders/**
         - id: doubts
           uri: ${AI_MENTOR_SVC_URI}
           predicates:

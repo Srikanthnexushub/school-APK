@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 127+ frozen fixes as of Fix #127 (2026-03-28 — api-gateway missing 11 student-portal routes).
+- Read `memory/frozen-fixes.md` before touching any file. 134+ frozen fixes as of Fix #134 (2026-03-28 — CAPTCHA EC2 bypass cleared + cache-bust param permanently fixes captcha on production).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---

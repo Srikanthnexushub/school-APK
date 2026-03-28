@@ -69,6 +69,15 @@ public class StudyPlanItem {
     @Column
     private Integer quality;
 
+    @Column(name = "chapter_number")
+    private Integer chapterNumber;
+
+    @Column(name = "chapter_start_date")
+    private LocalDate chapterStartDate;
+
+    @Column(name = "chapter_end_date")
+    private LocalDate chapterEndDate;
+
     @Version
     private Long version;
 
@@ -98,6 +107,17 @@ public class StudyPlanItem {
     public static StudyPlanItem create(StudyPlan studyPlan, SubjectArea subjectArea,
                                        String topic, PriorityLevel priorityLevel) {
         return new StudyPlanItem(UUID.randomUUID(), studyPlan, subjectArea, topic, priorityLevel);
+    }
+
+    public static StudyPlanItem createChapter(StudyPlan studyPlan, SubjectArea subjectArea,
+                                              String topic, PriorityLevel priorityLevel,
+                                              Integer chapterNumber, LocalDate chapterStartDate,
+                                              LocalDate chapterEndDate) {
+        StudyPlanItem item = new StudyPlanItem(UUID.randomUUID(), studyPlan, subjectArea, topic, priorityLevel);
+        item.chapterNumber = chapterNumber;
+        item.chapterStartDate = chapterStartDate;
+        item.chapterEndDate = chapterEndDate;
+        return item;
     }
 
     /**
@@ -155,6 +175,9 @@ public class StudyPlanItem {
     public LocalDate getNextReviewAt() { return nextReviewAt; }
     public LocalDate getLastReviewedAt() { return lastReviewedAt; }
     public Integer getQuality() { return quality; }
+    public Integer getChapterNumber() { return chapterNumber; }
+    public LocalDate getChapterStartDate() { return chapterStartDate; }
+    public LocalDate getChapterEndDate() { return chapterEndDate; }
     public Long getVersion() { return version; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getDeletedAt() { return deletedAt; }

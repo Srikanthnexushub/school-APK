@@ -1,14 +1,14 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  BookOpen, Sparkles, ArrowRight, Eye, EyeOff, ShieldCheck,
+  Sparkles, ArrowRight, Eye, EyeOff, ShieldCheck,
   Brain, Bot, Compass, Zap, Users, BarChart3, FlaskConical, Bell,
-  ChevronLeft, ChevronRight,
 } from 'lucide-react';
+import NexusEdLogo from '../../components/NexusEdLogo';
 import { toast } from 'sonner';
 import CaptchaWidget from '../../components/CaptchaWidget';
 import GoogleSignInButton from '../../components/GoogleSignInButton';
@@ -23,80 +23,56 @@ const FEATURES = [
   {
     icon: Brain,
     label: 'Psychometric Intelligence',
-    from: 'from-violet-500',
-    to: 'to-purple-600',
-    text: 'text-violet-400',
-    ring: 'bg-violet-500/20 border-violet-500/30',
+    pageBg: 'linear-gradient(148deg, #818cf8 0%, #6366f1 50%, #4f46e5 100%)',
     brief: 'Big Five personality profiling, RIASEC career codes, and learning style analysis — one deep assessment that shapes your entire academic journey.',
     stat: '3 assessments · 1 platform',
   },
   {
     icon: Bot,
     label: 'AI Study Mentor',
-    from: 'from-cyan-500',
-    to: 'to-blue-600',
-    text: 'text-cyan-400',
-    ring: 'bg-cyan-500/20 border-cyan-500/30',
+    pageBg: 'linear-gradient(148deg, #38bdf8 0%, #0ea5e9 50%, #2563eb 100%)',
     brief: '24/7 adaptive AI that generates personalised study plans, resolves doubts instantly, and recalibrates your focus around real performance gaps.',
     stat: '24 / 7 availability',
   },
   {
     icon: Compass,
     label: 'Career Oracle',
-    from: 'from-amber-500',
-    to: 'to-orange-600',
-    text: 'text-amber-400',
-    ring: 'bg-amber-500/20 border-amber-500/30',
+    pageBg: 'linear-gradient(148deg, #fb923c 0%, #f97316 50%, #ea580c 100%)',
     brief: 'Match your aptitude profile to 100+ career paths with college predictions, entrance exam alignment, and step-by-step career roadmaps.',
     stat: '100+ career paths mapped',
   },
   {
     icon: Zap,
     label: 'Adaptive Assessments',
-    from: 'from-green-500',
-    to: 'to-emerald-600',
-    text: 'text-green-400',
-    ring: 'bg-green-500/20 border-green-500/30',
+    pageBg: 'linear-gradient(148deg, #4ade80 0%, #22c55e 50%, #16a34a 100%)',
     brief: 'CAT-mode exams that adjust difficulty after every answer — maximum accuracy in minimum questions to measure your true mastery level.',
     stat: 'CAT-mode precision',
   },
   {
     icon: Users,
     label: 'Parent Copilot',
-    from: 'from-rose-500',
-    to: 'to-pink-600',
-    text: 'text-rose-400',
-    ring: 'bg-rose-500/20 border-rose-500/30',
+    pageBg: 'linear-gradient(148deg, #f472b6 0%, #ec4899 50%, #db2777 100%)',
     brief: 'AI assistant that keeps parents in the loop — child performance summaries, weak area alerts, fee status, and next exam countdown, conversationally.',
     stat: 'Real-time parent insights',
   },
   {
     icon: BarChart3,
     label: 'Live Readiness Score',
-    from: 'from-indigo-500',
-    to: 'to-blue-700',
-    text: 'text-indigo-400',
-    ring: 'bg-indigo-500/20 border-indigo-500/30',
+    pageBg: 'linear-gradient(148deg, #60a5fa 0%, #3b82f6 50%, #1d4ed8 100%)',
     brief: 'Exam Readiness Score (ERS) computed live across study hours, mock performance, doubt resolution, and assignment grades — always accurate.',
     stat: 'Live ERS · always current',
   },
   {
     icon: FlaskConical,
     label: 'AI Project Lab',
-    from: 'from-teal-500',
-    to: 'to-cyan-600',
-    text: 'text-teal-400',
-    ring: 'bg-teal-500/20 border-teal-500/30',
+    pageBg: 'linear-gradient(148deg, #2dd4bf 0%, #14b8a6 50%, #0d9488 100%)',
     brief: 'Conversational AI for science, technology, and research project ideation — from concept to full execution plan, guided step by step.',
     stat: 'Unlimited project scope',
   },
   {
     icon: Bell,
     label: 'Real-time Intelligence',
-    from: 'from-yellow-500',
-    to: 'to-amber-600',
-    text: 'text-yellow-400',
-    ring: 'bg-yellow-500/20 border-yellow-500/30',
+    pageBg: 'linear-gradient(148deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)',
     brief: 'Instant SSE + SMS alerts for assignments, exam results, grades, and milestones — so you and your parents never miss a critical academic moment.',
     stat: 'SSE + SMS · zero latency',
   },
@@ -157,21 +133,6 @@ export default function LoginPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function goToFeature(idx: number) {
-    setDirection(idx > activeFeature ? 1 : -1);
-    setActiveFeature(idx);
-  }
-
-  function prevFeature() {
-    setDirection(-1);
-    setActiveFeature((prev) => (prev - 1 + FEATURES.length) % FEATURES.length);
-  }
-
-  function nextFeature() {
-    setDirection(1);
-    setActiveFeature((prev) => (prev + 1) % FEATURES.length);
-  }
 
   async function handleGoogleSuccess(accessToken: string) {
     setIsGoogleLoading(true);
@@ -304,23 +265,28 @@ export default function LoginPage() {
   }
 
   const feature = FEATURES[activeFeature];
-  const FeatureIcon = feature.icon;
+  const FeatureIcon = feature.icon as React.ElementType;
 
-  const slideVariants = {
-    enter: (dir: number) => ({ opacity: 0, x: dir * 40, scale: 0.97 }),
-    center: { opacity: 1, x: 0, scale: 1 },
-    exit: (dir: number) => ({ opacity: 0, x: dir * -40, scale: 0.97 }),
+  // Physical page-turn — FORWARD direction (like lifting and turning a real page).
+  // Both enter and exit use the SAME rotational direction so the page arcs TOWARD the viewer.
+  // Exit:  0 → -180  (right edge lifts toward viewer, folds left — forward turn)
+  // Enter: -180 → 0  (new page opens from the same forward direction)
+  // backfaceVisibility:hidden hides each page when it passes 90° (showing its back face).
+  const pageVariants = {
+    enter: (dir: number) => ({ rotateY: dir > 0 ? -180 : 180 }),
+    center: { rotateY: 0 },
+    exit: (dir: number) => ({ rotateY: dir > 0 ? -180 : 180 }),
   };
 
 
   return (
     <div className="min-h-screen bg-surface flex">
       {/* Left panel */}
-      <div className="hidden lg:flex flex-1 relative overflow-hidden bg-gradient-to-br from-brand-950 via-surface to-surface items-center justify-center p-12">
+      <div className="login-panel-left hidden lg:flex flex-1 relative overflow-hidden bg-gradient-to-br from-brand-950 via-slate-950 to-indigo-950 items-center justify-center p-12">
         {/* Ambient blobs */}
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-brand-600/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/3 right-1/4 w-48 h-48 bg-violet-600/20 rounded-full blur-3xl animate-pulse delay-700" />
-        <div className="absolute top-1/2 right-1/3 w-32 h-32 bg-cyan-600/15 rounded-full blur-2xl animate-pulse delay-1000" />
+        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-brand-600/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/3 right-1/4 w-56 h-56 bg-violet-600/20 rounded-full blur-3xl animate-pulse delay-700" />
+        <div className="absolute top-1/2 right-1/3 w-40 h-40 bg-cyan-600/15 rounded-full blur-2xl animate-pulse delay-1000" />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -328,7 +294,7 @@ export default function LoginPage() {
           transition={{ duration: 0.8 }}
           className="relative z-10 max-w-md w-full text-center"
         >
-          {/* Static header */}
+          {/* Header */}
           <div className="flex justify-center mb-6">
             <div className="p-4 rounded-2xl bg-brand-600/20 border border-brand-500/30 animate-pulse-glow">
               <Sparkles className="w-10 h-10 text-brand-400" />
@@ -343,88 +309,170 @@ export default function LoginPage() {
             assessments — all in one platform.
           </p>
 
-          {/* Feature showcase carousel */}
-          <div className="relative">
-            <div className="glass rounded-2xl p-6 min-h-[220px] overflow-hidden">
-              <AnimatePresence mode="wait" custom={direction}>
-                <motion.div
-                  key={activeFeature}
-                  custom={direction}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-                  className="flex flex-col items-center text-center"
+          {/* ── Open Book — straight, no tilt ── */}
+          <div className="mt-2 flex justify-center">
+            <div
+              style={{
+                display: 'inline-block',
+                filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.45)) drop-shadow(0 4px 12px rgba(99,102,241,0.25))',
+              }}
+            >
+              {/* Book pages — left + spine + right */}
+              <div style={{ display: 'flex', position: 'relative' }}>
+
+                {/* ── Left page (static, plain glossy) ── */}
+                <div
+                  style={{
+                    width: 178, height: 260,
+                    background: 'linear-gradient(148deg, #f472b6 0%, #ec4899 50%, #be185d 100%)',
+                    borderRadius: '14px 0 0 14px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                  }}
                 >
-                  {/* Icon ring */}
-                  <div className={cn('p-3 rounded-2xl border mb-4', feature.ring)}>
-                    <FeatureIcon className={cn('w-8 h-8', feature.text)} />
-                  </div>
+                  {/* Main gloss — large top-left shine */}
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    background: 'linear-gradient(142deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.20) 30%, transparent 60%)',
+                    borderRadius: 'inherit', zIndex: 2, pointerEvents: 'none',
+                  }} />
+                  {/* Subtle bottom reflection */}
+                  <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0, height: '35%',
+                    background: 'linear-gradient(0deg, rgba(255,255,255,0.10) 0%, transparent 100%)',
+                    zIndex: 1, pointerEvents: 'none',
+                  }} />
+                  {/* Inner rim shadow near spine */}
+                  <div style={{
+                    position: 'absolute', top: 0, right: 0, bottom: 0, width: 22,
+                    background: 'linear-gradient(90deg, transparent, rgba(0,0,0,0.16))',
+                    zIndex: 1,
+                  }} />
+                </div>
 
-                  {/* Feature title — gradient text */}
-                  <h3 className={cn(
-                    'text-xl font-bold mb-3 bg-gradient-to-r bg-clip-text text-transparent',
-                    feature.from,
-                    feature.to,
-                  )}>
-                    {feature.label}
-                  </h3>
+                {/* ── Spine (book binding) ── */}
+                <div
+                  style={{
+                    width: 20, height: 260, flexShrink: 0,
+                    background: 'linear-gradient(180deg, #f9a8d4 0%, #ec4899 40%, #9d174d 100%)',
+                    boxShadow: 'inset -3px 0 6px rgba(0,0,0,0.30), inset 2px 0 4px rgba(255,255,255,0.25)',
+                    position: 'relative',
+                  }}
+                >
+                  {[20, 40, 60, 80].map(pct => (
+                    <div key={pct} style={{
+                      position: 'absolute', left: 3, right: 3, top: `${pct}%`,
+                      height: 1.5, background: 'rgba(255,255,255,0.30)', borderRadius: 1,
+                    }} />
+                  ))}
+                </div>
 
-                  {/* Brief description */}
-                  <p className="text-white/60 text-sm leading-relaxed mb-4">
-                    {feature.brief}
-                  </p>
+                {/* ── Right page (physical page-turn) ── */}
+                {/* Container is just a size/position frame — no background, no overflow hidden */}
+                {/* perspective + perspectiveOrigin here so rotateY looks like a page flipping around the spine */}
+                <div
+                  style={{
+                    width: 178, height: 260,
+                    position: 'relative',
+                    flexShrink: 0,
+                    perspective: '600px',
+                    perspectiveOrigin: '0% 50%',
+                  }}
+                >
+                  {/* The ENTIRE page (background + gloss + star + content) is the rotating element */}
+                  <AnimatePresence mode="sync" initial={false} custom={direction}>
+                    <motion.div
+                      key={activeFeature}
+                      custom={direction}
+                      variants={pageVariants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{ duration: 1.1, ease: [0.25, 0.1, 0.25, 1] }}
+                      style={{
+                        position: 'absolute', inset: 0,
+                        background: feature.pageBg,
+                        borderRadius: '0 14px 14px 0',
+                        transformOrigin: '0% 50%',
+                        backfaceVisibility: 'hidden',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {/* Specular gloss */}
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        background: 'linear-gradient(142deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.12) 32%, transparent 60%)',
+                        borderRadius: 'inherit', zIndex: 2, pointerEvents: 'none',
+                      }} />
+                      {/* Inner rim shadow near spine */}
+                      <div style={{
+                        position: 'absolute', top: 0, left: 0, bottom: 0, width: 16,
+                        background: 'linear-gradient(90deg, rgba(0,0,0,0.18), transparent)',
+                        zIndex: 2, pointerEvents: 'none',
+                      }} />
+                      {/* Amber star */}
+                      <div style={{ position: 'absolute', top: 11, right: 13, zIndex: 3, pointerEvents: 'none' }}>
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                          <path
+                            d="M9 1.5l2.09 4.24 4.68.68-3.39 3.3.8 4.66L9 12.27l-4.18 2.2.8-4.66L2.23 6.42l4.68-.68L9 1.5z"
+                            fill="#fef08a" stroke="rgba(254,240,138,0.4)" strokeWidth="0.5"
+                          />
+                        </svg>
+                      </div>
+                      {/* Feature content — white text on all vibrant backgrounds */}
+                      <div className="absolute inset-0 z-10 flex flex-col items-center text-center px-4 pt-5 pb-4">
+                        <div style={{ padding: '10px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.20)', marginBottom: '10px' }}>
+                          <FeatureIcon style={{ width: 24, height: 24, color: '#fff' }} />
+                        </div>
+                        <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginBottom: '8px', lineHeight: 1.3 }}>
+                          {feature.label}
+                        </h3>
+                        <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '11px', lineHeight: 1.6, marginBottom: '12px', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {feature.brief}
+                        </p>
+                        <span style={{ fontSize: '10px', fontWeight: 600, padding: '4px 10px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.20)', color: '#fff' }}>
+                          {feature.stat}
+                        </span>
+                      </div>
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+              </div>
 
-                  {/* Stat badge */}
-                  <span className={cn(
-                    'text-xs font-semibold px-3 py-1 rounded-full border',
-                    feature.ring,
-                    feature.text,
-                  )}>
-                    {feature.stat}
-                  </span>
-                </motion.div>
-              </AnimatePresence>
+              {/* ── Bottom edge — shows page stack depth ── */}
+              <div style={{
+                position: 'absolute', bottom: -8, left: 14, right: 12, height: 8,
+                background: 'linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 100%)',
+                borderRadius: '0 0 8px 8px',
+              }} />
+
+              {/* ── Right edge strips — stacked pages illusion ── */}
+              {[0,1,2,3,4,5,6].map(i => (
+                <div key={i} style={{
+                  position: 'absolute',
+                  right: -(i+1) * 2.4,
+                  top: 5 + i,
+                  bottom: 5 + i,
+                  width: 2,
+                  background: `rgba(99,102,241,${0.18 - i * 0.02})`,
+                  borderRadius: 1,
+                }} />
+              ))}
+
+              {/* ── Left edge strips — left page thickness ── */}
+              {[0,1,2].map(i => (
+                <div key={i} style={{
+                  position: 'absolute',
+                  left: -(i+1) * 2,
+                  top: 6 + i,
+                  bottom: 6 + i,
+                  width: 2,
+                  background: `rgba(236,72,153,${0.28 - i * 0.08})`,
+                  borderRadius: 1,
+                }} />
+              ))}
             </div>
-
-            {/* Prev arrow */}
-            <button
-              type="button"
-              onClick={prevFeature}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 p-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-white/40 hover:text-white/80 transition-all"
-              aria-label="Previous feature"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-
-            {/* Next arrow */}
-            <button
-              type="button"
-              onClick={nextFeature}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 p-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-white/40 hover:text-white/80 transition-all"
-              aria-label="Next feature"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Dot navigation */}
-          <div className="flex justify-center gap-1.5 mt-5">
-            {FEATURES.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => goToFeature(i)}
-                aria-label={`Feature ${i + 1}`}
-                className={cn(
-                  'rounded-full transition-all duration-300',
-                  i === activeFeature
-                    ? 'w-6 h-2 bg-brand-400'
-                    : 'w-2 h-2 bg-white/20 hover:bg-white/40',
-                )}
-              />
-            ))}
           </div>
         </motion.div>
       </div>
@@ -438,9 +486,7 @@ export default function LoginPage() {
           className="w-full max-w-md"
         >
           <div className="flex items-center gap-3 mb-10">
-            <div className="p-2 rounded-xl bg-brand-600/20 border border-brand-500/30">
-              <BookOpen className="w-5 h-5 text-brand-400" />
-            </div>
+            <NexusEdLogo size={28} />
             <span className="font-bold text-lg text-white">NexusEd</span>
           </div>
 

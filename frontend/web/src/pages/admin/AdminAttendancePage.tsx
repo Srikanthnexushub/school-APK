@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { CalendarCheck, Users, AlertTriangle, ChevronDown, BarChart3 } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
+import { ExportMenu } from '../../components/ui/ExportMenu';
 
 interface Batch { id: string; name: string; code: string; }
 interface AttendanceSummary {
@@ -43,14 +44,30 @@ export default function AdminAttendancePage() {
 
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
-      <div className="flex items-center gap-3">
-        <div className="p-2 rounded-xl bg-brand-500/10 border border-brand-500/20">
-          <CalendarCheck className="w-5 h-5 text-brand-400" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-brand-500/10 border border-brand-500/20">
+            <CalendarCheck className="w-5 h-5 text-brand-400" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-white">Attendance Reports</h1>
+            <p className="text-sm text-white/50">View student attendance across batches</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-white">Attendance Reports</h1>
-          <p className="text-sm text-white/50">View student attendance across batches</p>
-        </div>
+        {displayed.length > 0 && (
+          <ExportMenu
+            csvData={displayed.map(s => ({
+              Student: s.studentName,
+              Attendance: `${s.attendancePct}%`,
+              Present: s.presentDays,
+              Absent: s.absentDays,
+              Late: s.lateDays,
+              Excused: s.excusedDays,
+              Total: s.totalDays,
+            }))}
+            csvFilename="attendance-report"
+          />
+        )}
       </div>
 
       {/* Batch selector */}

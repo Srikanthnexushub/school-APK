@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
+import { useThemeStore } from '../../stores/themeStore';
 import { cn } from '../../lib/utils';
 import { Toggle } from '../../components/ui/Toggle';
 import { Avatar } from '../../components/ui/Avatar';
@@ -1050,7 +1051,7 @@ function NotificationsTab() {
 }
 
 function AppearanceTab() {
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const { theme, setTheme } = useThemeStore();
   const [accent, setAccent] = useState(() => loadAccentColor());
   const [fontSize, setFontSize] = useState<'normal' | 'large'>('normal');
 
@@ -1062,7 +1063,7 @@ function AppearanceTab() {
           {(['dark', 'light'] as const).map((t) => (
             <button
               key={t}
-              onClick={() => { setTheme(t); if (t === 'light') toast.info('Light mode coming soon!'); }}
+              onClick={() => setTheme(t)}
               className={cn(
                 'flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border transition-all text-sm font-medium',
                 theme === t ? 'bg-brand-600 border-brand-500 text-white' : 'glass border-white/10 text-white/60 hover:border-white/20'
@@ -1070,7 +1071,6 @@ function AppearanceTab() {
             >
               {t === 'dark' ? <Monitor className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               {t.charAt(0).toUpperCase() + t.slice(1)}
-              {t === 'dark' && <span className="text-xs opacity-60">(Default)</span>}
             </button>
           ))}
         </div>

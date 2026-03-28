@@ -5,6 +5,7 @@ import { ClipboardCheck, Check, X, Clock, BookOpen, AlertCircle } from 'lucide-r
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
+import { ExportMenu } from '../../components/ui/ExportMenu';
 
 interface Batch {
   id: string;
@@ -96,14 +97,26 @@ export default function MentorPortalAttendancePage() {
 
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
-      <div className="flex items-center gap-3">
-        <div className="p-2 rounded-xl bg-brand-500/10 border border-brand-500/20">
-          <ClipboardCheck className="w-5 h-5 text-brand-400" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-brand-500/10 border border-brand-500/20">
+            <ClipboardCheck className="w-5 h-5 text-brand-400" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-white">Mark Attendance</h1>
+            <p className="text-sm text-white/50">Select a batch and date to record attendance</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-white">Mark Attendance</h1>
-          <p className="text-sm text-white/50">Select a batch and date to record attendance</p>
-        </div>
+        {members.length > 0 && (
+          <ExportMenu
+            csvData={members.map(m => ({
+              Student: m.studentName,
+              Date: selectedDate,
+              Status: attendance[m.studentId] ?? 'NOT_MARKED',
+            }))}
+            csvFilename={`attendance-${selectedDate}`}
+          />
+        )}
       </div>
 
       {/* Selectors */}

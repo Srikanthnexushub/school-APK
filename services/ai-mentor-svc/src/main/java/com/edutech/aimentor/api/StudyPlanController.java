@@ -64,6 +64,10 @@ public class StudyPlanController {
                 request.title(),
                 request.description(),
                 request.targetExamDate(),
+                request.planType(),
+                request.board(),
+                request.startDate(),
+                request.endDate(),
                 request.items()
         );
         StudyPlanResponse response = createStudyPlanUseCase.createStudyPlan(secured);

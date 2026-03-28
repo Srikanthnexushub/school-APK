@@ -5,6 +5,7 @@ import {
   IndianRupee, Plus, X, Loader2, CheckCircle2, AlertTriangle,
   CreditCard, Clock, TrendingUp,
 } from 'lucide-react';
+import { ExportMenu } from '../../components/ui/ExportMenu';
 import { cn } from '../../lib/utils';
 import { toast } from 'sonner';
 import api from '../../lib/api';
@@ -358,15 +359,30 @@ export default function ParentFeesPage() {
           <h1 className="text-2xl font-bold text-white">Fee Management</h1>
           <p className="text-white/50 text-sm mt-0.5">Track school and transport fees for all children.</p>
         </div>
-        {profile && activeStudents.length > 0 && (
-          <button
-            onClick={() => setShowModal(true)}
-            className="btn-primary flex items-center gap-2 px-4 py-2.5 text-sm font-medium"
-          >
-            <Plus className="w-4 h-4" />
-            Record Payment
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <ExportMenu
+            csvData={sorted.map(p => ({
+              Student: linkedStudents.find(s => s.studentId === p.studentId)?.studentName ?? p.studentId,
+              FeeType: p.feeType ?? '',
+              Amount: p.amountPaid,
+              Currency: p.currency,
+              Status: p.status,
+              Method: p.paymentMethod ?? '',
+              Date: formatDate(p.paymentDate || p.createdAt),
+              Reference: p.referenceNumber,
+            }))}
+            csvFilename="fee-payments"
+          />
+          {profile && activeStudents.length > 0 && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="btn-primary flex items-center gap-2 px-4 py-2.5 text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              Record Payment
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Child selector tabs */}

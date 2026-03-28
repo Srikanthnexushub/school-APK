@@ -1,5 +1,6 @@
 package com.edutech.aimentor.application.dto;
 
+import com.edutech.aimentor.domain.model.PlanType;
 import com.edutech.aimentor.domain.model.PriorityLevel;
 import com.edutech.aimentor.domain.model.SubjectArea;
 import jakarta.validation.Valid;
@@ -16,11 +17,18 @@ public record CreateStudyPlanRequest(
         @NotBlank String title,
         String description,
         LocalDate targetExamDate,
+        PlanType planType,
+        String board,
+        LocalDate startDate,
+        LocalDate endDate,
         @Valid List<StudyPlanItemRequest> items
 ) {
     public record StudyPlanItemRequest(
             @NotNull SubjectArea subjectArea,
             @NotBlank String topic,
-            PriorityLevel priorityLevel
+            PriorityLevel priorityLevel,
+            Integer chapterNumber,
+            LocalDate chapterStartDate,
+            LocalDate chapterEndDate
     ) {}
 }
