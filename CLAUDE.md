@@ -181,7 +181,7 @@ ssh -i ~/.ssh/edutech-key.pem -o KexAlgorithms=ecdh-sha2-nistp256 ec2-user@13.20
 #### EC2 SSH key
 ```bash
 ~/.ssh/edutech-key.pem    # always use: -o KexAlgorithms=ecdh-sha2-nistp256
-EC2: 13.203.158.45  (i-0e9a180c6cb8af4c3, ap-south-1, t3.large)
+EC2: 13.126.138.9  (i-0e9a180c6cb8af4c3, ap-south-1, t3.xlarge — Elastic IP, upgraded 2026-03-29)
 ```
 
 **Build for production** (NEVER use -DskipITs — MfaServiceTest unit test fails; use -DskipTests):
@@ -197,6 +197,8 @@ mvn clean package -DskipTests -T 4 -Drevision=1.0.0-PROD
 **Local superuser for pg_dump**: `srikanth` (NOT `edutech_root` which doesn't exist). `.env` POSTGRES_ROOT_USER=srikanth, POSTGRES_ROOT_PASSWORD= (empty, peer auth).
 
 **EC2 setup order** (first-time only): 01-java-kafka → 02-tomcat-instances (11 only) → 03-deploy-wars → 05-nginx → 06-systemd → 04-start-services
+
+**Live URL:** http://13.126.138.9 (Elastic IP — permanent, won't change on restart)
 
 **AWS state** → `memory/aws-deployment.md`
 

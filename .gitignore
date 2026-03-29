@@ -96,3 +96,11 @@ logs/*.watchdog.*
 
 ### PID files (runtime, not source) ###
 .pids/
+
+### DB dump outputs (pg_dump runtime artifacts) ###
+data-backup/dumps/
+
+### Generated PDF reports (runtime artifacts, not source) ###
+completion-reports/
+EduTech_Platform_Feature_Report.pdf
+*.pdf
