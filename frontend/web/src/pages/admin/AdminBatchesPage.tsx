@@ -3,11 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, X, AlertTriangle, CheckCircle2, Clock,
   Users, BookOpen, Calendar, ChevronDown, ChevronUp,
+  Search, UserMinus, UserPlus, Loader2,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '../../lib/utils';
 import { toast } from 'sonner';
 import api from '../../lib/api';
+import { Modal } from '../../components/ui/Modal';
 
 // ─── API Types ──────────────────────────────────────────────────────────────
 
@@ -51,6 +53,24 @@ interface TeacherResponse {
   email: string;
   subjects?: string;
   status?: string;
+}
+
+interface BatchMemberResponse {
+  id: string;
+  batchId: string;
+  centerId: string;
+  studentId: string;
+  studentName: string;
+  enrolledAt: string;
+  active: boolean;
+}
+
+interface UserLookupResponse {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
 }
 
 interface CreateBatchRequest {
@@ -310,12 +330,191 @@ function AddBatchForm({ teachers, onSubmit, onCancel, isSubmitting }: AddBatchFo
   );
 }
 
+// ─── Students modal ───────────────────────────────────────────────────────────
+
+interface StudentsModalProps {
+  batch: BatchResponse | null;
+  centerId: string;
+  onClose: () => void;
+}
+
+function StudentsModal({ batch, centerId, onClose }: StudentsModalProps) {
+  const qc = useQueryClient();
+  const [email, setEmail] = useState('');
+  const [foundUser, setFoundUser] = useState<UserLookupResponse | null>(null);
+  const [lookupError, setLookupError] = useState('');
+  const [isLooking, setIsLooking] = useState(false);
+
+  const { data: members = [], isLoading: membersLoading } = useQuery<BatchMemberResponse[]>({
+    queryKey: ['batch-members', batch?.id],
+    queryFn: () =>
+      api
+        .get(`/api/v1/centers/${centerId}/batches/${batch!.id}/members`)
+        .then((r) => (Array.isArray(r.data) ? r.data : (r.data.content ?? []))),
+    enabled: !!batch && !!centerId,
+  });
+
+  const addMember = useMutation({
+    mutationFn: async (user: UserLookupResponse) => {
+      await api.post(`/api/v1/centers/${centerId}/batches/${batch!.id}/members`, {
+        studentId: user.id,
+        studentName: `${user.firstName} ${user.lastName}`,
+      });
+      await api.patch(`/api/v1/auth/admin/users/${user.id}/center`, { centerId });
+    },
+    onSuccess: (_, user) => {
+      qc.invalidateQueries({ queryKey: ['batch-members', batch?.id] });
+      qc.invalidateQueries({ queryKey: ['batches', centerId] });
+      qc.invalidateQueries({ queryKey: ['batches-health', centerId] });
+      toast.success(`${user.firstName} ${user.lastName} added to batch`);
+      setFoundUser(null);
+      setEmail('');
+    },
+    onError: (err: unknown) => {
+      const msg =
+        (err as { response?: { data?: { detail?: string; message?: string } } })?.response?.data?.detail ??
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        'Failed to add student';
+      toast.error(msg);
+    },
+  });
+
+  const withdrawMember = useMutation({
+    mutationFn: (studentId: string) =>
+      api.delete(`/api/v1/centers/${centerId}/batches/${batch!.id}/members/${studentId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['batch-members', batch?.id] });
+      qc.invalidateQueries({ queryKey: ['batches', centerId] });
+      qc.invalidateQueries({ queryKey: ['batches-health', centerId] });
+      toast.success('Student withdrawn from batch');
+    },
+    onError: () => toast.error('Failed to withdraw student'),
+  });
+
+  async function handleLookup() {
+    if (!email.trim()) return;
+    setIsLooking(true);
+    setLookupError('');
+    setFoundUser(null);
+    try {
+      const r = await api.get<UserLookupResponse>(
+        `/api/v1/auth/users/lookup?email=${encodeURIComponent(email.trim())}`
+      );
+      setFoundUser(r.data);
+    } catch {
+      setLookupError('No user found with that email');
+    } finally {
+      setIsLooking(false);
+    }
+  }
+
+  return (
+    <Modal
+      isOpen={!!batch}
+      onClose={onClose}
+      title={batch ? `Students — ${batch.name}` : ''}
+      maxWidth="max-w-xl"
+    >
+      {/* Add student */}
+      <div className="mb-5">
+        <p className="text-xs font-medium text-white/50 uppercase tracking-wider mb-2">Add Student</p>
+        <div className="flex gap-2">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); setFoundUser(null); setLookupError(''); }}
+            onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
+            placeholder="student@email.com"
+            className="input flex-1 text-sm"
+          />
+          <button
+            onClick={handleLookup}
+            disabled={isLooking || !email.trim()}
+            className="btn-primary px-3 py-2 text-sm disabled:opacity-50 flex items-center gap-1.5"
+          >
+            {isLooking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+            Find
+          </button>
+        </div>
+
+        {lookupError && (
+          <p className="text-xs text-red-400 mt-1.5">{lookupError}</p>
+        )}
+
+        {foundUser && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-2 flex items-center justify-between p-3 rounded-xl bg-brand-500/10 border border-brand-500/20"
+          >
+            <div>
+              <p className="text-sm font-medium text-white">
+                {foundUser.firstName} {foundUser.lastName}
+              </p>
+              <p className="text-xs text-white/40">{foundUser.email} · {foundUser.role}</p>
+            </div>
+            <button
+              onClick={() => addMember.mutate(foundUser)}
+              disabled={addMember.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-400 text-white text-xs font-medium disabled:opacity-50 transition-colors"
+            >
+              {addMember.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserPlus className="w-3 h-3" />}
+              Add
+            </button>
+          </motion.div>
+        )}
+      </div>
+
+      {/* Members list */}
+      <div>
+        <p className="text-xs font-medium text-white/50 uppercase tracking-wider mb-2">
+          Enrolled Students ({members.length})
+        </p>
+
+        {membersLoading ? (
+          <div className="space-y-2">
+            {[0, 1, 2].map((i) => <Skeleton key={i} className="h-10" />)}
+          </div>
+        ) : members.length === 0 ? (
+          <div className="py-8 text-center">
+            <Users className="w-8 h-8 text-white/10 mx-auto mb-2" />
+            <p className="text-sm text-white/30">No students enrolled yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {members.map((m) => (
+              <div
+                key={m.id}
+                className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-white/3 hover:bg-white/5 transition-colors"
+              >
+                <div>
+                  <p className="text-sm text-white font-medium">{m.studentName}</p>
+                  <p className="text-xs text-white/30 font-mono">{m.studentId.substring(0, 8)}…</p>
+                </div>
+                <button
+                  onClick={() => withdrawMember.mutate(m.studentId)}
+                  disabled={withdrawMember.isPending}
+                  className="p-1.5 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-50"
+                  title="Withdraw from batch"
+                >
+                  <UserMinus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function AdminBatchesPage() {
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [expandedHealth, setExpandedHealth] = useState(true);
+  const [studentsBatch, setStudentsBatch] = useState<BatchResponse | null>(null);
 
   // ── Fetch centers to get centerId ──────────────────────────────────────────
   const { data: centers = [], isLoading: centersLoading } = useQuery<CenterResponse[]>({
@@ -491,6 +690,13 @@ export default function AdminBatchesPage() {
         </AnimatePresence>
       </div>
 
+      {/* Students modal */}
+      <StudentsModal
+        batch={studentsBatch}
+        centerId={centerId}
+        onClose={() => setStudentsBatch(null)}
+      />
+
       {/* Batches table */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
@@ -528,7 +734,8 @@ export default function AdminBatchesPage() {
                   <th className="pb-2 pr-4">Enrolled</th>
                   <th className="pb-2 pr-4">Status</th>
                   <th className="pb-2 pr-4">Start</th>
-                  <th className="pb-2">End</th>
+                  <th className="pb-2 pr-4">End</th>
+                  <th className="pb-2"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -581,11 +788,20 @@ export default function AdminBatchesPage() {
                           {formatDate(batch.startDate)}
                         </div>
                       </td>
-                      <td className="py-3">
+                      <td className="py-3 pr-4">
                         <div className="flex items-center gap-1 text-xs text-white/50">
                           <Calendar className="w-3 h-3" />
                           {formatDate(batch.endDate)}
                         </div>
+                      </td>
+                      <td className="py-3">
+                        <button
+                          onClick={() => setStudentsBatch(batch)}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white/50 hover:text-white hover:bg-white/8 border border-white/8 hover:border-white/15 transition-colors"
+                        >
+                          <Users className="w-3 h-3" />
+                          Students
+                        </button>
                       </td>
                     </motion.tr>
                   );

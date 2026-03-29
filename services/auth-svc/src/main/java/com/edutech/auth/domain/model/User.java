@@ -225,6 +225,12 @@ public class User {
         this.updatedAt = Instant.now();
     }
 
+    /** Assigns or re-assigns the user to a coaching center / institution. */
+    public void assignCenter(UUID centerId) {
+        this.centerId = centerId;
+        this.updatedAt = Instant.now();
+    }
+
     // -------------------------------------------------------------------------
     // Query methods
     // -------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 // src/main/java/com/edutech/auth/api/AuthController.java
 package com.edutech.auth.api;
 
+import com.edutech.auth.application.dto.AssignUserCenterRequest;
 import com.edutech.auth.application.dto.AuthPrincipal;
 import com.edutech.auth.application.dto.ChangePasswordRequest;
 import com.edutech.auth.application.dto.RegisterChildRequest;
@@ -19,6 +20,7 @@ import com.edutech.auth.application.dto.UserResponse;
 import com.edutech.auth.api.mapper.AuthMapper;
 import com.edutech.auth.application.service.GitHubOAuthService;
 import com.edutech.auth.application.service.GoogleOAuthService;
+import com.edutech.auth.domain.model.Role;
 import com.edutech.auth.domain.model.User;
 import com.edutech.auth.domain.port.in.AuthenticateUserUseCase;
 import com.edutech.auth.domain.port.in.ChangePasswordUseCase;
@@ -42,12 +44,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -213,6 +219,24 @@ public class AuthController {
             .map(authMapper::toUserResponse)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PatchMapping("/admin/users/{userId}/center")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @SecurityRequirement(name = "BearerAuth")
+    @Operation(summary = "Assign or reassign a user to a center — CENTER_ADMIN / INSTITUTION_ADMIN / SUPER_ADMIN only")
+    public void assignUserCenter(@PathVariable UUID userId,
+                                 @Valid @RequestBody AssignUserCenterRequest request,
+                                 @AuthenticationPrincipal AuthPrincipal principal) {
+        if (principal.role() != Role.SUPER_ADMIN
+                && principal.role() != Role.INSTITUTION_ADMIN
+                && principal.role() != Role.CENTER_ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Insufficient privileges");
+        }
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        user.assignCenter(request.centerId());
+        userRepository.save(user);
     }
 
     @PostMapping("/google")
