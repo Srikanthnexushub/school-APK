@@ -280,9 +280,9 @@ export default function LoginPage() {
 
 
   return (
-    <div className="min-h-screen bg-surface flex">
+    <div className="min-h-screen bg-surface flex flex-col lg:flex-row">
       {/* Left panel */}
-      <div className="login-panel-left hidden lg:flex flex-1 relative overflow-hidden bg-gradient-to-br from-brand-950 via-slate-950 to-indigo-950 items-center justify-center p-12">
+      <div className="login-panel-left flex lg:flex-1 relative overflow-hidden bg-gradient-to-br from-brand-950 via-slate-950 to-indigo-950 items-center justify-center px-8 py-10 lg:p-12">
         {/* Ambient blobs */}
         <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-brand-600/20 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-1/3 right-1/4 w-56 h-56 bg-violet-600/20 rounded-full blur-3xl animate-pulse delay-700" />
@@ -295,22 +295,22 @@ export default function LoginPage() {
           className="relative z-10 max-w-md w-full text-center"
         >
           {/* Header */}
-          <div className="flex justify-center mb-6">
-            <div className="p-4 rounded-2xl bg-brand-600/20 border border-brand-500/30 animate-pulse-glow">
-              <Sparkles className="w-10 h-10 text-brand-400" />
+          <div className="flex justify-center mb-4 lg:mb-6">
+            <div className="p-3 lg:p-4 rounded-2xl bg-brand-600/20 border border-brand-500/30 animate-pulse-glow">
+              <Sparkles className="w-7 h-7 lg:w-10 lg:h-10 text-brand-400" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-4">
+          <h1 className="text-2xl lg:text-4xl font-bold text-white mb-3 lg:mb-4">
             Your AI-powered<br />
             <span className="gradient-text">study companion</span>
           </h1>
-          <p className="text-white/50 text-base leading-relaxed mb-10">
+          <p className="text-white/50 text-sm lg:text-base leading-relaxed mb-6 lg:mb-10">
             Personalised study plans, real-time career guidance, and adaptive
             assessments — all in one platform.
           </p>
 
-          {/* ── Open Book — straight, no tilt ── */}
-          <div className="mt-2 flex justify-center">
+          {/* ── Open Book — straight, no tilt — desktop only ── */}
+          <div className="mt-2 hidden lg:flex justify-center">
             <div
               style={{
                 display: 'inline-block',
@@ -478,7 +478,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-8 bg-gradient-to-br from-brand-950 via-slate-950 to-indigo-950">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
