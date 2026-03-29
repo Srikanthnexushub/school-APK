@@ -129,7 +129,7 @@ Read it before touching any existing file.
 
 ---
 
-## AWS Deployment (EC2 + RDS — Tier 1) — LIVE at http://13.203.158.45
+## AWS Deployment (EC2 + RDS — Tier 1) — LIVE at http://13.126.138.9
 
 **Deployment scripts**: `data-backup/scripts/` (backup) + `data-backup/scripts/ec2-setup/` (EC2 setup)
 
@@ -143,10 +143,10 @@ When you add a new feature, follow these steps to push it live:
 npx vite build   # Use npx vite build NOT npm run build (tsc fails on test file deps)
 
 # 2. Fix nginx ownership + deploy
-ssh -i ~/.ssh/edutech-key.pem -o KexAlgorithms=ecdh-sha2-nistp256 ec2-user@13.203.158.45 \
+ssh -i ~/.ssh/edutech-key.pem -o KexAlgorithms=ecdh-sha2-nistp256 ec2-user@13.126.138.9 \
   "sudo chown -R ec2-user:ec2-user /usr/share/nginx/html"
 scp -i ~/.ssh/edutech-key.pem -o KexAlgorithms=ecdh-sha2-nistp256 \
-  -r frontend/web/dist/. ec2-user@13.203.158.45:/usr/share/nginx/html/
+  -r frontend/web/dist/. ec2-user@13.126.138.9:/usr/share/nginx/html/
 ```
 
 #### Java service change (5-15 min per service)
@@ -160,10 +160,10 @@ mvn clean package -DskipTests -T 4 -Drevision=1.0.0-PROD \
 SVC=auth-svc   # change this
 scp -i ~/.ssh/edutech-key.pem -o KexAlgorithms=ecdh-sha2-nistp256 \
   services/$SVC/target/$SVC-1.0.0-PROD.war \
-  ec2-user@13.203.158.45:/opt/apps/
+  ec2-user@13.126.138.9:/opt/apps/
 
 # 3. Restart the service on EC2
-ssh -i ~/.ssh/edutech-key.pem -o KexAlgorithms=ecdh-sha2-nistp256 ec2-user@13.203.158.45 "
+ssh -i ~/.ssh/edutech-key.pem -o KexAlgorithms=ecdh-sha2-nistp256 ec2-user@13.126.138.9 "
   sudo systemctl stop edutech-$SVC
   rm -rf /opt/apps/tomcat-$SVC/webapps/ROOT /opt/apps/tomcat-$SVC/webapps/ROOT.war
   cp /opt/apps/$SVC-1.0.0-PROD.war /opt/apps/tomcat-$SVC/webapps/ROOT.war
