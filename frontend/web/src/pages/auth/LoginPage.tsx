@@ -304,12 +304,13 @@ export default function LoginPage() {
         </AnimatePresence>
       </motion.button>
 
+      {/* Ambient blobs — on wrapper so they span both panels evenly (no divider) */}
+      <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-brand-600/20 rounded-full blur-3xl animate-pulse pointer-events-none" />
+      <div className="absolute bottom-1/3 right-1/4 w-56 h-56 bg-brand-700/15 rounded-full blur-3xl animate-pulse delay-700 pointer-events-none" />
+      <div className="absolute top-1/2 right-1/3 w-40 h-40 bg-brand-500/10 rounded-full blur-2xl animate-pulse delay-1000 pointer-events-none" />
+
       {/* Left panel */}
       <div className="flex lg:flex-1 relative overflow-hidden items-center justify-center px-8 py-10 lg:p-12">
-        {/* Ambient blobs */}
-        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-brand-600/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/3 right-1/4 w-56 h-56 bg-violet-600/20 rounded-full blur-3xl animate-pulse delay-700" />
-        <div className="absolute top-1/2 right-1/3 w-40 h-40 bg-cyan-600/15 rounded-full blur-2xl animate-pulse delay-1000" />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -339,6 +340,8 @@ export default function LoginPage() {
               style={{
                 display: 'inline-block',
                 filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.45)) drop-shadow(0 4px 12px rgba(99,102,241,0.25))',
+                transform: 'perspective(700px) rotateY(20deg) rotateX(8deg)',
+                transformOrigin: 'center center',
               }}
             >
               {/* Book pages — left + spine + right */}
@@ -348,7 +351,7 @@ export default function LoginPage() {
                 <div
                   style={{
                     width: 178, height: 260,
-                    background: 'linear-gradient(148deg, #f472b6 0%, #ec4899 50%, #be185d 100%)',
+                    background: 'rgba(255,255,255,0.07)',
                     borderRadius: '14px 0 0 14px',
                     position: 'relative',
                     overflow: 'hidden',
@@ -379,7 +382,7 @@ export default function LoginPage() {
                 <div
                   style={{
                     width: 20, height: 260, flexShrink: 0,
-                    background: 'linear-gradient(180deg, #f9a8d4 0%, #ec4899 40%, #9d174d 100%)',
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(99,102,241,0.35) 40%, rgba(67,56,202,0.50) 100%)',
                     boxShadow: 'inset -3px 0 6px rgba(0,0,0,0.30), inset 2px 0 4px rgba(255,255,255,0.25)',
                     position: 'relative',
                   }}
@@ -492,7 +495,7 @@ export default function LoginPage() {
                   top: 6 + i,
                   bottom: 6 + i,
                   width: 2,
-                  background: `rgba(236,72,153,${0.28 - i * 0.08})`,
+                  background: `rgba(99,102,241,${0.28 - i * 0.08})`,
                   borderRadius: 1,
                 }} />
               ))}
