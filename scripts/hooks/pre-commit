@@ -1,0 +1,91 @@
+#!/bin/sh
+# EduTech pre-commit hook
+# 1. TypeScript check  — blocks frontend type errors
+# 2. Java test-compile — blocks test compilation failures in changed services
+# Both must pass. No silent failures.
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+
+# ── 1. TypeScript ─────────────────────────────────────────────────────────────
+echo "🔍 Running TypeScript check..."
+cd "${ROOT_DIR}/frontend/web"
+OUTPUT=$(npx tsc --noEmit --skipLibCheck 2>&1 | grep -v '\.test\.ts' | grep -v '\.spec\.ts')
+if echo "$OUTPUT" | grep -q "error TS"; then
+  echo "$OUTPUT"
+  echo "❌ TypeScript errors found. Fix before committing."
+  exit 1
+fi
+echo "✅ TypeScript OK"
+
+# ── 2. Java test-compile for staged services ──────────────────────────────────
+cd "${ROOT_DIR}"
+
+# Map: service directory prefix → maven module path
+# Must stay in sync with services/ layout.
+declare_service_map() {
+  # format: "dir_prefix:maven_module"
+  cat <<'EOF'
+services/auth-svc:services/auth-svc
+services/center-svc:services/center-svc
+services/parent-svc:services/parent-svc
+services/assess-svc:services/assess-svc
+services/psych-svc:services/psych-svc
+services/student-profile-svc:services/student-profile-svc
+services/exam-tracker-svc:services/exam-tracker-svc
+services/performance-svc:services/performance-svc
+services/ai-mentor-svc:services/ai-mentor-svc
+services/career-oracle-svc:services/career-oracle-svc
+services/mentor-svc:services/mentor-svc
+services/ai-gateway-svc:services/ai-gateway-svc
+services/notification-svc:services/notification-svc
+services/api-gateway:services/api-gateway
+services/student-gateway:services/student-gateway
+EOF
+}
+
+# Collect staged file paths
+STAGED=$(git diff --cached --name-only 2>/dev/null)
+
+if [ -z "$STAGED" ]; then
+  exit 0
+fi
+
+# Determine which maven modules are touched
+CHANGED_MODULES=""
+while IFS=':' read -r prefix module; do
+  if echo "$STAGED" | grep -q "^${prefix}/"; then
+    # Append module if not already listed
+    case ":${CHANGED_MODULES}:" in
+      *":${module}:"*) ;;
+      *) CHANGED_MODULES="${CHANGED_MODULES:+$CHANGED_MODULES,}${module}" ;;
+    esac
+  fi
+done <<EOF
+$(declare_service_map)
+EOF
+
+if [ -z "$CHANGED_MODULES" ]; then
+  # No Java service changes — skip Java check
+  exit 0
+fi
+
+echo "🔍 Java test-compile: ${CHANGED_MODULES}"
+
+# Run test-compile only (fast — no test execution, no packaging)
+# -am: also compile upstream modules (shared libs)
+if ! mvn test-compile \
+    -pl "${CHANGED_MODULES}" -am \
+    -Drevision=1.0.0-SNAPSHOT \
+    --no-transfer-progress \
+    -q 2>/tmp/java-precommit-err.txt; then
+  echo ""
+  echo "❌ Java test-compile FAILED in: ${CHANGED_MODULES}"
+  echo "─────────────────────────────────────────────────"
+  grep -E "^\[ERROR\]" /tmp/java-precommit-err.txt | head -30
+  echo "─────────────────────────────────────────────────"
+  echo "Fix compilation errors before committing."
+  exit 1
+fi
+
+echo "✅ Java test-compile OK (${CHANGED_MODULES})"
+exit 0

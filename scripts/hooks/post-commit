@@ -1,0 +1,169 @@
+#!/bin/sh
+# EduTech post-commit hook
+# After every commit touching a Java service:
+#   1. Rebuild only changed services (mvn package -DskipTests)
+#   2. Kill running instance (via .pids/<svc>.pid)
+#   3. Restart from new JAR
+#   4. Health-check until UP (or timeout)
+#
+# Skipped automatically when no Java service files changed.
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+PIDS_DIR="${ROOT_DIR}/.pids"
+LOGS_DIR="${ROOT_DIR}/logs"
+ENV_FILE="${ROOT_DIR}/.env"
+
+# Load .env so services get correct DB/JWT config
+if [ -f "${ENV_FILE}" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "${ENV_FILE}" 2>/dev/null || true
+  set +a
+fi
+
+# Colours
+GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; CYAN='\033[0;36m'; NC='\033[0m'
+info()  { printf "${GREEN}[post-commit]${NC} %s\n" "$*"; }
+warn()  { printf "${YELLOW}[post-commit]${NC} %s\n" "$*"; }
+error() { printf "${RED}[post-commit]${NC} %s\n" "$*"; }
+
+# ── Service registry ──────────────────────────────────────────────────────────
+# format: "dir_prefix|maven_module|service_name|port"
+SERVICE_MAP="
+services/auth-svc|services/auth-svc|auth-svc|8182
+services/center-svc|services/center-svc|center-svc|8083
+services/parent-svc|services/parent-svc|parent-svc|8082
+services/assess-svc|services/assess-svc|assess-svc|8084
+services/psych-svc|services/psych-svc|psych-svc|8085
+services/student-profile-svc|services/student-profile-svc|student-profile-svc|8090
+services/exam-tracker-svc|services/exam-tracker-svc|exam-tracker-svc|8091
+services/performance-svc|services/performance-svc|performance-svc|8092
+services/ai-mentor-svc|services/ai-mentor-svc|ai-mentor-svc|8093
+services/career-oracle-svc|services/career-oracle-svc|career-oracle-svc|8087
+services/mentor-svc|services/mentor-svc|mentor-svc|8088
+services/ai-gateway-svc|services/ai-gateway-svc|ai-gateway-svc|8086
+services/notification-svc|services/notification-svc|notification-svc|8094
+services/api-gateway|services/api-gateway|api-gateway|8180
+services/student-gateway|services/student-gateway|student-gateway|8089
+"
+
+# ── Detect which services changed in HEAD ─────────────────────────────────────
+CHANGED=$(git diff HEAD^ HEAD --name-only 2>/dev/null || git show --name-only --format='' HEAD)
+
+RESTART_LIST=""  # "module|name|port" entries to process
+
+echo "$SERVICE_MAP" | while IFS='|' read -r prefix module name port; do
+  [ -z "$prefix" ] && continue
+  if echo "$CHANGED" | grep -q "^${prefix}/"; then
+    printf '%s|%s|%s\n' "$module" "$name" "$port"
+  fi
+done > /tmp/edutech-restart-list.txt
+
+if [ ! -s /tmp/edutech-restart-list.txt ]; then
+  # No Java service changes — nothing to do
+  exit 0
+fi
+
+echo ""
+info "Java services changed — rebuilding & restarting affected services..."
+echo ""
+
+cd "${ROOT_DIR}"
+
+# ── Build all changed modules in one Maven invocation ────────────────────────
+MODULES=$(awk -F'|' '{printf "%s,", $1}' /tmp/edutech-restart-list.txt | sed 's/,$//')
+info "Building: ${MODULES}"
+
+if ! mvn package \
+    -pl "${MODULES}" -am \
+    -DskipTests \
+    -Drevision=1.0.0-PROD \
+    --no-transfer-progress \
+    -q 2>/tmp/java-postcommit-build.txt; then
+  error "Build FAILED — services NOT restarted. Check output:"
+  grep -E "^\[ERROR\]" /tmp/java-postcommit-build.txt | head -20
+  exit 0  # exit 0 so git commit itself is not affected
+fi
+info "Build OK."
+echo ""
+
+# ── Restart each changed service ─────────────────────────────────────────────
+mkdir -p "${PIDS_DIR}" "${LOGS_DIR}"
+
+restart_svc() {
+  local module="$1"
+  local name="$2"
+  local port="$3"
+  local pid_file="${PIDS_DIR}/${name}.pid"
+  local log_file="${LOGS_DIR}/${name}.log"
+
+  # Kill old instance
+  if [ -f "${pid_file}" ]; then
+    local old_pid
+    old_pid=$(cat "${pid_file}")
+    if kill -0 "${old_pid}" 2>/dev/null; then
+      info "  Stopping ${name} (PID ${old_pid})..."
+      kill "${old_pid}" 2>/dev/null || true
+      # Wait up to 10s for graceful shutdown
+      local waited=0
+      while kill -0 "${old_pid}" 2>/dev/null && [ $waited -lt 10 ]; do
+        sleep 1
+        waited=$((waited + 1))
+      done
+      kill -9 "${old_pid}" 2>/dev/null || true
+    fi
+    rm -f "${pid_file}"
+  fi
+
+  # Find new JAR/WAR (maxdepth 1 — avoid WEB-INF/lib/ jars)
+  local jar
+  jar=$(find "${ROOT_DIR}/${module}/target" -maxdepth 1 -name "*.jar" ! -name "*sources*" 2>/dev/null | head -1)
+  if [ -z "$jar" ]; then
+    jar=$(find "${ROOT_DIR}/${module}/target" -maxdepth 1 -name "*-exec.war" 2>/dev/null | head -1)
+  fi
+
+  if [ -z "$jar" ]; then
+    warn "  ${name}: no JAR/WAR found in target/ — skipping restart."
+    return
+  fi
+
+  info "  Starting ${name} (port ${port})..."
+  java -jar "${jar}" >> "${log_file}" 2>&1 &
+  echo $! > "${pid_file}"
+  info "  ${name} PID $(cat "${pid_file}")"
+}
+
+# Health-check helper: waits up to 60s for HTTP 200 or 503
+wait_healthy() {
+  local name="$1"
+  local port="$2"
+  local elapsed=0
+  printf "  Health %-30s" "${name}..."
+  while [ $elapsed -lt 60 ]; do
+    local code
+    code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${port}/actuator/health" 2>/dev/null || echo "000")
+    if [ "$code" = "200" ] || [ "$code" = "503" ]; then
+      printf " ${GREEN}UP${NC}\n"
+      return 0
+    fi
+    sleep 3
+    elapsed=$((elapsed + 3))
+    printf "."
+  done
+  printf " ${YELLOW}TIMEOUT${NC} (check logs/${name}.log)\n"
+}
+
+# Restart all changed services, then health-check
+while IFS='|' read -r module name port; do
+  restart_svc "$module" "$name" "$port"
+done < /tmp/edutech-restart-list.txt
+
+echo ""
+info "Waiting for services to come UP..."
+while IFS='|' read -r module name port; do
+  wait_healthy "$name" "$port"
+done < /tmp/edutech-restart-list.txt
+
+echo ""
+info "Done. All changed services restarted."
+exit 0
