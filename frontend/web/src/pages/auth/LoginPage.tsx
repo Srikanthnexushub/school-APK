@@ -478,7 +478,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-gradient-to-br from-brand-950 via-slate-950 to-indigo-950">
+      <div className="login-panel-left flex-1 flex items-center justify-center p-8 bg-gradient-to-br from-brand-950 via-slate-950 to-indigo-950">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
