@@ -612,7 +612,7 @@ export default function RegisterPage() {
 
       // OTP email verification disabled — user is immediately ACTIVE after registration.
       // Route directly by role (mirrors post-OTP logic in onVerifyOtp).
-      if (selectedRole === 'PARENT' && step1Data) {
+      if (selectedRole === 'PARENT') {
         try {
           const meRes = await axios.get('/api/v1/auth/me', { headers: { Authorization: `Bearer ${token}` } });
           const u = meRes.data;
@@ -621,7 +621,7 @@ export default function RegisterPage() {
           await axios.post('/api/v1/parents', {
             name,
             phone: parentPhone || undefined,
-            email: step1Data.email,
+            email: data.email,
             occupation: parentOccupation || undefined,
             gender: selectedGender || undefined,
             address: [parentAddress, parentAddressLine2].filter(Boolean).join(', ') || undefined,
