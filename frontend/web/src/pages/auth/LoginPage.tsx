@@ -280,9 +280,9 @@ export default function LoginPage() {
 
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col lg:flex-row">
+    <div className="login-panel-left min-h-screen bg-gradient-to-br from-brand-950 via-slate-950 to-indigo-950 flex flex-col lg:flex-row">
       {/* Left panel */}
-      <div className="login-panel-left flex lg:flex-1 relative overflow-hidden bg-gradient-to-br from-brand-950 via-slate-950 to-indigo-950 items-center justify-center px-8 py-10 lg:p-12">
+      <div className="flex lg:flex-1 relative overflow-hidden items-center justify-center px-8 py-10 lg:p-12">
         {/* Ambient blobs */}
         <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-brand-600/20 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-1/3 right-1/4 w-56 h-56 bg-violet-600/20 rounded-full blur-3xl animate-pulse delay-700" />
@@ -478,7 +478,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right panel — form */}
-      <div className="login-panel-left flex-1 flex items-center justify-center p-8 bg-gradient-to-br from-brand-950 via-slate-950 to-indigo-950">
+      <div className="flex-1 flex items-center justify-center p-8">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
