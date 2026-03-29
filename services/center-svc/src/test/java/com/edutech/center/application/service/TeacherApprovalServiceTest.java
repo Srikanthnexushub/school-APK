@@ -75,7 +75,7 @@ class TeacherApprovalServiceTest {
 
     private TeacherSelfRegisterRequest selfRegRequest() {
         return new TeacherSelfRegisterRequest(
-                "Amit", "Verma", "amit@school.com", "+919876543210", "History,Geography", null);
+                "Amit", "Verma", "amit@school.com", "+919876543210", "History,Geography", null, null);
     }
 
     // ─── selfRegister ─────────────────────────────────────────────────────────
@@ -121,7 +121,7 @@ class TeacherApprovalServiceTest {
     @DisplayName("listPending — returns all PENDING_APPROVAL teachers for CENTER_ADMIN of this center")
     void listPending_returnsTeachers() {
         Teacher pending = Teacher.createPending(CENTER_ID, TEACHER_USER_ID,
-                "A", "B", "a@b.com", null, "Hindi", null);
+                "A", "B", "a@b.com", null, "Hindi", null, null);
         when(teacherRepository.findPendingByCenterId(CENTER_ID)).thenReturn(List.of(pending));
 
         List<TeacherResponse> result = service.listPending(CENTER_ID, centerAdmin());
@@ -168,7 +168,7 @@ class TeacherApprovalServiceTest {
     void approve_success() {
         UUID teacherId = UUID.randomUUID();
         Teacher pending = Teacher.createPending(CENTER_ID, TEACHER_USER_ID,
-                "A", "B", "a@b.com", null, "Music", null);
+                "A", "B", "a@b.com", null, "Music", null, null);
         when(teacherRepository.findByIdAndCenterId(teacherId, CENTER_ID)).thenReturn(Optional.of(pending));
         when(teacherRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
@@ -182,7 +182,7 @@ class TeacherApprovalServiceTest {
     void approve_superAdminHasAccess() {
         UUID teacherId = UUID.randomUUID();
         Teacher pending = Teacher.createPending(CENTER_ID, TEACHER_USER_ID,
-                "A", "B", "a@b.com", null, "Biology", null);
+                "A", "B", "a@b.com", null, "Biology", null, null);
         when(teacherRepository.findByIdAndCenterId(teacherId, CENTER_ID)).thenReturn(Optional.of(pending));
         when(teacherRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
@@ -220,7 +220,7 @@ class TeacherApprovalServiceTest {
     void reject_success() {
         UUID teacherId = UUID.randomUUID();
         Teacher pending = Teacher.createPending(CENTER_ID, TEACHER_USER_ID,
-                "A", "B", "a@b.com", null, "Fine Arts", null);
+                "A", "B", "a@b.com", null, "Fine Arts", null, null);
         when(teacherRepository.findByIdAndCenterId(teacherId, CENTER_ID)).thenReturn(Optional.of(pending));
         when(teacherRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 

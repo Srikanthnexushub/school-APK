@@ -11,5 +11,6 @@ public record TeacherSelfRegisterRequest(
     @NotBlank @Email @Size(max = 255) String email,
     @Size(max = 20) String phoneNumber,
     @Size(max = 500) String subjects,
-    @Size(max = 100) String district
+    @Size(max = 100) String district,
+    @Size(max = 100) String country
 ) {}

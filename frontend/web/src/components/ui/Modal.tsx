@@ -47,7 +47,7 @@ export function Modal({ isOpen, onClose, title, children, className, maxWidth = 
           {/* Modal panel */}
           <motion.div
             className={cn(
-              'relative w-full glass rounded-2xl shadow-2xl border border-white/10 overflow-hidden',
+              'relative w-full glass rounded-2xl shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]',
               maxWidth,
               className
             )}
@@ -68,7 +68,7 @@ export function Modal({ isOpen, onClose, title, children, className, maxWidth = 
             </div>
 
             {/* Body */}
-            <div className="px-6 py-5">{children}</div>
+            <div className="px-6 py-5 overflow-y-auto flex-1">{children}</div>
           </motion.div>
         </div>
       )}

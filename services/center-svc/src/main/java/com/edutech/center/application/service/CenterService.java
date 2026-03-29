@@ -107,7 +107,7 @@ public class CenterService implements CreateCenterUseCase, UpdateCenterUseCase {
             principal.email(),
             request.address(), request.state(), request.pincode(),
             principal.userId(), request.branch(), request.board(),
-            request.centerType()
+            request.centerType(), request.country()
         );
         CoachingCenter saved = centerRepository.save(center);
         log.info("Center self-registered: id={} owner={}", saved.getId(), principal.userId());

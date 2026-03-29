@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, LayoutDashboard, Bot, ClipboardList, BarChart3, Target, Brain, Users, Calendar, Settings, X } from 'lucide-react';
+import { Search, LayoutDashboard, Bot, ClipboardList, BarChart3, Target, Brain, Users, Calendar, Settings, X, GraduationCap, BookOpen, FlaskConical, ClipboardCheck, Briefcase, UserCheck, CreditCard, Megaphone, HelpCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface CommandItem {
@@ -22,6 +22,15 @@ const commands: CommandItem[] = [
   { label: 'Mentors', description: 'Connect with mentors', path: '/mentors', Icon: Users, keywords: ['mentor', 'session', 'book'] },
   { label: 'Exam Tracker', description: 'Track upcoming exams', path: '/exam-tracker', Icon: Calendar, keywords: ['schedule', 'countdown', 'mock'] },
   { label: 'Settings', description: 'Account preferences', path: '/settings', Icon: Settings, keywords: ['profile', 'account', 'password'] },
+  { label: 'Academic Plan', description: 'AI curriculum & revision plans', path: '/academic-plan', Icon: GraduationCap, keywords: ['curriculum', 'revision', 'plan', 'study'] },
+  { label: 'Library', description: 'Study materials & resources', path: '/library', Icon: BookOpen, keywords: ['books', 'notes', 'resources', 'study'] },
+  { label: 'Project Lab', description: 'Hands-on projects', path: '/lab', Icon: FlaskConical, keywords: ['project', 'lab', 'practical', 'experiment'] },
+  { label: 'Assignments', description: 'Your assignments & homework', path: '/assignments', Icon: ClipboardCheck, keywords: ['homework', 'tasks', 'submission'] },
+  { label: 'Jobs', description: 'Job & internship board', path: '/jobs', Icon: Briefcase, keywords: ['internship', 'career', 'placement'] },
+  { label: 'Attendance', description: 'Your attendance record', path: '/attendance', Icon: UserCheck, keywords: ['present', 'absent', 'record'] },
+  { label: 'Fees', description: 'Fee payments & history', path: '/fees', Icon: CreditCard, keywords: ['payment', 'due', 'invoice'] },
+  { label: 'Announcements', description: 'Centre announcements', path: '/announcements', Icon: Megaphone, keywords: ['notice', 'update', 'news'] },
+  { label: 'Doubts', description: 'Ask AI doubts', path: '/ai-mentor/doubts', Icon: HelpCircle, keywords: ['question', 'help', 'doubt', 'ask'] },
 ];
 
 interface Props {

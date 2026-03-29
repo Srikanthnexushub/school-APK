@@ -673,6 +673,7 @@ Start with topic-wise tests, then subject-wise tests, then full syllabus mock te
       <Modal
         isOpen={modalOpen}
         onClose={() => { if (phase !== 'generating') { setModalOpen(false); resetForm(); } }}
+        maxWidth="max-w-2xl"
         title={
           phase === 'configure' ? 'Create Academic Plan' :
           phase === 'generating' ? 'Generating Your Plan...' :

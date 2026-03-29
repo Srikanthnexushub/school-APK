@@ -13,5 +13,6 @@ public record InstitutionSelfRegisterRequest(
     @Size(max = 10) String pincode,
     @Size(max = 200) String branch,
     @Size(max = 100) String board,
-    CenterType centerType
+    CenterType centerType,
+    @Size(max = 100) String country
 ) {}

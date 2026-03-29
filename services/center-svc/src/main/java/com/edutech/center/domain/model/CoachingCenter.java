@@ -85,6 +85,9 @@ public class CoachingCenter {
     @Column(name = "board", length = 100)
     private String board;
 
+    @Column(name = "country", length = 100)
+    private String country;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "center_type", nullable = false, length = 30)
     private CenterType centerType = CenterType.COACHING_CENTER;
@@ -135,7 +138,7 @@ public class CoachingCenter {
     public static CoachingCenter selfRegister(String name, String city, String phone,
                                               String email, String address, String state,
                                               String pincode, UUID ownerId, String branch, String board,
-                                              CenterType centerType) {
+                                              CenterType centerType, String country) {
         CoachingCenter c = new CoachingCenter(UUID.randomUUID(), name, null,
                 address != null && !address.isBlank() ? address : "-",
                 city,
@@ -143,6 +146,7 @@ public class CoachingCenter {
                 pincode != null && !pincode.isBlank() ? pincode : "000000",
                 phone, email, null, null, ownerId, "SELF_REGISTERED", branch, board);
         if (centerType != null) c.setCenterType(centerType);
+        if (country != null && !country.isBlank()) c.country = country;
         return c;
     }
 
@@ -208,4 +212,5 @@ public class CoachingCenter {
     public String getBoard() { return board; }
     public CenterType getCenterType() { return centerType; }
     public void setCenterType(CenterType centerType) { this.centerType = centerType; }
+    public String getCountry() { return country; }
 }

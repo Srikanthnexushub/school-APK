@@ -48,6 +48,9 @@ public class Teacher {
     @Column(name = "district", length = 100)
     private String district;
 
+    @Column(name = "country", length = 100)
+    private String country;
+
     @Column(name = "employee_id", length = 50)
     private String employeeId;
 
@@ -160,9 +163,11 @@ public class Teacher {
     /** Self-registration — teacher registered independently, needs coordinator approval. */
     public static Teacher createPending(UUID centerId, UUID userId, String firstName,
                                         String lastName, String email, String phoneNumber,
-                                        String subjects, String district) {
-        return new Teacher(UUID.randomUUID(), centerId, userId,
+                                        String subjects, String district, String country) {
+        Teacher t = new Teacher(UUID.randomUUID(), centerId, userId,
                 firstName, lastName, email, phoneNumber, subjects, district, null, TeacherStatus.PENDING_APPROVAL);
+        t.country = country;
+        return t;
     }
 
     public void updateSubjects(String subjects) {
@@ -244,6 +249,7 @@ public class Teacher {
     public String getPhoneNumber() { return phoneNumber; }
     public String getSubjects() { return subjects; }
     public String getDistrict() { return district; }
+    public String getCountry() { return country; }
     public String getEmployeeId() { return employeeId; }
     public String getInvitationToken() { return invitationToken; }
     public Instant getInvitationTokenExpiresAt() { return invitationTokenExpiresAt; }

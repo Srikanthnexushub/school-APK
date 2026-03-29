@@ -651,6 +651,7 @@ export default function RegisterPage() {
               phoneNumber: step1Data.phone || undefined,
               subjects: teacherSubjectsArr.length > 0 ? teacherSubjectsArr.join(', ') : undefined,
               district: teacherDistrict || undefined,
+              country: teacherCountry || undefined,
             },
             { headers: { Authorization: `Bearer ${token}` } }
           );
@@ -885,6 +886,7 @@ export default function RegisterPage() {
               phoneNumber: step1Data.phone || undefined,
               subjects: teacherSubjectsArr.length > 0 ? teacherSubjectsArr.join(', ') : undefined,
               district: teacherDistrict || undefined,
+              country: teacherCountry || undefined,
             },
             { headers: { Authorization: `Bearer ${regToken}` } }
           );

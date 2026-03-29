@@ -192,7 +192,7 @@ export default function PsychometricPage() {
       setShowAssessModal(false);
       refetch();
     } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? 'Submission failed. Please try again.');
+      toast.error(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Submission failed. Please try again.');
       setAssessStep('quiz');
     }
   };

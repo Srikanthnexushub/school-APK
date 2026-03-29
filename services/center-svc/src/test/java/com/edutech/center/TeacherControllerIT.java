@@ -348,7 +348,7 @@ class TeacherControllerIT {
         mockAuth(teacher);
 
         TeacherSelfRegisterRequest request = new TeacherSelfRegisterRequest(
-                "Meera", "Nair", "meera.s1" + R + "@school.com", "+919876543299", "Chemistry", null);
+                "Meera", "Nair", "meera.s1" + R + "@school.com", "+919876543299", "Chemistry", null, null);
 
         ResponseEntity<TeacherResponse> response = restTemplate.exchange(
                 "/api/v1/centers/" + centerId + "/teachers/self-register",
@@ -374,7 +374,7 @@ class TeacherControllerIT {
         mockAuth(teacher);
 
         TeacherSelfRegisterRequest request = new TeacherSelfRegisterRequest(
-                "Arjun", "Singh", "arjun.s2" + R + "@school.com", null, "History", null);
+                "Arjun", "Singh", "arjun.s2" + R + "@school.com", null, "History", null, null);
 
         // First registration
         restTemplate.exchange("/api/v1/centers/" + centerId + "/teachers/self-register",
@@ -406,7 +406,7 @@ class TeacherControllerIT {
         mockAuth(teacher);
         restTemplate.exchange("/api/v1/centers/" + centerId + "/teachers/self-register",
                 HttpMethod.POST,
-                authEntity(new TeacherSelfRegisterRequest("P", "End", pendingEmail, null, "Economics", null)),
+                authEntity(new TeacherSelfRegisterRequest("P", "End", pendingEmail, null, "Economics", null, null)),
                 TeacherResponse.class);
 
         // Switch to admin to list pending
@@ -443,7 +443,7 @@ class TeacherControllerIT {
         TeacherResponse pending = restTemplate.exchange(
                 "/api/v1/centers/" + centerId + "/teachers/self-register",
                 HttpMethod.POST,
-                authEntity(new TeacherSelfRegisterRequest("App", "Rov", aprEmail, null, "Physics", null)),
+                authEntity(new TeacherSelfRegisterRequest("App", "Rov", aprEmail, null, "Physics", null, null)),
                 TeacherResponse.class).getBody();
         UUID teacherId = pending.id();
 
@@ -480,7 +480,7 @@ class TeacherControllerIT {
         TeacherResponse pending = restTemplate.exchange(
                 "/api/v1/centers/" + centerId + "/teachers/self-register",
                 HttpMethod.POST,
-                authEntity(new TeacherSelfRegisterRequest("Rej", "Ect", rejEmail, null, "Biology", null)),
+                authEntity(new TeacherSelfRegisterRequest("Rej", "Ect", rejEmail, null, "Biology", null, null)),
                 TeacherResponse.class).getBody();
         UUID teacherId = pending.id();
 

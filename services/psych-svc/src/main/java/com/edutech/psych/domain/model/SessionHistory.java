@@ -29,7 +29,7 @@ public class SessionHistory {
     @Column(name = "student_id", updatable = false, nullable = false)
     private UUID studentId;
 
-    @Column(name = "center_id", updatable = false, nullable = false)
+    @Column(name = "center_id", updatable = false)
     private UUID centerId;
 
     @Enumerated(EnumType.STRING)

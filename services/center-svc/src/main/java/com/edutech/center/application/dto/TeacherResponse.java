@@ -17,6 +17,7 @@ public record TeacherResponse(
     String phoneNumber,
     String subjects,
     String district,
+    String country,
     String employeeId,
     TeacherStatus status,
     Instant joinedAt,

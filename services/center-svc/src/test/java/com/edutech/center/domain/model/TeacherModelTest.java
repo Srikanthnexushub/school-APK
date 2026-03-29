@@ -85,7 +85,7 @@ class TeacherModelTest {
     @DisplayName("createPending — produces PENDING_APPROVAL teacher with userId set")
     void createPending_returnsPendingTeacher() {
         Teacher t = Teacher.createPending(CENTER_ID, USER_ID,
-                "Amit", "Verma", "amit@school.com", null, "History", null);
+                "Amit", "Verma", "amit@school.com", null, "History", null, null);
 
         assertThat(t.getStatus()).isEqualTo(TeacherStatus.PENDING_APPROVAL);
         assertThat(t.getUserId()).isEqualTo(USER_ID);
@@ -115,7 +115,7 @@ class TeacherModelTest {
     @Test
     @DisplayName("acceptInvitation — throws IllegalStateException when status is not INVITATION_SENT")
     void acceptInvitation_wrongState_throws() {
-        Teacher t = Teacher.createPending(CENTER_ID, USER_ID, "A", "B", "a@b.com", null, "Hindi", null);
+        Teacher t = Teacher.createPending(CENTER_ID, USER_ID, "A", "B", "a@b.com", null, "Hindi", null, null);
 
         assertThatThrownBy(() -> t.acceptInvitation(UUID.randomUUID()))
                 .isInstanceOf(IllegalStateException.class)
@@ -140,7 +140,7 @@ class TeacherModelTest {
     @Test
     @DisplayName("approve — transitions PENDING_APPROVAL to ACTIVE")
     void approve_success() {
-        Teacher t = Teacher.createPending(CENTER_ID, USER_ID, "A", "B", "a@b.com", null, "Geography", null);
+        Teacher t = Teacher.createPending(CENTER_ID, USER_ID, "A", "B", "a@b.com", null, "Geography", null, null);
 
         t.approve();
 
@@ -163,7 +163,7 @@ class TeacherModelTest {
     @Test
     @DisplayName("reject — transitions PENDING_APPROVAL to INACTIVE and sets deletedAt")
     void reject_success() {
-        Teacher t = Teacher.createPending(CENTER_ID, USER_ID, "A", "B", "a@b.com", null, "Economics", null);
+        Teacher t = Teacher.createPending(CENTER_ID, USER_ID, "A", "B", "a@b.com", null, "Economics", null, null);
 
         t.reject();
 
@@ -187,7 +187,7 @@ class TeacherModelTest {
     @DisplayName("isActive — true only for ACTIVE status with no deletedAt")
     void isActive_trueForActiveOnly() {
         Teacher active  = Teacher.create(CENTER_ID, USER_ID, "A", "B", "a@b.com", null, "Biology");
-        Teacher pending = Teacher.createPending(CENTER_ID, USER_ID, "A", "B", "b@b.com", null, "Physics", null);
+        Teacher pending = Teacher.createPending(CENTER_ID, USER_ID, "A", "B", "b@b.com", null, "Physics", null, null);
 
         assertThat(active.isActive()).isTrue();
         assertThat(pending.isActive()).isFalse();

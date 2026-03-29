@@ -53,7 +53,7 @@ public class TeacherApprovalService {
         }
 
         Teacher teacher = Teacher.createPending(centerId, principal.userId(),
-            req.firstName(), req.lastName(), req.email(), req.phoneNumber(), req.subjects(), req.district());
+            req.firstName(), req.lastName(), req.email(), req.phoneNumber(), req.subjects(), req.district(), req.country());
         Teacher saved = teacherRepository.save(teacher);
 
         eventPublisher.publish(new TeacherPendingApprovalEvent(
@@ -108,7 +108,7 @@ public class TeacherApprovalService {
     private TeacherResponse toResponse(Teacher t) {
         return new TeacherResponse(t.getId(), t.getCenterId(), t.getUserId(),
             t.getFirstName(), t.getLastName(), t.getEmail(),
-            t.getPhoneNumber(), t.getSubjects(), t.getDistrict(), t.getEmployeeId(),
+            t.getPhoneNumber(), t.getSubjects(), t.getDistrict(), t.getCountry(), t.getEmployeeId(),
             t.getStatus(), t.getJoinedAt(),
             t.getRoleType(), t.getQualification(), t.getYearsOfExperience(),
             t.getDesignation(), t.getBio());
