@@ -225,10 +225,10 @@ class UserRegistrationIT {
         assertThat(user.getLastName()).isEqualTo("Test");
         assertThat(user.getRole()).isEqualTo(Role.STUDENT);
 
-        // New accounts start in PENDING_VERIFICATION until the OTP is confirmed
+        // OTP email verification disabled — accounts are immediately ACTIVE on registration
         assertThat(user.getStatus())
-            .as("Newly registered user must have PENDING_VERIFICATION status")
-            .isEqualTo(UserStatus.PENDING_VERIFICATION);
+            .as("Newly registered user must be ACTIVE immediately (OTP email verification disabled)")
+            .isEqualTo(UserStatus.ACTIVE);
 
         // Soft-delete field must be null — user is not deactivated
         assertThat(user.getDeletedAt())

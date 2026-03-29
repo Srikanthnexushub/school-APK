@@ -605,10 +605,95 @@ export default function RegisterPage() {
           ipSubnet: '127.0.0',
         },
       });
-      setRegToken(response.data.accessToken);
-      setRegRefreshToken(response.data.refreshToken ?? null);
-      toast.success('Account created! Check your email for the 6-digit OTP.');
-      setShowOtp(true);
+      const token = response.data.accessToken;
+      const refreshTok = response.data.refreshToken ?? null;
+      setRegToken(token);
+      setRegRefreshToken(refreshTok);
+
+      // OTP email verification disabled — user is immediately ACTIVE after registration.
+      // Route directly by role (mirrors post-OTP logic in onVerifyOtp).
+      if (selectedRole === 'PARENT' && step1Data) {
+        try {
+          const meRes = await axios.get('/api/v1/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+          const u = meRes.data;
+          const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;
+          setAuth(token, { id: u.id, email: u.email, role: u.role, name }, refreshTok ?? '', regDeviceId ?? randomUUID());
+          await axios.post('/api/v1/parents', {
+            name,
+            phone: parentPhone || undefined,
+            email: step1Data.email,
+            occupation: parentOccupation || undefined,
+            gender: selectedGender || undefined,
+            address: [parentAddress, parentAddressLine2].filter(Boolean).join(', ') || undefined,
+            city: parentCity || undefined,
+            state: parentState || undefined,
+            district: parentDistrict || undefined,
+            pincode: parentPincode || undefined,
+            country: parentCountry || undefined,
+          }, { headers: { Authorization: `Bearer ${token}` } });
+          toast.success('Account created! Welcome to NexusEd.');
+        } catch (parentErr) {
+          console.error('Parent profile setup failed:', parentErr);
+          toast.success('Account created! Welcome.');
+        }
+        navigate('/parent');
+        return;
+      }
+
+      if (selectedRole === 'TEACHER' && teacherCenterId && step1Data) {
+        try {
+          await axios.post(
+            `/api/v1/centers/${teacherCenterId}/teachers/self-register`,
+            {
+              firstName: step1Data.firstName,
+              lastName: step1Data.lastName,
+              email: step1Data.email,
+              phoneNumber: step1Data.phone || undefined,
+              subjects: teacherSubjectsArr.length > 0 ? teacherSubjectsArr.join(', ') : undefined,
+              district: teacherDistrict || undefined,
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          toast.success('Registration submitted! Awaiting approval from your institution coordinator.');
+        } catch { /* non-fatal */ }
+        navigate('/login');
+        return;
+      }
+
+      if (selectedRole === 'STUDENT') {
+        toast.success('Account created! Now tell us about your studies.');
+        goNext();
+        return;
+      }
+
+      if (selectedRole === 'INSTITUTION_ADMIN') {
+        try {
+          await axios.post(
+            '/api/v1/centers/self-register',
+            {
+              name: institutionName.trim(),
+              city: institutionCity.trim(),
+              phone: institutionPhone.trim(),
+              state: instStateVal || undefined,
+              address: [instAddressLine1, instAddressLine2].filter(Boolean).join(', ') || undefined,
+              branch: instBranch.trim() || undefined,
+              board: instBoard.length > 0 ? instBoard.join(',') : undefined,
+              pincode: instPincode || undefined,
+              country: instCountry.trim() || undefined,
+              centerType: instCenterType,
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          toast.success('Institution registered! You can now sign in.');
+        } catch {
+          toast.success('Account created! Institution details can be set up after sign-in.');
+        }
+        navigate('/login');
+        return;
+      }
+
+      toast.success('Account created! You can now sign in.');
+      navigate('/login');
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number; data?: { detail?: string } } };
       if (axiosErr.response?.status === 409) {

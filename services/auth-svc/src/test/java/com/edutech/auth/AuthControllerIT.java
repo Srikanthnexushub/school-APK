@@ -463,7 +463,7 @@ class AuthControllerIT {
     }
 
     @Test
-    @DisplayName("POST /api/v1/auth/register — user is stored with PENDING_VERIFICATION status")
+    @DisplayName("POST /api/v1/auth/register — user is stored with ACTIVE status (OTP verification disabled)")
     void register_newUser_hasPendingVerificationStatus() {
         String email = "it-ctrl-status-" + System.nanoTime() + "@example.com";
 
@@ -472,13 +472,13 @@ class AuthControllerIT {
         User persisted = userRepository.findByEmail(email)
             .orElseThrow(() -> new AssertionError("User must exist after registration"));
 
-        assertThat(persisted.isPendingVerification())
-            .as("Newly registered user must start in PENDING_VERIFICATION status")
+        assertThat(persisted.isActive())
+            .as("Newly registered user must be ACTIVE immediately (OTP email verification disabled)")
             .isTrue();
 
         assertThat(persisted.isEmailVerified())
-            .as("Email must not be marked verified until OTP is confirmed")
-            .isFalse();
+            .as("Email must be marked verified on registration (OTP step skipped)")
+            .isTrue();
 
         assertThat(persisted.getRole())
             .as("User must be saved with the requested role")

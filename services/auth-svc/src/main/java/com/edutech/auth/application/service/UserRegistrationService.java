@@ -76,6 +76,9 @@ public class UserRegistrationService implements RegisterUserUseCase {
             request.parentEmail()
         );
 
+        // OTP email verification temporarily disabled (SES SPF not yet configured).
+        // Activate immediately so users can complete registration without email OTP.
+        user.activate();
         User savedUser = userRepository.save(user);
 
         // Publish immutable audit event
@@ -83,9 +86,6 @@ public class UserRegistrationService implements RegisterUserUseCase {
             savedUser.getId(), savedUser.getEmail(),
             savedUser.getRole(), savedUser.getCenterId()
         ));
-
-        // Send verification OTP asynchronously via notification topic
-        otpService.sendOtp(savedUser.getEmail(), "EMAIL_VERIFICATION", "email");
 
         // Send parental consent request if student is under 13
         if (request.parentEmail() != null && !request.parentEmail().isBlank()) {

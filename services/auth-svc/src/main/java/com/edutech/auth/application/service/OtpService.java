@@ -107,9 +107,12 @@ public class OtpService implements VerifyOtpUseCase {
         if ("EMAIL_VERIFICATION".equals(request.purpose())) {
             User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new UserNotFoundException(request.email()));
-            user.activate();
-            userRepository.save(user);
-            log.info("Account activated: email={}", request.email());
+            // Guard: user may already be ACTIVE (OTP verification disabled path)
+            if (!user.isActive()) {
+                user.activate();
+                userRepository.save(user);
+                log.info("Account activated: email={}", request.email());
+            }
             DeviceFingerprint fp = new DeviceFingerprint("registration-verify", null, null);
             return Optional.of(tokenService.issueTokenPair(user, fp));
         }

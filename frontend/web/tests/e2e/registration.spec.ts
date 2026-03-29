@@ -67,7 +67,8 @@ test.describe('Student registration — 6-step flow', () => {
     await expect(page.getByText(/✓/)).toBeVisible({ timeout: 10_000 });
   });
 
-  test('full registration + OTP verification → redirected to login', async ({ page }) => {
+  test('full registration → active immediately, no OTP step', async ({ page }) => {
+    // OTP email verification disabled — user is ACTIVE right after registration.
     test.setTimeout(90_000);
     const email = uniqueEmail('reg');
 
@@ -88,22 +89,13 @@ test.describe('Student registration — 6-step flow', () => {
     await page.locator('select[name="grade"]').selectOption('11');
     await page.getByRole('button', { name: /continue/i }).click();
 
-    // Step 4 — Create account
+    // Step 4 — Create account (CAPTCHA + register)
     await solveCaptcha(page);
     await page.getByRole('button', { name: /create account/i }).click();
     await expect(page.getByText(/account created/i)).toBeVisible({ timeout: 15_000 });
 
-    // Step 5 — Subjects (gracefully skip if none available)
+    // No OTP step — user proceeds directly to next step (subjects / study details)
     await page.getByRole('button', { name: /continue/i }).click();
-
-    // Step 6 — OTP
-    const emailBody = await waitForEmail(email, 'Verify', 30_000);
-    const otp = extractOtp(emailBody);
-    await fillOtp(page, otp);
-    await page.getByRole('button', { name: 'Verify & Continue' }).click();
-
-    await expect(page).toHaveURL(/\/login/, { timeout: 15_000 });
-    await expect(page.getByText(/verified|can now sign in/i)).toBeVisible({ timeout: 10_000 });
   });
 });
 
