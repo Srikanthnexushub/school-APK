@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles, ArrowRight, Eye, EyeOff, ShieldCheck,
   Brain, Bot, Compass, Zap, Users, BarChart3, FlaskConical, Bell,
+  Sun, Moon,
 } from 'lucide-react';
 import NexusEdLogo from '../../components/NexusEdLogo';
 import { toast } from 'sonner';
@@ -14,6 +15,7 @@ import CaptchaWidget from '../../components/CaptchaWidget';
 import GoogleSignInButton from '../../components/GoogleSignInButton';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
+import { useThemeStore } from '../../stores/themeStore';
 import { cn, randomUUID } from '../../lib/utils';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
@@ -89,6 +91,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const setAuth = useAuthStore((s) => s.setAuth);
+  const { theme, toggleTheme } = useThemeStore();
   const [showPw, setShowPw] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaKey, setCaptchaKey] = useState(0);
@@ -280,7 +283,27 @@ export default function LoginPage() {
 
 
   return (
-    <div className="login-panel-left min-h-screen bg-gradient-to-br from-brand-950 via-slate-950 to-indigo-950 flex flex-col lg:flex-row">
+    <div className="login-panel-left min-h-screen bg-gradient-to-br from-brand-950 via-slate-950 to-indigo-950 flex flex-col lg:flex-row relative">
+      {/* Theme toggle — top-right corner */}
+      <motion.button
+        onClick={toggleTheme}
+        whileTap={{ scale: 0.88 }}
+        className="absolute top-4 right-4 z-50 p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors backdrop-blur-sm"
+        aria-label="Toggle theme"
+      >
+        <AnimatePresence mode="wait" initial={false}>
+          {theme === 'dark' ? (
+            <motion.span key="moon" initial={{ rotate: -30, opacity: 0, scale: 0.6 }} animate={{ rotate: 0, opacity: 1, scale: 1 }} exit={{ rotate: 30, opacity: 0, scale: 0.6 }} transition={{ duration: 0.22 }} className="flex">
+              <Moon className="w-4 h-4" />
+            </motion.span>
+          ) : (
+            <motion.span key="sun" initial={{ rotate: 30, opacity: 0, scale: 0.6 }} animate={{ rotate: 0, opacity: 1, scale: 1 }} exit={{ rotate: -30, opacity: 0, scale: 0.6 }} transition={{ duration: 0.22 }} className="flex">
+              <Sun className="w-4 h-4 text-amber-400" />
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </motion.button>
+
       {/* Left panel */}
       <div className="flex lg:flex-1 relative overflow-hidden items-center justify-center px-8 py-10 lg:p-12">
         {/* Ambient blobs */}
@@ -309,8 +332,9 @@ export default function LoginPage() {
             assessments — all in one platform.
           </p>
 
-          {/* ── Open Book — straight, no tilt — desktop only ── */}
-          <div className="mt-2 hidden lg:flex justify-center">
+          {/* ── Open Book — straight, no tilt ── */}
+          <div className="mt-2 flex justify-center">
+            <div className="scale-[0.68] lg:scale-100 origin-top -mb-20 lg:mb-0">
             <div
               style={{
                 display: 'inline-block',
@@ -473,6 +497,7 @@ export default function LoginPage() {
                 }} />
               ))}
             </div>
+            </div>{/* scale wrapper */}
           </div>
         </motion.div>
       </div>
