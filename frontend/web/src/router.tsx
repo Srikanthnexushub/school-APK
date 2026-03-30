@@ -155,8 +155,8 @@ export const router = createBrowserRouter([
       { path: 'assessments',    element: <AdminPortalPage /> },
       { path: 'attendance',     element: <AdminAttendancePage /> },
       { path: 'announcements',  element: <AdminAnnouncementsPage /> },
-      { path: 'fees',           element: <AdminFeesPage /> },
-      { path: 'billing',        element: <AdminBillingPage /> },
+      { path: 'fees',           element: <Navigate to="/admin?tab=accounts" replace /> },
+      { path: 'billing',        element: <Navigate to="/admin?tab=accounts" replace /> },
     ],
   },
   {

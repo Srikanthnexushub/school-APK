@@ -23,7 +23,7 @@ const FREQUENCY_LABELS: Record<string, string> = {
   ANNUAL: 'Annual', ONE_TIME: 'One-time',
 };
 
-export default function AdminFeesPage() {
+export default function AdminFeesPage({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuthStore();
   const qc = useQueryClient();
   const centerId = user?.centerId;
@@ -89,18 +89,20 @@ export default function AdminFeesPage() {
   });
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl mx-auto">
+    <div className={embedded ? 'space-y-6' : 'p-6 space-y-6 max-w-5xl mx-auto'}>
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-brand-500/10 border border-brand-500/20">
-            <CreditCard className="w-5 h-5 text-brand-400" />
+        {!embedded && (
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-brand-500/10 border border-brand-500/20">
+              <CreditCard className="w-5 h-5 text-brand-400" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white">Fee Management</h1>
+              <p className="text-sm text-white/50">Create fee structures and assign them to batches</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-white">Fee Management</h1>
-            <p className="text-sm text-white/50">Create fee structures and assign them to batches</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
+        )}
+        <div className={embedded ? 'flex items-center gap-2 ml-auto' : 'flex items-center gap-2'}>
           <ExportMenu
             csvData={fees.map(f => ({
               Name: f.name,

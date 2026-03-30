@@ -7,7 +7,7 @@ import {
   Bell, Search, ChevronRight, BookOpenCheck, Library, Award,
   CreditCard, Beaker, UserCog, BookCheck, Building2, Upload, UserCheck,
   Briefcase, Megaphone, CalendarCheck, Receipt, GraduationCap,
-  Sun, Moon,
+  Sun, Moon, Wallet,
 } from 'lucide-react';
 import NexusEdLogo from '../NexusEdLogo';
 import { useThemeStore } from '../../stores/themeStore';
@@ -66,8 +66,7 @@ function getAdminNav(role?: string): NavItem[] {
     ...(role === 'SUPER_ADMIN' ? [{ icon: Megaphone, label: 'Banners', to: '/admin?tab=banners' }] : []),
     { icon: CalendarCheck, label: 'Attendance',    to: '/admin/attendance' },
     { icon: Megaphone,     label: 'Announcements', to: '/admin/announcements' },
-    { icon: Receipt,       label: 'Billing',       to: '/admin/billing',  sectionLabel: 'Accounts' },
-    { icon: CreditCard,    label: 'Fees',          to: '/admin/fees' },
+    { icon: Wallet,        label: 'Accounts',      to: '/admin?tab=accounts', sectionLabel: 'Accounts' },
   ];
 }
 

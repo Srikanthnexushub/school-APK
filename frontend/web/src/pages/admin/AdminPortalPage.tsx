@@ -13,9 +13,10 @@ import AdminAssignmentsTab from './AdminAssignmentsTab';
 import AdminBannersPage from './AdminBannersPage';
 import AdminPsychometricTab from './AdminPsychometricTab';
 import AdminLibraryPage from './AdminLibraryPage';
+import AdminAccountsPage from './AdminAccountsPage';
 import { useAuthStore } from '../../stores/authStore';
 
-type TabId = 'overview' | 'centers' | 'batches' | 'assessments' | 'teacher-import' | 'teacher-pending' | 'staff' | 'jobs' | 'assignments' | 'banners' | 'psychometric' | 'library';
+type TabId = 'overview' | 'centers' | 'batches' | 'assessments' | 'teacher-import' | 'teacher-pending' | 'staff' | 'jobs' | 'assignments' | 'banners' | 'psychometric' | 'library' | 'accounts';
 
 export default function AdminPortalPage() {
   const [searchParams] = useSearchParams();
@@ -41,6 +42,7 @@ export default function AdminPortalPage() {
       {activeTab === 'assignments'     && <AdminAssignmentsTab />}
       {activeTab === 'psychometric'    && <AdminPsychometricTab />}
       {activeTab === 'library'         && <AdminLibraryPage />}
+      {activeTab === 'accounts'        && <AdminAccountsPage />}
       {activeTab === 'banners'         && isSuperAdmin && <AdminBannersPage />}
     </motion.div>
   );

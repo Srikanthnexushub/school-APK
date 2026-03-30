@@ -27,7 +27,7 @@ const statusConfig = {
 
 type Filter = 'ALL' | 'FULLY_PAID' | 'PARTIAL' | 'NO_PAYMENT';
 
-export default function AdminBillingPage() {
+export default function AdminBillingPage({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuthStore();
   const centerId = user?.centerId;
   const [filter, setFilter] = useState<Filter>('ALL');
@@ -72,17 +72,18 @@ export default function AdminBillingPage() {
   ];
 
   return (
-    <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-violet-500/10 border border-violet-500/20">
-          <Receipt className="w-5 h-5 text-violet-400" />
+    <div className={embedded ? 'space-y-6' : 'p-4 lg:p-8 space-y-6 max-w-7xl mx-auto'}>
+      {!embedded && (
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-violet-500/10 border border-violet-500/20">
+            <Receipt className="w-5 h-5 text-violet-400" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white">Billing</h2>
+            <p className="text-white/50 text-sm mt-0.5">Fee payment report and parent reminders.</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-xl font-bold text-white">Billing</h2>
-          <p className="text-white/50 text-sm mt-0.5">Fee payment report and parent reminders.</p>
-        </div>
-      </div>
+      )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
