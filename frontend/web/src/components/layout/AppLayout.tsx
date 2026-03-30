@@ -63,7 +63,7 @@ function getAdminNav(role?: string): NavItem[] {
     { icon: BookCheck,       label: 'Assignments',        to: '/admin?tab=assignments' },
     { icon: Brain,           label: 'Psychometric',       to: '/admin?tab=psychometric' },
     { icon: Library,         label: 'Library',            to: '/admin?tab=library' },
-    ...(isSuperOrInst ? [{ icon: Megaphone, label: 'Banners', to: '/admin?tab=banners' }] : []),
+    ...(role === 'SUPER_ADMIN' ? [{ icon: Megaphone, label: 'Banners', to: '/admin?tab=banners' }] : []),
     { icon: CalendarCheck, label: 'Attendance',    to: '/admin/attendance' },
     { icon: Megaphone,     label: 'Announcements', to: '/admin/announcements' },
     { icon: Receipt,       label: 'Billing',       to: '/admin/billing',  sectionLabel: 'Accounts' },
