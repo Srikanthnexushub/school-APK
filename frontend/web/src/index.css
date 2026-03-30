@@ -171,6 +171,7 @@ html:not(.dark) footer {
    ═══════════════════════════════════════════════════════════════ */
 
 html:not(.dark) .text-white       { color: rgb(22 18 40)        !important; }
+html:not(.dark) .text-white\/90   { color: rgb(22 18 40 / 0.92) !important; }
 html:not(.dark) .text-white\/80   { color: rgb(22 18 40 / 0.85) !important; }
 html:not(.dark) .text-white\/70   { color: rgb(22 18 40 / 0.72) !important; }
 html:not(.dark) .text-white\/60   { color: rgb(22 18 40 / 0.62) !important; }
