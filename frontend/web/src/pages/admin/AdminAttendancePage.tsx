@@ -15,9 +15,15 @@ interface AttendanceSummary {
 
 export default function AdminAttendancePage() {
   const { user } = useAuthStore();
-  const centerId = user?.centerId;
   const [selectedBatchId, setSelectedBatchId] = useState<string>('');
   const [lowOnly, setLowOnly] = useState(false);
+
+  const { data: centers = [] } = useQuery<{ id: string }[]>({
+    queryKey: ['centers'],
+    queryFn: () => api.get('/api/v1/centers').then(r => Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
+    enabled: !!user,
+  });
+  const centerId = centers[0]?.id ?? '';
 
   const { data: batches = [] } = useQuery<Batch[]>({
     queryKey: ['batches', centerId],
