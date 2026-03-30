@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CreditCard, Plus, X, IndianRupee, Archive, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
-import { useAuthStore } from '../../stores/authStore';
 import { ExportMenu } from '../../components/ui/ExportMenu';
 
 interface FeeStructure {
@@ -24,16 +23,20 @@ const FREQUENCY_LABELS: Record<string, string> = {
 };
 
 export default function AdminFeesPage({ embedded = false }: { embedded?: boolean }) {
-  const { user } = useAuthStore();
   const qc = useQueryClient();
-  const centerId = user?.centerId;
   const [activeTab, setActiveTab] = useState<'structures' | 'assignments'>('structures');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [createForm, setCreateForm] = useState({
     name: '', description: '', amount: '',
-    frequency: 'MONTHLY', dueDay: '1', lateFeeAmount: '',
+    frequency: 'MONTHLY', dueDate: '', lateFeeAmount: '',
   });
+
+  const { data: centers = [] } = useQuery<{ id: string }[]>({
+    queryKey: ['centers'],
+    queryFn: () => api.get('/api/v1/centers').then(r => Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
+  });
+  const centerId = centers[0]?.id ?? '';
   const [assignForm, setAssignForm] = useState({
     batchId: '', feeStructureId: '', effectiveFrom: new Date().toISOString().slice(0, 10),
   });
@@ -59,13 +62,13 @@ export default function AdminFeesPage({ embedded = false }: { embedded?: boolean
       amount: parseFloat(createForm.amount),
       currency: 'INR',
       frequency: createForm.frequency,
-      dueDay: parseInt(createForm.dueDay),
+      dueDay: createForm.dueDate ? new Date(createForm.dueDate).getDate() : 1,
       lateFeeAmount: createForm.lateFeeAmount ? parseFloat(createForm.lateFeeAmount) : null,
     }),
     onSuccess: () => {
       toast.success('Fee structure created');
       setShowCreateModal(false);
-      setCreateForm({ name: '', description: '', amount: '', frequency: 'MONTHLY', dueDay: '1', lateFeeAmount: '' });
+      setCreateForm({ name: '', description: '', amount: '', frequency: 'MONTHLY', dueDate: '', lateFeeAmount: '' });
       qc.invalidateQueries({ queryKey: ['fee-structures', centerId] });
     },
     onError: () => toast.error('Failed to create fee structure'),
@@ -219,10 +222,9 @@ export default function AdminFeesPage({ embedded = false }: { embedded?: boolean
               </div>
               <div className="space-y-3">
                 {[
-                  { key: 'name', placeholder: 'Name (e.g. Monthly Tuition) *', type: 'text' },
+                  { key: 'name', placeholder: 'Name (e.g. Annual Tuition) *', type: 'text' },
                   { key: 'description', placeholder: 'Description (optional)', type: 'text' },
                   { key: 'amount', placeholder: 'Amount (₹) *', type: 'number' },
-                  { key: 'dueDay', placeholder: 'Due day (1-31)', type: 'number' },
                   { key: 'lateFeeAmount', placeholder: 'Late fee amount (₹, optional)', type: 'number' },
                 ].map(({ key, placeholder, type }) => (
                   <input
@@ -234,6 +236,15 @@ export default function AdminFeesPage({ embedded = false }: { embedded?: boolean
                     className="w-full bg-surface-100 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-brand-500/50"
                   />
                 ))}
+                <div>
+                  <label className="text-xs text-white/40 mb-1 block">Due Date *</label>
+                  <input
+                    type="date"
+                    value={createForm.dueDate}
+                    onChange={e => setCreateForm(f => ({ ...f, dueDate: e.target.value }))}
+                    className="w-full bg-surface-100 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-brand-500/50"
+                  />
+                </div>
                 <select
                   value={createForm.frequency}
                   onChange={e => setCreateForm(f => ({ ...f, frequency: e.target.value }))}
@@ -244,7 +255,7 @@ export default function AdminFeesPage({ embedded = false }: { embedded?: boolean
               </div>
               <button
                 onClick={() => createFee()}
-                disabled={creating || !createForm.name || !createForm.amount}
+                disabled={creating || !createForm.name || !createForm.amount || !createForm.dueDate || !centerId}
                 className="w-full py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 {creating ? 'Creating...' : 'Create Fee Structure'}

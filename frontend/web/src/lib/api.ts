@@ -74,8 +74,7 @@ api.interceptors.response.use(
           deviceFingerprint: {
             userAgent: navigator.userAgent,
             deviceId: deviceId ?? randomUUID(),
-            // ipSubnet is not reliably available client-side; backend ignores it for fingerprint hash
-            ipSubnet: '',
+            ipSubnet: '127.0.0',
           },
         },
         { headers: { 'Content-Type': 'application/json' } }

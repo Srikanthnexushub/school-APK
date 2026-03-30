@@ -2,10 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { CreditCard, IndianRupee, Calendar, AlertCircle } from 'lucide-react';
 import api from '../../lib/api';
-import { useAuthStore } from '../../stores/authStore';
 import { ExportMenu } from '../../components/ui/ExportMenu';
 
-interface StudentProfile { batchId?: string; centerId?: string; }
+interface Enrollment { centerId: string; batchId: string; }
 interface FeeStructure {
   id: string; name: string; amount: number; currency: string;
   frequency: string; dueDay: number; lateFeeAmount?: number; status: string;
@@ -20,18 +19,18 @@ const FREQUENCY_LABELS: Record<string, string> = {
 };
 
 export default function StudentFeesPage() {
-  const { user } = useAuthStore();
-
-  const { data: profile } = useQuery<StudentProfile>({
-    queryKey: ['student-profile-me'],
-    queryFn: () => api.get('/api/v1/students/me').then(r => r.data),
-    enabled: !!user,
+  const { data: enrollment } = useQuery<Enrollment | null>({
+    queryKey: ['student-enrollment-me'],
+    queryFn: () =>
+      api.get('/api/v1/centers/student-enrollment/me')
+        .then(r => r.status === 204 ? null : r.data)
+        .catch(() => null),
     staleTime: 5 * 60 * 1000,
     retry: false,
   });
 
-  const centerId = profile?.centerId ?? user?.centerId;
-  const batchId = profile?.batchId;
+  const centerId = enrollment?.centerId;
+  const batchId = enrollment?.batchId;
 
   const { data: assignments = [], isLoading } = useQuery<BatchFeeAssignment[]>({
     queryKey: ['batch-fees-student', centerId, batchId],

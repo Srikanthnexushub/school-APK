@@ -66,7 +66,7 @@ function getAdminNav(role?: string): NavItem[] {
     ...(role === 'SUPER_ADMIN' ? [{ icon: Megaphone, label: 'Banners', to: '/admin?tab=banners' }] : []),
     { icon: CalendarCheck, label: 'Attendance',    to: '/admin/attendance' },
     { icon: Megaphone,     label: 'Announcements', to: '/admin/announcements' },
-    { icon: Wallet,        label: 'Accounts',      to: '/admin?tab=accounts', sectionLabel: 'Accounts' },
+    { icon: Wallet,        label: 'Accounts',      to: '/admin?tab=accounts' },
   ];
 }
 
