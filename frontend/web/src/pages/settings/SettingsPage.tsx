@@ -96,6 +96,8 @@ interface ParentProfileMin {
   address?: string;
   city?: string;
   state?: string;
+  district?: string;
+  country?: string;
   pincode?: string;
 }
 
@@ -321,6 +323,7 @@ function ProfileTab() {
           gender: data.gender || undefined,
           city: data.city || undefined,
           state: data.state || undefined,
+          district: data.district || undefined,
           country: data.country || undefined,
           stream: data.stream || undefined,
           targetYear: data.targetYear || undefined,
@@ -352,7 +355,7 @@ function ProfileTab() {
 
   // Parent form state
   const [parentForm, setParentForm] = useState({
-    name: '', phone: '', gender: '', address: '', city: '', state: '', pincode: '',
+    name: '', phone: '', gender: '', address: '', city: '', state: '', district: '', country: '', pincode: '',
   });
   const parentFormInitialized = useRef(false);
   useEffect(() => {
@@ -364,6 +367,8 @@ function ProfileTab() {
         address: parentProfile.address ?? '',
         city: parentProfile.city ?? '',
         state: parentProfile.state ?? '',
+        district: parentProfile.district ?? '',
+        country: parentProfile.country ?? '',
         pincode: parentProfile.pincode ?? '',
       });
       parentFormInitialized.current = true;
@@ -379,6 +384,8 @@ function ProfileTab() {
         address: form.address || undefined,
         city: form.city || undefined,
         state: form.state || undefined,
+        district: form.district || undefined,
+        country: form.country || undefined,
         pincode: form.pincode || undefined,
       };
       if (!parentProfile) {
@@ -772,6 +779,26 @@ function ProfileTab() {
                   value={parentForm.pincode}
                   onChange={(e) => setParentForm((p) => ({ ...p, pincode: e.target.value }))}
                   placeholder="400001"
+                  className="input w-full"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1.5">District</label>
+                <input
+                  value={parentForm.district}
+                  onChange={(e) => setParentForm((p) => ({ ...p, district: e.target.value }))}
+                  placeholder="District"
+                  className="input w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1.5">Country</label>
+                <input
+                  value={parentForm.country}
+                  onChange={(e) => setParentForm((p) => ({ ...p, country: e.target.value }))}
+                  placeholder="India"
                   className="input w-full"
                 />
               </div>

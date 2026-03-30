@@ -650,8 +650,12 @@ export default function RegisterPage() {
               email: step1Data.email,
               phoneNumber: step1Data.phone || undefined,
               subjects: teacherSubjectsArr.length > 0 ? teacherSubjectsArr.join(', ') : undefined,
+              address: teacherAddress ? [teacherAddress, teacherAddressLine2].filter(Boolean).join(', ') : undefined,
+              city: teacherCity || undefined,
+              state: teacherStateVal || undefined,
               district: teacherDistrict || undefined,
               country: teacherCountry || undefined,
+              pincode: teacherPincode || undefined,
             },
             { headers: { Authorization: `Bearer ${token}` } }
           );
@@ -885,8 +889,12 @@ export default function RegisterPage() {
               email: step1Data.email,
               phoneNumber: step1Data.phone || undefined,
               subjects: teacherSubjectsArr.length > 0 ? teacherSubjectsArr.join(', ') : undefined,
+              address: teacherAddress ? [teacherAddress, teacherAddressLine2].filter(Boolean).join(', ') : undefined,
+              city: teacherCity || undefined,
+              state: teacherStateVal || undefined,
               district: teacherDistrict || undefined,
               country: teacherCountry || undefined,
+              pincode: teacherPincode || undefined,
             },
             { headers: { Authorization: `Bearer ${regToken}` } }
           );
