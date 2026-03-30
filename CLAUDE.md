@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 164+ frozen fixes as of Fix #164 (2026-03-30 — sidebar Accounts dup label; Fix #163 — student fees batchId; Fix #162 — token refresh ipSubnet logout; Fix #161 — fee creation centerId undefined).
+- Read `memory/frozen-fixes.md` before touching any file. 165+ frozen fixes as of Fix #165 (2026-03-30 — per-tab session isolation sessionStorage; Fix #164 — sidebar dup; Fix #163 — student fees batchId; Fix #162 — token refresh logout).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -112,7 +112,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (164 fixes, latest: Fix #164 — sidebar Accounts dup; Fix #163 — student fees batchId; Fix #162 — token refresh logout; Fix #161 — fee centerId).
+Full list → `memory/frozen-fixes.md` (165 fixes, latest: Fix #165 — sessionStorage tab isolation; Fix #164 — sidebar dup; Fix #163 — student fees batchId; Fix #162 — token refresh logout).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
