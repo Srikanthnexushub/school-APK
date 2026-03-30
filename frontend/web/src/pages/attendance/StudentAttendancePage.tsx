@@ -18,10 +18,11 @@ interface AttendanceSummary {
 }
 
 interface StudentProfile {
-  batchId?: string;
   centerId?: string;
   batchName?: string;
 }
+
+interface Enrollment { centerId: string; batchId: string; }
 
 const STATUS_COLORS: Record<string, string> = {
   good:    'text-emerald-400',
@@ -46,8 +47,18 @@ export default function StudentAttendancePage() {
     retry: false,
   });
 
-  const centerId = profile?.centerId ?? user?.centerId;
-  const batchId = profile?.batchId;
+  const { data: enrollment } = useQuery<Enrollment | null>({
+    queryKey: ['student-enrollment-me'],
+    queryFn: () =>
+      api.get('/api/v1/centers/student-enrollment/me')
+        .then(r => r.data)
+        .catch(() => null),
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const centerId = enrollment?.centerId;
+  const batchId = enrollment?.batchId;
 
   const { data: summary, isLoading } = useQuery<AttendanceSummary>({
     queryKey: ['my-attendance', centerId, batchId],
