@@ -131,6 +131,17 @@ html:not(.dark) .btn-primary:active {
   box-shadow: 0 1px 4px rgba(79, 70, 229, 0.30) !important;
 }
 
+/* ── Solid-colored buttons: white text regardless of the text-white remap ── */
+/* Specificity (0,2,1) beats the text-white remap (0,2,0), so this wins even with !important */
+html:not(.dark) button.bg-brand-600,
+html:not(.dark) button.bg-brand-500,
+html:not(.dark) button.bg-brand-700,
+html:not(.dark) button.bg-indigo-600,
+html:not(.dark) button.bg-violet-600,
+html:not(.dark) button.bg-violet-500 {
+  color: #fff !important;
+}
+
 /* ── btn-ghost ── */
 html:not(.dark) .btn-ghost {
   color: rgba(22, 18, 40, 0.65) !important;
