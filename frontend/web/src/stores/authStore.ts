@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export function isJwtExpired(token: string): boolean {
   try {
@@ -47,6 +47,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'edupath-auth',
+      storage: createJSONStorage(() => sessionStorage),
       onRehydrateStorage: () => (state) => {
         if (!state?.token) return;
         if (isJwtExpired(state.token)) {
