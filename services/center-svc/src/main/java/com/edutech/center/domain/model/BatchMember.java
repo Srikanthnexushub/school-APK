@@ -65,6 +65,10 @@ public class BatchMember {
         this.withdrawnAt = Instant.now();
     }
 
+    public void rejoin() {
+        this.withdrawnAt = null;
+    }
+
     public boolean isActive() { return withdrawnAt == null; }
 
     public UUID getId()          { return id; }

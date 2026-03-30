@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -56,17 +57,33 @@ public class BatchMemberService implements ListBatchMembersUseCase {
         if (!principal.belongsToCenter(batch.getCenterId()) && !principal.isSuperAdmin() && !principal.isInstitutionAdmin()) {
             throw new CenterAccessDeniedException();
         }
-        // Upsert: if withdrawn, re-enroll; otherwise create new
-        BatchMember member = memberRepository.findByBatchIdAndStudentId(batchId, request.studentId())
-                .map(m -> { m.withdraw(); return memberRepository.save(m); })
-                .orElseGet(() -> BatchMember.enroll(batchId, batch.getCenterId(),
-                        request.studentId(), request.studentName()));
-        // If this was a re-enroll scenario, create fresh record
-        if (member.getWithdrawnAt() != null) {
+        Optional<BatchMember> existing = memberRepository.findByBatchIdAndStudentId(batchId, request.studentId());
+
+        final BatchMember member;
+        final boolean incrementCount;
+
+        if (existing.isEmpty()) {
+            // Brand-new enrollment
             member = BatchMember.enroll(batchId, batch.getCenterId(), request.studentId(), request.studentName());
+            incrementCount = true;
+        } else if (!existing.get().isActive()) {
+            // Previously withdrawn — rejoin same row (avoids unique constraint violation)
+            BatchMember withdrawn = existing.get();
+            withdrawn.rejoin();
+            member = withdrawn;
+            incrementCount = true;
+        } else {
+            // Already actively enrolled — idempotent, no count change
+            member = existing.get();
+            incrementCount = false;
         }
+
         BatchMember saved = memberRepository.save(member);
-        log.info("BatchMember added: batchId={} studentId={}", batchId, request.studentId());
+        if (incrementCount) {
+            batch.incrementEnrollment();
+            batchRepository.save(batch);
+        }
+        log.info("BatchMember added: batchId={} studentId={} incrementCount={}", batchId, request.studentId(), incrementCount);
         return toResponse(saved);
     }
 
@@ -78,8 +95,11 @@ public class BatchMemberService implements ListBatchMembersUseCase {
             throw new CenterAccessDeniedException();
         }
         memberRepository.findByBatchIdAndStudentId(batchId, studentId).ifPresent(m -> {
+            if (!m.isActive()) return; // already withdrawn — nothing to do
             m.withdraw();
             memberRepository.save(m);
+            batch.decrementEnrollment();
+            batchRepository.save(batch);
             log.info("BatchMember withdrawn: batchId={} studentId={}", batchId, studentId);
         });
     }

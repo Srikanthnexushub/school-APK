@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 156+ frozen fixes as of Fix #156 (2026-03-30 — Banners tab SUPER_ADMIN only: sidebar + render guard; INSTITUTION_ADMIN fully removed).
+- Read `memory/frozen-fixes.md` before touching any file. 158+ frozen fixes as of Fix #158 (2026-03-30 — light mode btn-primary vibrant; Fix #157 — BatchMember enrolledCount sync + rejoin re-enrollment).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -112,7 +112,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (156 fixes, latest: Fix #156 — Banners SUPER_ADMIN only; Fix #155 — login book page-turn).
+Full list → `memory/frozen-fixes.md` (158 fixes, latest: Fix #158 — light mode btn-primary vibrant; Fix #157 — BatchMember enrolledCount sync).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
