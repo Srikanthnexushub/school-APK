@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 135+ frozen fixes as of Fix #135 (2026-03-28 — Login 3D book page-turn: `initial={false}` on AnimatePresence is CRITICAL, single dark mode only, forward-arc rotateY animation).
+- Read `memory/frozen-fixes.md` before touching any file. 155+ frozen fixes as of Fix #155 (2026-03-30 — Login book page-turn: card-flip with feature on both faces, back face linger on left page, `filter`+`preserve-3d` conflict rule).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -112,7 +112,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (126 fixes, latest: Fix #126 — `randomUUID()` HTTP fallback; Fix #125 — AdminBannersPage SUPER_ADMIN guard).
+Full list → `memory/frozen-fixes.md` (155 fixes, latest: Fix #155 — login book page-turn card-flip+linger; Fix #154 — book V-fold shape).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
