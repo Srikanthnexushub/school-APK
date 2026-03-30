@@ -44,7 +44,12 @@ export default function MentorPortalAttendancePage() {
     retry: false,
   });
 
-  const centerId = user?.centerId;
+  const { data: centers = [] } = useQuery<{ id: string }[]>({
+    queryKey: ['centers'],
+    queryFn: () => api.get('/api/v1/centers').then(r => Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
+    enabled: !!user,
+  });
+  const centerId = centers[0]?.id ?? '';
 
   const { data: batches = [] } = useQuery<Batch[]>({
     queryKey: ['batches', centerId],
