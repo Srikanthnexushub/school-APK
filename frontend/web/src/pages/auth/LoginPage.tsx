@@ -270,15 +270,13 @@ export default function LoginPage() {
   const feature = FEATURES[activeFeature];
   const FeatureIcon = feature.icon as React.ElementType;
 
-  // Physical page-turn — FORWARD direction (like lifting and turning a real page).
-  // Both enter and exit use the SAME rotational direction so the page arcs TOWARD the viewer.
-  // Exit:  0 → -180  (right edge lifts toward viewer, folds left — forward turn)
-  // Enter: -180 → 0  (new page opens from the same forward direction)
-  // backfaceVisibility:hidden hides each page when it passes 90° (showing its back face).
+  // Book page-turn — right page flips left (back face = next feature sweeps over left page, lingers), then new page opens from spine.
+  // Exit:  0 → -180  slow-eased (lingers near -180 so back face is visible over left page briefly)
+  // Enter: 90 → 0    small delay (gap between exit completing and new page opening)
   const pageVariants = {
-    enter: (dir: number) => ({ rotateY: dir > 0 ? -180 : 180 }),
-    center: { rotateY: 0 },
-    exit: (dir: number) => ({ rotateY: dir > 0 ? -180 : 180 }),
+    enter: { rotateY: 90 },
+    center: { rotateY: 0, transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] } },
+    exit:  { rotateY: -180, transition: { duration: 0.85, ease: [0.4, 0, 0.08, 1] } },
   };
 
 
@@ -333,26 +331,28 @@ export default function LoginPage() {
             assessments — all in one platform.
           </p>
 
-          {/* ── Open Book — straight, no tilt ── */}
+          {/* ── Open Book — folded/semi-folded V-shape ── */}
           <div className="mt-2 flex justify-center">
             <div className="scale-[0.68] lg:scale-100 origin-top -mb-20 lg:mb-0">
             <div
               style={{
                 display: 'inline-block',
                 filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.45)) drop-shadow(0 4px 12px rgba(99,102,241,0.25))',
-                transform: 'perspective(700px) rotateY(20deg) rotateX(8deg)',
-                transformOrigin: 'center center',
+                perspective: '900px',
+                perspectiveOrigin: '50% 40%',
               }}
             >
               {/* Book pages — left + spine + right */}
-              <div style={{ display: 'flex', position: 'relative' }}>
+              <div style={{ display: 'flex', position: 'relative', transformStyle: 'preserve-3d' }}>
 
-                {/* ── Left page (static, plain glossy) ── */}
+                {/* ── Left page (folded back ~30deg from spine) ── */}
                 <div
                   style={{
                     width: 178, height: 260,
                     background: 'rgba(255,255,255,0.07)',
                     borderRadius: '14px 0 0 14px',
+                    transformOrigin: '100% 50%',
+                    transform: 'rotateY(30deg)',
                     position: 'relative',
                     overflow: 'hidden',
                     flexShrink: 0,
@@ -395,72 +395,123 @@ export default function LoginPage() {
                   ))}
                 </div>
 
-                {/* ── Right page (physical page-turn) ── */}
-                {/* Container is just a size/position frame — no background, no overflow hidden */}
-                {/* perspective + perspectiveOrigin here so rotateY looks like a page flipping around the spine */}
+                {/* ── Right page (physical page-turn, folded forward ~-30deg from spine) ── */}
+                {/* ── Right page: card-flip turn — exit sweeps left (back face over left page), enter opens from spine ── */}
                 <div
                   style={{
                     width: 178, height: 260,
                     position: 'relative',
                     flexShrink: 0,
-                    perspective: '600px',
-                    perspectiveOrigin: '0% 50%',
+                    transformOrigin: '0% 50%',
+                    transform: 'rotateY(-30deg)',
+                    transformStyle: 'preserve-3d',
                   }}
                 >
-                  {/* The ENTIRE page (background + gloss + star + content) is the rotating element */}
-                  <AnimatePresence mode="sync" initial={false} custom={direction}>
+                  <AnimatePresence mode="wait" initial={false}>
                     <motion.div
                       key={activeFeature}
-                      custom={direction}
                       variants={pageVariants}
                       initial="enter"
                       animate="center"
                       exit="exit"
-                      transition={{ duration: 1.1, ease: [0.25, 0.1, 0.25, 1] }}
+                      transition={{ duration: 0.5, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] }}
                       style={{
+                        position: 'absolute', inset: 0,
+                        transformOrigin: '0% 50%',
+                        transformStyle: 'preserve-3d',
+                      }}
+                    >
+                      {/* ── Front face — feature content ── */}
+                      <div style={{
                         position: 'absolute', inset: 0,
                         background: feature.pageBg,
                         borderRadius: '0 14px 14px 0',
-                        transformOrigin: '0% 50%',
                         backfaceVisibility: 'hidden',
                         overflow: 'hidden',
-                      }}
-                    >
-                      {/* Specular gloss */}
+                      }}>
+                        {/* Specular gloss */}
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          background: 'linear-gradient(142deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.12) 32%, transparent 60%)',
+                          borderRadius: 'inherit', zIndex: 2, pointerEvents: 'none',
+                        }} />
+                        {/* Inner rim shadow near spine */}
+                        <div style={{
+                          position: 'absolute', top: 0, left: 0, bottom: 0, width: 16,
+                          background: 'linear-gradient(90deg, rgba(0,0,0,0.18), transparent)',
+                          zIndex: 2, pointerEvents: 'none',
+                        }} />
+                        {/* Amber star */}
+                        <div style={{ position: 'absolute', top: 11, right: 13, zIndex: 3, pointerEvents: 'none' }}>
+                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <path
+                              d="M9 1.5l2.09 4.24 4.68.68-3.39 3.3.8 4.66L9 12.27l-4.18 2.2.8-4.66L2.23 6.42l4.68-.68L9 1.5z"
+                              fill="#fef08a" stroke="rgba(254,240,138,0.4)" strokeWidth="0.5"
+                            />
+                          </svg>
+                        </div>
+                        {/* Feature content */}
+                        <div className="absolute inset-0 z-10 flex flex-col items-center text-center px-4 pt-5 pb-4">
+                          <div style={{ padding: '10px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.20)', marginBottom: '10px' }}>
+                            <FeatureIcon style={{ width: 24, height: 24, color: '#fff' }} />
+                          </div>
+                          <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginBottom: '8px', lineHeight: 1.3 }}>
+                            {feature.label}
+                          </h3>
+                          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '11px', lineHeight: 1.6, marginBottom: '12px', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                            {feature.brief}
+                          </p>
+                          <span style={{ fontSize: '10px', fontWeight: 600, padding: '4px 10px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.20)', color: '#fff' }}>
+                            {feature.stat}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* ── Back face — next feature (sweeps over left page, readable via scaleX(-1) un-mirror) ── */}
                       <div style={{
                         position: 'absolute', inset: 0,
-                        background: 'linear-gradient(142deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.12) 32%, transparent 60%)',
-                        borderRadius: 'inherit', zIndex: 2, pointerEvents: 'none',
-                      }} />
-                      {/* Inner rim shadow near spine */}
-                      <div style={{
-                        position: 'absolute', top: 0, left: 0, bottom: 0, width: 16,
-                        background: 'linear-gradient(90deg, rgba(0,0,0,0.18), transparent)',
-                        zIndex: 2, pointerEvents: 'none',
-                      }} />
-                      {/* Amber star */}
-                      <div style={{ position: 'absolute', top: 11, right: 13, zIndex: 3, pointerEvents: 'none' }}>
-                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                          <path
-                            d="M9 1.5l2.09 4.24 4.68.68-3.39 3.3.8 4.66L9 12.27l-4.18 2.2.8-4.66L2.23 6.42l4.68-.68L9 1.5z"
-                            fill="#fef08a" stroke="rgba(254,240,138,0.4)" strokeWidth="0.5"
-                          />
-                        </svg>
-                      </div>
-                      {/* Feature content — white text on all vibrant backgrounds */}
-                      <div className="absolute inset-0 z-10 flex flex-col items-center text-center px-4 pt-5 pb-4">
-                        <div style={{ padding: '10px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.20)', marginBottom: '10px' }}>
-                          <FeatureIcon style={{ width: 24, height: 24, color: '#fff' }} />
+                        background: feature.pageBg,
+                        borderRadius: '0 14px 14px 0',
+                        backfaceVisibility: 'hidden',
+                        transform: 'rotateY(180deg)',
+                        overflow: 'hidden',
+                      }}>
+                        {/* scaleX(-1) cancels the horizontal mirror introduced by rotateY(180deg) */}
+                        <div style={{ position: 'absolute', inset: 0, transform: 'scaleX(-1)' }}>
+                          {/* Specular gloss */}
+                          <div style={{
+                            position: 'absolute', inset: 0,
+                            background: 'linear-gradient(142deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.12) 32%, transparent 60%)',
+                            borderRadius: 'inherit', zIndex: 2, pointerEvents: 'none',
+                          }} />
+                          {/* Inner rim shadow near spine */}
+                          <div style={{
+                            position: 'absolute', top: 0, left: 0, bottom: 0, width: 16,
+                            background: 'linear-gradient(90deg, rgba(0,0,0,0.18), transparent)',
+                            zIndex: 2, pointerEvents: 'none',
+                          }} />
+                          {/* Amber star */}
+                          <div style={{ position: 'absolute', top: 11, right: 13, zIndex: 3, pointerEvents: 'none' }}>
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                              <path d="M9 1.5l2.09 4.24 4.68.68-3.39 3.3.8 4.66L9 12.27l-4.18 2.2.8-4.66L2.23 6.42l4.68-.68L9 1.5z" fill="#fef08a" stroke="rgba(254,240,138,0.4)" strokeWidth="0.5" />
+                            </svg>
+                          </div>
+                          {/* Feature content */}
+                          <div className="absolute inset-0 z-10 flex flex-col items-center text-center px-4 pt-5 pb-4">
+                            <div style={{ padding: '10px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.20)', marginBottom: '10px' }}>
+                              <FeatureIcon style={{ width: 24, height: 24, color: '#fff' }} />
+                            </div>
+                            <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginBottom: '8px', lineHeight: 1.3 }}>
+                              {feature.label}
+                            </h3>
+                            <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '11px', lineHeight: 1.6, marginBottom: '12px', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                              {feature.brief}
+                            </p>
+                            <span style={{ fontSize: '10px', fontWeight: 600, padding: '4px 10px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.20)', color: '#fff' }}>
+                              {feature.stat}
+                            </span>
+                          </div>
                         </div>
-                        <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginBottom: '8px', lineHeight: 1.3 }}>
-                          {feature.label}
-                        </h3>
-                        <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '11px', lineHeight: 1.6, marginBottom: '12px', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                          {feature.brief}
-                        </p>
-                        <span style={{ fontSize: '10px', fontWeight: 600, padding: '4px 10px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.20)', color: '#fff' }}>
-                          {feature.stat}
-                        </span>
                       </div>
                     </motion.div>
                   </AnimatePresence>
