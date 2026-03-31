@@ -102,6 +102,7 @@ interface ParentProfileMin {
 }
 
 interface MentorProfileMin {
+  id?: string;
   fullName?: string;
   email?: string;
   bio?: string;
@@ -109,6 +110,7 @@ interface MentorProfileMin {
   yearsOfExperience?: number;
   hourlyRate?: number;
   gender?: string;
+  district?: string;
 }
 
 const profileSchema = z.object({
@@ -432,17 +434,22 @@ function ProfileTab() {
   });
 
   const [teacherForm, setTeacherForm] = useState({
-    bio: '', specializations: '', yearsOfExperience: 0, hourlyRate: '', gender: '',
+    fullName: '', bio: '', specializations: '', yearsOfExperience: 0,
+    hourlyRate: '', gender: '', district: '',
   });
   const teacherFormInitialized = useRef(false);
   useEffect(() => {
     if (mentorProfile && !teacherFormInitialized.current) {
       setTeacherForm({
+        fullName: mentorProfile.fullName ?? '',
         bio: mentorProfile.bio ?? '',
-        specializations: typeof mentorProfile.specializations === 'string' ? mentorProfile.specializations : (mentorProfile.specializations ?? []).join(', '),
+        specializations: Array.isArray(mentorProfile.specializations)
+          ? mentorProfile.specializations.join(', ')
+          : (mentorProfile.specializations ?? ''),
         yearsOfExperience: mentorProfile.yearsOfExperience ?? 0,
         hourlyRate: mentorProfile.hourlyRate != null ? String(mentorProfile.hourlyRate) : '',
         gender: mentorProfile.gender ?? '',
+        district: mentorProfile.district ?? '',
       });
       teacherFormInitialized.current = true;
     }
@@ -453,21 +460,26 @@ function ProfileTab() {
       if (!mentorProfile) {
         await api.post('/api/v1/mentors', {
           userId: user!.id,
-          fullName: user!.name || 'Teacher',
+          fullName: form.fullName || user!.name || 'Teacher',
           email: user!.email,
           bio: form.bio || undefined,
           specializations: form.specializations || undefined,
           yearsOfExperience: form.yearsOfExperience || 0,
           hourlyRate: form.hourlyRate ? parseFloat(form.hourlyRate) : 0.01,
           gender: form.gender || undefined,
+          district: form.district || undefined,
         });
       } else {
         await api.patch('/api/v1/mentors/me', {
+          fullName: form.fullName || undefined,
           bio: form.bio || undefined,
-          specializations: form.specializations || undefined,
+          specializations: form.specializations
+            ? form.specializations.split(',').map((s: string) => s.trim()).filter(Boolean).join(',')
+            : undefined,
           yearsOfExperience: form.yearsOfExperience || undefined,
           hourlyRate: form.hourlyRate ? parseFloat(form.hourlyRate) : undefined,
           gender: form.gender || undefined,
+          district: form.district || undefined,
         });
       }
     },
@@ -827,6 +839,16 @@ function ProfileTab() {
             onSubmit={(e) => { e.preventDefault(); teacherSaveMutation.mutate(teacherForm); }}
             className="space-y-4"
           >
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Full Name</label>
+              <input
+                type="text"
+                value={teacherForm.fullName}
+                onChange={e => setTeacherForm(f => ({ ...f, fullName: e.target.value }))}
+                className="input w-full"
+                placeholder="Your display name"
+              />
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-white/70 mb-1.5">Gender</label>
@@ -850,6 +872,29 @@ function ProfileTab() {
                   value={teacherForm.yearsOfExperience}
                   onChange={(e) => setTeacherForm((p) => ({ ...p, yearsOfExperience: parseInt(e.target.value) || 0 }))}
                   className="input w-full"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-white/50 uppercase tracking-wider">District</label>
+                <input
+                  type="text"
+                  value={teacherForm.district}
+                  onChange={e => setTeacherForm(f => ({ ...f, district: e.target.value }))}
+                  className="input w-full"
+                  placeholder="e.g. Chennai"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Hourly Rate (₹)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={teacherForm.hourlyRate}
+                  onChange={e => setTeacherForm(f => ({ ...f, hourlyRate: e.target.value }))}
+                  className="input w-full"
+                  placeholder="e.g. 500"
                 />
               </div>
             </div>

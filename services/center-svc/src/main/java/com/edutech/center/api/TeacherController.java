@@ -10,6 +10,7 @@ import com.edutech.center.application.dto.InvitationLookupResponse;
 import com.edutech.center.application.dto.RejectTeacherRequest;
 import com.edutech.center.application.dto.TeacherResponse;
 import com.edutech.center.application.dto.TeacherSelfRegisterRequest;
+import com.edutech.center.application.dto.UpdateTeacherSelfProfileRequest;
 import com.edutech.center.application.service.TeacherApprovalService;
 import com.edutech.center.application.service.TeacherBulkImportService;
 import com.edutech.center.application.service.TeacherService;
@@ -27,6 +28,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -145,6 +147,25 @@ public class TeacherController {
                                   @Valid @RequestBody RejectTeacherRequest request,
                                   @AuthenticationPrincipal AuthPrincipal principal) {
         return approvalService.reject(centerId, teacherId, principal);
+    }
+
+    // ─── Teacher Self-Profile ─────────────────────────────────────────────────
+
+    @GetMapping("/me")
+    @Operation(summary = "Teacher fetches their own profile for this center")
+    public ResponseEntity<TeacherResponse> getMyProfile(
+            @PathVariable UUID centerId,
+            @AuthenticationPrincipal AuthPrincipal principal) {
+        return ResponseEntity.ok(approvalService.getMyProfile(centerId, principal.userId()));
+    }
+
+    @PatchMapping("/me")
+    @Operation(summary = "Teacher updates their own profile fields")
+    public ResponseEntity<TeacherResponse> updateMyProfile(
+            @PathVariable UUID centerId,
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @Valid @RequestBody UpdateTeacherSelfProfileRequest request) {
+        return ResponseEntity.ok(approvalService.updateMyProfile(centerId, principal.userId(), request));
     }
 
     // ─── Invitation Accept ────────────────────────────────────────────────────

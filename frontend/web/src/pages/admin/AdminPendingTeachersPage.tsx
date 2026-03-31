@@ -14,13 +14,21 @@ import api from '../../lib/api';
 interface TeacherResponse {
   id: string;
   centerId: string;
+  userId?: string;
   firstName: string;
   lastName: string;
   email: string;
   phoneNumber?: string;
   subjects?: string;
+  district?: string;
+  country?: string;
   status: string;
   joinedAt: string;
+  roleType?: string;
+  designation?: string;
+  qualification?: string;
+  yearsOfExperience?: number;
+  bio?: string;
 }
 
 // ─── Reject Modal ─────────────────────────────────────────────────────────────
@@ -137,10 +145,17 @@ function TeacherCard({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AdminPendingTeachersPage() {
-  const centerId = useAuthStore(s => s.user?.centerId);
+  const user = useAuthStore(s => s.user);
   const qc = useQueryClient();
   const [rejectTarget, setRejectTarget] = useState<TeacherResponse | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+
+  const { data: centers = [] } = useQuery<{ id: string }[]>({
+    queryKey: ['centers'],
+    queryFn: () => api.get('/api/v1/centers').then(r => Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
+    enabled: !!user,
+  });
+  const centerId = centers[0]?.id ?? '';
 
   const { data: pending = [], isLoading } = useQuery<TeacherResponse[]>({
     queryKey: ['admin-pending-teachers', centerId],

@@ -498,7 +498,7 @@ export default function RegisterPage() {
   useEffect(() => {
     if (selectedRole !== 'TEACHER') return;
     setTeacherCentersLoading(true);
-    axios.get('/api/v1/centers?size=200')
+    api.get('/api/v1/centers?size=200')
       .then((r) => {
         const data = r.data;
         const list = Array.isArray(data) ? data : (data.content ?? []);
@@ -875,34 +875,6 @@ export default function RegisterPage() {
           toast.success('Email verified!');
         }
         navigate('/parent');
-        return;
-      }
-
-      // TEACHER: self-register pending approval
-      if (selectedRole === 'TEACHER' && teacherCenterId && regToken && step1Data) {
-        try {
-          await axios.post(
-            `/api/v1/centers/${teacherCenterId}/teachers/self-register`,
-            {
-              firstName: step1Data.firstName,
-              lastName: step1Data.lastName,
-              email: step1Data.email,
-              phoneNumber: step1Data.phone || undefined,
-              subjects: teacherSubjectsArr.length > 0 ? teacherSubjectsArr.join(', ') : undefined,
-              address: teacherAddress ? [teacherAddress, teacherAddressLine2].filter(Boolean).join(', ') : undefined,
-              city: teacherCity || undefined,
-              state: teacherStateVal || undefined,
-              district: teacherDistrict || undefined,
-              country: teacherCountry || undefined,
-              pincode: teacherPincode || undefined,
-            },
-            { headers: { Authorization: `Bearer ${regToken}` } }
-          );
-          toast.success('Registration submitted! Awaiting approval from your institution coordinator.');
-        } catch {
-          // Non-fatal
-        }
-        navigate('/login');
         return;
       }
 

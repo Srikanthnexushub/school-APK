@@ -4,6 +4,7 @@ package com.edutech.center.application.service;
 import com.edutech.center.application.dto.AuthPrincipal;
 import com.edutech.center.application.dto.TeacherResponse;
 import com.edutech.center.application.dto.TeacherSelfRegisterRequest;
+import com.edutech.center.application.dto.UpdateTeacherSelfProfileRequest;
 import com.edutech.center.application.exception.CenterAccessDeniedException;
 import com.edutech.center.application.exception.CenterNotFoundException;
 import com.edutech.center.application.exception.TeacherAlreadyAssignedException;
@@ -92,6 +93,29 @@ public class TeacherApprovalService {
         teacher.reject();
         Teacher saved = teacherRepository.save(teacher);
         log.info("Teacher rejected: teacherId={} centerId={}", teacherId, centerId);
+        return toResponse(saved);
+    }
+
+    /** Teacher fetches their own profile for a specific center. */
+    @Transactional(readOnly = true)
+    public TeacherResponse getMyProfile(UUID centerId, UUID userId) {
+        Teacher teacher = teacherRepository.findByUserId(userId).stream()
+                .filter(t -> t.getCenterId().equals(centerId))
+                .findFirst()
+                .orElseThrow(() -> new TeacherNotFoundException(userId));
+        return toResponse(teacher);
+    }
+
+    /** Teacher updates their own profile fields (cannot change firstName, lastName, roleType). */
+    @Transactional
+    public TeacherResponse updateMyProfile(UUID centerId, UUID userId, UpdateTeacherSelfProfileRequest req) {
+        Teacher teacher = teacherRepository.findByUserId(userId).stream()
+                .filter(t -> t.getCenterId().equals(centerId))
+                .findFirst()
+                .orElseThrow(() -> new TeacherNotFoundException(userId));
+        teacher.updateProfile(null, null, req.phoneNumber(), null, req.designation(),
+                req.subjects(), req.district(), req.qualification(), req.yearsOfExperience(), req.bio());
+        Teacher saved = teacherRepository.save(teacher);
         return toResponse(saved);
     }
 
