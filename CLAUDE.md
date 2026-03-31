@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 184+ frozen fixes as of Fix #184 (2026-03-31 — teacherB linked to nexus center + batch assigned; AdminBatchesPage teacherMap key confirmed t.userId).
+- Read `memory/frozen-fixes.md` before touching any file. 185+ frozen fixes as of Fix #185 (2026-03-31 — STUDENT/PARENT read bypass for BatchFeeService.listByBatch + FeeService.listFeeStructures).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
