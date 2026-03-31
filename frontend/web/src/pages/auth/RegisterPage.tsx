@@ -640,15 +640,15 @@ export default function RegisterPage() {
         return;
       }
 
-      if (selectedRole === 'TEACHER' && teacherCenterId && step1Data) {
+      if (selectedRole === 'TEACHER' && teacherCenterId) {
         try {
           await axios.post(
             `/api/v1/centers/${teacherCenterId}/teachers/self-register`,
             {
-              firstName: step1Data.firstName,
-              lastName: step1Data.lastName,
-              email: step1Data.email,
-              phoneNumber: step1Data.phone || undefined,
+              firstName: data.firstName,
+              lastName: data.lastName,
+              email: data.email,
+              phoneNumber: data.phone || undefined,
               subjects: teacherSubjectsArr.length > 0 ? teacherSubjectsArr.join(', ') : undefined,
               address: teacherAddress ? [teacherAddress, teacherAddressLine2].filter(Boolean).join(', ') : undefined,
               city: teacherCity || undefined,
@@ -702,11 +702,8 @@ export default function RegisterPage() {
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number; data?: { detail?: string } } };
       if (axiosErr.response?.status === 409) {
-        toast.info('Account already exists. Sending a new verification code…');
-        try {
-          await api.post('/api/v1/otp/send', { email: data.email, purpose: 'EMAIL_VERIFICATION', channel: 'email' });
-        } catch { /* non-fatal */ }
-        setShowOtp(true);
+        toast.error('An account with this email already exists. Please sign in instead.');
+        navigate('/login');
       } else {
         toast.error(axiosErr.response?.data?.detail ?? 'Registration failed');
         setCaptchaToken(null);
