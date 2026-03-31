@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 176+ frozen fixes as of Fix #176 (2026-03-31 — teacher lifecycle: institution dropdown, /teachers/me endpoints, SettingsPage fullName/district/hourlyRate, AdminPending centerId).
+- Read `memory/frozen-fixes.md` before touching any file. 184+ frozen fixes as of Fix #184 (2026-03-31 — teacherB linked to nexus center + batch assigned; AdminBatchesPage teacherMap key confirmed t.userId).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
