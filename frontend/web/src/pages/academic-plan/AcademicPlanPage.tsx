@@ -57,15 +57,6 @@ interface AcademicPlan {
   chapters: ChapterItem[];
 }
 
-interface Reminder {
-  id: string;
-  studyPlanId: string;
-  title: string;
-  message?: string;
-  remindAt: string;
-  acknowledged: boolean;
-}
-
 // ─── Constants ─────────────────────────────────────────────────────────────
 
 const PLAN_TYPES: { id: PlanType; label: string; icon: React.ReactNode; desc: string }[] = [
@@ -156,60 +147,6 @@ function mapPlan(raw: Record<string, unknown>): AcademicPlan {
   };
 }
 
-function mapReminder(raw: Record<string, unknown>): Reminder {
-  return {
-    id: raw.id as string,
-    studyPlanId: raw.studyPlanId as string,
-    title: raw.title as string,
-    message: raw.message as string | undefined,
-    remindAt: raw.remindAt as string,
-    acknowledged: raw.acknowledged as boolean,
-  };
-}
-
-// ─── Reminder Modal ────────────────────────────────────────────────────────
-
-function ReminderModal({ reminders, onAcknowledge }: { reminders: Reminder[]; onAcknowledge: (id: string) => void }) {
-  const [current, setCurrent] = useState(0);
-  if (reminders.length === 0) return null;
-  const r = reminders[current];
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60">
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="glass rounded-2xl p-6 max-w-sm w-full border border-indigo-500/30 shadow-2xl shadow-indigo-500/20"
-      >
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
-            <Bell className="w-5 h-5 text-indigo-400" />
-          </div>
-          <div>
-            <p className="text-xs text-indigo-400 font-semibold uppercase tracking-wider">Reminder</p>
-            <h3 className="text-white font-semibold text-sm">{r.title}</h3>
-          </div>
-          {reminders.length > 1 && <span className="ml-auto text-xs text-white/40">{current + 1}/{reminders.length}</span>}
-        </div>
-        {r.message && <p className="text-white/60 text-sm mb-4 leading-relaxed">{r.message}</p>}
-        <p className="text-white/30 text-xs mb-5">
-          <Calendar className="w-3 h-3 inline mr-1" />
-          {new Date(r.remindAt).toLocaleString()}
-        </p>
-        <div className="flex gap-2">
-          <button onClick={() => onAcknowledge(r.id)} className="flex-1 btn-primary text-sm flex items-center justify-center gap-2">
-            <CheckCircle2 className="w-4 h-4" /> Got it
-          </button>
-          {current < reminders.length - 1 && (
-            <button onClick={() => setCurrent(c => c + 1)} className="px-3 py-2 rounded-xl border border-white/10 text-white/50 hover:text-white hover:bg-white/5 transition-all text-sm">
-              Next
-            </button>
-          )}
-        </div>
-      </motion.div>
-    </div>
-  );
-}
-
 // ─── Schedule Table (plan card expand) ─────────────────────────────────────
 
 function ScheduleTable({ chapters, planType }: { chapters: ChapterItem[]; planType: PlanType }) {
@@ -289,20 +226,6 @@ export default function AcademicPlanPage() {
     staleTime: 3 * 60 * 1000,
   });
 
-  const remindersQuery = useQuery<Reminder[]>({
-    queryKey: ['pending-reminders'],
-    queryFn: () =>
-      api.get('/api/v1/reminders/pending').then(r => {
-        const d = r.data;
-        const arr: Record<string, unknown>[] = Array.isArray(d) ? d : (d.content ?? []);
-        return arr.map(mapReminder);
-      }),
-    staleTime: 60 * 1000,
-    refetchOnWindowFocus: true,
-  });
-
-  const pendingReminders = remindersQuery.data ?? [];
-
   // ── Mutations ──
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) => api.post('/api/v1/study-plans', payload),
@@ -326,11 +249,6 @@ export default function AcademicPlanPage() {
       toast.success('Reminder set!');
     },
     onError: () => toast.error('Failed to save reminder'),
-  });
-
-  const ackMutation = useMutation({
-    mutationFn: (id: string) => api.put(`/api/v1/reminders/${id}/acknowledge`, {}),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['pending-reminders'] }),
   });
 
   function resetForm() {
@@ -512,10 +430,6 @@ Start with topic-wise tests, then subject-wise tests, then full syllabus mock te
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      {pendingReminders.length > 0 && (
-        <ReminderModal reminders={pendingReminders} onAcknowledge={id => ackMutation.mutate(id)} />
-      )}
-
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>

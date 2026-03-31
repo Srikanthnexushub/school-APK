@@ -7,7 +7,7 @@ import {
   Bell, Search, ChevronRight, BookOpenCheck, Library, Award,
   CreditCard, Beaker, UserCog, BookCheck, Building2, Upload, UserCheck,
   Briefcase, Megaphone, CalendarCheck, Receipt, GraduationCap,
-  Sun, Moon, Wallet,
+  Sun, Moon, Wallet, CheckCircle2,
 } from 'lucide-react';
 import NexusEdLogo from '../NexusEdLogo';
 import { useThemeStore } from '../../stores/themeStore';
@@ -18,8 +18,58 @@ import { cn } from '../../lib/utils';
 import CommandPalette from '../ui/CommandPalette';
 import NotificationPanel from '../ui/NotificationPanel';
 import { useNotifications } from '../../hooks/useNotifications';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
+
+// ─── Global Reminder Modal ──────────────────────────────────────────────────
+
+interface PendingReminder {
+  id: string;
+  title: string;
+  message?: string;
+  remindAt: string;
+}
+
+function GlobalReminderModal({ reminders, onAcknowledge }: { reminders: PendingReminder[]; onAcknowledge: (id: string) => void }) {
+  const [current, setCurrent] = useState(0);
+  if (reminders.length === 0) return null;
+  const r = reminders[current];
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60">
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="glass rounded-2xl p-6 max-w-sm w-full border border-indigo-500/30 shadow-2xl shadow-indigo-500/20"
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
+            <Bell className="w-5 h-5 text-indigo-400" />
+          </div>
+          <div>
+            <p className="text-xs text-indigo-400 font-semibold uppercase tracking-wider">Reminder</p>
+            <h3 className="text-white font-semibold text-sm">{r.title}</h3>
+          </div>
+          {reminders.length > 1 && <span className="ml-auto text-xs text-white/40">{current + 1}/{reminders.length}</span>}
+        </div>
+        {r.message && <p className="text-white/60 text-sm mb-4 leading-relaxed">{r.message}</p>}
+        <p className="text-white/30 text-xs mb-5">
+          <Calendar className="w-3 h-3 inline mr-1" />
+          {new Date(r.remindAt).toLocaleString()}
+        </p>
+        <div className="flex gap-2">
+          <button onClick={() => { onAcknowledge(r.id); setCurrent(0); }} className="flex-1 btn-primary text-sm flex items-center justify-center gap-2">
+            <CheckCircle2 className="w-4 h-4" /> Got it
+          </button>
+          {current < reminders.length - 1 && (
+            <button onClick={() => setCurrent(c => c + 1)} className="px-3 py-2 rounded-xl border border-white/10 text-white/50 hover:text-white hover:bg-white/5 transition-all text-sm">
+              Next
+            </button>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
 
 interface NavItem {
   icon: React.ElementType;
@@ -527,6 +577,25 @@ export default function AppLayout() {
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const { notifications, unreadCount, isLoading, markRead, markAllRead } = useNotifications();
+  const queryClient = useQueryClient();
+
+  // ── Global reminder polling — fires for ALL roles every 60 s ──
+  const { data: pendingReminders = [] } = useQuery<PendingReminder[]>({
+    queryKey: ['pending-reminders'],
+    queryFn: () =>
+      api.get('/api/v1/reminders/pending')
+        .then(r => (Array.isArray(r.data) ? r.data : (r.data.content ?? [])) as PendingReminder[])
+        .catch(() => []),
+    enabled: !!user,
+    staleTime: 0,
+    refetchInterval: 60 * 1000,
+    refetchOnWindowFocus: true,
+  });
+
+  const ackReminderMutation = useMutation({
+    mutationFn: (id: string) => api.put(`/api/v1/reminders/${id}/acknowledge`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['pending-reminders'] }),
+  });
 
   const { data: studentProfile } = useQuery({
     queryKey: ['student-profile-me'],
@@ -736,6 +805,12 @@ export default function AppLayout() {
           <CommandPalette onClose={() => setCommandOpen(false)} />
         )}
       </AnimatePresence>
+
+      {/* Global Reminder Modal — polls every 60 s for all roles */}
+      <GlobalReminderModal
+        reminders={pendingReminders}
+        onAcknowledge={(id) => ackReminderMutation.mutate(id)}
+      />
     </div>
   );
 }
