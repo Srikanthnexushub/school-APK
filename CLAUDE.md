@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 170+ frozen fixes as of Fix #170 (2026-03-30 — teacher attendance centerId; Fix #169 — student attendance enrollment; Fix #168 — admin attendance centerId; Fix #167 — text-white/90 light mode; Fix #166 — address fields).
+- Read `memory/frozen-fixes.md` before touching any file. 176+ frozen fixes as of Fix #176 (2026-03-31 — teacher lifecycle: institution dropdown, /teachers/me endpoints, SettingsPage fullName/district/hourlyRate, AdminPending centerId).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -112,7 +112,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (170 fixes, latest: Fix #170 — teacher attendance centerId via centers API; Fix #169 — student attendance enrollment endpoint; Fix #168 — admin attendance centerId).
+Full list → `memory/frozen-fixes.md` (176 fixes, latest: Fix #171-#176 — teacher lifecycle complete: institution dropdown, /teachers/me endpoints, SettingsPage fullName/district/hourlyRate, AdminPendingTeachers centerId).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
