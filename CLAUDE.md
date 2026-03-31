@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 165+ frozen fixes as of Fix #165 (2026-03-30 — per-tab session isolation sessionStorage; Fix #164 — sidebar dup; Fix #163 — student fees batchId; Fix #162 — token refresh logout).
+- Read `memory/frozen-fixes.md` before touching any file. 170+ frozen fixes as of Fix #170 (2026-03-30 — teacher attendance centerId; Fix #169 — student attendance enrollment; Fix #168 — admin attendance centerId; Fix #167 — text-white/90 light mode; Fix #166 — address fields).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -89,7 +89,7 @@ Tomcat deployment details → `memory/tomcat-deployment.md`
 |---|---|---|
 | **Parent** | `ravi.parent@test.com` | userId `bd7d02da-11e3-4bda-9795-41d3c93bac69` |
 | **Student** | `qa-test@nexused.dev` | userId `50d63f9c-9b9c-4737-a66a-22b29dad42a1` |
-| **Teacher** | `teacher1@test.com` | |
+| **Teacher** | `teacher1@test.com` | local dev only; EC2 live teacher: `sri.teacher@school.com` |
 | **CENTER_ADMIN** | `institute@nexused.com` | centerId `6e9985dd-f029-49aa-8d22-39c42525df97` |
 | **INSTITUTION_ADMIN** | `superadmin@nexused.com` | platform admin, no centerId |
 
@@ -112,7 +112,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (165 fixes, latest: Fix #165 — sessionStorage tab isolation; Fix #164 — sidebar dup; Fix #163 — student fees batchId; Fix #162 — token refresh logout).
+Full list → `memory/frozen-fixes.md` (170 fixes, latest: Fix #170 — teacher attendance centerId via centers API; Fix #169 — student attendance enrollment endpoint; Fix #168 — admin attendance centerId).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
@@ -126,6 +126,10 @@ Read it before touching any existing file.
 **Flyway + DB ownership (this dev DB)**: Tables in `assess_db`, `auth_db`, etc. are owned by `srikanth` (superuser) because migrations ran as srikanth during initial setup. Future DDL migrations that use `ALTER TABLE` on these schemas must be run manually as `postgres`/`srikanth` superuser first, then inserted into `flyway_schema_history`. Fresh DBs are not affected (tables will be owned by the app user).
 
 **start-all.sh find**: All `find` calls in `start_svc()` use `-maxdepth 1` — never remove this. WAR packaging creates exploded `WEB-INF/lib/` inside `target/` and without depth limiting, the first match is a dependency JAR, not the service artifact.
+
+**Teacher dual-profile architecture**: TEACHER role has TWO backend profiles — (1) `mentor_schema.mentor_profiles` in mentor-svc (bio, specializations, hourlyRate, gender, district) accessed via `GET/PATCH /api/v1/mentors/me` with X-User-Id header injected by gateway; (2) `center_schema.teachers` in center-svc (phoneNumber, subjects, roleType, designation, qualification, yearsOfExperience, bio, district) — NO `/teachers/me` endpoint exists yet (pending Fix). Frontend MUST call `GET /api/v1/centers` → `centers[0]?.id` for teacher centerId — NEVER use `user?.centerId` (null in JWT until re-login after approval). `TeacherRepository.findByUserId(userId)` already exists — resolveAccessibleCenters() uses it.
+
+**center-svc → auth-svc inter-service**: center-svc has NO REST client to call auth-svc. They communicate only via Kafka (`center-events` and `audit-immutable` topics). auth-svc does NOT consume center-events. If centerId sync after teacher approval is needed, it requires adding WebClient to center-svc pointing to AUTH_SVC_URI. Auth endpoint: `PATCH /api/v1/auth/admin/users/{userId}/center` (requires CENTER_ADMIN/INSTITUTION_ADMIN/SUPER_ADMIN role).
 
 ---
 
