@@ -44,6 +44,11 @@ public class FeeService implements CreateFeeStructureUseCase {
                 .orElse(false);
     }
 
+    /** True if the role is read-only viewer (student/parent) who can see fee structures but not manage them. */
+    private boolean isReadOnlyViewer(AuthPrincipal principal) {
+        return principal.isStudent() || principal.role() == com.edutech.center.domain.model.Role.PARENT;
+    }
+
     @Override
     @Transactional
     public FeeStructureResponse createFeeStructure(UUID centerId, CreateFeeStructureRequest request,
@@ -70,7 +75,7 @@ public class FeeService implements CreateFeeStructureUseCase {
 
     @Transactional(readOnly = true)
     public List<FeeStructureResponse> listFeeStructures(UUID centerId, AuthPrincipal principal) {
-        if (!hasAccess(principal, centerId)) {
+        if (!isReadOnlyViewer(principal) && !hasAccess(principal, centerId)) {
             throw new CenterAccessDeniedException();
         }
         return feeStructureRepository.findByCenterId(centerId).stream().map(this::toResponse).toList();
@@ -78,7 +83,7 @@ public class FeeService implements CreateFeeStructureUseCase {
 
     @Transactional(readOnly = true)
     public Page<FeeStructureResponse> listFeeStructures(UUID centerId, AuthPrincipal principal, Pageable pageable) {
-        if (!hasAccess(principal, centerId)) {
+        if (!isReadOnlyViewer(principal) && !hasAccess(principal, centerId)) {
             throw new CenterAccessDeniedException();
         }
         List<FeeStructureResponse> all = feeStructureRepository.findByCenterId(centerId).stream()

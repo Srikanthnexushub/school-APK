@@ -51,7 +51,8 @@ public class BatchFeeService {
     public List<BatchFeeAssignmentResponse> listByBatch(UUID batchId, AuthPrincipal principal) {
         Batch batch = batchRepository.findById(batchId)
                 .orElseThrow(() -> new BatchNotFoundException(batchId));
-        if (!principal.belongsToCenter(batch.getCenterId()) && !principal.isSuperAdmin() && !principal.isInstitutionAdmin()) {
+        boolean isReadOnlyViewer = principal.isStudent() || principal.role() == com.edutech.center.domain.model.Role.PARENT;
+        if (!isReadOnlyViewer && !principal.belongsToCenter(batch.getCenterId()) && !principal.isSuperAdmin() && !principal.isInstitutionAdmin()) {
             throw new CenterAccessDeniedException();
         }
         return assignmentRepository.findByBatchId(batchId).stream()
