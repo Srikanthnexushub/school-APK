@@ -62,20 +62,23 @@ export default function MentorPortalDashboardPage() {
     Mon: true, Tue: false, Wed: true, Thu: true, Fri: true, Sat: false, Sun: false,
   });
 
-  // Fetch mentor profile by listing all and finding by userId
+  // Fetch mentor profile directly via /me endpoint
   const {
     data: mentorProfile,
     isLoading: profileLoading,
     isError: profileError,
     refetch: refetchProfile,
   } = useQuery<{ id: string; averageRating: number; totalSessions: number } | null>({
-    queryKey: ['mentor-profile', user?.id],
+    queryKey: ['mentor-profile-me'],
     queryFn: async () => {
-      const res = await api.get('/api/v1/mentors');
-      const raw = res.data;
-      const profiles: Array<{ id: string; userId: string; averageRating: number; totalSessions: number }> = Array.isArray(raw) ? raw : (raw.content ?? []);
-      return profiles.find((p) => p.userId === user?.id) ?? null;
+      try {
+        const res = await api.get('/api/v1/mentors/me');
+        return res.data ?? null;
+      } catch {
+        return null;
+      }
     },
+    enabled: !!user,
     retry: false,
   });
 
@@ -191,16 +194,22 @@ export default function MentorPortalDashboardPage() {
     );
   }
 
-  // No mentor profile configured
+  // No mentor profile yet — guide teacher to Settings to create it
   if (mentorProfile === null) {
     return (
       <div className="min-h-screen p-6 flex items-center justify-center">
-        <div className="glass rounded-2xl p-10 flex flex-col items-center gap-4 text-white/50 max-w-md text-center">
+        <div className="glass rounded-2xl p-10 flex flex-col items-center gap-4 max-w-md text-center">
           <AlertCircle className="w-12 h-12 text-amber-400 opacity-70" />
-          <p className="text-white font-semibold text-lg">Profile Not Configured</p>
+          <p className="text-white font-semibold text-lg">Complete Your Profile</p>
           <p className="text-white/50 text-sm">
-            No mentor profile was found for your account. Please contact an administrator to set up your mentor profile.
+            Your mentor profile hasn't been set up yet. Head to Settings to fill in your details and unlock your dashboard.
           </p>
+          <a
+            href="/settings"
+            className="mt-2 px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-sm font-semibold transition-colors"
+          >
+            Set Up Profile
+          </a>
         </div>
       </div>
     );

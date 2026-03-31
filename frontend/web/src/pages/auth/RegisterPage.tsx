@@ -640,27 +640,46 @@ export default function RegisterPage() {
         return;
       }
 
-      if (selectedRole === 'TEACHER' && teacherCenterId) {
+      if (selectedRole === 'TEACHER') {
+        // Auto-create mentor profile so dashboard works immediately after first login
         try {
-          await axios.post(
-            `/api/v1/centers/${teacherCenterId}/teachers/self-register`,
-            {
-              firstName: data.firstName,
-              lastName: data.lastName,
+          const meRes = await axios.get('/api/v1/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+          const userId = meRes.data?.id;
+          if (userId) {
+            await axios.post('/api/v1/mentors', {
+              userId,
+              fullName: `${data.firstName} ${data.lastName}`.trim(),
               email: data.email,
-              phoneNumber: data.phone || undefined,
-              subjects: teacherSubjectsArr.length > 0 ? teacherSubjectsArr.join(', ') : undefined,
-              address: teacherAddress ? [teacherAddress, teacherAddressLine2].filter(Boolean).join(', ') : undefined,
-              city: teacherCity || undefined,
-              state: teacherStateVal || undefined,
-              district: teacherDistrict || undefined,
-              country: teacherCountry || undefined,
-              pincode: teacherPincode || undefined,
-            },
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          toast.success('Registration submitted! Awaiting approval from your institution coordinator.');
-        } catch { /* non-fatal */ }
+              yearsOfExperience: 0,
+              hourlyRate: 0.01,
+            }, { headers: { Authorization: `Bearer ${token}` } });
+          }
+        } catch { /* non-fatal — teacher can set up profile from Settings */ }
+
+        if (teacherCenterId) {
+          try {
+            await axios.post(
+              `/api/v1/centers/${teacherCenterId}/teachers/self-register`,
+              {
+                firstName: data.firstName,
+                lastName: data.lastName,
+                email: data.email,
+                phoneNumber: data.phone || undefined,
+                subjects: teacherSubjectsArr.length > 0 ? teacherSubjectsArr.join(', ') : undefined,
+                address: teacherAddress ? [teacherAddress, teacherAddressLine2].filter(Boolean).join(', ') : undefined,
+                city: teacherCity || undefined,
+                state: teacherStateVal || undefined,
+                district: teacherDistrict || undefined,
+                country: teacherCountry || undefined,
+                pincode: teacherPincode || undefined,
+              },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            toast.success('Registration submitted! Awaiting approval from your institution coordinator.');
+          } catch { /* non-fatal */ }
+        } else {
+          toast.success('Account created! You can now sign in.');
+        }
         navigate('/login');
         return;
       }
