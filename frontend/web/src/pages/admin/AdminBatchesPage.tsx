@@ -47,7 +47,7 @@ interface BatchHealthSummary {
 
 interface TeacherResponse {
   id: string;
-  userId: string;
+  userId: string | null;
   firstName: string;
   lastName: string;
   email: string;
@@ -77,7 +77,7 @@ interface CreateBatchRequest {
   name: string;
   code: string;
   subject: string;
-  teacherId: string;
+  teacherId: string | null;
   maxStudents: number;
   startDate: string;
   endDate: string;
@@ -205,7 +205,6 @@ function AddBatchForm({ teachers, onSubmit, onCancel, isSubmitting }: AddBatchFo
     if (!form.name.trim())      e.name       = 'Batch name is required';
     if (!form.code.trim())      e.code       = 'Batch code is required';
     if (!form.subject.trim())   e.subject    = 'Subject is required';
-    if (!form.teacherId.trim()) e.teacherId  = 'Teacher is required';
     if (!form.maxStudents || isNaN(Number(form.maxStudents)) || Number(form.maxStudents) < 1)
       e.maxStudents = 'Max students must be a positive number';
     if (!form.startDate)        e.startDate  = 'Start date is required';
@@ -221,7 +220,7 @@ function AddBatchForm({ teachers, onSubmit, onCancel, isSubmitting }: AddBatchFo
       name:        form.name.trim(),
       code:        form.code.trim(),
       subject:     form.subject.trim(),
-      teacherId:   form.teacherId.trim(),
+      teacherId:   form.teacherId.trim() || null,
       maxStudents: Number(form.maxStudents),
       startDate:   form.startDate,
       endDate:     form.endDate,
@@ -282,8 +281,8 @@ function AddBatchForm({ teachers, onSubmit, onCancel, isSubmitting }: AddBatchFo
             >
               <option value="">— Select teacher —</option>
               {teachers.map((t) => (
-                <option key={t.id} value={t.userId}>
-                  {t.firstName} {t.lastName}{t.subjects ? ` (${t.subjects})` : ''}
+                <option key={t.id} value={t.userId ?? ''} disabled={!t.userId}>
+                  {t.firstName} {t.lastName}{t.subjects ? ` (${t.subjects})` : ''}{!t.userId ? ' (pending registration)' : ''}
                 </option>
               ))}
             </select>
