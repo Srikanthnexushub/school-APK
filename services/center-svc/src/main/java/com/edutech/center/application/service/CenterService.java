@@ -129,6 +129,10 @@ public class CenterService implements CreateCenterUseCase, UpdateCenterUseCase {
 
     /** Returns all centers the principal may access: owned + teacher-assigned (deduped). */
     private List<CenterResponse> resolveAccessibleCenters(AuthPrincipal principal) {
+        if (principal == null) {
+            // Unauthenticated (e.g. registration page institution dropdown) — return all centers
+            return centerRepository.findAll().stream().map(this::toResponse).toList();
+        }
         if (principal.isSuperAdmin()) {
             return centerRepository.findAll().stream().map(this::toResponse).toList();
         }
