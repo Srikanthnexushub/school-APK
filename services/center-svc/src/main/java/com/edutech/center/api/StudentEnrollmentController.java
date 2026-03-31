@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -39,5 +40,17 @@ public class StudentEnrollmentController {
                 .findFirst()
                 .map(m -> ResponseEntity.ok(new EnrollmentResponse(m.getCenterId(), m.getBatchId())))
                 .orElse(ResponseEntity.noContent().build());
+    }
+
+    @GetMapping("/student-enrollment/me/all")
+    @Operation(summary = "Get all active batch enrollments for the calling student")
+    public ResponseEntity<List<EnrollmentResponse>> getAllMyEnrollments(
+            @AuthenticationPrincipal AuthPrincipal principal) {
+
+        List<EnrollmentResponse> enrollments = memberRepository.findByStudentId(principal.userId()).stream()
+                .filter(BatchMember::isActive)
+                .map(m -> new EnrollmentResponse(m.getCenterId(), m.getBatchId()))
+                .toList();
+        return ResponseEntity.ok(enrollments);
     }
 }

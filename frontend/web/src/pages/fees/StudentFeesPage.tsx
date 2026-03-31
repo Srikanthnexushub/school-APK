@@ -19,35 +19,52 @@ const FREQUENCY_LABELS: Record<string, string> = {
 };
 
 export default function StudentFeesPage() {
-  const { data: enrollment } = useQuery<Enrollment | null>({
-    queryKey: ['student-enrollment-me'],
+  // Fetch ALL active enrollments (student may be in multiple batches/centers)
+  const { data: enrollments = [] } = useQuery<Enrollment[]>({
+    queryKey: ['student-enrollment-all'],
     queryFn: () =>
-      api.get('/api/v1/centers/student-enrollment/me')
-        .then(r => r.status === 204 ? null : r.data)
-        .catch(() => null),
+      api.get('/api/v1/centers/student-enrollment/me/all')
+        .then(r => Array.isArray(r.data) ? r.data : [])
+        .catch(() => []),
     staleTime: 5 * 60 * 1000,
     retry: false,
   });
 
-  const centerId = enrollment?.centerId;
-  const batchId = enrollment?.batchId;
-
-  const { data: assignments = [], isLoading } = useQuery<BatchFeeAssignment[]>({
-    queryKey: ['batch-fees-student', centerId, batchId],
-    queryFn: () => api.get(`/api/v1/centers/${centerId}/batches/${batchId}/fees`).then(r =>
-      Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
-    enabled: !!centerId && !!batchId,
+  // Fetch batch fee assignments for ALL enrollments in parallel
+  const { data: allAssignments = [], isLoading } = useQuery<BatchFeeAssignment[]>({
+    queryKey: ['batch-fees-student-all', enrollments.map(e => e.batchId).join(',')],
+    queryFn: async () => {
+      const results = await Promise.all(
+        enrollments.map(e =>
+          api.get(`/api/v1/centers/${e.centerId}/batches/${e.batchId}/fees`)
+            .then(r => Array.isArray(r.data) ? r.data : (r.data.content ?? []))
+            .catch(() => [])
+        )
+      );
+      return results.flat();
+    },
+    enabled: enrollments.length > 0,
   });
 
+  // Fetch fee structures for each unique centerId in parallel
+  const uniqueCenterIds = [...new Set(enrollments.map(e => e.centerId))];
   const { data: allFees = [] } = useQuery<FeeStructure[]>({
-    queryKey: ['fee-structures', centerId],
-    queryFn: () => api.get(`/api/v1/centers/${centerId}/fees?size=100`).then(r =>
-      Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
-    enabled: !!centerId && assignments.length > 0,
+    queryKey: ['fee-structures-all', uniqueCenterIds.join(',')],
+    queryFn: async () => {
+      const results = await Promise.all(
+        uniqueCenterIds.map(cId =>
+          api.get(`/api/v1/centers/${cId}/fees?size=100`)
+            .then(r => Array.isArray(r.data) ? r.data : (r.data.content ?? []))
+            .catch(() => [])
+        )
+      );
+      return results.flat();
+    },
+    enabled: uniqueCenterIds.length > 0 && allAssignments.length > 0,
   });
 
   const feeMap = new Map(allFees.map(f => [f.id, f]));
-  const activeAssignments = assignments.filter(a =>
+  const activeAssignments = allAssignments.filter(a =>
     !a.effectiveTo || new Date(a.effectiveTo) >= new Date());
 
   return (

@@ -9,7 +9,6 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import api from '../../lib/api';
-import { useAuthStore } from '../../stores/authStore';
 
 interface StudentFeeReportItem {
   studentId: string;
@@ -28,8 +27,12 @@ const statusConfig = {
 type Filter = 'ALL' | 'FULLY_PAID' | 'PARTIAL' | 'NO_PAYMENT';
 
 export default function AdminBillingPage({ embedded = false }: { embedded?: boolean }) {
-  const { user } = useAuthStore();
-  const centerId = user?.centerId;
+  const { data: centers = [] } = useQuery<{ id: string }[]>({
+    queryKey: ['admin-centers'],
+    queryFn: () => api.get('/api/v1/centers').then(r => Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
+    staleTime: 5 * 60 * 1000,
+  });
+  const centerId = centers[0]?.id;
   const [filter, setFilter] = useState<Filter>('ALL');
   const [sending, setSending] = useState<string | null>(null);
 
