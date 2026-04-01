@@ -1,6 +1,7 @@
 // src/main/java/com/edutech/center/application/dto/CreateBatchRequest.java
 package com.edutech.center.application.dto;
 
+import com.edutech.center.domain.model.BatchMode;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -18,5 +19,6 @@ public record CreateBatchRequest(
     UUID teacherId,
     @Min(1) @Max(200) int maxStudents,
     @NotNull LocalDate startDate,
-    LocalDate endDate
+    LocalDate endDate,
+    BatchMode mode
 ) {}

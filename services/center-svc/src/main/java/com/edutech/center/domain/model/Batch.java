@@ -56,6 +56,10 @@ public class Batch {
     @Column(nullable = false, length = 20)
     private BatchStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private BatchMode mode;
+
     @Column(name = "created_at", updatable = false, nullable = false)
     private Instant createdAt;
 
@@ -71,7 +75,8 @@ public class Batch {
     protected Batch() {}
 
     private Batch(UUID id, UUID centerId, String name, String code, String subject,
-                  UUID teacherId, int maxStudents, LocalDate startDate, LocalDate endDate) {
+                  UUID teacherId, int maxStudents, LocalDate startDate, LocalDate endDate,
+                  BatchMode mode) {
         this.id = id;
         this.centerId = centerId;
         this.name = name;
@@ -83,15 +88,16 @@ public class Batch {
         this.startDate = startDate;
         this.endDate = endDate;
         this.status = BatchStatus.UPCOMING;
+        this.mode = mode != null ? mode : BatchMode.OFFLINE;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }
 
     public static Batch create(UUID centerId, String name, String code, String subject,
                                UUID teacherId, int maxStudents,
-                               LocalDate startDate, LocalDate endDate) {
+                               LocalDate startDate, LocalDate endDate, BatchMode mode) {
         return new Batch(UUID.randomUUID(), centerId, name, code, subject,
-                teacherId, maxStudents, startDate, endDate);
+                teacherId, maxStudents, startDate, endDate, mode);
     }
 
     public void assignTeacher(UUID teacherId) {
@@ -153,6 +159,7 @@ public class Batch {
     public LocalDate getStartDate() { return startDate; }
     public LocalDate getEndDate() { return endDate; }
     public BatchStatus getStatus() { return status; }
+    public BatchMode getMode() { return mode; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public Instant getDeletedAt() { return deletedAt; }

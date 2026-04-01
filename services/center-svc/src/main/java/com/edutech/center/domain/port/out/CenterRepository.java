@@ -14,4 +14,8 @@ public interface CenterRepository {
     List<CoachingCenter> findByOwnerId(UUID ownerId);
     boolean existsByCode(String code);
     Optional<CoachingCenter> findByCode(String code);
+
+    // ── Audit stats ────────────────────────────────────────────────────────────
+    long countTotal();
+    long countActiveCenters();
 }

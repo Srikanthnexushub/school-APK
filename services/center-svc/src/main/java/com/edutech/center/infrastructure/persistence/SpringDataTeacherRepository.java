@@ -34,4 +34,11 @@ interface SpringDataTeacherRepository extends JpaRepository<Teacher, UUID> {
 
     @Query("SELECT t FROM Teacher t WHERE t.invitationToken = :token AND t.deletedAt IS NULL")
     Optional<Teacher> findByInvitationToken(String token);
+
+    // ── Audit stats ────────────────────────────────────────────────────────────
+    @Query("SELECT COUNT(t) FROM Teacher t WHERE t.deletedAt IS NULL")
+    long countAllActive();
+
+    @Query("SELECT COUNT(t) FROM Teacher t WHERE t.status = com.edutech.center.domain.model.TeacherStatus.ACTIVE AND t.deletedAt IS NULL")
+    long countByStatusActive();
 }

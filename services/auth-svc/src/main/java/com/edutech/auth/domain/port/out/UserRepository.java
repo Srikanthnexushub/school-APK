@@ -5,6 +5,7 @@ import com.edutech.auth.domain.model.User;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,4 +16,13 @@ public interface UserRepository {
     boolean existsByEmail(String email);
     List<User> findExpiredPendingVerification(Instant cutoff);
     Optional<User> findByProviderAndProviderId(String provider, String providerId);
+
+    // ── Audit stats queries ────────────────────────────────────────────────────
+    long countActiveUsers();
+    long countDeletedUsers();
+    Map<String, Long> countUsersByRole();
+    long countRegisteredSince(Instant since);
+    long countMfaEnabledUsers();
+    long countSocialAuthUsers();
+    long countVerifiedEmailUsers();
 }

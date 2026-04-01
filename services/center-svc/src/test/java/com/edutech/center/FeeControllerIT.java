@@ -146,7 +146,8 @@ class FeeControllerIT {
     private UUID createBatch(String name, String code) {
         CreateBatchRequest req = new CreateBatchRequest(
                 name, code, "Physics", null, 40,
-                LocalDate.now(), LocalDate.now().plusMonths(6));
+                LocalDate.now(), LocalDate.now().plusMonths(6),
+                com.edutech.center.domain.model.BatchMode.OFFLINE);
         ResponseEntity<BatchResponse> r = restTemplate.exchange(
                 "/api/v1/centers/" + centerId + "/batches",
                 HttpMethod.POST, authEntity(req), BatchResponse.class);

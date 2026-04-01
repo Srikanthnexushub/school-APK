@@ -7,7 +7,7 @@ import {
   Bell, Search, ChevronRight, BookOpenCheck, Library, Award,
   CreditCard, Beaker, UserCog, BookCheck, Building2, Upload, UserCheck,
   Briefcase, Megaphone, CalendarCheck, Receipt, GraduationCap,
-  Sun, Moon, Wallet, CheckCircle2,
+  Sun, Moon, Wallet, CheckCircle2, ShieldCheck,
 } from 'lucide-react';
 import NexusEdLogo from '../NexusEdLogo';
 import { useThemeStore } from '../../stores/themeStore';
@@ -113,7 +113,10 @@ function getAdminNav(role?: string): NavItem[] {
     { icon: BookCheck,       label: 'Assignments',        to: '/admin?tab=assignments' },
     { icon: Brain,           label: 'Psychometric',       to: '/admin?tab=psychometric' },
     { icon: Library,         label: 'Library',            to: '/admin?tab=library' },
-    ...(role === 'SUPER_ADMIN' ? [{ icon: Megaphone, label: 'Banners', to: '/admin?tab=banners' }] : []),
+    ...(role === 'SUPER_ADMIN' ? [
+      { icon: Megaphone,   label: 'Banners',   to: '/admin?tab=banners' },
+      { icon: ShieldCheck, label: 'NFR Audit', to: '/admin/audit' },
+    ] : []),
     { icon: GraduationCap,  label: 'Academic Plan', to: '/academic-plan' },
     { icon: CalendarCheck, label: 'Attendance',    to: '/admin/attendance' },
     { icon: Megaphone,     label: 'Announcements', to: '/admin/announcements' },

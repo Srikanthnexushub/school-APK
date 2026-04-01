@@ -14,4 +14,12 @@ public interface BatchRepository {
     List<Batch> findByCenterId(UUID centerId);
     List<Batch> findByCenterIdAndStatus(UUID centerId, BatchStatus status);
     Optional<Batch> findByIdAndCenterId(UUID id, UUID centerId);
+
+    // ── Audit stats ────────────────────────────────────────────────────────────
+    long countAllActive();
+    long countByStatusActive();
+    long countByStatusUpcoming();
+    long countByStatusCompleted();
+    Long sumEnrolledCount();
+    Double avgFillRate();
 }

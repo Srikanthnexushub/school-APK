@@ -30,4 +30,26 @@ interface SpringDataUserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT u FROM User u WHERE u.provider = :provider AND u.providerId = :providerId AND u.deletedAt IS NULL")
     Optional<User> findByProviderAndProviderId(@Param("provider") String provider,
                                                @Param("providerId") String providerId);
+
+    // ── Audit stats ────────────────────────────────────────────────────────────
+    @Query("SELECT COUNT(u) FROM User u WHERE u.deletedAt IS NULL")
+    long countActiveUsers();
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.deletedAt IS NOT NULL")
+    long countDeletedUsers();
+
+    @Query("SELECT u.role, COUNT(u) FROM User u WHERE u.deletedAt IS NULL GROUP BY u.role")
+    List<Object[]> countByRole();
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.createdAt >= :since AND u.deletedAt IS NULL")
+    long countRegisteredSince(@Param("since") Instant since);
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.mfaEnabled = true AND u.deletedAt IS NULL")
+    long countMfaEnabledUsers();
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.provider IS NOT NULL AND u.provider != 'LOCAL' AND u.deletedAt IS NULL")
+    long countSocialAuthUsers();
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.emailVerified = true AND u.deletedAt IS NULL")
+    long countVerifiedEmailUsers();
 }

@@ -2,6 +2,7 @@
 package com.edutech.auth.api;
 
 import com.edutech.auth.application.dto.AssignUserCenterRequest;
+import com.edutech.auth.application.dto.AuthAuditStatsResponse;
 import com.edutech.auth.application.dto.AuthPrincipal;
 import com.edutech.auth.application.dto.ChangePasswordRequest;
 import com.edutech.auth.application.dto.RegisterChildRequest;
@@ -53,6 +54,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @RestController
@@ -259,6 +262,29 @@ public class AuthController {
             servletRequest.getHeader("User-Agent"),
             servletRequest.getHeader("X-Device-Id")
         );
+    }
+
+    @GetMapping("/admin/audit/stats")
+    @SecurityRequirement(name = "BearerAuth")
+    @Operation(summary = "NFR audit statistics for SUPER_ADMIN")
+    public AuthAuditStatsResponse getAuditStats(@AuthenticationPrincipal AuthPrincipal principal) {
+        if (principal == null || principal.role() != Role.SUPER_ADMIN) {
+            throw new org.springframework.security.access.AccessDeniedException("SUPER_ADMIN only");
+        }
+        Instant now           = Instant.now();
+        Instant sevenDaysAgo  = now.minus(7,  ChronoUnit.DAYS);
+        Instant thirtyDaysAgo = now.minus(30, ChronoUnit.DAYS);
+
+        long active   = userRepository.countActiveUsers();
+        long deleted  = userRepository.countDeletedUsers();
+        long reg7d    = userRepository.countRegisteredSince(sevenDaysAgo);
+        long reg30d   = userRepository.countRegisteredSince(thirtyDaysAgo);
+        long mfa      = userRepository.countMfaEnabledUsers();
+        long social   = userRepository.countSocialAuthUsers();
+        long verified = userRepository.countVerifiedEmailUsers();
+        java.util.Map<String, Long> byRole = userRepository.countUsersByRole();
+
+        return new AuthAuditStatsResponse(active, active, deleted, byRole, reg7d, reg30d, mfa, social, verified);
     }
 
     private String getClientIp(HttpServletRequest request) {

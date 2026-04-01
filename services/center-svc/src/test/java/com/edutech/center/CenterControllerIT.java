@@ -170,7 +170,8 @@ class CenterControllerIT {
                 null,    // no teacher yet
                 35,
                 LocalDate.now().plusDays(7),
-                LocalDate.now().plusDays(180)
+                LocalDate.now().plusDays(180),
+                com.edutech.center.domain.model.BatchMode.OFFLINE
         );
     }
 

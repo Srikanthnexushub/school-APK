@@ -27,4 +27,6 @@ public class TeacherPersistenceAdapter implements TeacherRepository {
     @Override public List<Teacher> findByUserId(UUID userId) { return jpa.findByUserIdActive(userId); }
     @Override public Optional<Teacher> findByInvitationToken(String token) { return jpa.findByInvitationToken(token); }
     @Override public void saveAll(List<Teacher> teachers) { jpa.saveAll(teachers); }
+    @Override public long countAllActive() { return jpa.countAllActive(); }
+    @Override public long countByStatusActive() { return jpa.countByStatusActive(); }
 }

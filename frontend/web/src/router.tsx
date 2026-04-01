@@ -56,6 +56,7 @@ import AdminAnnouncementsPage from './pages/admin/AdminAnnouncementsPage';
 import AdminFeesPage from './pages/admin/AdminFeesPage';
 import AdminBillingPage from './pages/admin/AdminBillingPage';
 import AdminAttendancePage from './pages/admin/AdminAttendancePage';
+import AdminAuditPage from './pages/admin/AdminAuditPage';
 
 export const router = createBrowserRouter([
   {
@@ -157,6 +158,7 @@ export const router = createBrowserRouter([
       { path: 'announcements',  element: <AdminAnnouncementsPage /> },
       { path: 'fees',           element: <Navigate to="/admin?tab=accounts" replace /> },
       { path: 'billing',        element: <Navigate to="/admin?tab=accounts" replace /> },
+      { path: 'audit',          element: <AdminAuditPage /> },
     ],
   },
   {

@@ -244,7 +244,8 @@ class CenterOperationsIT {
                 null, // no teacher assigned yet
                 40,
                 LocalDate.now().plusDays(7),
-                LocalDate.now().plusDays(180)
+                LocalDate.now().plusDays(180),
+                com.edutech.center.domain.model.BatchMode.OFFLINE
         );
 
         BatchResponse response = batchService.createBatch(centerId, batchRequest, ownerPrincipal);
@@ -286,7 +287,8 @@ class CenterOperationsIT {
                 "Maths Batch 2026", "MA" + R, "Mathematics",
                 null, 30,
                 LocalDate.now().plusDays(1),
-                LocalDate.now().plusDays(90)
+                LocalDate.now().plusDays(90),
+                com.edutech.center.domain.model.BatchMode.OFFLINE
         ), ownerPrincipal);
 
         assertThat(created.status()).isEqualTo(BatchStatus.UPCOMING);
@@ -326,12 +328,14 @@ class CenterOperationsIT {
         // Create two batches
         BatchResponse b1 = batchService.createBatch(centerId, new CreateBatchRequest(
                 "Chemistry Upcoming", chemCode, "Chemistry",
-                null, 25, LocalDate.now().plusDays(5), LocalDate.now().plusDays(100)
+                null, 25, LocalDate.now().plusDays(5), LocalDate.now().plusDays(100),
+                com.edutech.center.domain.model.BatchMode.OFFLINE
         ), ownerPrincipal);
 
         BatchResponse b2 = batchService.createBatch(centerId, new CreateBatchRequest(
                 "Biology Active", bioCode, "Biology",
-                null, 25, LocalDate.now().plusDays(1), LocalDate.now().plusDays(100)
+                null, 25, LocalDate.now().plusDays(1), LocalDate.now().plusDays(100),
+                com.edutech.center.domain.model.BatchMode.OFFLINE
         ), ownerPrincipal);
 
         // Activate b2

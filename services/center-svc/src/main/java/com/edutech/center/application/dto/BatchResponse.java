@@ -1,6 +1,7 @@
 // src/main/java/com/edutech/center/application/dto/BatchResponse.java
 package com.edutech.center.application.dto;
 
+import com.edutech.center.domain.model.BatchMode;
 import com.edutech.center.domain.model.BatchStatus;
 
 import java.time.Instant;
@@ -19,6 +20,7 @@ public record BatchResponse(
     LocalDate startDate,
     LocalDate endDate,
     BatchStatus status,
+    BatchMode mode,
     Instant createdAt,
     Instant updatedAt
 ) {}

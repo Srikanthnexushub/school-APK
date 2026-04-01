@@ -19,4 +19,8 @@ public interface TeacherRepository {
     List<Teacher> findByUserId(UUID userId);
     Optional<Teacher> findByInvitationToken(String token);
     void saveAll(List<Teacher> teachers);
+
+    // ── Audit stats ────────────────────────────────────────────────────────────
+    long countAllActive();
+    long countByStatusActive();
 }

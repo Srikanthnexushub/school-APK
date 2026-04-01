@@ -22,4 +22,10 @@ public class BatchPersistenceAdapter implements BatchRepository {
     @Override public List<Batch> findByCenterId(UUID centerId) { return jpa.findByCenterIdActive(centerId); }
     @Override public List<Batch> findByCenterIdAndStatus(UUID centerId, BatchStatus status) { return jpa.findByCenterIdAndStatusActive(centerId, status); }
     @Override public Optional<Batch> findByIdAndCenterId(UUID id, UUID centerId) { return jpa.findByIdAndCenterIdActive(id, centerId); }
+    @Override public long countAllActive() { return jpa.countAllActive(); }
+    @Override public long countByStatusActive() { return jpa.countByStatusActive(); }
+    @Override public long countByStatusUpcoming() { return jpa.countByStatusUpcoming(); }
+    @Override public long countByStatusCompleted() { return jpa.countByStatusCompleted(); }
+    @Override public Long sumEnrolledCount() { return jpa.sumEnrolledCount(); }
+    @Override public Double avgFillRate() { return jpa.avgFillRate(); }
 }

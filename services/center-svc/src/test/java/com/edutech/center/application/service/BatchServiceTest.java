@@ -57,7 +57,8 @@ class BatchServiceTest {
 
     private CreateBatchRequest validRequest() {
         return new CreateBatchRequest("Maths Batch A", "MBA001", "Mathematics",
-                null, 30, LocalDate.now(), LocalDate.now().plusMonths(6));
+                null, 30, LocalDate.now(), LocalDate.now().plusMonths(6),
+                com.edutech.center.domain.model.BatchMode.OFFLINE);
     }
 
     @Test
@@ -96,7 +97,8 @@ class BatchServiceTest {
     @DisplayName("Update batch — activate transitions from UPCOMING to ACTIVE")
     void updateBatch_activate() {
         Batch batch = Batch.create(CENTER_ID, "Batch", "B001", "Science",
-                null, 20, LocalDate.now(), null);
+                null, 20, LocalDate.now(), null,
+                com.edutech.center.domain.model.BatchMode.OFFLINE);
 
         when(batchRepository.findById(batch.getId())).thenReturn(Optional.of(batch));
         when(batchRepository.save(any())).thenAnswer(i -> i.getArgument(0));

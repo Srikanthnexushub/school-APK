@@ -4,7 +4,7 @@ import {
   Plus, X, AlertTriangle, CheckCircle2, Clock,
   Users, BookOpen, Calendar, ChevronDown, ChevronUp,
   Search, UserMinus, UserPlus, Loader2, UserPen,
-  GraduationCap, Briefcase, Mail,
+  GraduationCap, Briefcase, Mail, Download, Printer,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '../../lib/utils';
@@ -33,6 +33,7 @@ interface BatchResponse {
   startDate: string;
   endDate: string;
   status: 'ACTIVE' | 'INACTIVE' | 'COMPLETED' | 'UPCOMING';
+  mode?: 'ONLINE' | 'OFFLINE';
   createdAt: string;
 }
 
@@ -82,6 +83,7 @@ interface CreateBatchRequest {
   maxStudents: number;
   startDate: string;
   endDate: string;
+  mode: 'ONLINE' | 'OFFLINE';
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -183,11 +185,12 @@ interface AddBatchFormState {
   maxStudents: string;
   startDate: string;
   endDate: string;
+  mode: string;
 }
 
 const emptyForm: AddBatchFormState = {
   name: '', code: '', subject: '', teacherId: '',
-  maxStudents: '', startDate: '', endDate: '',
+  maxStudents: '', startDate: '', endDate: '', mode: 'OFFLINE',
 };
 
 interface AddBatchFormProps {
@@ -225,6 +228,7 @@ function AddBatchForm({ teachers, onSubmit, onCancel, isSubmitting }: AddBatchFo
       maxStudents: Number(form.maxStudents),
       startDate:   form.startDate,
       endDate:     form.endDate,
+      mode:        (form.mode || 'OFFLINE') as 'ONLINE' | 'OFFLINE',
     });
   }
 
@@ -288,6 +292,22 @@ function AddBatchForm({ teachers, onSubmit, onCancel, isSubmitting }: AddBatchFo
               ))}
             </select>
             {errors.teacherId && <p className="text-xs text-red-400 mt-1">{errors.teacherId}</p>}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-white/60 mb-1.5">
+              Mode <span className="text-red-400">*</span>
+            </label>
+            <select
+              value={form.mode}
+              onChange={(ev) => setForm((p) => ({ ...p, mode: ev.target.value }))}
+              className="input w-full"
+            >
+              <option value="OFFLINE">Offline</option>
+              <option value="ONLINE">Online</option>
+            </select>
           </div>
         </div>
 
@@ -970,7 +990,37 @@ export default function AdminBatchesPage() {
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-white text-sm">All Batches</h3>
-          <span className="text-xs text-white/30">{batches.length} batches</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-white/30">{batches.length} batches</span>
+            <button
+              onClick={() => {
+                const csv = [
+                  ['Name','Code','Subject','Mode','Teacher','Enrolled','Max','Status','Start','End'],
+                  ...batches.map(b => [
+                    b.name, b.code, b.subject, b.mode ?? 'OFFLINE',
+                    teacherMap.get(b.teacherId) ?? '—',
+                    b.enrolledCount, b.maxStudents, b.status,
+                    b.startDate, b.endDate,
+                  ])
+                ].map(r => r.join(',')).join('\n');
+                const a = document.createElement('a');
+                a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+                a.download = 'batches.csv';
+                a.click();
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white/50 hover:text-white hover:bg-white/8 border border-white/8 hover:border-white/15 transition-colors"
+            >
+              <Download className="w-3 h-3" />
+              CSV
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white/50 hover:text-white hover:bg-white/8 border border-white/8 hover:border-white/15 transition-colors"
+            >
+              <Printer className="w-3 h-3" />
+              Print
+            </button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -999,6 +1049,7 @@ export default function AdminBatchesPage() {
                 <tr className="text-left text-xs text-white/30 uppercase tracking-wider border-b border-white/5">
                   <th className="pb-2 pr-4">Name / Code</th>
                   <th className="pb-2 pr-4">Subject</th>
+                  <th className="pb-2 pr-4">Mode</th>
                   <th className="pb-2 pr-4">Teacher</th>
                   <th className="pb-2 pr-4">Enrolled</th>
                   <th className="pb-2 pr-4">Status</th>
@@ -1027,6 +1078,16 @@ export default function AdminBatchesPage() {
                         <div className="text-xs text-white/40 mt-0.5 font-mono">{batch.code}</div>
                       </td>
                       <td className="py-3 pr-4 text-white/70">{batch.subject}</td>
+                      <td className="py-3 pr-4">
+                        <span className={cn(
+                          'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
+                          (batch.mode ?? 'OFFLINE') === 'ONLINE'
+                            ? 'bg-sky-500/15 text-sky-400'
+                            : 'bg-amber-500/15 text-amber-400'
+                        )}>
+                          {(batch.mode ?? 'OFFLINE') === 'ONLINE' ? '🌐 Online' : '📍 Offline'}
+                        </span>
+                      </td>
                       <td className="py-3 pr-4">
                         <span className="text-xs text-white/60 truncate block max-w-[140px]" title={batch.teacherId}>
                           {teacherMap.get(batch.teacherId) ?? (batch.teacherId ? `${batch.teacherId.substring(0, 8)}…` : '—')}

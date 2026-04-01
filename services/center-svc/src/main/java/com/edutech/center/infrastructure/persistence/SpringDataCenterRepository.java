@@ -24,4 +24,7 @@ interface SpringDataCenterRepository extends JpaRepository<CoachingCenter, UUID>
 
     @Query("SELECT c FROM CoachingCenter c WHERE c.code = :code AND c.deletedAt IS NULL")
     Optional<CoachingCenter> findByCodeActive(String code);
+
+    @Query("SELECT COUNT(c) FROM CoachingCenter c WHERE c.deletedAt IS NULL")
+    long countActiveCenters();
 }

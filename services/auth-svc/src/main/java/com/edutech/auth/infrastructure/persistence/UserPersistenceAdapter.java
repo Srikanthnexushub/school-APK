@@ -6,7 +6,9 @@ import com.edutech.auth.domain.port.out.UserRepository;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -51,5 +53,44 @@ public class UserPersistenceAdapter implements UserRepository {
     @Override
     public Optional<User> findByProviderAndProviderId(String provider, String providerId) {
         return jpaRepository.findByProviderAndProviderId(provider, providerId);
+    }
+
+    @Override
+    public long countActiveUsers() {
+        return jpaRepository.countActiveUsers();
+    }
+
+    @Override
+    public long countDeletedUsers() {
+        return jpaRepository.countDeletedUsers();
+    }
+
+    @Override
+    public Map<String, Long> countUsersByRole() {
+        Map<String, Long> result = new LinkedHashMap<>();
+        for (Object[] row : jpaRepository.countByRole()) {
+            result.put(row[0].toString(), (Long) row[1]);
+        }
+        return result;
+    }
+
+    @Override
+    public long countRegisteredSince(Instant since) {
+        return jpaRepository.countRegisteredSince(since);
+    }
+
+    @Override
+    public long countMfaEnabledUsers() {
+        return jpaRepository.countMfaEnabledUsers();
+    }
+
+    @Override
+    public long countSocialAuthUsers() {
+        return jpaRepository.countSocialAuthUsers();
+    }
+
+    @Override
+    public long countVerifiedEmailUsers() {
+        return jpaRepository.countVerifiedEmailUsers();
     }
 }
