@@ -194,8 +194,8 @@ EC2: 13.126.138.9  (i-0e9a180c6cb8af4c3, ap-south-1, t3.xlarge — Elastic IP, u
 mvn clean package -DskipTests -T 4 -Drevision=1.0.0-PROD
 ```
 
-**Artifact breakdown** (15 services total):
-- **11 Tomcat WARs**: auth-svc, parent-svc, center-svc, assess-svc, psych-svc, student-profile-svc, exam-tracker-svc, performance-svc, career-oracle-svc, mentor-svc, notification-svc
+**Artifact breakdown** (16 services total):
+- **12 Tomcat WARs**: auth-svc, parent-svc, center-svc, assess-svc, psych-svc, student-profile-svc, exam-tracker-svc, performance-svc, career-oracle-svc, mentor-svc, notification-svc, nexus-chat-svc
 - **4 Exec (java -jar)**: ai-gateway-svc (exec WAR), api-gateway (JAR), student-gateway (JAR), **ai-mentor-svc (JAR — no WAR packaging)**
 - **1 Python sidecar**: python-ai-svc (FastAPI/Uvicorn, port 8095)
 
