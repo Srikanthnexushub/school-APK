@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, X, AlertTriangle, CheckCircle2, Clock,
   Users, BookOpen, Calendar, ChevronDown, ChevronUp,
-  Search, UserMinus, UserPlus, Loader2,
+  Search, UserMinus, UserPlus, Loader2, UserPen,
+  GraduationCap, Briefcase, Mail,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '../../lib/utils';
@@ -337,12 +338,16 @@ interface StudentsModalProps {
   onClose: () => void;
 }
 
+const TEMP_PASSWORD = 'Nexus@12345';
+
 function StudentsModal({ batch, centerId, onClose }: StudentsModalProps) {
   const qc = useQueryClient();
   const [email, setEmail] = useState('');
   const [foundUser, setFoundUser] = useState<UserLookupResponse | null>(null);
   const [lookupError, setLookupError] = useState('');
   const [isLooking, setIsLooking] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({ firstName: '', lastName: '' });
 
   const { data: members = [], isLoading: membersLoading } = useQuery<BatchMemberResponse[]>({
     queryKey: ['batch-members', batch?.id],
@@ -390,11 +395,53 @@ function StudentsModal({ batch, centerId, onClose }: StudentsModalProps) {
     onError: () => toast.error('Failed to withdraw student'),
   });
 
+  const createAndAdd = useMutation({
+    mutationFn: async () => {
+      if (!createForm.firstName.trim() || !createForm.lastName.trim() || !email.trim()) {
+        throw new Error('First name, last name, and email are required');
+      }
+      // register-child: authenticated, no captcha, creates STUDENT role account
+      const reg = await api.post<{ userId: string; email: string }>('/api/v1/auth/register-child', {
+        email: email.trim(),
+        password: TEMP_PASSWORD,
+        firstName: createForm.firstName.trim(),
+        lastName: createForm.lastName.trim(),
+      });
+      const userId = reg.data.userId;
+      const fullName = `${createForm.firstName.trim()} ${createForm.lastName.trim()}`;
+      await api.post(`/api/v1/centers/${centerId}/batches/${batch!.id}/members`, {
+        studentId: userId,
+        studentName: fullName,
+      });
+      await api.patch(`/api/v1/auth/admin/users/${userId}/center`, { centerId });
+      return fullName;
+    },
+    onSuccess: (fullName) => {
+      qc.invalidateQueries({ queryKey: ['batch-members', batch?.id] });
+      qc.invalidateQueries({ queryKey: ['batches', centerId] });
+      qc.invalidateQueries({ queryKey: ['batches-health', centerId] });
+      toast.success(`${fullName} created and added to batch. Temp password: ${TEMP_PASSWORD}`);
+      setEmail('');
+      setCreateForm({ firstName: '', lastName: '' });
+      setLookupError('');
+      setShowCreate(false);
+    },
+    onError: (err: unknown) => {
+      const msg =
+        (err as { response?: { data?: { detail?: string; message?: string } } })?.response?.data?.detail ??
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        (err as Error).message ??
+        'Failed to create student';
+      toast.error(msg);
+    },
+  });
+
   async function handleLookup() {
     if (!email.trim()) return;
     setIsLooking(true);
     setLookupError('');
     setFoundUser(null);
+    setShowCreate(false);
     try {
       const r = await api.get<UserLookupResponse>(
         `/api/v1/auth/users/lookup?email=${encodeURIComponent(email.trim())}`
@@ -414,14 +461,14 @@ function StudentsModal({ batch, centerId, onClose }: StudentsModalProps) {
       title={batch ? `Students — ${batch.name}` : ''}
       maxWidth="max-w-xl"
     >
-      {/* Add student */}
+      {/* Add / Create student */}
       <div className="mb-5">
         <p className="text-xs font-medium text-white/50 uppercase tracking-wider mb-2">Add Student</p>
         <div className="flex gap-2">
           <input
             type="email"
             value={email}
-            onChange={(e) => { setEmail(e.target.value); setFoundUser(null); setLookupError(''); }}
+            onChange={(e) => { setEmail(e.target.value); setFoundUser(null); setLookupError(''); setShowCreate(false); }}
             onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
             placeholder="student@email.com"
             className="input flex-1 text-sm"
@@ -436,9 +483,67 @@ function StudentsModal({ batch, centerId, onClose }: StudentsModalProps) {
           </button>
         </div>
 
-        {lookupError && (
-          <p className="text-xs text-red-400 mt-1.5">{lookupError}</p>
+        {/* Not found — offer to create */}
+        {lookupError && !showCreate && (
+          <div className="mt-2 flex items-center justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+            <p className="text-xs text-amber-400">{lookupError}</p>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-400 text-white text-xs font-medium transition-colors"
+            >
+              <UserPen className="w-3 h-3" />
+              Create New
+            </button>
+          </div>
         )}
+
+        {/* Inline create form */}
+        <AnimatePresence>
+          {showCreate && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              className="mt-2 p-3 rounded-xl bg-brand-500/8 border border-brand-500/20 space-y-2"
+            >
+              <p className="text-xs font-medium text-brand-300 flex items-center gap-1.5">
+                <GraduationCap className="w-3.5 h-3.5" />
+                Create new student account for <span className="text-white">{email}</span>
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  placeholder="First name *"
+                  value={createForm.firstName}
+                  onChange={(e) => setCreateForm((p) => ({ ...p, firstName: e.target.value }))}
+                  className="input text-sm py-2"
+                />
+                <input
+                  placeholder="Last name *"
+                  value={createForm.lastName}
+                  onChange={(e) => setCreateForm((p) => ({ ...p, lastName: e.target.value }))}
+                  className="input text-sm py-2"
+                />
+              </div>
+              <p className="text-[10px] text-white/30">
+                Temp password: <span className="font-mono text-white/50">{TEMP_PASSWORD}</span> — share with student to change on first login.
+              </p>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => { setShowCreate(false); setLookupError(''); }}
+                  className="text-xs text-white/40 hover:text-white/70 transition-colors px-2"
+                >Cancel</button>
+                <button
+                  onClick={() => createAndAdd.mutate()}
+                  disabled={createAndAdd.isPending || !createForm.firstName.trim() || !createForm.lastName.trim()}
+                  className="btn-primary text-xs py-1.5 px-4 disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {createAndAdd.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserPlus className="w-3 h-3" />}
+                  Create & Add
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {foundUser && (
           <motion.div
@@ -507,6 +612,155 @@ function StudentsModal({ batch, centerId, onClose }: StudentsModalProps) {
   );
 }
 
+// ─── Teacher assign modal ─────────────────────────────────────────────────────
+
+interface TeacherAssignModalProps {
+  isOpen: boolean;
+  centerId: string;
+  onClose: () => void;
+}
+
+function TeacherAssignModal({ isOpen, centerId, onClose }: TeacherAssignModalProps) {
+  const qc = useQueryClient();
+  const [email, setEmail] = useState('');
+  const [foundUser, setFoundUser] = useState<UserLookupResponse | null>(null);
+  const [lookupError, setLookupError] = useState('');
+  const [isLooking, setIsLooking] = useState(false);
+  const [subjects, setSubjects] = useState('');
+
+  function reset() {
+    setEmail('');
+    setFoundUser(null);
+    setLookupError('');
+    setSubjects('');
+  }
+
+  const assignTeacher = useMutation({
+    mutationFn: async (user: UserLookupResponse) => {
+      await api.post(`/api/v1/centers/${centerId}/teachers`, {
+        userId: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        subjects: subjects.trim() || undefined,
+      });
+    },
+    onSuccess: (_, user) => {
+      qc.invalidateQueries({ queryKey: ['teachers', centerId] });
+      toast.success(`${user.firstName} ${user.lastName} assigned as teacher`);
+      reset();
+      onClose();
+    },
+    onError: (err: unknown) => {
+      const msg =
+        (err as { response?: { data?: { detail?: string; message?: string } } })?.response?.data?.detail ??
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        'Failed to assign teacher';
+      toast.error(msg);
+    },
+  });
+
+  async function handleLookup() {
+    if (!email.trim()) return;
+    setIsLooking(true);
+    setLookupError('');
+    setFoundUser(null);
+    try {
+      const r = await api.get<UserLookupResponse>(
+        `/api/v1/auth/users/lookup?email=${encodeURIComponent(email.trim())}`
+      );
+      if (r.data.role !== 'TEACHER') {
+        setLookupError(`Found user is ${r.data.role}, not a TEACHER. Only registered teachers can be assigned.`);
+      } else {
+        setFoundUser(r.data);
+      }
+    } catch {
+      setLookupError('No user found with that email. Teacher must self-register first.');
+    } finally {
+      setIsLooking(false);
+    }
+  }
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={() => { reset(); onClose(); }}
+      title="Assign Teacher to Center"
+      maxWidth="max-w-md"
+    >
+      <p className="text-xs text-white/40 mb-4">
+        Look up a registered teacher by email and assign them to your center. They will appear in the teacher dropdown when creating or editing batches.
+      </p>
+
+      <div className="flex gap-2 mb-3">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => { setEmail(e.target.value); setFoundUser(null); setLookupError(''); }}
+          onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
+          placeholder="teacher@email.com"
+          className="input flex-1 text-sm"
+        />
+        <button
+          onClick={handleLookup}
+          disabled={isLooking || !email.trim()}
+          className="btn-primary px-3 py-2 text-sm disabled:opacity-50 flex items-center gap-1.5"
+        >
+          {isLooking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+          Find
+        </button>
+      </div>
+
+      {lookupError && (
+        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-3">
+          <p className="text-xs text-amber-400">{lookupError}</p>
+          <p className="text-xs text-white/30 mt-1.5 flex items-center gap-1.5">
+            <Mail className="w-3 h-3" />
+            Teacher must register at <span className="font-mono text-white/50">/register</span> with role TEACHER first.
+          </p>
+        </div>
+      )}
+
+      {foundUser && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-3"
+        >
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-brand-500/10 border border-brand-500/20">
+            <div className="w-9 h-9 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+              <Briefcase className="w-4 h-4 text-amber-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-white">{foundUser.firstName} {foundUser.lastName}</p>
+              <p className="text-xs text-white/40">{foundUser.email} · TEACHER</p>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-white/60 mb-1.5">
+              Subjects (optional — override teacher's registered subjects)
+            </label>
+            <input
+              value={subjects}
+              onChange={(e) => setSubjects(e.target.value)}
+              placeholder="Physics, Chemistry, Maths"
+              className="input w-full text-sm"
+            />
+          </div>
+          <button
+            onClick={() => assignTeacher.mutate(foundUser)}
+            disabled={assignTeacher.isPending}
+            className="btn-primary w-full py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {assignTeacher.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+            Assign to Center
+          </button>
+        </motion.div>
+      )}
+    </Modal>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function AdminBatchesPage() {
@@ -514,6 +768,7 @@ export default function AdminBatchesPage() {
   const [showForm, setShowForm] = useState(false);
   const [expandedHealth, setExpandedHealth] = useState(true);
   const [studentsBatch, setStudentsBatch] = useState<BatchResponse | null>(null);
+  const [showTeacherModal, setShowTeacherModal] = useState(false);
 
   // ── Fetch centers to get centerId ──────────────────────────────────────────
   const { data: centers = [], isLoading: centersLoading } = useQuery<CenterResponse[]>({
@@ -600,14 +855,22 @@ export default function AdminBatchesPage() {
             Manage and monitor all batches{centers[0] ? ` — ${centers[0].name}` : ''}.
           </p>
         </div>
-        {!showForm && (
+          <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowForm(true)}
-            className="btn-primary flex items-center gap-2 px-4 py-2.5 text-sm font-medium"
+            onClick={() => setShowTeacherModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-white/10 text-white/60 hover:text-white hover:border-white/20 transition-colors"
           >
-            <Plus className="w-4 h-4" /> Add Batch
+            <Briefcase className="w-4 h-4" /> Assign Teacher
           </button>
-        )}
+          {!showForm && (
+            <button
+              onClick={() => setShowForm(true)}
+              className="btn-primary flex items-center gap-2 px-4 py-2.5 text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" /> Add Batch
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Add batch inline form */}
@@ -694,6 +957,13 @@ export default function AdminBatchesPage() {
         batch={studentsBatch}
         centerId={centerId}
         onClose={() => setStudentsBatch(null)}
+      />
+
+      {/* Teacher assign modal */}
+      <TeacherAssignModal
+        isOpen={showTeacherModal}
+        centerId={centerId}
+        onClose={() => setShowTeacherModal(false)}
       />
 
       {/* Batches table */}

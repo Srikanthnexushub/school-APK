@@ -114,6 +114,7 @@ function getAdminNav(role?: string): NavItem[] {
     { icon: Brain,           label: 'Psychometric',       to: '/admin?tab=psychometric' },
     { icon: Library,         label: 'Library',            to: '/admin?tab=library' },
     ...(role === 'SUPER_ADMIN' ? [{ icon: Megaphone, label: 'Banners', to: '/admin?tab=banners' }] : []),
+    { icon: GraduationCap,  label: 'Academic Plan', to: '/academic-plan' },
     { icon: CalendarCheck, label: 'Attendance',    to: '/admin/attendance' },
     { icon: Megaphone,     label: 'Announcements', to: '/admin/announcements' },
     { icon: Wallet,        label: 'Accounts',      to: '/admin?tab=accounts' },
@@ -123,6 +124,7 @@ function getAdminNav(role?: string): NavItem[] {
 const parentNav: NavItem[] = [
   { icon: LayoutDashboard, label: 'Overview',      to: '/parent' },
   { icon: Users,           label: 'My Children',   to: '/parent/children' },
+  { icon: GraduationCap,  label: 'Academic Plan', to: '/academic-plan' },
   { icon: CreditCard,      label: 'Fees',          to: '/parent/fees' },
   { icon: Brain,           label: 'Psychometric',  to: '/parent/psychometric' },
   { icon: Library,         label: 'Library',       to: '/parent/library' },
@@ -138,6 +140,7 @@ const mentorNav: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard',     to: '/mentor-portal' },
   { icon: Calendar,        label: 'Sessions',      to: '/mentor-portal/sessions' },
   { icon: Brain,           label: 'AI Insights',   to: '/mentor-portal/insights' },
+  { icon: GraduationCap,  label: 'Academic Plan', to: '/academic-plan' },
   { icon: ClipboardList,   label: 'Exams',         to: '/mentor-portal/exams' },
   { icon: BookCheck,       label: 'Assignments',   to: '/mentor-portal/assignments' },
   { icon: Award,           label: 'My Performance',to: '/mentor-portal/performance' },
