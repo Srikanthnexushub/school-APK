@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import axios from 'axios';
 import { QRCodeSVG } from 'qrcode.react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -8,7 +9,7 @@ import { z } from 'zod';
 import {
   User, Bell, Palette, Shield, Camera, Check, AlertTriangle,
   Smartphone, Monitor, Eye, EyeOff, GraduationCap, Calendar, MapPin, BookOpen,
-  Plus, Loader2,
+  Plus, Loader2, Search, UserPlus, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
@@ -19,6 +20,7 @@ import { Toggle } from '../../components/ui/Toggle';
 import { Avatar } from '../../components/ui/Avatar';
 import { Modal } from '../../components/ui/Modal';
 import { suggestStates, suggestDistricts } from '../../utils/indiaLocations';
+import CaptchaWidget from '../../components/CaptchaWidget';
 
 type Tab = 'profile' | 'notifications' | 'appearance' | 'security';
 
@@ -206,6 +208,22 @@ function ProfileTab() {
   const [showAddParentModal, setShowAddParentModal] = useState(false);
   const [addParentEmail, setAddParentEmail] = useState('');
   const [addParentSending, setAddParentSending] = useState(false);
+  const [addParentPhase, setAddParentPhase] = useState<'search' | 'register'>('search');
+  const [addParentRegForm, setAddParentRegForm] = useState({
+    firstName: '', lastName: '', phone: '', gender: '', relationship: 'MOTHER', password: '', confirmPassword: '',
+  });
+  const [addParentCaptcha, setAddParentCaptcha] = useState<string | null>(null);
+  const [addParentRegistering, setAddParentRegistering] = useState(false);
+  const [addParentShowPw, setAddParentShowPw] = useState(false);
+  const handleAddParentCaptcha = useCallback((token: string | null) => setAddParentCaptcha(token), []);
+
+  function resetAddParentModal() {
+    setAddParentEmail('');
+    setAddParentPhase('search');
+    setAddParentRegForm({ firstName: '', lastName: '', phone: '', gender: '', relationship: 'MOTHER', password: '', confirmPassword: '' });
+    setAddParentCaptcha(null);
+    setAddParentShowPw(false);
+  }
 
   async function handleAddParent() {
     if (!addParentEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addParentEmail)) {
@@ -215,15 +233,66 @@ function ProfileTab() {
     setAddParentSending(true);
     try {
       await api.post('/api/v1/parents/request-link', { parentEmail: addParentEmail.trim() });
-      toast.success('Link request sent! Your parent will be notified.');
+      toast.success('Linked! Your parent will be notified.');
       setShowAddParentModal(false);
-      setAddParentEmail('');
+      resetAddParentModal();
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string; detail?: string } } };
-      const msg = err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Failed to send request';
-      toast.error(msg);
+      const err = e as { response?: { status?: number; data?: { detail?: string } } };
+      if (err?.response?.status === 404) {
+        // Parent not registered — switch to registration form
+        setAddParentPhase('register');
+      } else {
+        toast.error(err?.response?.data?.detail ?? 'Failed to find parent. Please try again.');
+      }
     } finally {
       setAddParentSending(false);
+    }
+  }
+
+  async function handleRegisterParent() {
+    const { firstName, lastName, phone, gender, relationship, password, confirmPassword } = addParentRegForm;
+    if (!firstName.trim()) { toast.error('First name is required'); return; }
+    if (!lastName.trim()) { toast.error('Last name is required'); return; }
+    if (!relationship) { toast.error('Relationship is required'); return; }
+    if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+      toast.error('Password must be 8+ chars with uppercase, digit, and special character'); return;
+    }
+    if (password !== confirmPassword) { toast.error('Passwords do not match'); return; }
+    if (!addParentCaptcha) { toast.error('Please complete the captcha'); return; }
+
+    setAddParentRegistering(true);
+    try {
+      // 1. Create parent account
+      const regRes = await api.post('/api/v1/auth/register', {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: addParentEmail.trim(),
+        password,
+        role: 'PARENT',
+        captchaToken: addParentCaptcha,
+        deviceFingerprint: { userAgent: navigator.userAgent, deviceId: crypto.randomUUID(), ipSubnet: '127.0.0' },
+      });
+      const parentJwt = regRes.data.accessToken;
+
+      // 2. Create parent profile
+      await axios.post('/api/v1/parents', {
+        name: `${firstName.trim()} ${lastName.trim()}`,
+        phone: phone || undefined,
+        email: addParentEmail.trim(),
+        gender: gender || undefined,
+      }, { headers: { Authorization: `Bearer ${parentJwt}` } });
+
+      // 3. Link from student side
+      await api.post('/api/v1/parents/request-link', { parentEmail: addParentEmail.trim() });
+
+      toast.success(`Parent account created and linked!`);
+      setShowAddParentModal(false);
+      resetAddParentModal();
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } } };
+      toast.error(err?.response?.data?.detail ?? 'Failed to create parent account');
+    } finally {
+      setAddParentRegistering(false);
     }
   }
 
@@ -941,40 +1010,175 @@ function ProfileTab() {
 
       {/* Add Parent modal */}
       {showAddParentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-surface-100 border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl"
+            className="bg-surface-100 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl my-4"
           >
-            <h3 className="text-lg font-bold text-white mb-1">Add Parent</h3>
-            <p className="text-sm text-white/50 mb-5">Enter your parent's registered email to send them a link request.</p>
-            <div className="mb-4">
-              <label className="block text-xs font-medium text-white/60 mb-1.5">Parent's Email</label>
-              <input
-                type="email"
-                value={addParentEmail}
-                onChange={(e) => setAddParentEmail(e.target.value)}
-                placeholder="parent@example.com"
-                className="input w-full"
-                onKeyDown={(e) => { if (e.key === 'Enter') handleAddParent(); }}
-                autoFocus
-              />
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 pb-4 border-b border-white/5">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-brand-500/15 flex items-center justify-center">
+                  <UserPlus className="w-5 h-5 text-brand-400" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Add Parent / Guardian</h3>
+                  <p className="text-xs text-white/40">
+                    {addParentPhase === 'search' ? 'Search by email — link if found, register if not' : `Creating account for ${addParentEmail}`}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => { setShowAddParentModal(false); resetAddParentModal(); }} className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-white/70 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => { setShowAddParentModal(false); setAddParentEmail(''); }}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddParent}
-                disabled={addParentSending}
-                className="flex-1 btn-primary py-2.5 text-sm disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {addParentSending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send Request'}
-              </button>
+
+            <div className="p-5 space-y-4">
+              {/* Phase: Search */}
+              {addParentPhase === 'search' && (
+                <>
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-r from-brand-500/10 to-violet-500/10 border border-brand-500/20">
+                    <Search className="w-4 h-4 text-brand-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-white/60 leading-relaxed">
+                      Enter your parent's email. If they already have a NexusEd account we'll link instantly.
+                      If not, you can register them right here.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-white/60 mb-1.5">Parent's Email <span className="text-red-400">*</span></label>
+                    <input
+                      type="email"
+                      value={addParentEmail}
+                      onChange={(e) => setAddParentEmail(e.target.value)}
+                      placeholder="parent@example.com"
+                      className="input w-full"
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleAddParent(); }}
+                      autoFocus
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => { setShowAddParentModal(false); resetAddParentModal(); }}
+                      className="px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleAddParent}
+                      disabled={addParentSending || !addParentEmail.trim()}
+                      className="flex-1 btn-primary py-2.5 text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {addParentSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Search className="w-4 h-4" /> Find Parent</>}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Phase: Register */}
+              {addParentPhase === 'register' && (
+                <>
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                    <span className="text-amber-400">✗</span>
+                    <div>
+                      <p className="text-xs text-amber-300 font-medium">Not found — fill in their details to create an account</p>
+                      <p className="text-xs text-white/40 mt-0.5">{addParentEmail}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-white/60 mb-1.5">First Name <span className="text-red-400">*</span></label>
+                      <input type="text" value={addParentRegForm.firstName} onChange={(e) => setAddParentRegForm(f => ({ ...f, firstName: e.target.value }))} placeholder="Ravi" className="input w-full" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-white/60 mb-1.5">Last Name <span className="text-red-400">*</span></label>
+                      <input type="text" value={addParentRegForm.lastName} onChange={(e) => setAddParentRegForm(f => ({ ...f, lastName: e.target.value }))} placeholder="Sharma" className="input w-full" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-white/60 mb-1.5">Phone</label>
+                      <input type="tel" value={addParentRegForm.phone} onChange={(e) => setAddParentRegForm(f => ({ ...f, phone: e.target.value }))} placeholder="+91 98765 43210" className="input w-full" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-white/60 mb-1.5">Gender</label>
+                      <select value={addParentRegForm.gender} onChange={(e) => setAddParentRegForm(f => ({ ...f, gender: e.target.value }))} className="input w-full">
+                        <option value="">— Select —</option>
+                        <option value="MALE">Male</option>
+                        <option value="FEMALE">Female</option>
+                        <option value="OTHER">Other</option>
+                        <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-white/60 mb-1.5">Relationship <span className="text-red-400">*</span></label>
+                    <select value={addParentRegForm.relationship} onChange={(e) => setAddParentRegForm(f => ({ ...f, relationship: e.target.value }))} className="input w-full">
+                      <option value="MOTHER">Mother</option>
+                      <option value="FATHER">Father</option>
+                      <option value="GUARDIAN">Guardian</option>
+                      <option value="GRANDPARENT">Grandparent</option>
+                      <option value="SIBLING">Sibling</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-white/60 mb-1.5">Password for parent account <span className="text-red-400">*</span></label>
+                    <div className="relative">
+                      <input
+                        type={addParentShowPw ? 'text' : 'password'}
+                        value={addParentRegForm.password}
+                        onChange={(e) => setAddParentRegForm(f => ({ ...f, password: e.target.value }))}
+                        placeholder="••••••••"
+                        className="input w-full pr-10"
+                      />
+                      <button type="button" onClick={() => setAddParentShowPw(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70">
+                        {addParentShowPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {[['length', '8+ chars', addParentRegForm.password.length >= 8], ['upper', 'Uppercase', /[A-Z]/.test(addParentRegForm.password)], ['digit', 'Digit', /[0-9]/.test(addParentRegForm.password)], ['special', 'Special char', /[^A-Za-z0-9]/.test(addParentRegForm.password)]].map(([k, label, ok]) => (
+                        <span key={String(k)} className={cn('text-xs px-2 py-0.5 rounded-full border transition-colors', ok ? 'border-green-500/50 bg-green-500/10 text-green-400' : 'border-white/10 text-white/30')}>{String(label)}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-white/60 mb-1.5">Confirm Password <span className="text-red-400">*</span></label>
+                    <input
+                      type="password"
+                      value={addParentRegForm.confirmPassword}
+                      onChange={(e) => setAddParentRegForm(f => ({ ...f, confirmPassword: e.target.value }))}
+                      placeholder="••••••••"
+                      className="input w-full"
+                    />
+                  </div>
+
+                  <div className="flex justify-center">
+                    <CaptchaWidget onVerify={handleAddParentCaptcha} />
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setAddParentPhase('search')}
+                      className="px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-colors flex items-center gap-1.5"
+                    >
+                      ← Back
+                    </button>
+                    <button
+                      onClick={handleRegisterParent}
+                      disabled={addParentRegistering || !addParentCaptcha}
+                      className="flex-1 btn-primary py-2.5 text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {addParentRegistering ? <Loader2 className="w-4 h-4 animate-spin" /> : <><UserPlus className="w-4 h-4" /> Create & Link Parent</>}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </motion.div>
         </div>

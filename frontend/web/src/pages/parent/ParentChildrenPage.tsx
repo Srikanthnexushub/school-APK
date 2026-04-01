@@ -259,10 +259,12 @@ function AISmartFind({
   profileId,
   onLinked,
   onClose,
+  onSwitchToCreate,
 }: {
   profileId: string;
   onLinked: () => void;
   onClose: () => void;
+  onSwitchToCreate: (email: string) => void;
 }) {
   const [email, setEmail] = useState('');
   const [searching, setSearching] = useState(false);
@@ -364,12 +366,21 @@ function AISmartFind({
 
       {/* Not found */}
       {notFound && (
-        <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-          <span className="text-amber-400 text-lg">✗</span>
-          <div>
-            <p className="text-sm text-amber-300 font-medium">No student found</p>
-            <p className="text-xs text-white/40 mt-0.5">This email isn't registered. Use "Create Account" tab to add your child.</p>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+            <span className="text-amber-400 text-lg">✗</span>
+            <div>
+              <p className="text-sm text-amber-300 font-medium">No student found</p>
+              <p className="text-xs text-white/40 mt-0.5">"{email}" is not yet registered on NexusEd.</p>
+            </div>
           </div>
+          <button
+            onClick={() => onSwitchToCreate(email.trim())}
+            className="w-full btn-primary py-2.5 text-sm flex items-center justify-center gap-2"
+          >
+            <UserPlus className="w-4 h-4" />
+            Register as New Child
+          </button>
         </div>
       )}
 
@@ -452,13 +463,15 @@ function AddChildModal({
   parentName,
   onClose,
   onAdded,
+  initialEmail,
 }: {
   profileId: string;
   parentName: string;
   onClose: () => void;
   onAdded: () => void;
+  initialEmail?: string;
 }) {
-  const [mode, setMode] = useState<ModalMode>('create');
+  const [mode, setMode] = useState<ModalMode>(initialEmail ? 'create' : 'ai-find');
   const [step, setStep] = useState<AddChildStep>('personal');
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -486,7 +499,7 @@ function AddChildModal({
 
   // Personal form state
   const [personal, setPersonal] = useState<PersonalForm>({
-    firstName: '', lastName: '', email: '',
+    firstName: '', lastName: '', email: initialEmail ?? '',
     password: '', confirmPassword: '',
     phone: '', gender: '', relationship: 'MOTHER',
     dateOfBirth: '',
@@ -704,6 +717,10 @@ function AddChildModal({
                   profileId={profileId}
                   onLinked={onAdded}
                   onClose={onClose}
+                  onSwitchToCreate={(prefillEmail) => {
+                    setPersonal((p) => ({ ...p, email: prefillEmail }));
+                    setMode('create');
+                  }}
                 />
               </motion.div>
             )}
