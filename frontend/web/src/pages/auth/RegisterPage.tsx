@@ -269,8 +269,8 @@ const BOARD_OPTIONS = [
 
 const step1Schema = z
   .object({
-    firstName: z.string().max(100).optional().or(z.literal('')),
-    lastName: z.string().max(100).optional().or(z.literal('')),
+    firstName: z.string().min(2, 'First name is required').max(100),
+    lastName: z.string().min(2, 'Last name is required').max(100),
     email: z.string().email('Invalid email address'),
     password: z
       .string()
@@ -475,6 +475,7 @@ export default function RegisterPage() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<Step1Data>({ resolver: zodResolver(step1Schema) });
 
@@ -507,6 +508,15 @@ export default function RegisterPage() {
       .catch(() => setTeacherCentersList([]))
       .finally(() => setTeacherCentersLoading(false));
   }, [selectedRole]);
+
+  // Auto-populate firstName/lastName from institutionName for INSTITUTION_ADMIN
+  // (these fields are hidden for that role but are required by Zod schema)
+  useEffect(() => {
+    if (selectedRole !== 'INSTITUTION_ADMIN') return;
+    const words = institutionName.trim().split(/\s+/);
+    setValue('firstName', words[0] || institutionName.trim() || 'Institution', { shouldValidate: false });
+    setValue('lastName', words.slice(1).join(' ') || words[0] || 'Admin', { shouldValidate: false });
+  }, [selectedRole, institutionName, setValue]);
 
   // Live debounce lookup for institution code (student academic step)
   useEffect(() => {
@@ -561,10 +571,14 @@ export default function RegisterPage() {
       return;
     }
 
-    // STUDENT: DOB is required and drives the under-13 consent flow
+    // STUDENT: DOB and phone are required; DOB drives the under-13 consent flow
     if (selectedRole === 'STUDENT') {
       if (!data.dateOfBirth) {
         toast.error('Date of birth is required');
+        return;
+      }
+      if (!data.phone?.trim()) {
+        toast.error('Phone number is required');
         return;
       }
       const age = calculateAge(data.dateOfBirth);
@@ -573,10 +587,16 @@ export default function RegisterPage() {
 
     setStep1Data(data);
 
-    // Validate firstName/lastName for non-CENTER_ADMIN roles (schema allows optional)
-    if (selectedRole !== 'INSTITUTION_ADMIN') {
-      if (!data.firstName?.trim()) { toast.error('First name is required'); return; }
-      if (!data.lastName?.trim()) { toast.error('Last name is required'); return; }
+    // PARENT: phone and gender are required
+    if (selectedRole === 'PARENT') {
+      if (!parentPhone.trim()) { toast.error('Phone number is required'); return; }
+      if (!selectedGender) { toast.error('Gender is required'); return; }
+    }
+
+    // TEACHER: gender and at least one subject are required
+    if (selectedRole === 'TEACHER') {
+      if (!selectedGender) { toast.error('Gender is required'); return; }
+      if (teacherSubjectsArr.length === 0) { toast.error('Select at least one subject'); return; }
     }
 
     // CENTER_ADMIN: validate institution fields
@@ -1091,7 +1111,7 @@ export default function RegisterPage() {
                         {selectedRole && selectedRole !== 'INSTITUTION_ADMIN' && (
                           <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">First Name</label>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">First Name <span className="text-red-400">*</span></label>
                               <input
                                 {...register('firstName')}
                                 type="text"
@@ -1101,7 +1121,7 @@ export default function RegisterPage() {
                               {errors.firstName && <p className="text-red-400 text-xs mt-1">{errors.firstName.message}</p>}
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Last Name</label>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Last Name <span className="text-red-400">*</span></label>
                               <input
                                 {...register('lastName')}
                                 type="text"
@@ -1119,7 +1139,7 @@ export default function RegisterPage() {
                             <div className="h-px bg-white/5" />
                             <div className="grid grid-cols-2 gap-3">
                               <div>
-                                <label className="block text-sm font-medium text-white/70 mb-1.5">Phone <span className="text-white/30">(optional)</span></label>
+                                <label className="block text-sm font-medium text-white/70 mb-1.5">Phone <span className="text-red-400">*</span></label>
                                 <input
                                   {...register('phone')}
                                   type="tel"
@@ -1204,7 +1224,7 @@ export default function RegisterPage() {
                             <div className="h-px bg-white/5" />
                             <div className="grid grid-cols-2 gap-3">
                               <div>
-                                <label className="block text-sm font-medium text-white/70 mb-1.5">Phone Number</label>
+                                <label className="block text-sm font-medium text-white/70 mb-1.5">Phone Number <span className="text-red-400">*</span></label>
                                 <input type="tel" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} placeholder="+91 87654 32100" className="input w-full" />
                               </div>
                               <div>
@@ -1213,9 +1233,9 @@ export default function RegisterPage() {
                               </div>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Gender</label>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Gender <span className="text-red-400">*</span></label>
                               <select value={selectedGender} onChange={(e) => setSelectedGender(e.target.value)} className="input w-full">
-                                <option value="">— Select (optional) —</option>
+                                <option value="">— Select —</option>
                                 <option value="MALE">Male</option>
                                 <option value="FEMALE">Female</option>
                                 <option value="OTHER">Other</option>
@@ -1258,7 +1278,7 @@ export default function RegisterPage() {
                           <div className="space-y-3 pt-1">
                             <div className="h-px bg-white/5" />
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Gender <span className="text-white/30">(optional)</span></label>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Gender <span className="text-red-400">*</span></label>
                               <select
                                 value={selectedGender}
                                 onChange={(e) => setSelectedGender(e.target.value)}
@@ -1301,7 +1321,7 @@ export default function RegisterPage() {
                             {/* Subjects collapsed dropdown */}
                             <div>
                               <label className="block text-sm font-medium text-white/70 mb-1.5">
-                                Subjects <span className="text-white/30">(optional)</span>
+                                Subjects <span className="text-red-400">*</span>
                               </label>
                               <div className="relative">
                                 <button

@@ -8,7 +8,7 @@ import { z } from 'zod';
 import {
   User, Bell, Palette, Shield, Camera, Check, AlertTriangle,
   Smartphone, Monitor, Eye, EyeOff, GraduationCap, Calendar, MapPin, BookOpen,
-  ShieldCheck, Clock, Plus, Loader2,
+  Plus, Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
@@ -218,7 +218,6 @@ function ProfileTab() {
       toast.success('Link request sent! Your parent will be notified.');
       setShowAddParentModal(false);
       setAddParentEmail('');
-      fetchPendingLink(true);
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string; detail?: string } } };
       const msg = err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Failed to send request';
@@ -251,45 +250,6 @@ function ProfileTab() {
     retry: false,
     throwOnError: false,
   });
-
-  interface PendingLink { otp: string; parentName: string; expiresAt: string; }
-  const [pendingLink, setPendingLink] = useState<PendingLink | null>(null);
-  const [pendingLinkLoading, setPendingLinkLoading] = useState(true);
-  const [otpSecondsLeft, setOtpSecondsLeft] = useState(0);
-  const pendingLinkInitialized = useRef(false);
-
-  async function fetchPendingLink(showSpinner = false) {
-    if (showSpinner) setPendingLinkLoading(true);
-    try {
-      const res = await api.get('/api/v1/students/me/pending-link');
-      setPendingLink(res.data as PendingLink);
-      setOtpSecondsLeft(Math.max(0, Math.round((new Date(res.data.expiresAt).getTime() - Date.now()) / 1000)));
-    } catch {
-      setPendingLink(null);
-    } finally {
-      if (showSpinner) setPendingLinkLoading(false);
-      if (!pendingLinkInitialized.current) {
-        setPendingLinkLoading(false);
-        pendingLinkInitialized.current = true;
-      }
-    }
-  }
-
-  useEffect(() => { if (user?.role === 'STUDENT') fetchPendingLink(true); }, [user?.role]);
-
-  useEffect(() => {
-    if (user?.role !== 'STUDENT') return;
-    const interval = setInterval(() => fetchPendingLink(false), 10000);
-    return () => clearInterval(interval);
-  }, [user?.role]);
-
-  useEffect(() => {
-    if (!pendingLink) return;
-    const timer = setInterval(() => {
-      setOtpSecondsLeft((s) => Math.max(0, s - 1));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [pendingLink]);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -580,46 +540,6 @@ function ProfileTab() {
             {profile.district && <InfoBadge label="District" value={profile.district} icon={MapPin} />}
             {profile.country && <InfoBadge label="Country" value={profile.country} icon={MapPin} />}
           </div>
-        </div>
-      )}
-
-      {/* Parent Link Request (OTP) — students only */}
-      {user?.role === 'STUDENT' && (
-        <div className="card">
-          <div className="flex items-center gap-2 mb-3">
-            <ShieldCheck className="w-4 h-4 text-brand-400" />
-            <h3 className="text-base font-semibold text-white">Parent Link Request</h3>
-          </div>
-          {pendingLinkLoading && !pendingLink ? (
-            <div className="h-20 flex items-center justify-center">
-              <div className="w-5 h-5 border-2 border-white/20 border-t-brand-400 rounded-full animate-spin" />
-            </div>
-          ) : pendingLink && otpSecondsLeft > 0 ? (
-            <>
-              <p className="text-sm text-white/50 mb-4">
-                <span className="text-white font-medium">{pendingLink.parentName}</span> wants to link to your account. Share the code below with them.
-              </p>
-              <div className="bg-brand-500/10 border border-brand-500/20 rounded-xl px-5 py-4 text-center mb-3">
-                <span className="font-mono text-4xl font-bold text-brand-400 tracking-[0.4em]">
-                  {pendingLink.otp}
-                </span>
-              </div>
-              <div className="flex items-center justify-center gap-2 text-sm">
-                <Clock className="w-4 h-4 text-amber-400" />
-                <span className={`font-mono font-bold ${otpSecondsLeft < 60 ? 'text-red-400' : 'text-amber-400'}`}>
-                  {`${Math.floor(otpSecondsLeft / 60)}:${String(otpSecondsLeft % 60).padStart(2, '0')}`}
-                </span>
-                <span className="text-white/30 text-xs">remaining</span>
-              </div>
-              <p className="text-xs text-white/30 mt-3 text-center">
-                This OTP expires automatically. If you don't recognize this request, ignore it.
-              </p>
-            </>
-          ) : (
-            <p className="text-sm text-white/40">
-              No active link request. When your parent clicks "Link Child" and finds your account, a one-time verification code will appear here for you to share with them.
-            </p>
-          )}
         </div>
       )}
 
