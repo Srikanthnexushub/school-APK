@@ -581,6 +581,8 @@ export default function RegisterPage() {
         toast.error('Phone number is required');
         return;
       }
+      if (!studentAddressLine1.trim()) { toast.error('Address is required'); return; }
+      if (!studentPincode.trim() || !/^\d{6}$/.test(studentPincode.trim())) { toast.error('Valid 6-digit pincode is required'); return; }
       const age = calculateAge(data.dateOfBirth);
       setIsUnder13(age < 13);
     }
@@ -591,12 +593,16 @@ export default function RegisterPage() {
     if (selectedRole === 'PARENT') {
       if (!parentPhone.trim()) { toast.error('Phone number is required'); return; }
       if (!selectedGender) { toast.error('Gender is required'); return; }
+      if (!parentAddress.trim()) { toast.error('Address is required'); return; }
+      if (!parentPincode.trim() || !/^\d{6}$/.test(parentPincode.trim())) { toast.error('Valid 6-digit pincode is required'); return; }
     }
 
     // TEACHER: gender and at least one subject are required
     if (selectedRole === 'TEACHER') {
       if (!selectedGender) { toast.error('Gender is required'); return; }
       if (teacherSubjectsArr.length === 0) { toast.error('Select at least one subject'); return; }
+      if (!teacherAddress.trim()) { toast.error('Address is required'); return; }
+      if (!teacherPincode.trim() || !/^\d{6}$/.test(teacherPincode.trim())) { toast.error('Valid 6-digit pincode is required'); return; }
     }
 
     // CENTER_ADMIN: validate institution fields
@@ -604,6 +610,8 @@ export default function RegisterPage() {
       if (!institutionName.trim()) { toast.error('Institution name is required'); return; }
       if (!institutionCity.trim()) { toast.error('City is required'); return; }
       if (!institutionPhone.trim()) { toast.error('Institution phone is required'); return; }
+      if (!instAddressLine1.trim()) { toast.error('Address is required'); return; }
+      if (!instPincode.trim() || !/^\d{6}$/.test(instPincode.trim())) { toast.error('Valid 6-digit pincode is required'); return; }
     }
 
     setIsRegistering(true);
@@ -1159,7 +1167,7 @@ export default function RegisterPage() {
                               </div>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address Line 1 <span className="text-white/30">(optional)</span></label>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address Line 1 <span className="text-red-400">*</span></label>
                               <input type="text" value={studentAddressLine1} onChange={(e) => setStudentAddressLine1(e.target.value)} placeholder="e.g. 12 Park Avenue" className="input w-full" />
                             </div>
                             <div>
@@ -1206,13 +1214,14 @@ export default function RegisterPage() {
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-white/30">(optional)</span></label>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-red-400">*</span></label>
                               <input
                                 type="text"
                                 value={studentPincode}
                                 onChange={(e) => handlePincodeChange(e.target.value, setStudentPincode, setStudentStateVal, setStudentDistrict, setStudentCity)}
                                 placeholder="e.g. 400001"
                                 className="input w-full"
+                                maxLength={6}
                               />
                             </div>
                           </div>
@@ -1243,7 +1252,7 @@ export default function RegisterPage() {
                               </select>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address Line 1 <span className="text-white/30">(optional)</span></label>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address Line 1 <span className="text-red-400">*</span></label>
                               <input type="text" value={parentAddress} onChange={(e) => setParentAddress(e.target.value)} placeholder="e.g. 12 Park Avenue" className="input w-full" />
                             </div>
                             <div>
@@ -1267,8 +1276,8 @@ export default function RegisterPage() {
                               <AutocompleteInput label="City" value={parentCity} onChange={setParentCity} options={parentState ? getCitiesForState(parentState) : []} placeholder="Type to search city…" optional />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-white/30">(optional)</span></label>
-                              <input type="text" value={parentPincode} onChange={(e) => handlePincodeChange(e.target.value, setParentPincode, setParentState, setParentDistrict, setParentCity)} placeholder="e.g. 110001" className="input w-full" />
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-red-400">*</span></label>
+                              <input type="text" value={parentPincode} onChange={(e) => handlePincodeChange(e.target.value, setParentPincode, setParentState, setParentDistrict, setParentCity)} placeholder="e.g. 110001" className="input w-full" maxLength={6} />
                             </div>
                           </div>
                         )}
@@ -1294,7 +1303,7 @@ export default function RegisterPage() {
                             {/* Institution dropdown */}
                             <div>
                               <label className="block text-sm font-medium text-white/70 mb-1.5">
-                                Institution <span className="text-white/30">(optional)</span>
+                                Apply to Institution <span className="text-white/30">(select to send join request)</span>
                               </label>
                               <div className="relative">
                                 <select
@@ -1307,7 +1316,7 @@ export default function RegisterPage() {
                                   className="input w-full appearance-none pr-10"
                                   disabled={teacherCentersLoading}
                                 >
-                                  <option value="">{teacherCentersLoading ? 'Loading institutions…' : '— Select institution —'}</option>
+                                  <option value="">{teacherCentersLoading ? 'Loading institutions…' : '— Select institution to join —'}</option>
                                   {teacherCentersList.map((c) => (
                                     <option key={c.id} value={c.id}>{c.name}</option>
                                   ))}
@@ -1315,7 +1324,10 @@ export default function RegisterPage() {
                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
                               </div>
                               {teacherCenterName && (
-                                <p className="text-green-400 text-xs mt-1">✓ {teacherCenterName}</p>
+                                <p className="text-green-400 text-xs mt-1">✓ Application will be sent to: {teacherCenterName}</p>
+                              )}
+                              {!teacherCenterName && !teacherCentersLoading && (
+                                <p className="text-white/30 text-xs mt-1">Your application will be reviewed by the institution coordinator.</p>
                               )}
                             </div>
                             {/* Subjects collapsed dropdown */}
@@ -1356,7 +1368,7 @@ export default function RegisterPage() {
                               </div>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address Line 1 <span className="text-white/30">(optional)</span></label>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address Line 1 <span className="text-red-400">*</span></label>
                               <input type="text" value={teacherAddress} onChange={(e) => setTeacherAddress(e.target.value)} placeholder="e.g. 45 MG Road, Apartment 3B" className="input w-full" />
                             </div>
                             <div>
@@ -1380,8 +1392,8 @@ export default function RegisterPage() {
                               <AutocompleteInput label="City" value={teacherCity} onChange={setTeacherCity} options={teacherStateVal ? getCitiesForState(teacherStateVal) : []} placeholder="Type to search city…" optional />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-white/30">(optional)</span></label>
-                              <input type="text" value={teacherPincode} onChange={(e) => handlePincodeChange(e.target.value, setTeacherPincode, setTeacherStateVal, setTeacherDistrict, setTeacherCity)} placeholder="e.g. 400058" className="input w-full" />
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-red-400">*</span></label>
+                              <input type="text" value={teacherPincode} onChange={(e) => handlePincodeChange(e.target.value, setTeacherPincode, setTeacherStateVal, setTeacherDistrict, setTeacherCity)} placeholder="e.g. 400058" className="input w-full" maxLength={6} />
                             </div>
                           </div>
                         )}
@@ -1440,7 +1452,7 @@ export default function RegisterPage() {
                               <input type="text" value={institutionPhone} onChange={(e) => setInstitutionPhone(e.target.value)} placeholder="+91 98765 43210" className="input w-full" />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address Line 1 <span className="text-white/30">(optional)</span></label>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Address Line 1 <span className="text-red-400">*</span></label>
                               <input type="text" value={instAddressLine1} onChange={(e) => setInstAddressLine1(e.target.value)} placeholder="e.g. 123 Main Road" className="input w-full" />
                             </div>
                             <div>
@@ -1464,8 +1476,8 @@ export default function RegisterPage() {
                               <AutocompleteInput label="City" value={institutionCity} onChange={setInstitutionCity} options={instStateVal ? getCitiesForState(instStateVal) : []} placeholder="Type to search city…" optional />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-white/30">(optional)</span></label>
-                              <input type="text" value={instPincode} onChange={(e) => handlePincodeChange(e.target.value, setInstPincode, setInstStateVal, setInstDistrict, setInstitutionCity)} placeholder="e.g. 400058" className="input w-full" />
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-red-400">*</span></label>
+                              <input type="text" value={instPincode} onChange={(e) => handlePincodeChange(e.target.value, setInstPincode, setInstStateVal, setInstDistrict, setInstitutionCity)} placeholder="e.g. 400058" className="input w-full" maxLength={6} />
                             </div>
                           </div>
                         )}
@@ -1475,12 +1487,12 @@ export default function RegisterPage() {
                           <div className="space-y-4 pt-1">
                             <div className="h-px bg-white/5" />
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Email</label>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Email <span className="text-red-400">*</span></label>
                               <input {...register('email')} type="email" placeholder="you@example.com" autoComplete="new-password" className={cn('input w-full', errors.email && 'border-red-500/50')} />
                               {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Password</label>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Password <span className="text-red-400">*</span></label>
                               <div className="relative">
                                 <input {...register('password')} type={showPw ? 'text' : 'password'} placeholder="••••••••" autoComplete="new-password" className={cn('input w-full pr-10', errors.password && 'border-red-500/50')} />
                                 <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors">
@@ -1495,7 +1507,7 @@ export default function RegisterPage() {
                               </div>
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-white/70 mb-1.5">Confirm Password</label>
+                              <label className="block text-sm font-medium text-white/70 mb-1.5">Confirm Password <span className="text-red-400">*</span></label>
                               <div className="relative">
                                 <input {...register('confirmPassword')} type={showConfirm ? 'text' : 'password'} placeholder="••••••••" autoComplete="new-password" className={cn('input w-full pr-10', errors.confirmPassword && 'border-red-500/50')} />
                                 <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors">
@@ -1639,8 +1651,12 @@ export default function RegisterPage() {
                 <p className="text-white/40 mb-6 text-sm">Tell us about your school and grade.</p>
 
                 <form onSubmit={handleSubmit3(onStep3Submit)} className="space-y-4">
+                  <div className="rounded-xl border border-brand-500/20 bg-brand-500/5 p-3">
+                    <p className="text-xs text-brand-300 font-medium mb-0.5">Already enrolled in a coaching center or school?</p>
+                    <p className="text-xs text-white/40">Enter the institution code provided by your school/centre to link your account.</p>
+                  </div>
                   <div>
-                    <label className="block text-sm font-medium text-white/70 mb-1.5">Institution Code <span className="text-white/30">(optional)</span></label>
+                    <label className="block text-sm font-medium text-white/70 mb-1.5">Institution Code <span className="text-white/30">(ask your school/centre)</span></label>
                     <input
                       {...register3('institutionCode')}
                       type="text"
@@ -1651,7 +1667,10 @@ export default function RegisterPage() {
                       <p className="text-red-400 text-xs mt-1">{errors3.institutionCode.message}</p>
                     )}
                     {centerName && (
-                      <p className="text-green-400 text-xs mt-1">✓ {centerName}</p>
+                      <p className="text-green-400 text-xs mt-1">✓ Linked to: {centerName}</p>
+                    )}
+                    {!centerName && watchedInstitutionCode && watchedInstitutionCode.length >= 3 && (
+                      <p className="text-yellow-400/70 text-xs mt-1">Code not found — you can still register without linking.</p>
                     )}
                   </div>
 
