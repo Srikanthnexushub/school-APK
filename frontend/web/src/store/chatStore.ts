@@ -5,7 +5,7 @@ import { ChatMessageDto, ChatSessionSummary, ProactiveNudgeDto, StartSessionResp
 const API_BASE = '/api/v1/chat';
 
 function getToken(): string {
-  const raw = sessionStorage.getItem('auth-storage');
+  const raw = sessionStorage.getItem('edupath-auth');
   if (!raw) return '';
   try {
     return (JSON.parse(raw) as { state?: { token?: string } })?.state?.token ?? '';
