@@ -115,6 +115,13 @@ public class CenterService implements CreateCenterUseCase, UpdateCenterUseCase {
     }
 
     @Transactional(readOnly = true)
+    public List<CenterLookupResponse> listAllPublic() {
+        return centerRepository.findAll().stream()
+                .map(c -> new CenterLookupResponse(c.getId(), c.getName(), c.getCity()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<CenterResponse> listCenters(AuthPrincipal principal) {
         return resolveAccessibleCenters(principal);
     }

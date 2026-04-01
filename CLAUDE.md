@@ -56,6 +56,7 @@ Infrastructure details → `memory/quick-ref-infra.md`
 | mentor-svc | 8088 | Tomcat WAR |
 | student-profile-svc | 8090 | Tomcat WAR |
 | notification-svc | 8094 | Tomcat WAR |
+| nexus-chat-svc | 8097 | Tomcat WAR |
 | exam-tracker-svc | 8091 | Tomcat WAR |
 | career-oracle-svc | 8087 | Tomcat WAR |
 | performance-svc | 8092 | Tomcat WAR |

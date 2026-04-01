@@ -356,6 +356,7 @@ export default function RegisterPage() {
   async function handlePincodeChange(
     value: string,
     setPincode: (v: string) => void,
+    setCountry: (v: string) => void,
     setState: (v: string) => void,
     setDistrict: (v: string) => void,
     setCity: (v: string) => void,
@@ -364,6 +365,7 @@ export default function RegisterPage() {
     if (value.length === 6 && /^\d{6}$/.test(value)) {
       const result = await lookupPincode(value);
       if (result) {
+        setCountry('India');
         if (result.state) setState(result.state);
         if (result.district) setDistrict(result.district);
         if (result.city) setCity(result.city);
@@ -409,7 +411,7 @@ export default function RegisterPage() {
   // Fetch centers list for Teacher role AND Student institution selection
   useEffect(() => {
     if (selectedRole !== 'TEACHER' && selectedRole !== 'STUDENT') return;
-    api.get('/api/v1/centers?size=200')
+    axios.get(`${import.meta.env.VITE_API_BASE_URL ?? ''}/api/v1/centers/public-list`)
       .then((r) => {
         const data = r.data;
         const list = Array.isArray(data) ? data : (data.content ?? []);
@@ -438,7 +440,7 @@ export default function RegisterPage() {
     if (!code || code.length < 3) { setCenterName(null); setCenterId(null); return; }
     const timer = setTimeout(async () => {
       try {
-        const resp = await api.get(`/api/v1/centers/lookup?code=${encodeURIComponent(code)}`);
+        const resp = await axios.get(`${import.meta.env.VITE_API_BASE_URL ?? ''}/api/v1/centers/lookup?code=${encodeURIComponent(code)}`);
         setCenterId(resp.data.id);
         setCenterName(resp.data.name);
         setSelectedStudentInstitutionName(resp.data.name);
@@ -783,7 +785,7 @@ export default function RegisterPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-red-400">*</span></label>
-                  <input type="text" value={studentPincode} onChange={(e) => handlePincodeChange(e.target.value, setStudentPincode, setStudentStateVal, setStudentDistrict, setStudentCity)} placeholder="e.g. 400001" className="input w-full" maxLength={6} />
+                  <input type="text" value={studentPincode} onChange={(e) => handlePincodeChange(e.target.value, setStudentPincode, setStudentCountry, setStudentStateVal, setStudentDistrict, setStudentCity)} placeholder="e.g. 400001" className="input w-full" maxLength={6} />
                 </div>
 
                 {/* Academic Details — inline */}
@@ -905,7 +907,7 @@ export default function RegisterPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-red-400">*</span></label>
-                  <input type="text" value={parentPincode} onChange={(e) => handlePincodeChange(e.target.value, setParentPincode, setParentState, setParentDistrict, setParentCity)} placeholder="e.g. 110001" className="input w-full" maxLength={6} />
+                  <input type="text" value={parentPincode} onChange={(e) => handlePincodeChange(e.target.value, setParentPincode, setParentCountry, setParentState, setParentDistrict, setParentCity)} placeholder="e.g. 110001" className="input w-full" maxLength={6} />
                 </div>
               </div>
             )}
@@ -925,28 +927,19 @@ export default function RegisterPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-white/70 mb-1.5">
-                    Apply to Institution <span className="text-white/30">(select to send join request)</span>
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={teacherCenterId ?? ''}
-                      onChange={(e) => {
-                        const selected = teacherCentersList.find(c => c.id === e.target.value);
-                        setTeacherCenterId(selected?.id ?? null);
-                        setTeacherCenterName(selected?.name ?? null);
-                      }}
-                      className="input w-full appearance-none pr-10"
-                      disabled={teacherCentersLoading}
-                    >
-                      <option value="">{teacherCentersLoading ? 'Loading institutions…' : '— Select institution to join —'}</option>
-                      {teacherCentersList.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
-                  </div>
-                  {teacherCenterName && <p className="text-green-400 text-xs mt-1">✓ Application will be sent to: {teacherCenterName}</p>}
+                  <SearchableSelect
+                    label="Institution"
+                    value={teacherCenterName ?? ''}
+                    onChange={(v) => {
+                      const found = teacherCentersList.find(c => c.name === v);
+                      setTeacherCenterId(found?.id ?? null);
+                      setTeacherCenterName(found?.name ?? (v || null));
+                    }}
+                    options={teacherCentersLoading ? [] : teacherCentersList.map(c => c.name)}
+                    placeholder={teacherCentersLoading ? 'Loading institutions…' : 'Search institution to join…'}
+                    allowCustom
+                  />
+                  {teacherCenterName && teacherCenterId && <p className="text-green-400 text-xs mt-1">✓ Application will be sent to: {teacherCenterName}</p>}
                   {!teacherCenterName && !teacherCentersLoading && <p className="text-white/30 text-xs mt-1">Your application will be reviewed by the institution coordinator.</p>}
                 </div>
                 <div>
@@ -993,7 +986,7 @@ export default function RegisterPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-red-400">*</span></label>
-                  <input type="text" value={teacherPincode} onChange={(e) => handlePincodeChange(e.target.value, setTeacherPincode, setTeacherStateVal, setTeacherDistrict, setTeacherCity)} placeholder="e.g. 400058" className="input w-full" maxLength={6} />
+                  <input type="text" value={teacherPincode} onChange={(e) => handlePincodeChange(e.target.value, setTeacherPincode, setTeacherCountry, setTeacherStateVal, setTeacherDistrict, setTeacherCity)} placeholder="e.g. 400058" className="input w-full" maxLength={6} />
                 </div>
               </div>
             )}
@@ -1050,7 +1043,7 @@ export default function RegisterPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-red-400">*</span></label>
-                  <input type="text" value={instPincode} onChange={(e) => handlePincodeChange(e.target.value, setInstPincode, setInstStateVal, setInstDistrict, setInstitutionCity)} placeholder="e.g. 400058" className="input w-full" maxLength={6} />
+                  <input type="text" value={instPincode} onChange={(e) => handlePincodeChange(e.target.value, setInstPincode, setInstCountry, setInstStateVal, setInstDistrict, setInstitutionCity)} placeholder="e.g. 400058" className="input w-full" maxLength={6} />
                 </div>
               </div>
             )}
