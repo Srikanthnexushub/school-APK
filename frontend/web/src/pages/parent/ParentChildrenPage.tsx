@@ -64,7 +64,7 @@ interface EditSchoolForm {
 }
 
 type AddChildStep = 'personal' | 'academic' | 'subjects' | 'done';
-type ModalMode = 'create' | 'ai-find';
+type ModalMode = 'choose' | 'create' | 'ai-find';
 
 interface PersonalForm {
   firstName: string;
@@ -471,7 +471,7 @@ function AddChildModal({
   onAdded: () => void;
   initialEmail?: string;
 }) {
-  const [mode, setMode] = useState<ModalMode>(initialEmail ? 'create' : 'ai-find');
+  const [mode, setMode] = useState<ModalMode>(initialEmail ? 'create' : 'choose');
   const [step, setStep] = useState<AddChildStep>('personal');
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -664,7 +664,8 @@ function AddChildModal({
                 {step === 'done' ? 'Child Added!' : 'Add Your Child'}
               </h2>
               <p className="text-xs text-white/40">
-                {mode === 'ai-find' ? 'Smart find — link existing student account' :
+                {mode === 'choose' ? 'Choose how to add your child' :
+                 mode === 'ai-find' ? 'Smart find — link existing student account' :
                  step === 'personal' ? 'Step 1 of 3 — Personal details' :
                  step === 'academic' ? 'Step 2 of 3 — Academic info' :
                  step === 'subjects' ? 'Step 3 of 3 — Subjects' :
@@ -677,8 +678,8 @@ function AddChildModal({
           </button>
         </div>
 
-        {/* Mode tabs — only show when not done */}
-        {step !== 'done' && (
+        {/* Mode tabs — only show when in create/ai-find mode and not done */}
+        {step !== 'done' && mode !== 'choose' && (
           <div className="flex gap-1 p-3 pb-0 px-6">
             <button
               onClick={() => setMode('create')}
@@ -690,7 +691,7 @@ function AddChildModal({
               )}
             >
               <UserPlus className="w-3.5 h-3.5" />
-              Create Account
+              Register New
             </button>
             <button
               onClick={() => setMode('ai-find')}
@@ -709,6 +710,46 @@ function AddChildModal({
 
         <div className="p-6">
           <AnimatePresence mode="wait">
+
+            {/* ── Choose mode (landing) ───────────────────────────────── */}
+            {mode === 'choose' && (
+              <motion.div key="choose" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="space-y-4">
+                <p className="text-sm text-white/50 text-center">How would you like to add your child?</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Option 1 — child already has account */}
+                  <button
+                    type="button"
+                    onClick={() => setMode('ai-find')}
+                    className="flex flex-col items-center gap-3 p-5 rounded-2xl border border-violet-500/30 bg-violet-500/5 hover:bg-violet-500/10 hover:border-violet-500/50 transition-all text-left group"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-violet-500/15 flex items-center justify-center group-hover:bg-violet-500/25 transition-colors">
+                      <Search className="w-6 h-6 text-violet-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-white mb-1">Already on NexusEd</p>
+                      <p className="text-xs text-white/40 leading-relaxed">Child has an account. Enter their email to find and link instantly.</p>
+                    </div>
+                  </button>
+                  {/* Option 2 — register new child */}
+                  <button
+                    type="button"
+                    onClick={() => setMode('create')}
+                    className="flex flex-col items-center gap-3 p-5 rounded-2xl border border-brand-500/30 bg-brand-500/5 hover:bg-brand-500/10 hover:border-brand-500/50 transition-all text-left group"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-brand-500/15 flex items-center justify-center group-hover:bg-brand-500/25 transition-colors">
+                      <UserPlus className="w-6 h-6 text-brand-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-white mb-1">New to NexusEd</p>
+                      <p className="text-xs text-white/40 leading-relaxed">Child doesn't have an account. Register them here in 2 minutes.</p>
+                    </div>
+                  </button>
+                </div>
+                <button onClick={onClose} className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/40 hover:text-white/70 hover:border-white/20 transition-colors">
+                  <X className="w-4 h-4" /> Cancel
+                </button>
+              </motion.div>
+            )}
 
             {/* ── AI Smart Find mode ──────────────────────────────────── */}
             {mode === 'ai-find' && (

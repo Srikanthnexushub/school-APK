@@ -208,7 +208,7 @@ function ProfileTab() {
   const [showAddParentModal, setShowAddParentModal] = useState(false);
   const [addParentEmail, setAddParentEmail] = useState('');
   const [addParentSending, setAddParentSending] = useState(false);
-  const [addParentPhase, setAddParentPhase] = useState<'search' | 'register'>('search');
+  const [addParentPhase, setAddParentPhase] = useState<'choose' | 'search' | 'register'>('choose');
   const [addParentRegForm, setAddParentRegForm] = useState({
     firstName: '', lastName: '', phone: '', gender: '', relationship: 'MOTHER', password: '', confirmPassword: '',
   });
@@ -219,7 +219,7 @@ function ProfileTab() {
 
   function resetAddParentModal() {
     setAddParentEmail('');
-    setAddParentPhase('search');
+    setAddParentPhase('choose');
     setAddParentRegForm({ firstName: '', lastName: '', phone: '', gender: '', relationship: 'MOTHER', password: '', confirmPassword: '' });
     setAddParentCaptcha(null);
     setAddParentShowPw(false);
@@ -1025,7 +1025,9 @@ function ProfileTab() {
                 <div>
                   <h3 className="text-base font-bold text-white">Add Parent / Guardian</h3>
                   <p className="text-xs text-white/40">
-                    {addParentPhase === 'search' ? 'Search by email — link if found, register if not' : `Creating account for ${addParentEmail}`}
+                    {addParentPhase === 'choose' ? 'Choose how to add your parent' :
+                     addParentPhase === 'search' ? 'Search by email — link if found, register if not' :
+                     `Creating account for ${addParentEmail}`}
                   </p>
                 </div>
               </div>
@@ -1035,6 +1037,47 @@ function ProfileTab() {
             </div>
 
             <div className="p-5 space-y-4">
+              {/* Phase: Choose */}
+              {addParentPhase === 'choose' && (
+                <div className="space-y-4">
+                  <p className="text-sm text-white/50 text-center">How would you like to add your parent?</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setAddParentPhase('search')}
+                      className="flex flex-col items-center gap-3 p-5 rounded-2xl border border-violet-500/30 bg-violet-500/5 hover:bg-violet-500/10 hover:border-violet-500/50 transition-all text-left group"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-violet-500/15 flex items-center justify-center group-hover:bg-violet-500/25 transition-colors">
+                        <Search className="w-6 h-6 text-violet-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-white mb-1">Already on NexusEd</p>
+                        <p className="text-xs text-white/40 leading-relaxed">Parent has an account. Enter their email to link instantly.</p>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAddParentPhase('register')}
+                      className="flex flex-col items-center gap-3 p-5 rounded-2xl border border-brand-500/30 bg-brand-500/5 hover:bg-brand-500/10 hover:border-brand-500/50 transition-all text-left group"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-brand-500/15 flex items-center justify-center group-hover:bg-brand-500/25 transition-colors">
+                        <UserPlus className="w-6 h-6 text-brand-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-white mb-1">New to NexusEd</p>
+                        <p className="text-xs text-white/40 leading-relaxed">Parent doesn't have an account. Register them right here.</p>
+                      </div>
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => { setShowAddParentModal(false); resetAddParentModal(); }}
+                    className="w-full px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/40 hover:text-white/70 hover:border-white/20 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
               {/* Phase: Search */}
               {addParentPhase === 'search' && (
                 <>
@@ -1059,10 +1102,10 @@ function ProfileTab() {
                   </div>
                   <div className="flex gap-3">
                     <button
-                      onClick={() => { setShowAddParentModal(false); resetAddParentModal(); }}
+                      onClick={() => setAddParentPhase('choose')}
                       className="px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-colors"
                     >
-                      Cancel
+                      ← Back
                     </button>
                     <button
                       onClick={handleAddParent}
@@ -1164,7 +1207,7 @@ function ProfileTab() {
 
                   <div className="flex gap-3">
                     <button
-                      onClick={() => setAddParentPhase('search')}
+                      onClick={() => setAddParentPhase('choose')}
                       className="px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:border-white/20 transition-colors flex items-center gap-1.5"
                     >
                       ← Back
