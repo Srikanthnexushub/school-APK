@@ -133,9 +133,9 @@ function SearchableSelect({ label, value, onChange, options, placeholder, option
 
 // ─── Autocomplete Input ────────────────────────────────────────────────────────
 
-function AutocompleteInput({ label, value, onChange, options, placeholder, optional }: {
+function AutocompleteInput({ label, value, onChange, options, placeholder, optional, required }: {
   label: string; value: string; onChange: (v: string) => void;
-  options: string[]; placeholder?: string; optional?: boolean;
+  options: string[]; placeholder?: string; optional?: boolean; required?: boolean;
 }) {
   const [show, setShow] = useState(false);
   const filtered = value
@@ -145,7 +145,7 @@ function AutocompleteInput({ label, value, onChange, options, placeholder, optio
   return (
     <div className="relative">
       <label className="block text-sm font-medium text-white/70 mb-1.5">
-        {label}{optional && <span className="text-white/30"> (optional)</span>}
+        {label}{required && <span className="text-red-400"> *</span>}{optional && <span className="text-white/30"> (optional)</span>}
       </label>
       <input type="text" value={value}
         onChange={e => { onChange(e.target.value); setShow(true); }}
@@ -297,6 +297,8 @@ export default function RegisterPage() {
   const [studentBoard, setStudentBoard] = useState('');
   const [studentGrade, setStudentGrade] = useState('10');
   const [parentGuardianEmail, setParentGuardianEmail] = useState('');
+  const [studentCentersList, setStudentCentersList] = useState<{ id: string; name: string }[]>([]);
+  const [selectedStudentInstitutionName, setSelectedStudentInstitutionName] = useState('');
 
   // Student location
   const [studentAddressLine1, setStudentAddressLine1] = useState('');
@@ -404,18 +406,22 @@ export default function RegisterPage() {
 
   const watchedPassword = watch('password', '');
 
-  // Fetch centers list for Teacher role
+  // Fetch centers list for Teacher role AND Student institution selection
   useEffect(() => {
-    if (selectedRole !== 'TEACHER') return;
-    setTeacherCentersLoading(true);
+    if (selectedRole !== 'TEACHER' && selectedRole !== 'STUDENT') return;
     api.get('/api/v1/centers?size=200')
       .then((r) => {
         const data = r.data;
         const list = Array.isArray(data) ? data : (data.content ?? []);
-        setTeacherCentersList(list.map((c: { id: string; name: string }) => ({ id: c.id, name: c.name })));
+        const mapped = list.map((c: { id: string; name: string }) => ({ id: c.id, name: c.name }));
+        if (selectedRole === 'TEACHER') { setTeacherCentersLoading(false); setTeacherCentersList(mapped); }
+        if (selectedRole === 'STUDENT') setStudentCentersList(mapped);
       })
-      .catch(() => setTeacherCentersList([]))
-      .finally(() => setTeacherCentersLoading(false));
+      .catch(() => {
+        setTeacherCentersList([]);
+        setStudentCentersList([]);
+      });
+    if (selectedRole === 'TEACHER') setTeacherCentersLoading(true);
   }, [selectedRole]);
 
   // Auto-populate firstName/lastName from institutionName for INSTITUTION_ADMIN
@@ -435,6 +441,7 @@ export default function RegisterPage() {
         const resp = await api.get(`/api/v1/centers/lookup?code=${encodeURIComponent(code)}`);
         setCenterId(resp.data.id);
         setCenterName(resp.data.name);
+        setSelectedStudentInstitutionName(resp.data.name);
       } catch {
         setCenterName(null);
         setCenterId(null);
@@ -457,6 +464,10 @@ export default function RegisterPage() {
       if (!data.dateOfBirth) { toast.error('Date of birth is required'); return; }
       if (!data.phone?.trim()) { toast.error('Phone number is required'); return; }
       if (!studentAddressLine1.trim()) { toast.error('Address is required'); return; }
+      if (!studentCountry.trim()) { toast.error('Country is required'); return; }
+      if (!studentStateVal.trim()) { toast.error('State is required'); return; }
+      if (!studentDistrict.trim()) { toast.error('District is required'); return; }
+      if (!studentCity.trim()) { toast.error('City is required'); return; }
       if (!studentPincode.trim() || !/^\d{6}$/.test(studentPincode.trim())) { toast.error('Valid 6-digit pincode is required'); return; }
       const under13 = calculateAge(data.dateOfBirth) < 13;
       setIsUnder13(under13);
@@ -467,6 +478,10 @@ export default function RegisterPage() {
       if (!parentPhone.trim()) { toast.error('Phone number is required'); return; }
       if (!selectedGender) { toast.error('Gender is required'); return; }
       if (!parentAddress.trim()) { toast.error('Address is required'); return; }
+      if (!parentCountry.trim()) { toast.error('Country is required'); return; }
+      if (!parentState.trim()) { toast.error('State is required'); return; }
+      if (!parentDistrict.trim()) { toast.error('District is required'); return; }
+      if (!parentCity.trim()) { toast.error('City is required'); return; }
       if (!parentPincode.trim() || !/^\d{6}$/.test(parentPincode.trim())) { toast.error('Valid 6-digit pincode is required'); return; }
     }
 
@@ -474,14 +489,21 @@ export default function RegisterPage() {
       if (!selectedGender) { toast.error('Gender is required'); return; }
       if (teacherSubjectsArr.length === 0) { toast.error('Select at least one subject'); return; }
       if (!teacherAddress.trim()) { toast.error('Address is required'); return; }
+      if (!teacherCountry.trim()) { toast.error('Country is required'); return; }
+      if (!teacherStateVal.trim()) { toast.error('State is required'); return; }
+      if (!teacherDistrict.trim()) { toast.error('District is required'); return; }
+      if (!teacherCity.trim()) { toast.error('City is required'); return; }
       if (!teacherPincode.trim() || !/^\d{6}$/.test(teacherPincode.trim())) { toast.error('Valid 6-digit pincode is required'); return; }
     }
 
     if (selectedRole === 'INSTITUTION_ADMIN') {
       if (!institutionName.trim()) { toast.error('Institution name is required'); return; }
-      if (!institutionCity.trim()) { toast.error('City is required'); return; }
       if (!institutionPhone.trim()) { toast.error('Institution phone is required'); return; }
       if (!instAddressLine1.trim()) { toast.error('Address is required'); return; }
+      if (!instCountry.trim()) { toast.error('Country is required'); return; }
+      if (!instStateVal.trim()) { toast.error('State is required'); return; }
+      if (!instDistrict.trim()) { toast.error('District is required'); return; }
+      if (!institutionCity.trim()) { toast.error('City is required'); return; }
       if (!instPincode.trim() || !/^\d{6}$/.test(instPincode.trim())) { toast.error('Valid 6-digit pincode is required'); return; }
     }
 
@@ -752,12 +774,12 @@ export default function RegisterPage() {
                   <input type="text" value={studentAddressLine2} onChange={(e) => setStudentAddressLine2(e.target.value)} placeholder="e.g. Andheri West" className="input w-full" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <SearchableSelect label="Country" value={studentCountry} onChange={setStudentCountry} options={WORLD_COUNTRIES} placeholder="Select country…" optional allowCustom />
-                  <SearchableSelect label="State" value={studentStateVal} onChange={(v) => { setStudentStateVal(v); setStudentCity(''); setStudentDistrict(''); }} options={INDIA_STATES} placeholder="Select state…" optional allowCustom />
+                  <SearchableSelect label="Country" value={studentCountry} onChange={setStudentCountry} options={WORLD_COUNTRIES} placeholder="Select country…" required allowCustom />
+                  <SearchableSelect label="State" value={studentStateVal} onChange={(v) => { setStudentStateVal(v); setStudentCity(''); setStudentDistrict(''); }} options={INDIA_STATES} placeholder="Select state…" required allowCustom />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <SearchableSelect label="District" value={studentDistrict} onChange={setStudentDistrict} options={studentStateVal ? getDistricts(studentStateVal) : []} placeholder="Select district…" optional allowCustom />
-                  <AutocompleteInput label="City" value={studentCity} onChange={setStudentCity} options={studentStateVal ? getCitiesForState(studentStateVal) : []} placeholder="Type to search city…" optional />
+                  <SearchableSelect label="District" value={studentDistrict} onChange={setStudentDistrict} options={studentStateVal ? getDistricts(studentStateVal) : []} placeholder="Select district…" required allowCustom />
+                  <AutocompleteInput label="City" value={studentCity} onChange={setStudentCity} options={studentStateVal ? getCitiesForState(studentStateVal) : []} placeholder="Type to search city…" required />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-red-400">*</span></label>
@@ -779,10 +801,26 @@ export default function RegisterPage() {
                   )}
                 </div>
                 {!centerName && (
-                  <div>
-                    <label className="block text-sm font-medium text-white/70 mb-1.5">Institution Name <span className="text-white/30">(if you don't have a code)</span></label>
-                    <input type="text" value={manualInstitutionName} onChange={(e) => setManualInstitutionName(e.target.value)} placeholder="e.g. DPS School, St. Xavier's" className="input w-full" />
-                  </div>
+                  <SearchableSelect
+                    label="Select Institution"
+                    value={selectedStudentInstitutionName}
+                    onChange={(v) => {
+                      setSelectedStudentInstitutionName(v);
+                      const found = studentCentersList.find(c => c.name === v);
+                      if (found) {
+                        setCenterId(found.id);
+                        setCenterName(found.name);
+                        setManualInstitutionName('');
+                      } else {
+                        setCenterId(null);
+                        setCenterName(null);
+                        setManualInstitutionName(v);
+                      }
+                    }}
+                    options={studentCentersList.map(c => c.name)}
+                    placeholder="Search or type institution name…"
+                    allowCustom
+                  />
                 )}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -858,12 +896,12 @@ export default function RegisterPage() {
                   <input type="text" value={parentAddressLine2} onChange={(e) => setParentAddressLine2(e.target.value)} placeholder="e.g. Andheri West" className="input w-full" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <SearchableSelect label="Country" value={parentCountry} onChange={setParentCountry} options={WORLD_COUNTRIES} placeholder="Select country…" optional allowCustom />
-                  <SearchableSelect label="State" value={parentState} onChange={(v) => { setParentState(v); setParentCity(''); setParentDistrict(''); }} options={INDIA_STATES} placeholder="Select state…" optional allowCustom />
+                  <SearchableSelect label="Country" value={parentCountry} onChange={setParentCountry} options={WORLD_COUNTRIES} placeholder="Select country…" required allowCustom />
+                  <SearchableSelect label="State" value={parentState} onChange={(v) => { setParentState(v); setParentCity(''); setParentDistrict(''); }} options={INDIA_STATES} placeholder="Select state…" required allowCustom />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <SearchableSelect label="District" value={parentDistrict} onChange={setParentDistrict} options={parentState ? getDistricts(parentState) : []} placeholder="Select district…" optional allowCustom />
-                  <AutocompleteInput label="City" value={parentCity} onChange={setParentCity} options={parentState ? getCitiesForState(parentState) : []} placeholder="Type to search city…" optional />
+                  <SearchableSelect label="District" value={parentDistrict} onChange={setParentDistrict} options={parentState ? getDistricts(parentState) : []} placeholder="Select district…" required allowCustom />
+                  <AutocompleteInput label="City" value={parentCity} onChange={setParentCity} options={parentState ? getCitiesForState(parentState) : []} placeholder="Type to search city…" required />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-red-400">*</span></label>
@@ -946,12 +984,12 @@ export default function RegisterPage() {
                   <input type="text" value={teacherAddressLine2} onChange={(e) => setTeacherAddressLine2(e.target.value)} placeholder="e.g. Andheri West" className="input w-full" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <SearchableSelect label="Country" value={teacherCountry} onChange={setTeacherCountry} options={WORLD_COUNTRIES} placeholder="Select country…" optional allowCustom />
-                  <SearchableSelect label="State" value={teacherStateVal} onChange={(v) => { setTeacherStateVal(v); setTeacherCity(''); setTeacherDistrict(''); }} options={INDIA_STATES} placeholder="Select state…" optional allowCustom />
+                  <SearchableSelect label="Country" value={teacherCountry} onChange={setTeacherCountry} options={WORLD_COUNTRIES} placeholder="Select country…" required allowCustom />
+                  <SearchableSelect label="State" value={teacherStateVal} onChange={(v) => { setTeacherStateVal(v); setTeacherCity(''); setTeacherDistrict(''); }} options={INDIA_STATES} placeholder="Select state…" required allowCustom />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <SearchableSelect label="District" value={teacherDistrict} onChange={setTeacherDistrict} options={teacherStateVal ? getDistricts(teacherStateVal) : []} placeholder="Select district…" optional allowCustom />
-                  <AutocompleteInput label="City" value={teacherCity} onChange={setTeacherCity} options={teacherStateVal ? getCitiesForState(teacherStateVal) : []} placeholder="Type to search city…" optional />
+                  <SearchableSelect label="District" value={teacherDistrict} onChange={setTeacherDistrict} options={teacherStateVal ? getDistricts(teacherStateVal) : []} placeholder="Select district…" required allowCustom />
+                  <AutocompleteInput label="City" value={teacherCity} onChange={setTeacherCity} options={teacherStateVal ? getCitiesForState(teacherStateVal) : []} placeholder="Type to search city…" required />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-red-400">*</span></label>
@@ -1003,12 +1041,12 @@ export default function RegisterPage() {
                   <input type="text" value={instAddressLine2} onChange={(e) => setInstAddressLine2(e.target.value)} placeholder="e.g. Andheri West" className="input w-full" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <SearchableSelect label="Country" value={instCountry} onChange={setInstCountry} options={WORLD_COUNTRIES} placeholder="Select country…" optional allowCustom />
-                  <SearchableSelect label="State" value={instStateVal} onChange={(v) => { setInstStateVal(v); setInstitutionCity(''); setInstDistrict(''); }} options={INDIA_STATES} placeholder="Select state…" optional allowCustom />
+                  <SearchableSelect label="Country" value={instCountry} onChange={setInstCountry} options={WORLD_COUNTRIES} placeholder="Select country…" required allowCustom />
+                  <SearchableSelect label="State" value={instStateVal} onChange={(v) => { setInstStateVal(v); setInstitutionCity(''); setInstDistrict(''); }} options={INDIA_STATES} placeholder="Select state…" required allowCustom />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <SearchableSelect label="District" value={instDistrict} onChange={setInstDistrict} options={instStateVal ? getDistricts(instStateVal) : []} placeholder="Select district…" optional allowCustom />
-                  <AutocompleteInput label="City" value={institutionCity} onChange={setInstitutionCity} options={instStateVal ? getCitiesForState(instStateVal) : []} placeholder="Type to search city…" optional />
+                  <SearchableSelect label="District" value={instDistrict} onChange={setInstDistrict} options={instStateVal ? getDistricts(instStateVal) : []} placeholder="Select district…" required allowCustom />
+                  <AutocompleteInput label="City" value={institutionCity} onChange={setInstitutionCity} options={instStateVal ? getCitiesForState(instStateVal) : []} placeholder="Type to search city…" required />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white/70 mb-1.5">Pincode <span className="text-red-400">*</span></label>
