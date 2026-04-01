@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.UUID;
@@ -87,6 +88,33 @@ public class LlmRoutingService implements RouteCompletionUseCase {
                                         ModelType.COMPLETION,
                                         e.getMessage()));
                                 log.error("Completion routing failed: {}", e.getMessage());
+                            })
+                            .onErrorMap(
+                                    e -> !(e instanceof AiGatewayException),
+                                    e -> new AiProviderException(e.getMessage()));
+                });
+    }
+
+    @Override
+    public Flux<String> streamRouteCompletion(CompletionRequest request, AuthPrincipal principal) {
+        return rateLimitPort.checkAndIncrement(request.requesterId(), ModelType.COMPLETION)
+                .flatMapMany(allowed -> {
+                    if (!allowed) {
+                        return Flux.error(new RateLimitExceededException(request.requesterId(), ModelType.COMPLETION));
+                    }
+                    LlmProvider provider = resolveProvider();
+                    LlmClient client = switch (provider) {
+                        case OPENROUTER -> openRouterLlmClient;
+                        default -> llmClient;
+                    };
+                    return client.streamComplete(request, provider)
+                            .doOnError(e -> {
+                                eventPublisher.publish(new AiRequestFailedEvent(
+                                        java.util.UUID.randomUUID().toString(),
+                                        request.requesterId(),
+                                        ModelType.COMPLETION,
+                                        e.getMessage()));
+                                log.error("Stream completion routing failed: {}", e.getMessage());
                             })
                             .onErrorMap(
                                     e -> !(e instanceof AiGatewayException),

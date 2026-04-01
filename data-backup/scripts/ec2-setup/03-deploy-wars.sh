@@ -18,7 +18,7 @@ DRY_RUN=false
 
 GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[1;33m'; NC='\033[0m'
 
-# Service → Tomcat instance name (11 services — ai-mentor-svc runs as java -jar JAR)
+# Service → Tomcat instance name (12 services — ai-mentor-svc runs as java -jar JAR)
 declare -A TOMCAT_WARS=(
   [auth-svc]="auth-svc"
   [parent-svc]="parent-svc"
@@ -31,6 +31,7 @@ declare -A TOMCAT_WARS=(
   [career-oracle-svc]="career-oracle-svc"
   [mentor-svc]="mentor-svc"
   [notification-svc]="notification-svc"
+  [nexus-chat-svc]="nexus-chat-svc"
 )
 
 # api-gateway + student-gateway: Spring Cloud Gateway → produce JAR (not WAR)
@@ -46,7 +47,7 @@ echo
 PASS=0; FAIL=0; true  # initialize counters (avoid set -e trap on ((n++)) when n=0)
 
 # Deploy Tomcat WARs as ROOT.war
-echo "--- Tomcat WARs (12) ---"
+echo "--- Tomcat WARs (12 + nexus-chat-svc) ---"
 for SVC in "${!TOMCAT_WARS[@]}"; do
   INSTANCE=${TOMCAT_WARS[$SVC]}
   WAR=$(ls /opt/apps/${SVC}-*.war 2>/dev/null | head -1)

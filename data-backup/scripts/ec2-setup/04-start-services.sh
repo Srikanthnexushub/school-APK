@@ -65,11 +65,11 @@ for SVC_PORT in "center-svc:8083" "parent-svc:8082" "assess-svc:8084" "psych-svc
   health_check "$SVC" "$PORT" 30 || FAIL=$((FAIL + 1))
 done
 
-# ─── 3. Student portal Tomcat services ────────────────────────────────────────
+# ─── 3. Student portal + chat Tomcat services ─────────────────────────────────
 # NOTE: ai-mentor-svc is NOT Tomcat — it has no WAR packaging, started separately below
-echo "=== [3/8] Student portal Tomcat services ==="
+echo "=== [3/8] Student portal + NexusChat Tomcat services ==="
 for SVC in student-profile-svc exam-tracker-svc performance-svc \
-           career-oracle-svc mentor-svc notification-svc; do
+           career-oracle-svc mentor-svc notification-svc nexus-chat-svc; do
   source "$ENV_FILE"
   echo -n "  Starting ${SVC}... "
   /opt/apps/tomcat-${SVC}/bin/startup.sh > /dev/null
@@ -78,7 +78,8 @@ for SVC in student-profile-svc exam-tracker-svc performance-svc \
 done
 sleep 25
 for SVC_PORT in "student-profile-svc:8090" "exam-tracker-svc:8091" "performance-svc:8092" \
-                "career-oracle-svc:8087" "mentor-svc:8088" "notification-svc:8094"; do
+                "career-oracle-svc:8087" "mentor-svc:8088" "notification-svc:8094" \
+                "nexus-chat-svc:8097"; do
   SVC="${SVC_PORT%%:*}"; PORT="${SVC_PORT##*:}"
   health_check "$SVC" "$PORT" 30 || FAIL=$((FAIL + 1))
 done
@@ -150,7 +151,7 @@ ARTIFACT=$(ls /opt/apps/exec-jars/api-gateway-*.jar 2>/dev/null | head -1)
   health_check "api-gateway" 8180 30 || FAIL=$((FAIL + 1))
 }
 
-# ─── 8. Final health check — all 15 services ───────────────────────────────────
+# ─── 8. Final health check — all 16 services ───────────────────────────────────
 echo
 echo "=== [8/8] Full system health check ==="
 declare -A ALL_SERVICES=(
@@ -158,7 +159,7 @@ declare -A ALL_SERVICES=(
   [psych-svc]=8085 [ai-gateway-svc]=8086 [career-oracle-svc]=8087
   [mentor-svc]=8088 [student-gateway]=8089 [student-profile-svc]=8090
   [exam-tracker-svc]=8091 [performance-svc]=8092 [ai-mentor-svc]=8093
-  [notification-svc]=8094 [api-gateway]=8180
+  [notification-svc]=8094 [nexus-chat-svc]=8097 [api-gateway]=8180
 )
 ALL_UP=true
 for SVC in "${!ALL_SERVICES[@]}"; do
@@ -175,7 +176,7 @@ done
 
 echo
 if [[ $FAIL -eq 0 ]] && $ALL_UP; then
-  echo -e "${GREEN}ALL 15 SERVICES UP — deployment successful${NC}"
+  echo -e "${GREEN}ALL 16 SERVICES UP — deployment successful${NC}"
   echo "  Test: curl http://127.0.0.1:8180/actuator/health"
   echo "  JWKS: curl http://127.0.0.1:8182/api/v1/auth/jwks"
 else

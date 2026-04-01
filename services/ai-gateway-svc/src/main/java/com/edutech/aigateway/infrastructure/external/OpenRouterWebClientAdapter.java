@@ -14,11 +14,13 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import reactor.util.retry.Retry;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -54,6 +56,79 @@ public class OpenRouterWebClientAdapter implements LlmClient {
             case OLLAMA -> Mono.error(new AiProviderException("Ollama routing not implemented in this adapter"));
         };
     }
+
+    @Override
+    public Flux<String> streamComplete(CompletionRequest request, LlmProvider provider) {
+        return switch (provider) {
+            case OPENROUTER -> isPlaceholderKey() ? streamLocalEcho(request) : streamOpenRouter(request);
+            default -> LlmClient.super.streamComplete(request, provider);
+        };
+    }
+
+    /**
+     * Simulated token-by-token streaming for local dev (no real API key).
+     * Splits the local echo text into word tokens and emits raw JSON delta payloads
+     * (no {@code data: } prefix — Spring SSE encoder adds it).
+     */
+    private Flux<String> streamLocalEcho(CompletionRequest request) {
+        return executeLocalEcho(request)
+                .flatMapMany(resp -> {
+                    String content = resp.content() != null ? resp.content() : "";
+                    String[] words = content.split("(?<=\\s)|(?=\\s)");
+                    return Flux.fromArray(words)
+                            .delayElements(Duration.ofMillis(30))
+                            .map(token -> {
+                                String escaped = token
+                                        .replace("\\", "\\\\")
+                                        .replace("\"", "\\\"")
+                                        .replace("\n", "\\n")
+                                        .replace("\r", "\\r");
+                                return "{\"choices\":[{\"delta\":{\"content\":\"" + escaped + "\"}}]}";
+                            })
+                            .concatWith(Flux.just("[DONE]"));
+                });
+    }
+
+    /**
+     * Real OpenRouter streaming: sends {@code stream:true}, parses raw SSE data lines
+     * from OpenRouter, strips the {@code data: } prefix so Spring's SSE encoder
+     * can re-wrap them cleanly. Terminates on {@code [DONE]}.
+     */
+    private Flux<String> streamOpenRouter(CompletionRequest request) {
+        List<OpenRouterMessage> messages = new java.util.ArrayList<>();
+        if (request.systemPrompt() != null && !request.systemPrompt().isBlank()) {
+            messages.add(new OpenRouterMessage("system", request.systemPrompt()));
+        }
+        messages.add(new OpenRouterMessage("user", request.userMessage()));
+
+        OpenRouterStreamRequest body = new OpenRouterStreamRequest(
+                props.model(), messages, request.maxTokens(), request.temperature(), true);
+
+        return webClient.post()
+                .uri("/api/v1/chat/completions")
+                .bodyValue(body)
+                .retrieve()
+                .onStatus(status -> status.isError(), clientResponse ->
+                        clientResponse.bodyToMono(String.class)
+                                .flatMap(err -> Mono.error(
+                                        new AiProviderException("OpenRouter stream error ["
+                                                + clientResponse.statusCode().value() + "]: " + err))))
+                .bodyToFlux(String.class)
+                .filter(line -> line != null && !line.isBlank())
+                // Strip "data: " prefix — Spring's SSE encoder will re-add it
+                .map(line -> line.startsWith("data: ") ? line.substring(6).trim() : line.trim())
+                .filter(content -> !content.isEmpty())
+                .takeUntil("[DONE]"::equals)
+                .concatWith(Flux.just("[DONE]"));
+    }
+
+    private record OpenRouterStreamRequest(
+            String model,
+            List<OpenRouterMessage> messages,
+            @JsonProperty("max_tokens") int maxTokens,
+            double temperature,
+            boolean stream
+    ) {}
 
     /** Returns true when no real OpenRouter key is configured (local dev placeholder). */
     public boolean isPlaceholderKey() {

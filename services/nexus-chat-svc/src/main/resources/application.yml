@@ -1,0 +1,125 @@
+server:
+  port: ${NEXUS_CHAT_SVC_PORT:8097}
+  shutdown: graceful
+
+spring:
+  application:
+    name: ${NEXUS_CHAT_SVC_NAME:nexus-chat-svc}
+  threads:
+    virtual:
+      enabled: true
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.data.redis.RedisReactiveHealthContributorAutoConfiguration
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${NEXUS_CHAT_DB_NAME}
+    username: ${NEXUS_CHAT_DB_USER}
+    password: ${NEXUS_CHAT_DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${NEXUS_CHAT_DB_POOL_MAX_SIZE:5}
+      minimum-idle: ${NEXUS_CHAT_DB_POOL_MIN_IDLE:2}
+      connection-timeout: ${NEXUS_CHAT_DB_CONNECTION_TIMEOUT_MS:30000}
+      idle-timeout: ${NEXUS_CHAT_DB_IDLE_TIMEOUT_MS:600000}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: chat_schema
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    schemas: chat_schema
+    locations: classpath:db/migration/chat
+    baseline-on-migrate: false
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    consumer:
+      group-id: ${NEXUS_CHAT_KAFKA_CONSUMER_GROUP:nexus-chat-svc-group}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+jwt:
+  public-key-path: ${JWT_PUBLIC_KEY_PATH}
+  issuer: ${JWT_ISSUER}
+
+service:
+  api-key: ${SERVICE_API_KEY}
+
+# Downstream service URIs (all from env — zero hardcoding)
+downstream:
+  ai-gateway:
+    uri: ${AI_GATEWAY_SVC_URI}
+    timeout-ms: ${NEXUS_CHAT_AI_GATEWAY_TIMEOUT_MS:30000}
+  student-profile:
+    uri: ${STUDENT_PROFILE_SVC_URI}
+    timeout-ms: ${CTX_PROFILE_TIMEOUT_MS:500}
+  performance:
+    uri: ${PERFORMANCE_SVC_URI}
+    timeout-ms: ${CTX_PERF_TIMEOUT_MS:500}
+  ai-mentor:
+    uri: ${AI_MENTOR_SVC_URI}
+    timeout-ms: ${CTX_MENTOR_TIMEOUT_MS:500}
+  assess:
+    uri: ${ASSESS_SVC_URI}
+    timeout-ms: ${CTX_ASSESS_TIMEOUT_MS:500}
+  center:
+    uri: ${CENTER_SVC_URI}
+    timeout-ms: ${CTX_CENTER_TIMEOUT_MS:500}
+  notification:
+    uri: ${NOTIFICATION_SVC_URI}
+
+context:
+  total-timeout-ms: ${CTX_TOTAL_TIMEOUT_MS:800}
+  cache-ttl-minutes:
+    profile: ${CTX_CACHE_TTL_PROFILE_MIN:15}
+    performance: ${CTX_CACHE_TTL_PERF_MIN:5}
+    mentor: ${CTX_CACHE_TTL_MENTOR_MIN:10}
+    assess: ${CTX_CACHE_TTL_ASSESS_MIN:10}
+    center: ${CTX_CACHE_TTL_CENTER_MIN:30}
+
+chat:
+  max-history-messages: ${CHAT_MAX_HISTORY_MESSAGES:20}
+  session-ttl-hours: ${CHAT_SESSION_TTL_HOURS:24}
+  stream-thread-pool-size: ${CHAT_STREAM_THREAD_POOL_SIZE:10}
+  proactive-inactivity-days: ${CHAT_PROACTIVE_INACTIVITY_DAYS:3}
+
+kafka:
+  topics:
+    nexus-chat-events: ${NEXUS_CHAT_EVENTS_TOPIC:nexus-chat-events}
+    notification-send: ${NOTIFICATION_SEND_TOPIC:notification-send}
+    assess-events: ${ASSESS_EVENTS_TOPIC:assess-events}
+    performance-events: ${PERFORMANCE_EVENTS_TOPIC:performance-events}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      ai-gateway-stream:
+        sliding-window-size: ${R4J_CB_AI_WINDOW_SIZE:10}
+        failure-rate-threshold: ${R4J_CB_AI_FAILURE_THRESHOLD:50}
+        wait-duration-in-open-state: ${R4J_CB_AI_WAIT_DURATION:30s}
+        permitted-number-of-calls-in-half-open-state: 3
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${ACTUATOR_ENDPOINTS:health,info,prometheus,metrics}
+  metrics:
+    tags:
+      application: ${NEXUS_CHAT_SVC_NAME:nexus-chat-svc}
+      environment: ${APP_ENVIRONMENT:local}
+
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.edutech: ${LOG_LEVEL_APP:DEBUG}

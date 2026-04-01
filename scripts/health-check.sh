@@ -37,6 +37,7 @@ SERVICES=(
   "performance-svc|8092"
   "ai-mentor-svc|8093"
   "notification-svc|8094"
+  "nexus-chat-svc|8097"
 )
 
 DOCKER_CONTAINERS=(

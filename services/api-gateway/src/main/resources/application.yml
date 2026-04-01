@@ -138,6 +138,10 @@ spring:
           uri: ${NOTIFICATION_SVC_URI}
           predicates:
             - Path=/api/v1/notifications/**
+        - id: nexus-chat-svc
+          uri: ${NEXUS_CHAT_SVC_URI:http://localhost:8097}
+          predicates:
+            - Path=/api/v1/chat/**
 
 server:
   port: ${API_GATEWAY_PORT}

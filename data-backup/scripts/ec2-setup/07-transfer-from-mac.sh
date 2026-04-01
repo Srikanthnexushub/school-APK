@@ -47,7 +47,7 @@ echo -e "${GREEN}✓${NC}"
 
 # ─── 4. Tomcat WARs (11 services) ────────────────────────────────────────────
 # NOTE: ai-mentor-svc has no WAR packaging — it goes to exec-jars/ below
-echo "  Transferring Tomcat WARs (11)..."
+echo "  Transferring Tomcat WARs (12)..."
 TOMCAT_WARS=(
   "services/auth-svc/target/auth-svc-1.0.0-PROD.war"
   "services/parent-svc/target/parent-svc-1.0.0-PROD.war"
@@ -60,6 +60,7 @@ TOMCAT_WARS=(
   "services/career-oracle-svc/target/career-oracle-svc-1.0.0-PROD.war"
   "services/mentor-svc/target/mentor-svc-1.0.0-PROD.war"
   "services/notification-svc/target/notification-svc-1.0.0-PROD.war"
+  "services/nexus-chat-svc/target/nexus-chat-svc-1.0.0-PROD.war"
 )
 MISSING=0
 for WAR_PATH in "${TOMCAT_WARS[@]}"; do

@@ -370,13 +370,15 @@ wait_healthy "ai-mentor-svc"       8093 120
 wait_healthy "career-oracle-svc"   8087 120
 wait_healthy "mentor-svc"          8088 120
 
-# ── WAVE 4: AI gateway + notification ─────────────────────────────────────────
-section "Wave 4 — AI Gateway & Notification"
+# ── WAVE 4: AI gateway + notification + nexus-chat ────────────────────────────
+section "Wave 4 — AI Gateway, Notification & NexusChat"
 start_svc "services/ai-gateway-svc"   "ai-gateway-svc"   8086
 start_svc "services/notification-svc" "notification-svc" 8094
+start_svc "services/nexus-chat-svc"   "nexus-chat-svc"   8097
 
 wait_healthy "ai-gateway-svc"   8086 90
 wait_healthy "notification-svc" 8094 90
+wait_healthy "nexus-chat-svc"   8097 90
 
 # ── WAVE 5: gateways ──────────────────────────────────────────────────────────
 section "Wave 5 — API Gateways"
@@ -417,6 +419,7 @@ echo -e "${BOLD}Useful URLs:${NC}"
 echo "  Frontend         → http://localhost:3000"
 echo "  API Gateway      → http://localhost:8180/actuator/health"
 echo "  Student Gateway  → http://localhost:8089/actuator/health"
+echo "  NexusChat        → http://localhost:8097/actuator/health"
 echo "  Kafka UI         → http://localhost:${KAFKA_UI_PORT:-9080}"
 echo "  pgAdmin          → http://localhost:${PGADMIN_PORT:-5050}"
 echo ""

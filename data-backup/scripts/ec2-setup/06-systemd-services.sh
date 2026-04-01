@@ -5,8 +5,8 @@
 # =============================================================================
 set -euo pipefail
 
-echo "=== Creating systemd services for all 15 Spring Boot services ==="
-echo "    11 Tomcat WARs + 4 exec JARs/WARs + 1 Python sidecar"
+echo "=== Creating systemd services for all 16 Spring Boot services ==="
+echo "    12 Tomcat WARs + 4 exec JARs/WARs + 1 Python sidecar"
 
 # ─── Helper: create Tomcat systemd service ─────────────────────────────────────
 create_tomcat_service() {
@@ -72,12 +72,12 @@ UNIT
   echo "  ✓ edutech-${SVC}.service (port ${PORT}, heap max ${HEAP_MAX}, artifact: ${EXT})"
 }
 
-# ─── Tomcat services (11) ─────────────────────────────────────────────────────
+# ─── Tomcat services (12) ─────────────────────────────────────────────────────
 # ai-mentor-svc is NOT here — it has no WAR packaging, runs as java -jar
 TOMCAT_SVCS=(
   auth-svc parent-svc center-svc assess-svc psych-svc
   student-profile-svc exam-tracker-svc performance-svc
-  career-oracle-svc mentor-svc notification-svc
+  career-oracle-svc mentor-svc notification-svc nexus-chat-svc
 )
 for SVC in "${TOMCAT_SVCS[@]}"; do
   create_tomcat_service "$SVC"
@@ -124,7 +124,7 @@ ALL_SERVICES=(
   edutech-auth-svc edutech-parent-svc edutech-center-svc edutech-assess-svc
   edutech-psych-svc edutech-student-profile-svc edutech-exam-tracker-svc
   edutech-performance-svc edutech-ai-mentor-svc edutech-career-oracle-svc
-  edutech-mentor-svc edutech-notification-svc
+  edutech-mentor-svc edutech-notification-svc edutech-nexus-chat-svc
   edutech-ai-gateway-svc edutech-student-gateway edutech-api-gateway
   edutech-python-ai-svc
 )

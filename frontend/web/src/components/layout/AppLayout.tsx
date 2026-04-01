@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
+import NexusChatWidget from '../chat/NexusChatWidget';
+import { useNudgePoller } from '../../hooks/useNudgePoller';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -583,6 +585,7 @@ export default function AppLayout() {
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const { notifications, unreadCount, isLoading, markRead, markAllRead } = useNotifications();
+  useNudgePoller(!!user);
   const queryClient = useQueryClient();
 
   // ── Global reminder polling — fires for ALL roles every 60 s ──
@@ -817,6 +820,9 @@ export default function AppLayout() {
         reminders={pendingReminders}
         onAcknowledge={(id) => ackReminderMutation.mutate(id)}
       />
+
+      {/* NexusChat floating widget — available on all authenticated pages */}
+      <NexusChatWidget />
     </div>
   );
 }

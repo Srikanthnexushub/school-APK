@@ -6,12 +6,14 @@ import com.edutech.aigateway.domain.model.CompletionResponse;
 import com.edutech.aigateway.domain.port.in.RouteCompletionUseCase;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -30,5 +32,16 @@ public class CompletionController {
             @Valid @RequestBody CompletionRequest request,
             @AuthenticationPrincipal AuthPrincipal principal) {
         return routeCompletionUseCase.routeCompletion(request, principal);
+    }
+
+    /**
+     * Server-Sent Events streaming endpoint for nexus-chat-svc and other consumers.
+     * Emits OpenRouter delta-format SSE lines, terminated by {@code data: [DONE]}.
+     */
+    @PostMapping(path = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> stream(
+            @Valid @RequestBody CompletionRequest request,
+            @AuthenticationPrincipal AuthPrincipal principal) {
+        return routeCompletionUseCase.streamRouteCompletion(request, principal);
     }
 }

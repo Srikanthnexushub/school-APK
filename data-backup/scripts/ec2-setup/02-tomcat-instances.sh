@@ -19,7 +19,7 @@ echo "Tomcat ${TOMCAT_VER} extracted ✓"
 
 # Service → HTTP port → Shutdown port
 # NOTE: ai-mentor-svc is NOT here — it has no WAR packaging, runs as java -jar (JAR)
-# 11 Tomcat WAR services:
+# 12 Tomcat WAR services (added nexus-chat-svc):
 declare -A SERVICE_HTTP=(
   [auth-svc]=8182
   [parent-svc]=8082
@@ -32,6 +32,7 @@ declare -A SERVICE_HTTP=(
   [career-oracle-svc]=8087
   [mentor-svc]=8088
   [notification-svc]=8094
+  [nexus-chat-svc]=8097
 )
 
 declare -A SERVICE_SHUTDOWN=(
@@ -46,9 +47,10 @@ declare -A SERVICE_SHUTDOWN=(
   [career-oracle-svc]=9087
   [mentor-svc]=9088
   [notification-svc]=9094
+  [nexus-chat-svc]=9097
 )
 
-echo "=== Creating 11 Tomcat instances ==="
+echo "=== Creating 12 Tomcat instances ==="
 
 for SVC in "${!SERVICE_HTTP[@]}"; do
   HTTP_PORT=${SERVICE_HTTP[$SVC]}
@@ -93,7 +95,7 @@ SETENV
 done
 
 echo
-echo "=== Verifying all 11 instances ==="
+echo "=== Verifying all 12 instances ==="
 for SVC in "${!SERVICE_HTTP[@]}"; do
   HTTP_PORT=${SERVICE_HTTP[$SVC]}
   ACTUAL_PORT=$(grep 'Connector port=' /opt/apps/tomcat-${SVC}/conf/server.xml | grep -v AJP | head -1 | grep -o 'port="[0-9]*"' | grep -o '[0-9]*')

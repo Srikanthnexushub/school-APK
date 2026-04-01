@@ -54,6 +54,7 @@
         <module>services/mentor-svc</module>
         <module>services/student-gateway</module>
         <module>services/notification-svc</module>
+        <module>services/nexus-chat-svc</module>
     </modules>
 
     <!-- =========================================================
