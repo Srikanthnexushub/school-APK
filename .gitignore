@@ -1,3 +1,6 @@
+### Claude Code subagent context — never commit ###
+**/.claude/
+
 ### Build output ###
 target/
 **/target/

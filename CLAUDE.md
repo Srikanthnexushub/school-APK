@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 185+ frozen fixes as of Fix #185 (2026-03-31 — STUDENT/PARENT read bypass for BatchFeeService.listByBatch + FeeService.listFeeStructures).
+- Read `memory/frozen-fixes.md` before touching any file. 205+ frozen fixes as of Fix #205 (2026-04-01 — chatStore sessionStorage key 'edupath-auth').
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -113,7 +113,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (176 fixes, latest: Fix #171-#176 — teacher lifecycle complete: institution dropdown, /teachers/me endpoints, SettingsPage fullName/district/hourlyRate, AdminPendingTeachers centerId).
+Full list → `memory/frozen-fixes.md` (205 fixes, latest: Fix #200-#205 — NexusChat service complete: Redis exclusion, SSE streaming, AuthPrincipal, exec WAR, center public-list, chatStore token key).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
