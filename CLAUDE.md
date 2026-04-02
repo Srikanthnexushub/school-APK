@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 215+ frozen fixes as of Fix #215 (2026-04-02 — curricular-svc fully wired: port 8098, /api/v1/curricular/**, dual-gateway, Wave 4).
+- Read `memory/frozen-fixes.md` before touching any file. 216+ frozen fixes as of Fix #216 (2026-04-02 — curricular-svc UI: 4 role pages, nav items, routes).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -114,7 +114,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (215 fixes, latest: Fix #215 — enterprise platform library + curricular-svc (2026-04-02)).
+Full list → `memory/frozen-fixes.md` (216 fixes, latest: Fix #216 — curricular-svc UI 4 role pages (2026-04-02)).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
