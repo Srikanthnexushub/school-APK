@@ -1,245 +1,591 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ── CSS SURFACE TOKENS ──────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   CYBER NEURAL — Surface Tokens
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 .dark {
-  --color-surface:     15  17  23;
-  --color-surface-50:  26  29  39;
-  --color-surface-100: 37  40  54;
-  --color-surface-200: 45  49  71;
+  --color-surface:     2   4   12;   /* deep void */
+  --color-surface-50:  6   9   22;   /* dark space */
+  --color-surface-100: 11  15  34;   /* nebula layer */
+  --color-surface-200: 18  24  52;   /* stellar depth */
+  /* Neon accent vars */
+  --neon-cyan:   0 245 255;
+  --neon-mg:     240 0 255;
+  --neon-violet: 155 0 255;
+  --neon-lime:   0 255 136;
   color-scheme: dark;
 }
 
 html:not(.dark) {
-  --color-surface:     242 240 255;
-  --color-surface-50:  252 251 255;
-  --color-surface-100: 234 231 255;
-  --color-surface-200: 222 218 255;
+  --color-surface:     238 240 255;
+  --color-surface-50:  248 249 255;
+  --color-surface-100: 228 232 255;
+  --color-surface-200: 210 215 255;
+  --neon-cyan:   0 180 200;
+  --neon-mg:     180 0 200;
+  --neon-violet: 120 0 200;
+  --neon-lime:   0 180 100;
   color-scheme: light;
 }
 
-/* ── BASE ─────────────────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   BASE
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 @layer base {
   * { box-sizing: border-box; }
-  body { @apply bg-surface text-white antialiased min-h-screen; }
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { @apply bg-surface-50; }
-  ::-webkit-scrollbar-thumb { @apply bg-surface-200 rounded-full; }
-  ::-webkit-scrollbar-thumb:hover { @apply bg-brand-700; }
+
+  body {
+    @apply bg-surface text-white antialiased min-h-screen;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  /* Neon scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: rgba(2, 4, 12, 0.95); }
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #00f5ff, #9b00ff);
+    border-radius: 9999px;
+    box-shadow: 0 0 6px #00f5ff80;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #00f5ff, #f000ff);
+    box-shadow: 0 0 10px #00f5ffcc;
+  }
 }
 
-/* ── COMPONENTS ──────────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   DARK MODE — CYBER NEURAL BACKGROUND
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.dark body {
+  background-color: rgb(2 4 12);
+  background-image:
+    /* Neon aurora blobs */
+    radial-gradient(ellipse 110vw 70vh at  -10% -10%, rgba(0, 245, 255, 0.07) 0%, transparent 55%),
+    radial-gradient(ellipse  80vw 90vh at  110%  110%, rgba(155, 0, 255, 0.09) 0%, transparent 55%),
+    radial-gradient(ellipse  60vw 80vh at   50%  105%, rgba(240, 0, 255, 0.06) 0%, transparent 55%),
+    radial-gradient(ellipse  90vw 40vh at   80%  -20%, rgba(0, 255, 136, 0.04) 0%, transparent 50%),
+    /* Grid overlay — subtle tech grid */
+    linear-gradient(rgba(0, 245, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 245, 255, 0.025) 1px, transparent 1px);
+  background-size:
+    100% 100%, 100% 100%, 100% 100%, 100% 100%,
+    60px 60px, 60px 60px;
+  animation: aurora 18s ease-in-out infinite alternate;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENTS — CYBER NEURAL DESIGN SYSTEM
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 @layer components {
-  .glass       { @apply bg-surface-50/60 backdrop-blur-md border border-white/5; }
-  .glass-hover { @apply hover:bg-surface-50/80 hover:border-white/10 transition-all duration-200; }
-  .gradient-text { @apply bg-gradient-to-r from-brand-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent; }
-  .card        { @apply glass rounded-2xl p-6; }
-  .btn-primary { @apply bg-brand-600 hover:bg-brand-500 text-white font-medium px-4 py-2 rounded-xl transition-all duration-200 active:scale-95; }
-  .btn-ghost   { @apply hover:bg-white/5 text-white/70 hover:text-white px-4 py-2 rounded-xl transition-all duration-200; }
-  .input       { @apply bg-surface-100 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-white/30 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all; }
-  .badge       { @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium; }
+
+  /* ── Glass ─────────────────────────────────────────────────────────────── */
+  .glass {
+    background: linear-gradient(
+      135deg,
+      rgba(11, 15, 34, 0.85) 0%,
+      rgba(6, 9, 22, 0.90) 100%
+    ) !important;
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(0, 245, 255, 0.12) !important;
+    box-shadow:
+      0 0 0 1px rgba(0, 245, 255, 0.05),
+      0 8px 32px rgba(0, 0, 0, 0.6),
+      inset 0 1px 0 rgba(0, 245, 255, 0.08);
+    position: relative;
+  }
+
+  .glass-hover {
+    transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+  }
+  .glass-hover:hover {
+    border-color: rgba(0, 245, 255, 0.30) !important;
+    box-shadow:
+      0 0 0 1px rgba(0, 245, 255, 0.12),
+      0 0 20px rgba(0, 245, 255, 0.08),
+      0 12px 40px rgba(0, 0, 0, 0.7),
+      inset 0 1px 0 rgba(0, 245, 255, 0.15) !important;
+  }
+
+  /* ── Card — 3D Neon ────────────────────────────────────────────────────── */
+  .card {
+    @apply glass rounded-2xl p-6;
+    transform-style: preserve-3d;
+    transform: perspective(1000px) rotateX(0deg) rotateY(0deg);
+    transition: transform 0.35s cubic-bezier(0.23, 1, 0.32, 1),
+                box-shadow 0.35s ease,
+                border-color 0.35s ease;
+    will-change: transform;
+    overflow: hidden;
+  }
+
+  /* Neon shimmer line at top */
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(0, 245, 255, 0.6) 30%,
+      rgba(240, 0, 255, 0.6) 70%,
+      transparent 100%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+  }
+
+  .card:hover {
+    transform: perspective(1000px) rotateX(2deg) rotateY(1deg) translateZ(6px);
+    border-color: rgba(0, 245, 255, 0.25) !important;
+    box-shadow:
+      0 0 0 1px rgba(0, 245, 255, 0.15),
+      0 0 30px rgba(0, 245, 255, 0.08),
+      0 24px 60px rgba(0, 0, 0, 0.8),
+      inset 0 1px 0 rgba(0, 245, 255, 0.2) !important;
+  }
+  .card:hover::before {
+    opacity: 1;
+  }
+
+  /* ── Gradient text ─────────────────────────────────────────────────────── */
+  .gradient-text {
+    background: linear-gradient(
+      90deg,
+      #00f5ff 0%,
+      #b400ff 35%,
+      #f000ff 60%,
+      #00f5ff 100%
+    );
+    background-size: 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: holo 5s ease-in-out infinite;
+  }
+
+  /* ── Primary button — Holographic Neon ─────────────────────────────────── */
+  .btn-primary {
+    position: relative;
+    background: linear-gradient(
+      135deg,
+      #006aff 0%,
+      #9b00ff 40%,
+      #f000ff 70%,
+      #00f5ff 100%
+    ) !important;
+    background-size: 250% 250% !important;
+    color: #fff !important;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    border: none;
+    cursor: pointer;
+    transition:
+      background-position 0.5s ease,
+      box-shadow 0.25s ease,
+      transform 0.15s ease !important;
+    box-shadow:
+      0 0 12px rgba(155, 0, 255, 0.5),
+      0 0 24px rgba(0, 245, 255, 0.2),
+      0 4px 15px rgba(0, 0, 0, 0.4) !important;
+    overflow: hidden;
+    animation: holo 6s ease infinite;
+  }
+
+  /* Shine sweep */
+  .btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.18) 50%,
+      transparent 70%
+    );
+    background-size: 200% 100%;
+    background-position: -200% 0;
+    transition: background-position 0.5s ease;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  .btn-primary:hover {
+    background-position: 100% 100% !important;
+    box-shadow:
+      0 0 18px rgba(155, 0, 255, 0.7),
+      0 0 36px rgba(0, 245, 255, 0.35),
+      0 0 60px rgba(240, 0, 255, 0.15),
+      0 6px 20px rgba(0, 0, 0, 0.5) !important;
+    transform: translateY(-1px) scale(1.02) !important;
+  }
+
+  .btn-primary:hover::after {
+    background-position: 200% 0;
+  }
+
+  .btn-primary:active {
+    transform: translateY(1px) scale(0.98) !important;
+    box-shadow:
+      0 0 8px rgba(155, 0, 255, 0.5),
+      0 2px 8px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  /* ── Ghost button ──────────────────────────────────────────────────────── */
+  .btn-ghost {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.55);
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+  }
+
+  .btn-ghost:hover {
+    background: rgba(0, 245, 255, 0.06) !important;
+    color: rgba(0, 245, 255, 0.9) !important;
+    border-color: rgba(0, 245, 255, 0.20) !important;
+    box-shadow: 0 0 12px rgba(0, 245, 255, 0.08), inset 0 0 12px rgba(0, 245, 255, 0.04);
+  }
+
+  /* ── Input — Neon Focus ────────────────────────────────────────────────── */
+  .input {
+    background: rgba(6, 9, 22, 0.8) !important;
+    border: 1px solid rgba(0, 245, 255, 0.15) !important;
+    border-radius: 0.75rem;
+    padding: 0.625rem 1rem;
+    color: rgba(255, 255, 255, 0.92) !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .input::placeholder {
+    color: rgba(255, 255, 255, 0.22) !important;
+  }
+
+  .input:focus {
+    outline: none;
+    border-color: rgba(0, 245, 255, 0.55) !important;
+    box-shadow:
+      0 0 0 3px rgba(0, 245, 255, 0.08),
+      0 0 16px rgba(0, 245, 255, 0.12),
+      inset 0 0 8px rgba(0, 245, 255, 0.04) !important;
+    background: rgba(6, 9, 22, 0.95) !important;
+  }
+
+  /* ── Badge ─────────────────────────────────────────────────────────────── */
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold;
+    backdrop-filter: blur(8px);
+  }
 }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   ☀  LIGHT MODE  —  Pearl · Iridescent · Frosted Glass
-   ══════════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════════
+   DARK MODE — CHROME ELEMENTS
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Body: soft aurora gradient over pearl base */
+/* ── Sidebar ─────────────────────────────────────────────────────────────── */
+.dark aside {
+  background: rgba(4, 6, 16, 0.95) !important;
+  border-right: 1px solid rgba(0, 245, 255, 0.08) !important;
+  backdrop-filter: blur(24px) !important;
+  box-shadow: 2px 0 30px rgba(0, 0, 0, 0.5), inset -1px 0 0 rgba(0, 245, 255, 0.06);
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.dark header {
+  background: rgba(2, 4, 12, 0.92) !important;
+  border-bottom: 1px solid rgba(0, 245, 255, 0.08) !important;
+  backdrop-filter: blur(24px) saturate(200%) !important;
+  box-shadow: 0 1px 0 rgba(0, 245, 255, 0.06), 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.dark footer {
+  border-top: 1px solid rgba(0, 245, 255, 0.06) !important;
+}
+
+/* ── Active nav item — neon indicator ───────────────────────────────────── */
+.dark a.bg-brand-500\/10,
+.dark a.bg-brand-600\/20,
+.dark div.bg-brand-500\/10,
+.dark div.bg-brand-600\/20 {
+  background: rgba(0, 245, 255, 0.08) !important;
+  border-left: 2px solid #00f5ff;
+  box-shadow: inset 0 0 16px rgba(0, 245, 255, 0.06), 0 0 10px rgba(0, 245, 255, 0.08);
+}
+
+/* ── Brand text in dark mode → neon cyan ────────────────────────────────── */
+.dark .text-brand-400 { color: #00f5ff !important; }
+.dark .text-brand-300 { color: #7ffbff !important; }
+.dark .text-brand-500 { color: #00c8d4 !important; }
+
+/* ── Brand bg in dark mode ───────────────────────────────────────────────── */
+.dark .bg-brand-500\/10  { background-color: rgba(0, 245, 255, 0.07) !important; }
+.dark .bg-brand-500\/15  { background-color: rgba(0, 245, 255, 0.10) !important; }
+.dark .bg-brand-500\/20  { background-color: rgba(0, 245, 255, 0.12) !important; }
+.dark .bg-brand-600\/15  { background-color: rgba(0, 200, 212, 0.10) !important; }
+.dark .bg-brand-600\/20  { background-color: rgba(0, 200, 212, 0.13) !important; }
+.dark .bg-brand-600\/30  { background-color: rgba(0, 200, 212, 0.20) !important; }
+.dark .bg-brand-600      { background-color: #008b94 !important; }
+.dark .hover\:bg-brand-500:hover { background-color: #00c8d4 !important; }
+
+/* ── Border accents ──────────────────────────────────────────────────────── */
+.dark .border-brand-500\/20 { border-color: rgba(0, 245, 255, 0.18) !important; }
+.dark .border-brand-500\/30 { border-color: rgba(0, 245, 255, 0.25) !important; }
+.dark .border-brand-500\/50 { border-color: rgba(0, 245, 255, 0.45) !important; }
+
+/* ── Surface overrides ───────────────────────────────────────────────────── */
+.dark .bg-surface-50  { background-color: rgb(6 9 22) !important; }
+.dark .bg-surface-100 { background-color: rgb(11 15 34) !important; }
+.dark .bg-surface-200 { background-color: rgb(18 24 52) !important; }
+
+/* bg-surface-100/40 etc. — used extensively in cards */
+.dark .bg-surface-100\/40 {
+  background-color: rgba(11, 15, 34, 0.65) !important;
+}
+.dark .bg-surface-100\/50 {
+  background-color: rgba(11, 15, 34, 0.75) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   NEON UTILITY CLASSES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Neon glow text */
+.neon-text-cyan  { text-shadow: 0 0 8px #00f5ff, 0 0 20px #00f5ff80, 0 0 40px #00f5ff40; color: #00f5ff; }
+.neon-text-mg    { text-shadow: 0 0 8px #f000ff, 0 0 20px #f000ff80; color: #f000ff; }
+.neon-text-lime  { text-shadow: 0 0 8px #00ff88, 0 0 20px #00ff8880; color: #00ff88; }
+
+/* Neon border animate (wrap element with this) */
+.neon-border {
+  position: relative;
+}
+.neon-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(90deg, #00f5ff, #9b00ff, #f000ff, #00ff88, #00f5ff);
+  background-size: 400% 100%;
+  animation: borderSpin 4s linear infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Holographic card overlay */
+.holo-card {
+  position: relative;
+  overflow: hidden;
+}
+.holo-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    125deg,
+    transparent     0%,
+    rgba(0, 245, 255, 0.04) 20%,
+    rgba(155, 0, 255, 0.06) 40%,
+    rgba(240, 0, 255, 0.04) 60%,
+    rgba(0, 255, 136, 0.03) 80%,
+    transparent    100%
+  );
+  background-size: 400% 400%;
+  animation: holo 6s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ☀  LIGHT MODE  —  Crystal Neon (bright, vibrant, clean)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 html:not(.dark) body {
   background-color: rgb(var(--color-surface));
   background-image:
-    radial-gradient(ellipse 900px 700px at 10% 12%, rgba(139, 92, 246, 0.09) 0%, transparent 60%),
-    radial-gradient(ellipse 700px 600px at 88% 82%, rgba(99, 102, 241, 0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 600px 800px at 50% 108%, rgba(6, 182, 212, 0.06) 0%, transparent 60%);
-  color: rgb(22 18 40);
+    radial-gradient(ellipse 900px 700px at  8% 10%, rgba(0, 200, 255, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 700px 600px at 90% 85%, rgba(155, 0, 255, 0.10) 0%, transparent 60%),
+    radial-gradient(ellipse 600px 800px at 50% 110%, rgba(240, 0, 255, 0.07) 0%, transparent 60%),
+    linear-gradient(rgba(0, 200, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 200, 255, 0.04) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 60px 60px, 60px 60px;
+  color: rgb(8 10 28);
 }
 
 /* Scrollbar */
-html:not(.dark) ::-webkit-scrollbar-track { background: rgba(234, 231, 255, 0.50); }
-html:not(.dark) ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.28); border-radius: 9999px; }
-html:not(.dark) ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.52); }
-
-/* ── Glass: iridescent pearl card ── */
-@keyframes shimmer-iris {
-  0%   { background-position: 0%   50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0%   50%; }
+html:not(.dark) ::-webkit-scrollbar-track { background: rgba(228, 232, 255, 0.50); }
+html:not(.dark) ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #0066cc, #7700cc);
+  border-radius: 9999px;
+}
+html:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #00aaff, #9900ff);
 }
 
+/* ── Glass (light) ────────────────────────────────────────────────────────── */
 html:not(.dark) .glass {
-  background-color: rgba(255, 255, 255, 0.68) !important;
+  background-color: rgba(255, 255, 255, 0.72) !important;
   background-image: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.88) 0%,
-    rgba(220, 216, 255, 0.42) 28%,
-    rgba(196, 232, 255, 0.32) 58%,
-    rgba(255, 218, 240, 0.24) 100%
+    rgba(255, 255, 255, 0.90) 0%,
+    rgba(200, 230, 255, 0.45) 30%,
+    rgba(220, 200, 255, 0.35) 65%,
+    rgba(255, 210, 240, 0.25) 100%
   ) !important;
-  background-size: 300% 300%;
-  animation: shimmer-iris 12s ease infinite;
-  backdrop-filter: blur(24px) saturate(210%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(24px) saturate(220%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.95) !important;
   box-shadow:
-    0  4px 24px rgba(99, 102, 241, 0.10),
-    0  1px  4px rgba(139,  92, 246, 0.08),
-    inset 0  1px 0   rgba(255, 255, 255, 0.98),
-    inset 0  0   0 1px rgba(99, 102, 241, 0.05) !important;
+    0 0 0 1px rgba(100, 0, 200, 0.08),
+    0 4px 24px rgba(80, 0, 160, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
 }
 
 html:not(.dark) .glass-hover:hover {
-  background-color: rgba(255, 255, 255, 0.84) !important;
-  border-color: rgba(99, 102, 241, 0.28) !important;
+  border-color: rgba(0, 150, 255, 0.40) !important;
   box-shadow:
-    0  8px 36px rgba(99, 102, 241, 0.14),
-    0  2px  8px rgba(139,  92, 246, 0.10),
-    inset 0  1px 0   rgba(255, 255, 255, 1),
-    inset 0  0   0 1px rgba(99, 102, 241, 0.12) !important;
-  transition: box-shadow 0.25s, border-color 0.25s;
+    0 0 0 1px rgba(0, 150, 255, 0.15),
+    0 0 20px rgba(0, 150, 255, 0.10),
+    0 8px 32px rgba(80, 0, 160, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 1) !important;
 }
 
-/* ── Input ── */
+/* ── Card (light) ─────────────────────────────────────────────────────────── */
+html:not(.dark) .card:hover {
+  border-color: rgba(0, 150, 255, 0.30) !important;
+  box-shadow:
+    0 0 20px rgba(0, 150, 255, 0.08),
+    0 16px 40px rgba(80, 0, 160, 0.10) !important;
+}
+
+/* ── Input (light) ────────────────────────────────────────────────────────── */
 html:not(.dark) .input {
-  background: rgba(255, 255, 255, 0.80) !important;
-  border-color: rgba(99, 102, 241, 0.22) !important;
-  color: rgb(22 18 40) !important;
-  box-shadow: inset 0 1px 3px rgba(22, 18, 40, 0.06) !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-color: rgba(0, 130, 220, 0.25) !important;
+  color: rgb(8 10 28) !important;
 }
-html:not(.dark) .input::placeholder { color: rgba(22, 18, 40, 0.35) !important; }
+html:not(.dark) .input::placeholder { color: rgba(8, 10, 28, 0.32) !important; }
 html:not(.dark) .input:focus {
-  border-color: rgba(99, 102, 241, 0.65) !important;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12), inset 0 1px 3px rgba(22, 18, 40, 0.04) !important;
+  border-color: rgba(0, 130, 220, 0.70) !important;
+  box-shadow: 0 0 0 3px rgba(0, 130, 220, 0.12), inset 0 1px 3px rgba(0, 0, 0, 0.04) !important;
 }
 
-/* ── btn-primary (light mode — vibrant indigo-violet gradient) ── */
+/* ── btn-primary (light) ──────────────────────────────────────────────────── */
 html:not(.dark) .btn-primary {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+  background: linear-gradient(135deg, #0066ff 0%, #7700cc 45%, #cc00aa 100%) !important;
   color: #fff !important;
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35), 0 1px 2px rgba(0, 0, 0, 0.10) !important;
+  box-shadow: 0 2px 12px rgba(0, 80, 200, 0.40), 0 1px 3px rgba(0,0,0,0.12) !important;
+  animation: none;
 }
 html:not(.dark) .btn-primary:hover {
-  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%) !important;
-  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.45), 0 1px 3px rgba(0, 0, 0, 0.12) !important;
-}
-html:not(.dark) .btn-primary:active {
-  background: linear-gradient(135deg, #3730a3 0%, #5b21b6 100%) !important;
-  box-shadow: 0 1px 4px rgba(79, 70, 229, 0.30) !important;
+  background: linear-gradient(135deg, #0055dd 0%, #6600bb 45%, #bb0099 100%) !important;
+  box-shadow: 0 4px 20px rgba(0, 80, 200, 0.50), 0 2px 6px rgba(0,0,0,0.14) !important;
 }
 
-/* ── Solid-colored buttons: white text regardless of the text-white remap ── */
-/* Specificity (0,2,1) beats the text-white remap (0,2,0), so this wins even with !important */
+/* ── btn-ghost (light) ────────────────────────────────────────────────────── */
+html:not(.dark) .btn-ghost {
+  color: rgba(8, 10, 28, 0.60) !important;
+}
+html:not(.dark) .btn-ghost:hover {
+  background: rgba(0, 100, 220, 0.08) !important;
+  color: rgb(0 80 200) !important;
+  border-color: rgba(0, 100, 220, 0.20) !important;
+}
+
+/* ── Chrome (light) ───────────────────────────────────────────────────────── */
+html:not(.dark) aside {
+  background: rgba(245, 247, 255, 0.94) !important;
+  border-right-color: rgba(0, 130, 220, 0.14) !important;
+  backdrop-filter: blur(24px) !important;
+}
+html:not(.dark) header {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-bottom-color: rgba(0, 130, 220, 0.12) !important;
+  backdrop-filter: blur(20px) saturate(200%) !important;
+}
+html:not(.dark) footer {
+  border-top-color: rgba(0, 130, 220, 0.10) !important;
+}
+
+/* ── Text remaps (light) ──────────────────────────────────────────────────── */
+html:not(.dark) .text-white       { color: rgb(8 10 28)         !important; }
+html:not(.dark) .text-white\/90   { color: rgb(8 10 28 / 0.92)  !important; }
+html:not(.dark) .text-white\/80   { color: rgb(8 10 28 / 0.85)  !important; }
+html:not(.dark) .text-white\/70   { color: rgb(8 10 28 / 0.72)  !important; }
+html:not(.dark) .text-white\/60   { color: rgb(8 10 28 / 0.62)  !important; }
+html:not(.dark) .text-white\/50   { color: rgb(8 10 28 / 0.52)  !important; }
+html:not(.dark) .text-white\/40   { color: rgb(8 10 28 / 0.42)  !important; }
+html:not(.dark) .text-white\/30   { color: rgb(8 10 28 / 0.34)  !important; }
+html:not(.dark) .text-white\/25   { color: rgb(8 10 28 / 0.28)  !important; }
+html:not(.dark) .text-white\/20   { color: rgb(8 10 28 / 0.22)  !important; }
+html:not(.dark) .text-white\/15   { color: rgb(8 10 28 / 0.17)  !important; }
+html:not(.dark) .text-white\/10   { color: rgb(8 10 28 / 0.12)  !important; }
+html:not(.dark) .text-white\/5    { color: rgb(8 10 28 / 0.06)  !important; }
+
+/* ── Background remaps (light) ────────────────────────────────────────────── */
+html:not(.dark) .bg-white\/5   { background-color: rgb(8 10 28 / 0.03) !important; }
+html:not(.dark) .bg-white\/10  { background-color: rgb(8 10 28 / 0.06) !important; }
+html:not(.dark) .bg-white\/15  { background-color: rgb(8 10 28 / 0.09) !important; }
+html:not(.dark) .bg-white\/20  { background-color: rgb(8 10 28 / 0.12) !important; }
+html:not(.dark) .hover\:bg-white\/5:hover  { background-color: rgb(8 10 28 / 0.04) !important; }
+html:not(.dark) .hover\:bg-white\/10:hover { background-color: rgb(8 10 28 / 0.07) !important; }
+html:not(.dark) .hover\:bg-white\/15:hover { background-color: rgb(8 10 28 / 0.10) !important; }
+
+/* ── Border remaps (light) ────────────────────────────────────────────────── */
+html:not(.dark) .border-white\/5  { border-color: rgb(0 100 220 / 0.10) !important; }
+html:not(.dark) .border-white\/10 { border-color: rgb(0 100 220 / 0.15) !important; }
+html:not(.dark) .border-white\/20 { border-color: rgb(0 100 220 / 0.22) !important; }
+
+/* ── Brand overrides (light) ─────────────────────────────────────────────── */
+html:not(.dark) .text-brand-400   { color: #0066ff !important; }
+html:not(.dark) .text-brand-300   { color: #3388ff !important; }
+html:not(.dark) .bg-brand-500\/10 { background-color: rgba(0, 100, 220, 0.10) !important; }
+html:not(.dark) .bg-brand-600\/20 { background-color: rgba(0, 80, 190, 0.13) !important; }
+html:not(.dark) .bg-brand-500\/20 { background-color: rgba(0, 100, 220, 0.15) !important; }
+html:not(.dark) .bg-surface-100   {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(0, 100, 220, 0.14) !important;
+  color: rgb(8 10 28) !important;
+  box-shadow: 0 4px 20px rgba(0, 80, 180, 0.12) !important;
+}
+html:not(.dark) .bg-surface-50    { background: rgba(255, 255, 255, 0.98) !important; }
+html:not(.dark) .bg-surface-100\/50 { background-color: rgba(228, 232, 255, 0.65) !important; }
+
+/* ── Solid-coloured buttons keep white text ──────────────────────────────── */
 html:not(.dark) button.bg-brand-600,
 html:not(.dark) button.bg-brand-500,
 html:not(.dark) button.bg-brand-700,
 html:not(.dark) button.bg-indigo-600,
 html:not(.dark) button.bg-violet-600,
-html:not(.dark) button.bg-violet-500 {
+html:not(.dark) button.bg-violet-500,
+html:not(.dark) button.bg-blue-600 {
   color: #fff !important;
 }
 
-/* ── btn-ghost ── */
-html:not(.dark) .btn-ghost {
-  color: rgba(22, 18, 40, 0.65) !important;
-}
-html:not(.dark) .btn-ghost:hover {
-  background: rgba(22, 18, 40, 0.06) !important;
-  color: rgb(22 18 40) !important;
-}
+/* ── Status colours (light) ──────────────────────────────────────────────── */
+html:not(.dark) .text-red-400\/70         { color: rgba(180, 30, 30, 0.80) !important; }
+html:not(.dark) .hover\:text-red-400:hover { color: rgb(180, 28, 28) !important; }
+html:not(.dark) .hover\:bg-red-500\/10:hover { background-color: rgba(220, 60, 60, 0.09) !important; }
 
-/* ── Structural chrome ── */
-html:not(.dark) aside {
-  background: rgba(248, 246, 255, 0.91) !important;
-  border-right-color: rgba(99, 102, 241, 0.13) !important;
-  backdrop-filter: blur(24px) !important;
-}
-html:not(.dark) header {
-  background: rgba(255, 255, 255, 0.84) !important;
-  border-bottom-color: rgba(99, 102, 241, 0.10) !important;
-  backdrop-filter: blur(20px) saturate(180%) !important;
-}
-html:not(.dark) footer {
-  border-top-color: rgba(99, 102, 241, 0.10) !important;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   TEXT  —  white → deep ink at corresponding opacities
-   ═══════════════════════════════════════════════════════════════ */
-
-html:not(.dark) .text-white       { color: rgb(22 18 40)        !important; }
-html:not(.dark) .text-white\/90   { color: rgb(22 18 40 / 0.92) !important; }
-html:not(.dark) .text-white\/80   { color: rgb(22 18 40 / 0.85) !important; }
-html:not(.dark) .text-white\/70   { color: rgb(22 18 40 / 0.72) !important; }
-html:not(.dark) .text-white\/60   { color: rgb(22 18 40 / 0.62) !important; }
-html:not(.dark) .text-white\/50   { color: rgb(22 18 40 / 0.52) !important; }
-html:not(.dark) .text-white\/40   { color: rgb(22 18 40 / 0.42) !important; }
-html:not(.dark) .text-white\/30   { color: rgb(22 18 40 / 0.34) !important; }
-html:not(.dark) .text-white\/25   { color: rgb(22 18 40 / 0.28) !important; }
-html:not(.dark) .text-white\/20   { color: rgb(22 18 40 / 0.22) !important; }
-html:not(.dark) .text-white\/15   { color: rgb(22 18 40 / 0.17) !important; }
-html:not(.dark) .text-white\/10   { color: rgb(22 18 40 / 0.12) !important; }
-html:not(.dark) .text-white\/5    { color: rgb(22 18 40 / 0.06) !important; }
-
-/* ═══════════════════════════════════════════════════════════════
-   BACKGROUND  —  bg-white/* → tinted ink depth layers
-   ═══════════════════════════════════════════════════════════════ */
-
-html:not(.dark) .bg-white\/5      { background-color: rgb(22 18 40 / 0.04) !important; }
-html:not(.dark) .bg-white\/10     { background-color: rgb(22 18 40 / 0.07) !important; }
-html:not(.dark) .bg-white\/15     { background-color: rgb(22 18 40 / 0.09) !important; }
-html:not(.dark) .bg-white\/20     { background-color: rgb(22 18 40 / 0.12) !important; }
-
-html:not(.dark) .hover\:bg-white\/5:hover   { background-color: rgb(22 18 40 / 0.05) !important; }
-html:not(.dark) .hover\:bg-white\/10:hover  { background-color: rgb(22 18 40 / 0.08) !important; }
-html:not(.dark) .hover\:bg-white\/15:hover  { background-color: rgb(22 18 40 / 0.11) !important; }
-
-/* ═══════════════════════════════════════════════════════════════
-   BORDERS  —  white/* → brand-tinted ink lines
-   ═══════════════════════════════════════════════════════════════ */
-
-html:not(.dark) .border-white\/5   { border-color: rgb(99 102 241 / 0.10) !important; }
-html:not(.dark) .border-white\/10  { border-color: rgb(99 102 241 / 0.15) !important; }
-html:not(.dark) .border-white\/20  { border-color: rgb(99 102 241 / 0.22) !important; }
-html:not(.dark) .divide-white\/5 > * + * { border-color: rgb(99 102 241 / 0.09) !important; }
-
-/* ═══════════════════════════════════════════════════════════════
-   INTERACTIVE + NAV
-   ═══════════════════════════════════════════════════════════════ */
-
-html:not(.dark) .bg-brand-500\/10  { background-color: rgba(99, 102, 241, 0.11) !important; }
-html:not(.dark) .bg-brand-500\/20  { background-color: rgba(99, 102, 241, 0.16) !important; }
-html:not(.dark) .bg-brand-600\/20  { background-color: rgba(79,  70, 229, 0.13) !important; }
-html:not(.dark) .bg-surface-100\/50 { background-color: rgba(234, 231, 255, 0.65) !important; }
-
-/* Tooltip + dropdown */
-html:not(.dark) .bg-surface-100 {
-  background: rgba(255, 255, 255, 0.96) !important;
-  border-color: rgba(99, 102, 241, 0.15) !important;
-  color: rgb(22 18 40) !important;
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.14) !important;
-}
-html:not(.dark) .bg-surface-50 {
-  background: rgba(255, 255, 255, 0.97) !important;
-}
-
-/* Status colours */
-html:not(.dark) .text-red-400\/70   { color: rgba(220, 38, 38, 0.80) !important; }
-html:not(.dark) .hover\:text-red-400:hover { color: rgb(185, 28, 28) !important; }
-html:not(.dark) .hover\:bg-red-500\/10:hover { background-color: rgba(239, 68, 68, 0.09) !important; }
-
-/* ═══════════════════════════════════════════════════════════════
-   LOGIN PAGE
-   ═══════════════════════════════════════════════════════════════ */
-
+/* ── Login panel (light) ──────────────────────────────────────────────────── */
 html:not(.dark) .login-panel-left {
   background: linear-gradient(
     145deg,
-    rgba(99, 102, 241, 0.07) 0%,
-    rgba(248, 246, 255, 0.55) 45%,
-    rgba(232, 242, 255, 0.45) 100%
+    rgba(0, 100, 220, 0.07) 0%,
+    rgba(245, 247, 255, 0.60) 45%,
+    rgba(220, 230, 255, 0.45) 100%
   ) !important;
 }
