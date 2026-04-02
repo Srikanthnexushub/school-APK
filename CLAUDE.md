@@ -106,7 +106,7 @@ Full credentials + E2E demo data → `memory/quick-ref-auth-users.md`, `memory/e
 - **Gateways only**: frontend → api-gateway (8180) or student-gateway (8089). Never call services directly.
 - **Captcha bypass** (E2E/dev): `captchaToken: "E2E-LOCAL-BYPASS-DO-NOT-USE-IN-PROD:bypass"`
 - **Page<T>**: `Array.isArray(d) ? d : (d.content ?? [])`
-- **Tomcat WAR**: 11 services run as Tomcat WARs. api-gateway + student-gateway on Netty (spring-cloud-gateway). ai-gateway-svc runs as exec WAR (standalone Netty) — NOT Tomcat.
+- **Tomcat WAR**: 13 services run as Tomcat WARs. api-gateway + student-gateway on Netty (spring-cloud-gateway). ai-gateway-svc runs as exec WAR (standalone Netty) — NOT Tomcat.
 
 Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `memory/tomcat-deployment.md`
 
@@ -114,7 +114,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (215 fixes, latest: Fix #215 — curricular-svc infra wiring (2026-04-02)).
+Full list → `memory/frozen-fixes.md` (215 fixes, latest: Fix #215 — enterprise platform library + curricular-svc (2026-04-02)).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
@@ -162,7 +162,7 @@ mvn clean package -DskipTests -T 4 -Drevision=1.0.0-PROD \
   -pl services/<service-name> -am
 
 # 2. Transfer WAR/JAR to EC2
-# For Tomcat WARs (11 services):
+# For Tomcat WARs (13 services):
 SVC=auth-svc   # change this
 scp -i ~/.ssh/edutech-key.pem -o KexAlgorithms=ecdh-sha2-nistp256 \
   services/$SVC/target/$SVC-1.0.0-PROD.war \
