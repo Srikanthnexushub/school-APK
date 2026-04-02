@@ -26,8 +26,8 @@ import ParentProfilePage from './pages/parent/ParentProfilePage';
 import ParentChildrenPage from './pages/parent/ParentChildrenPage';
 import ParentFeesPage from './pages/parent/ParentFeesPage';
 import ParentPsychometricPage from './pages/parent/ParentPsychometricPage';
-import ParentQuestionBankPage from './pages/parent/ParentQuestionBankPage';
 import ParentLibraryPage from './pages/parent/ParentLibraryPage';
+import QuestionBankPage from './pages/question-bank/QuestionBankPage';
 import AdminPortalPage from './pages/admin/AdminPortalPage';
 import AcceptInvitationPage from './pages/auth/AcceptInvitationPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
@@ -115,6 +115,7 @@ export const router = createBrowserRouter([
       { path: 'academic-plan', element: <AcademicPlanPage /> },
       { path: 'academic-plan/:id', element: <StudyPlanDetailPage /> },
       { path: 'settings', element: <SettingsPage /> },
+      { path: 'question-bank', element: <QuestionBankPage /> },
       { path: 'study-plan', element: <Navigate to="/ai-mentor" replace /> },
       { path: 'doubts', element: <Navigate to="/ai-mentor" replace /> },
     ],
@@ -134,7 +135,7 @@ export const router = createBrowserRouter([
       { path: 'children', element: <ParentChildrenPage /> },
       { path: 'fees', element: <ParentFeesPage /> },
       { path: 'psychometric', element: <ParentPsychometricPage /> },
-      { path: 'question-bank', element: <ParentQuestionBankPage /> },
+      { path: 'question-bank', element: <QuestionBankPage /> },
       { path: 'library',        element: <ParentLibraryPage /> },
       { path: 'jobs',           element: <JobBoardPage /> },
       { path: 'attendance',     element: <ParentAttendancePage /> },
@@ -159,6 +160,7 @@ export const router = createBrowserRouter([
       { path: 'fees',           element: <Navigate to="/admin?tab=accounts" replace /> },
       { path: 'billing',        element: <Navigate to="/admin?tab=accounts" replace /> },
       { path: 'audit',          element: <AdminAuditPage /> },
+      { path: 'question-bank',  element: <QuestionBankPage /> },
     ],
   },
   {
@@ -180,6 +182,7 @@ export const router = createBrowserRouter([
       { path: 'jobs',           element: <JobBoardPage /> },
       { path: 'attendance',     element: <MentorPortalAttendancePage /> },
       { path: 'announcements',  element: <MentorPortalAnnouncementsPage /> },
+      { path: 'question-bank',  element: <QuestionBankPage /> },
     ],
   },
 ]);

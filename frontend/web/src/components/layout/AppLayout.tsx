@@ -93,6 +93,7 @@ const studentNav: NavItem[] = [
   { icon: Brain,           label: 'Psychometric', to: '/psychometric' },
   { icon: Users,           label: 'Mentors',      to: '/mentors' },
   { icon: Calendar,        label: 'Exam Tracker', to: '/exam-tracker' },
+  { icon: BookOpen,        label: 'Question Bank',to: '/question-bank' },
   { icon: Library,         label: 'Library',      to: '/library' },
   { icon: Beaker,          label: 'AI Lab',       to: '/lab' },
   { icon: CalendarCheck,   label: 'Attendance',   to: '/attendance' },
@@ -115,6 +116,7 @@ function getAdminNav(role?: string): NavItem[] {
     { icon: BookCheck,       label: 'Assignments',        to: '/admin?tab=assignments' },
     { icon: Brain,           label: 'Psychometric',       to: '/admin?tab=psychometric' },
     { icon: Library,         label: 'Library',            to: '/admin?tab=library' },
+    { icon: BookOpen,        label: 'Question Bank',      to: '/admin/question-bank' },
     ...(role === 'SUPER_ADMIN' ? [
       { icon: Megaphone,   label: 'Banners',   to: '/admin?tab=banners' },
       { icon: ShieldCheck, label: 'NFR Audit', to: '/admin/audit' },
@@ -150,6 +152,7 @@ const mentorNav: NavItem[] = [
   { icon: BookCheck,       label: 'Assignments',   to: '/mentor-portal/assignments' },
   { icon: Award,           label: 'My Performance',to: '/mentor-portal/performance' },
   { icon: Library,         label: 'Library',       to: '/mentor-portal/library' },
+  { icon: BookOpen,        label: 'Question Bank', to: '/mentor-portal/question-bank' },
   { icon: CalendarCheck,   label: 'Attendance',    to: '/mentor-portal/attendance' },
   { icon: Megaphone,       label: 'Announcements', to: '/mentor-portal/announcements' },
   { icon: Briefcase,       label: 'Job Board',     to: '/mentor-portal/jobs', disabled: true },
