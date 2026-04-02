@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 217+ frozen fixes as of Fix #217 (2026-04-02 — extracurricular browse+enroll+sessions+achievements UI).
+- Read `memory/frozen-fixes.md` before touching any file. 218+ frozen fixes as of Fix #218 (2026-04-02 — Cyber Neural login UI + role-based neon sidebar ROLE_COLORS).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -114,7 +114,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (217 fixes, latest: Fix #217 — extracurricular browse+enroll+sessions+achievements UI (2026-04-02)).
+Full list → `memory/frozen-fixes.md` (218 fixes, latest: Fix #218 — Cyber Neural login + role-based neon sidebar (2026-04-02)).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
