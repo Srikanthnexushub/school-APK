@@ -9,7 +9,7 @@ import {
   Bell, Search, ChevronRight, BookOpenCheck, Library, Award,
   CreditCard, Beaker, UserCog, BookCheck, Building2, Upload, UserCheck,
   Briefcase, Megaphone, CalendarCheck, Receipt, GraduationCap,
-  Sun, Moon, Wallet, CheckCircle2, ShieldCheck,
+  Sun, Moon, Wallet, CheckCircle2, ShieldCheck, Layers,
 } from 'lucide-react';
 import NexusEdLogo from '../NexusEdLogo';
 import { useThemeStore } from '../../stores/themeStore';
@@ -96,6 +96,7 @@ const studentNav: NavItem[] = [
   { icon: Calendar,        label: 'Exam Tracker', to: '/exam-tracker' },
   { icon: BookOpen,        label: 'Question Bank',to: '/question-bank' },
   { icon: Library,         label: 'Library',      to: '/library' },
+  { icon: Layers,          label: 'Curricular',   to: '/curricular' },
   { icon: Beaker,          label: 'AI Lab',       to: '/lab' },
   { icon: CalendarCheck,   label: 'Attendance',   to: '/attendance' },
   { icon: CreditCard,      label: 'Fees',         to: '/fees' },
@@ -118,6 +119,7 @@ function getAdminNav(role?: string): NavItem[] {
     { icon: Brain,           label: 'Psychometric',       to: '/admin?tab=psychometric' },
     { icon: Library,         label: 'Library',            to: '/admin?tab=library' },
     { icon: BookOpen,        label: 'Question Bank',      to: '/admin/question-bank' },
+    { icon: Layers,          label: 'Curricular',         to: '/admin/curricular' },
     ...(role === 'SUPER_ADMIN' ? [
       { icon: Megaphone,   label: 'Banners',   to: '/admin?tab=banners' },
       { icon: ShieldCheck, label: 'NFR Audit', to: '/admin/audit' },
@@ -137,6 +139,7 @@ const parentNav: NavItem[] = [
   { icon: Brain,           label: 'Psychometric',  to: '/parent/psychometric' },
   { icon: Library,         label: 'Library',       to: '/parent/library' },
   { icon: BookOpen,        label: 'Question Bank', to: '/parent/question-bank' },
+  { icon: Layers,          label: 'Curricular',    to: '/parent/curricular' },
   { icon: Bot,             label: 'Copilot',       to: '/parent/copilot' },
   { icon: CalendarCheck,   label: 'Attendance',    to: '/parent/attendance' },
   { icon: Bell,            label: 'Announcements', to: '/parent/announcements' },
@@ -154,6 +157,7 @@ const mentorNav: NavItem[] = [
   { icon: Award,           label: 'My Performance',to: '/mentor-portal/performance' },
   { icon: Library,         label: 'Library',       to: '/mentor-portal/library' },
   { icon: BookOpen,        label: 'Question Bank', to: '/mentor-portal/question-bank' },
+  { icon: Layers,          label: 'Curricular',    to: '/mentor-portal/curricular' },
   { icon: CalendarCheck,   label: 'Attendance',    to: '/mentor-portal/attendance' },
   { icon: Megaphone,       label: 'Announcements', to: '/mentor-portal/announcements' },
   { icon: Briefcase,       label: 'Job Board',     to: '/mentor-portal/jobs', disabled: true },

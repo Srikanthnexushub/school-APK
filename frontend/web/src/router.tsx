@@ -57,6 +57,10 @@ import AdminFeesPage from './pages/admin/AdminFeesPage';
 import AdminBillingPage from './pages/admin/AdminBillingPage';
 import AdminAttendancePage from './pages/admin/AdminAttendancePage';
 import AdminAuditPage from './pages/admin/AdminAuditPage';
+import StudentCurricularPage from './pages/curricular/StudentCurricularPage';
+import MentorPortalCurricularPage from './pages/mentor-portal/MentorPortalCurricularPage';
+import ParentCurricularPage from './pages/parent/ParentCurricularPage';
+import AdminCurricularPage from './pages/admin/AdminCurricularPage';
 
 export const router = createBrowserRouter([
   {
@@ -116,6 +120,7 @@ export const router = createBrowserRouter([
       { path: 'academic-plan/:id', element: <StudyPlanDetailPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'question-bank', element: <QuestionBankPage /> },
+      { path: 'curricular', element: <StudentCurricularPage /> },
       { path: 'study-plan', element: <Navigate to="/ai-mentor" replace /> },
       { path: 'doubts', element: <Navigate to="/ai-mentor" replace /> },
     ],
@@ -140,6 +145,7 @@ export const router = createBrowserRouter([
       { path: 'jobs',           element: <JobBoardPage /> },
       { path: 'attendance',     element: <ParentAttendancePage /> },
       { path: 'announcements',  element: <ParentAnnouncementsPage /> },
+      { path: 'curricular',     element: <ParentCurricularPage /> },
     ],
   },
   {
@@ -161,6 +167,7 @@ export const router = createBrowserRouter([
       { path: 'billing',        element: <Navigate to="/admin?tab=accounts" replace /> },
       { path: 'audit',          element: <AdminAuditPage /> },
       { path: 'question-bank',  element: <QuestionBankPage /> },
+      { path: 'curricular',     element: <AdminCurricularPage /> },
     ],
   },
   {
@@ -183,6 +190,7 @@ export const router = createBrowserRouter([
       { path: 'attendance',     element: <MentorPortalAttendancePage /> },
       { path: 'announcements',  element: <MentorPortalAnnouncementsPage /> },
       { path: 'question-bank',  element: <QuestionBankPage /> },
+      { path: 'curricular',     element: <MentorPortalCurricularPage /> },
     ],
   },
 ]);
