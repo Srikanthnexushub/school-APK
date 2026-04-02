@@ -522,7 +522,7 @@ function ReportsTab({ papers }: { papers: GeneratedPaper[] }) {
             <FileText className="w-4 h-4 text-white/40" />
             Paper History ({papers.length})
           </h3>
-          <div className="space-y-2 max-h-52 overflow-y-auto">
+          <div className="space-y-2">
             {papers.map((p, i) => (
               <div
                 key={p.id}
@@ -540,8 +540,63 @@ function ReportsTab({ papers }: { papers: GeneratedPaper[] }) {
                     )}>{p.difficulty}</span>
                     <span>{p.questions.length}Q</span>
                     <span>{p.mode === 'offline' ? '· Offline' : '· AI'}</span>
-                    <span className="ml-auto">{formatDate(p.generatedAt)}</span>
+                    <span>{formatDate(p.generatedAt)}</span>
                   </div>
+                </div>
+                {/* Per-paper actions */}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    title="Print paper"
+                    onClick={() => {
+                      const html = generatePrintableHTML(p);
+                      const win = window.open('', '_blank');
+                      if (win) {
+                        win.document.write(html);
+                        win.document.close();
+                        setTimeout(() => { win.print(); }, 400);
+                      } else {
+                        toast.error('Pop-ups blocked — allow pop-ups to print.');
+                      }
+                    }}
+                    className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/5 transition-colors"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    title="Download PDF"
+                    onClick={() => {
+                      const html = generatePrintableHTML(p);
+                      const blob = new Blob([html], { type: 'text/html' });
+                      const url = URL.createObjectURL(blob);
+                      const win = window.open(url, '_blank');
+                      if (win) {
+                        win.onload = () => { setTimeout(() => { win.print(); URL.revokeObjectURL(url); }, 500); };
+                      } else {
+                        toast.error('Pop-ups blocked — allow pop-ups for PDF download.');
+                      }
+                      toast.info('Choose "Save as PDF" in the print dialog.');
+                    }}
+                    className="p-1.5 rounded-lg text-indigo-400/50 hover:text-indigo-400 hover:bg-indigo-500/5 transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    title="Download as text"
+                    onClick={() => {
+                      const text = generateDownloadText(p);
+                      const blob = new Blob([text], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${p.subject}-${p.difficulty}-${Date.now()}.txt`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      toast.success('Downloaded as text file.');
+                    }}
+                    className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/5 transition-colors"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             ))}
