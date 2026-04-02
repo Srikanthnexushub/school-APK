@@ -14,7 +14,7 @@ const queryClient = new QueryClient({
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
 
-/** Keeps `dark` class on <html> in sync with the persisted theme preference. */
+/** Keeps `dark` class + accent attribute on <html> in sync with persisted preferences. */
 function ThemeSync() {
   const theme = useThemeStore((s) => s.theme);
 
@@ -26,6 +26,14 @@ function ThemeSync() {
       html.classList.remove('dark');
     }
   }, [theme]);
+
+  // Apply saved accent colour once on mount
+  useEffect(() => {
+    try {
+      const accent = localStorage.getItem('edutech:accent_color') ?? 'cyan';
+      document.documentElement.setAttribute('data-accent', accent);
+    } catch { /* ignore */ }
+  }, []);
 
   return (
     <Toaster

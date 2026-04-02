@@ -789,3 +789,98 @@ html:not(.dark) .holo-feature-card {
 html:not(.dark) .holo-feature-card::before {
   background: linear-gradient(90deg, transparent, rgba(0,100,220,0.45), transparent);
 }
+
+/* ── Accent Colour Overrides ─────────────────────────────────────────────────
+   data-accent="cyan" is the default — no overrides needed (brand-* stays cyan).
+   Each non-default neon accent overrides the key brand-* classes in dark mode.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── Magenta (#f000ff) ───────────────────────────────────────────────────── */
+.dark[data-accent="magenta"] .text-brand-400          { color: #f000ff !important; }
+.dark[data-accent="magenta"] .text-brand-500          { color: #c400cc !important; }
+.dark[data-accent="magenta"] .bg-brand-500            { background-color: #f000ff !important; }
+.dark[data-accent="magenta"] .bg-brand-500\/10        { background-color: rgba(240,0,255,0.07) !important; }
+.dark[data-accent="magenta"] .bg-brand-500\/15        { background-color: rgba(240,0,255,0.10) !important; }
+.dark[data-accent="magenta"] .bg-brand-500\/20        { background-color: rgba(240,0,255,0.12) !important; }
+.dark[data-accent="magenta"] .bg-brand-500\/30        { background-color: rgba(240,0,255,0.18) !important; }
+.dark[data-accent="magenta"] .bg-brand-600            { background-color: #9400aa !important; }
+.dark[data-accent="magenta"] .bg-brand-600\/15        { background-color: rgba(148,0,170,0.10) !important; }
+.dark[data-accent="magenta"] .bg-brand-600\/20        { background-color: rgba(148,0,170,0.13) !important; }
+.dark[data-accent="magenta"] .bg-brand-600\/30        { background-color: rgba(148,0,170,0.20) !important; }
+.dark[data-accent="magenta"] .border-brand-500\/20    { border-color: rgba(240,0,255,0.18) !important; }
+.dark[data-accent="magenta"] .border-brand-500\/30    { border-color: rgba(240,0,255,0.25) !important; }
+.dark[data-accent="magenta"] .border-brand-500\/50    { border-color: rgba(240,0,255,0.45) !important; }
+.dark[data-accent="magenta"] .shadow-neon-sm-cyan     { box-shadow: 0 0 4px #f000ff, 0 0 10px rgba(240,0,255,0.60) !important; }
+.dark[data-accent="magenta"] .hover\:bg-brand-500:hover { background-color: #f000ff !important; }
+
+/* ── Lime (#00ff88) ──────────────────────────────────────────────────────── */
+.dark[data-accent="lime"] .text-brand-400             { color: #00ff88 !important; }
+.dark[data-accent="lime"] .text-brand-500             { color: #00cc6e !important; }
+.dark[data-accent="lime"] .bg-brand-500               { background-color: #00ff88 !important; }
+.dark[data-accent="lime"] .bg-brand-500\/10           { background-color: rgba(0,255,136,0.07) !important; }
+.dark[data-accent="lime"] .bg-brand-500\/15           { background-color: rgba(0,255,136,0.10) !important; }
+.dark[data-accent="lime"] .bg-brand-500\/20           { background-color: rgba(0,255,136,0.12) !important; }
+.dark[data-accent="lime"] .bg-brand-500\/30           { background-color: rgba(0,255,136,0.18) !important; }
+.dark[data-accent="lime"] .bg-brand-600               { background-color: #00aa5c !important; }
+.dark[data-accent="lime"] .bg-brand-600\/15           { background-color: rgba(0,170,92,0.10) !important; }
+.dark[data-accent="lime"] .bg-brand-600\/20           { background-color: rgba(0,170,92,0.13) !important; }
+.dark[data-accent="lime"] .bg-brand-600\/30           { background-color: rgba(0,170,92,0.20) !important; }
+.dark[data-accent="lime"] .border-brand-500\/20       { border-color: rgba(0,255,136,0.18) !important; }
+.dark[data-accent="lime"] .border-brand-500\/30       { border-color: rgba(0,255,136,0.25) !important; }
+.dark[data-accent="lime"] .border-brand-500\/50       { border-color: rgba(0,255,136,0.45) !important; }
+.dark[data-accent="lime"] .shadow-neon-sm-cyan        { box-shadow: 0 0 4px #00ff88, 0 0 10px rgba(0,255,136,0.60) !important; }
+.dark[data-accent="lime"] .hover\:bg-brand-500:hover  { background-color: #00ff88 !important; }
+
+/* ── Gold (#ffd700) ──────────────────────────────────────────────────────── */
+.dark[data-accent="gold"] .text-brand-400             { color: #ffd700 !important; }
+.dark[data-accent="gold"] .text-brand-500             { color: #ccac00 !important; }
+.dark[data-accent="gold"] .bg-brand-500               { background-color: #ffd700 !important; }
+.dark[data-accent="gold"] .bg-brand-500\/10           { background-color: rgba(255,215,0,0.07) !important; }
+.dark[data-accent="gold"] .bg-brand-500\/15           { background-color: rgba(255,215,0,0.10) !important; }
+.dark[data-accent="gold"] .bg-brand-500\/20           { background-color: rgba(255,215,0,0.12) !important; }
+.dark[data-accent="gold"] .bg-brand-500\/30           { background-color: rgba(255,215,0,0.18) !important; }
+.dark[data-accent="gold"] .bg-brand-600               { background-color: #aa8e00 !important; }
+.dark[data-accent="gold"] .bg-brand-600\/15           { background-color: rgba(170,142,0,0.10) !important; }
+.dark[data-accent="gold"] .bg-brand-600\/20           { background-color: rgba(170,142,0,0.13) !important; }
+.dark[data-accent="gold"] .bg-brand-600\/30           { background-color: rgba(170,142,0,0.20) !important; }
+.dark[data-accent="gold"] .border-brand-500\/20       { border-color: rgba(255,215,0,0.18) !important; }
+.dark[data-accent="gold"] .border-brand-500\/30       { border-color: rgba(255,215,0,0.25) !important; }
+.dark[data-accent="gold"] .border-brand-500\/50       { border-color: rgba(255,215,0,0.45) !important; }
+.dark[data-accent="gold"] .shadow-neon-sm-cyan        { box-shadow: 0 0 4px #ffd700, 0 0 10px rgba(255,215,0,0.60) !important; }
+.dark[data-accent="gold"] .hover\:bg-brand-500:hover  { background-color: #ffd700 !important; }
+
+/* ── Violet (#9b00ff) ────────────────────────────────────────────────────── */
+.dark[data-accent="violet"] .text-brand-400           { color: #9b00ff !important; }
+.dark[data-accent="violet"] .text-brand-500           { color: #7a00cc !important; }
+.dark[data-accent="violet"] .bg-brand-500             { background-color: #9b00ff !important; }
+.dark[data-accent="violet"] .bg-brand-500\/10         { background-color: rgba(155,0,255,0.07) !important; }
+.dark[data-accent="violet"] .bg-brand-500\/15         { background-color: rgba(155,0,255,0.10) !important; }
+.dark[data-accent="violet"] .bg-brand-500\/20         { background-color: rgba(155,0,255,0.12) !important; }
+.dark[data-accent="violet"] .bg-brand-500\/30         { background-color: rgba(155,0,255,0.18) !important; }
+.dark[data-accent="violet"] .bg-brand-600             { background-color: #6500aa !important; }
+.dark[data-accent="violet"] .bg-brand-600\/15         { background-color: rgba(101,0,170,0.10) !important; }
+.dark[data-accent="violet"] .bg-brand-600\/20         { background-color: rgba(101,0,170,0.13) !important; }
+.dark[data-accent="violet"] .bg-brand-600\/30         { background-color: rgba(101,0,170,0.20) !important; }
+.dark[data-accent="violet"] .border-brand-500\/20     { border-color: rgba(155,0,255,0.18) !important; }
+.dark[data-accent="violet"] .border-brand-500\/30     { border-color: rgba(155,0,255,0.25) !important; }
+.dark[data-accent="violet"] .border-brand-500\/50     { border-color: rgba(155,0,255,0.45) !important; }
+.dark[data-accent="violet"] .shadow-neon-sm-cyan      { box-shadow: 0 0 4px #9b00ff, 0 0 10px rgba(155,0,255,0.60) !important; }
+.dark[data-accent="violet"] .hover\:bg-brand-500:hover { background-color: #9b00ff !important; }
+
+/* ── Rose (#ff006e) ──────────────────────────────────────────────────────── */
+.dark[data-accent="rose"] .text-brand-400             { color: #ff006e !important; }
+.dark[data-accent="rose"] .text-brand-500             { color: #cc0058 !important; }
+.dark[data-accent="rose"] .bg-brand-500               { background-color: #ff006e !important; }
+.dark[data-accent="rose"] .bg-brand-500\/10           { background-color: rgba(255,0,110,0.07) !important; }
+.dark[data-accent="rose"] .bg-brand-500\/15           { background-color: rgba(255,0,110,0.10) !important; }
+.dark[data-accent="rose"] .bg-brand-500\/20           { background-color: rgba(255,0,110,0.12) !important; }
+.dark[data-accent="rose"] .bg-brand-500\/30           { background-color: rgba(255,0,110,0.18) !important; }
+.dark[data-accent="rose"] .bg-brand-600               { background-color: #aa0048 !important; }
+.dark[data-accent="rose"] .bg-brand-600\/15           { background-color: rgba(170,0,72,0.10) !important; }
+.dark[data-accent="rose"] .bg-brand-600\/20           { background-color: rgba(170,0,72,0.13) !important; }
+.dark[data-accent="rose"] .bg-brand-600\/30           { background-color: rgba(170,0,72,0.20) !important; }
+.dark[data-accent="rose"] .border-brand-500\/20       { border-color: rgba(255,0,110,0.18) !important; }
+.dark[data-accent="rose"] .border-brand-500\/30       { border-color: rgba(255,0,110,0.25) !important; }
+.dark[data-accent="rose"] .border-brand-500\/50       { border-color: rgba(255,0,110,0.45) !important; }
+.dark[data-accent="rose"] .shadow-neon-sm-cyan        { box-shadow: 0 0 4px #ff006e, 0 0 10px rgba(255,0,110,0.60) !important; }
+.dark[data-accent="rose"] .hover\:bg-brand-500:hover  { background-color: #ff006e !important; }

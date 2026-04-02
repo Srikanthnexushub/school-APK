@@ -4,13 +4,11 @@ import { useNudgePoller } from '../../hooks/useNudgePoller';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, Bot, ClipboardList, BarChart3, Target, Brain,
-  Users, Calendar, Settings, LogOut, BookOpen, Menu, X, ChevronLeft,
-  Bell, Search, ChevronRight, BookOpenCheck, Library, Award,
-  CreditCard, Beaker, UserCog, BookCheck, Building2, Upload, UserCheck,
-  Megaphone, CalendarCheck, Receipt, GraduationCap,
-  Sun, Moon, Wallet, CheckCircle2, ShieldCheck, Layers,
+  Calendar, Settings, LogOut, Menu, X, ChevronLeft,
+  Bell, Search, ChevronRight,
+  Sun, Moon, CheckCircle2,
 } from 'lucide-react';
+import { NavItem, getNavItems, ROLE_COLORS } from '../../lib/navConfig';
 import NexusEdLogo from '../NexusEdLogo';
 import { useThemeStore } from '../../stores/themeStore';
 import { toast } from 'sonner';
@@ -74,108 +72,6 @@ function GlobalReminderModal({ reminders, onAcknowledge }: { reminders: PendingR
   );
 }
 
-interface NavItem {
-  icon: React.ElementType;
-  label: string;
-  to: string;
-  badge?: number;
-  disabled?: boolean;
-  sectionLabel?: string;
-}
-
-const studentNav: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard',    to: '/dashboard' },
-  { icon: GraduationCap,  label: 'Academic Plan', to: '/academic-plan' },
-  { icon: Beaker,          label: 'AI Lab',       to: '/lab' },
-  { icon: Bot,             label: 'AI Mentor',    to: '/ai-mentor' },
-  { icon: Bell,            label: 'Announcements',to: '/announcements' },
-  { icon: ClipboardList,   label: 'Assessments',  to: '/assessments' },
-  { icon: BookCheck,       label: 'Assignments',  to: '/assignments' },
-  { icon: CalendarCheck,   label: 'Attendance',   to: '/attendance' },
-  { icon: Target,          label: 'Career Oracle',to: '/career' },
-  { icon: Layers,          label: 'Curricular',   to: '/curricular' },
-  { icon: Calendar,        label: 'Exam Tracker', to: '/exam-tracker' },
-  { icon: CreditCard,      label: 'Fees',         to: '/fees' },
-  { icon: Library,         label: 'Library',      to: '/library' },
-  { icon: Users,           label: 'Mentors',      to: '/mentors' },
-  { icon: BarChart3,       label: 'Performance',  to: '/performance' },
-  { icon: Brain,           label: 'Psychometric', to: '/psychometric' },
-  { icon: BookOpen,        label: 'Question Bank',to: '/question-bank' },
-];
-
-function getAdminNav(role?: string): NavItem[] {
-  return [
-    { icon: LayoutDashboard, label: 'Overview',         to: '/admin?tab=overview' },
-    { icon: Wallet,          label: 'Accounts',         to: '/admin?tab=accounts' },
-    { icon: GraduationCap,  label: 'Academic Plan',    to: '/academic-plan' },
-    { icon: Bell,            label: 'Announcements',    to: '/admin/announcements' },
-    { icon: ClipboardList,   label: 'Assessments',      to: '/admin?tab=assessments' },
-    { icon: BookCheck,       label: 'Assignments',      to: '/admin?tab=assignments' },
-    { icon: CalendarCheck,   label: 'Attendance',       to: '/admin/attendance' },
-    ...(role === 'SUPER_ADMIN' ? [
-      { icon: Megaphone,   label: 'Banners',            to: '/admin?tab=banners' },
-    ] : []),
-    { icon: Users,           label: 'Batches',          to: '/admin?tab=batches' },
-    { icon: Upload,          label: 'Bulk Import',      to: '/admin?tab=teacher-import' },
-    { icon: Building2,       label: 'Centers',          to: '/admin?tab=centers' },
-    { icon: Layers,          label: 'Curricular',       to: '/admin/curricular' },
-    { icon: Library,         label: 'Library',          to: '/admin?tab=library' },
-    ...(role === 'SUPER_ADMIN' ? [
-      { icon: ShieldCheck, label: 'NFR Audit',          to: '/admin/audit' },
-    ] : []),
-    { icon: Brain,           label: 'Psychometric',     to: '/admin?tab=psychometric' },
-    { icon: BookOpen,        label: 'Question Bank',    to: '/admin/question-bank' },
-    { icon: UserCog,         label: 'Staff',            to: '/admin?tab=staff' },
-    { icon: UserCheck,       label: 'Teacher Approvals',to: '/admin?tab=teacher-pending' },
-  ];
-}
-
-const parentNav: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Overview',      to: '/parent' },
-  { icon: GraduationCap,  label: 'Academic Plan', to: '/academic-plan' },
-  { icon: Bell,            label: 'Announcements', to: '/parent/announcements' },
-  { icon: CalendarCheck,   label: 'Attendance',    to: '/parent/attendance' },
-  { icon: Users,           label: 'My Children',   to: '/parent/children' },
-  { icon: Bot,             label: 'Copilot',       to: '/parent/copilot' },
-  { icon: Layers,          label: 'Curricular',    to: '/parent/curricular' },
-  { icon: CreditCard,      label: 'Fees',          to: '/parent/fees' },
-  { icon: Library,         label: 'Library',       to: '/parent/library' },
-  { icon: Settings,        label: 'Profile',       to: '/parent/profile' },
-  { icon: Brain,           label: 'Psychometric',  to: '/parent/psychometric' },
-  { icon: BookOpen,        label: 'Question Bank', to: '/parent/question-bank' },
-];
-
-const mentorNav: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard',     to: '/mentor-portal' },
-  { icon: GraduationCap,  label: 'Academic Plan', to: '/academic-plan' },
-  { icon: Brain,           label: 'AI Insights',   to: '/mentor-portal/insights' },
-  { icon: Megaphone,       label: 'Announcements', to: '/mentor-portal/announcements' },
-  { icon: BookCheck,       label: 'Assignments',   to: '/mentor-portal/assignments' },
-  { icon: CalendarCheck,   label: 'Attendance',    to: '/mentor-portal/attendance' },
-  { icon: Layers,          label: 'Curricular',    to: '/mentor-portal/curricular' },
-  { icon: ClipboardList,   label: 'Exams',         to: '/mentor-portal/exams' },
-  { icon: Library,         label: 'Library',       to: '/mentor-portal/library' },
-  { icon: Award,           label: 'My Performance',to: '/mentor-portal/performance' },
-  { icon: BookOpen,        label: 'Question Bank', to: '/mentor-portal/question-bank' },
-  { icon: Calendar,        label: 'Sessions',      to: '/mentor-portal/sessions' },
-];
-
-function getNavItems(role?: string): NavItem[] {
-  if (role === 'CENTER_ADMIN' || role === 'INSTITUTION_ADMIN' || role === 'SUPER_ADMIN') return getAdminNav(role);
-  if (role === 'PARENT') return parentNav;
-  if (role === 'TEACHER') return mentorNav;
-  return studentNav;
-}
-
-const ROLE_COLORS: Record<string, { neon: string; bg: string; border: string; badgeBg: string; badgeText: string; ring: string }> = {
-  STUDENT:           { neon: '#00f5ff', bg: 'rgba(0,245,255,0.08)',   border: '#00f5ff',   badgeBg: 'rgba(0,245,255,0.15)',   badgeText: '#00f5ff',   ring: 'rgba(0,245,255,0.30)' },
-  PARENT:            { neon: '#f000ff', bg: 'rgba(240,0,255,0.08)',   border: '#f000ff',   badgeBg: 'rgba(240,0,255,0.15)',   badgeText: '#f000ff',   ring: 'rgba(240,0,255,0.30)' },
-  TEACHER:           { neon: '#00ff88', bg: 'rgba(0,255,136,0.08)',   border: '#00ff88',   badgeBg: 'rgba(0,255,136,0.15)',   badgeText: '#00ff88',   ring: 'rgba(0,255,136,0.30)' },
-  CENTER_ADMIN:      { neon: '#ffd700', bg: 'rgba(255,215,0,0.08)',   border: '#ffd700',   badgeBg: 'rgba(255,215,0,0.15)',   badgeText: '#ffd700',   ring: 'rgba(255,215,0,0.30)' },
-  INSTITUTION_ADMIN: { neon: '#9b00ff', bg: 'rgba(155,0,255,0.08)',   border: '#9b00ff',   badgeBg: 'rgba(155,0,255,0.15)',   badgeText: '#9b00ff',   ring: 'rgba(155,0,255,0.30)' },
-  SUPER_ADMIN:       { neon: '#ff6b00', bg: 'rgba(255,107,0,0.08)',   border: '#ff6b00',   badgeBg: 'rgba(255,107,0,0.15)',   badgeText: '#ff6b00',   ring: 'rgba(255,107,0,0.30)' },
-  GUEST:             { neon: 'rgba(255,255,255,0.5)', bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.2)', badgeBg: 'rgba(255,255,255,0.08)', badgeText: 'rgba(255,255,255,0.5)', ring: 'rgba(255,255,255,0.15)' },
-};
 
 const roleBadgeColors: Record<string, string> = {
   STUDENT:           'bg-brand-500/20 text-brand-400',
@@ -681,6 +577,8 @@ function ProfileRing({ pct, onClick }: { pct: number; onClick: () => void }) {
 export default function AppLayout() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const { theme: _layoutTheme } = useThemeStore();
+  const _isDark = _layoutTheme === 'dark';
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -844,15 +742,18 @@ export default function AppLayout() {
             <button
               onClick={() => setCommandOpen(true)}
               className="hidden sm:flex items-center gap-2 rounded-xl px-3 py-1.5 w-56 text-left transition-all group relative overflow-hidden"
-              style={{ background: 'rgba(11,15,34,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(0,245,255,0.20)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)'; }}
+              style={{
+                background: _isDark ? 'rgba(11,15,34,0.5)' : 'rgba(0,0,0,0.04)',
+                border: `1px solid ${_isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.10)'}`,
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = _isDark ? 'rgba(0,245,255,0.20)' : 'rgba(0,100,220,0.30)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = _isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.10)'; }}
             >
               {/* Scan shimmer on hover */}
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none" style={{ background: 'linear-gradient(90deg, transparent, rgba(0,245,255,0.06), transparent)' }} />
-              <Search className="w-3.5 h-3.5 flex-shrink-0 transition-colors" style={{ color: 'rgba(255,255,255,0.45)' }} />
-              <span className="text-sm flex-1 transition-colors" style={{ color: 'rgba(255,255,255,0.45)' }}>Search...</span>
-              <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded border hidden md:block" style={{ color: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.08)' }}>
+              <Search className="w-3.5 h-3.5 flex-shrink-0 transition-colors" style={{ color: _isDark ? 'rgba(255,255,255,0.45)' : 'rgba(8,10,28,0.45)' }} />
+              <span className="text-sm flex-1 transition-colors" style={{ color: _isDark ? 'rgba(255,255,255,0.45)' : 'rgba(8,10,28,0.45)' }}>Search...</span>
+              <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded border hidden md:block" style={{ color: _isDark ? 'rgba(255,255,255,0.35)' : 'rgba(8,10,28,0.40)', background: _isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', borderColor: _isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.10)' }}>
                 ⌘K
               </kbd>
             </button>

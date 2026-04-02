@@ -21,6 +21,7 @@ import { Avatar } from '../../components/ui/Avatar';
 import { Modal } from '../../components/ui/Modal';
 import { suggestStates, suggestDistricts } from '../../utils/indiaLocations';
 import CaptchaWidget from '../../components/CaptchaWidget';
+import { ROLE_COLORS } from '../../lib/navConfig';
 
 type Tab = 'profile' | 'notifications' | 'appearance' | 'security';
 
@@ -32,13 +33,17 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
 ];
 
 const ACCENT_COLORS = [
-  { name: 'indigo', hex: '#6366f1', label: 'Indigo' },
-  { name: 'violet', hex: '#8b5cf6', label: 'Violet' },
-  { name: 'cyan', hex: '#06b6d4', label: 'Cyan' },
-  { name: 'emerald', hex: '#10b981', label: 'Emerald' },
-  { name: 'amber', hex: '#f59e0b', label: 'Amber' },
-  { name: 'rose', hex: '#f43f5e', label: 'Rose' },
+  { name: 'cyan',    hex: '#00f5ff', label: 'Neon Cyan'    },
+  { name: 'magenta', hex: '#f000ff', label: 'Neon Magenta' },
+  { name: 'lime',    hex: '#00ff88', label: 'Neon Lime'    },
+  { name: 'gold',    hex: '#ffd700', label: 'Neon Gold'    },
+  { name: 'violet',  hex: '#9b00ff', label: 'Neon Violet'  },
+  { name: 'rose',    hex: '#ff006e', label: 'Neon Rose'    },
 ];
+
+function applyAccent(name: string) {
+  document.documentElement.setAttribute('data-accent', name);
+}
 
 const LS_NOTIF_KEY = 'edutech:notif_prefs';
 const LS_ACCENT_KEY = 'edutech:accent_color';
@@ -62,9 +67,12 @@ function loadNotifPrefs() {
 
 function loadAccentColor(): string {
   try {
-    return localStorage.getItem(LS_ACCENT_KEY) ?? 'indigo';
+    const saved = localStorage.getItem(LS_ACCENT_KEY) ?? 'cyan';
+    // Migrate old values to new neon palette
+    if (!ACCENT_COLORS.some(c => c.name === saved)) return 'cyan';
+    return saved;
   } catch {
-    return 'indigo';
+    return 'cyan';
   }
 }
 
@@ -570,16 +578,24 @@ function ProfileTab() {
       <div className="card">
         <h3 className="text-base font-semibold text-white mb-4">Profile Photo</h3>
         <div className="flex items-center gap-6">
-          <div className="relative group">
-            <Avatar name={user?.name ?? 'User'} size="xl" imageUrl={user?.avatarUrl} />
-            <button
-              onClick={() => avatarInputRef.current?.click()}
-              className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <Camera className="w-5 h-5 text-white" />
-            </button>
-            <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={() => toast.info('Avatar upload coming soon!')} />
-          </div>
+          {(() => {
+            const roleColor = ROLE_COLORS[user?.role ?? ''] ?? ROLE_COLORS['GUEST'];
+            return (
+              <div className="relative group flex-shrink-0">
+                {/* Neon role-color ring — same style as sidebar user card */}
+                <div className="absolute -inset-1.5 rounded-full pointer-events-none"
+                  style={{ background: `radial-gradient(circle, ${roleColor.neon}22, transparent 70%)`, boxShadow: `0 0 18px ${roleColor.ring}` }} />
+                <Avatar name={user?.name ?? 'User'} size="xl" imageUrl={user?.avatarUrl} />
+                <button
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Camera className="w-5 h-5 text-white" />
+                </button>
+                <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={() => toast.info('Avatar upload coming soon!')} />
+              </div>
+            );
+          })()}
           <div>
             <p className="text-white font-medium">{user?.name}</p>
             <p className="text-white/40 text-sm">{user?.email}</p>
@@ -1294,6 +1310,12 @@ function AppearanceTab() {
   const [accent, setAccent] = useState(() => loadAccentColor());
   const [fontSize, setFontSize] = useState<'normal' | 'large'>('normal');
 
+  // Apply saved accent on mount
+  useEffect(() => {
+    applyAccent(accent);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="card">
@@ -1323,6 +1345,7 @@ function AppearanceTab() {
               key={c.name}
               onClick={() => {
                 setAccent(c.name);
+                applyAccent(c.name);
                 try { localStorage.setItem(LS_ACCENT_KEY, c.name); } catch { /* ignore */ }
                 toast.success(`Accent changed to ${c.label}`);
               }}

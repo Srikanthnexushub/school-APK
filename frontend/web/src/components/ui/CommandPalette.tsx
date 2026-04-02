@@ -1,15 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import {
-  Search, X,
-  LayoutDashboard, Bot, ClipboardList, BarChart3, Target, Brain,
-  Users, Calendar, Settings, GraduationCap, BookOpen, Briefcase,
-  UserCheck, CreditCard, Megaphone, HelpCircle, BookCheck, Library,
-  Award, Building2, Upload, UserCog, Wallet, CalendarCheck,
-  FlaskConical, ClipboardCheck, Beaker,
-} from 'lucide-react';
+import { Search, X, HelpCircle, Briefcase, Settings } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { getNavItems, NavItem } from '../../lib/navConfig';
 
 interface CommandItem {
   label: string;
@@ -19,85 +13,41 @@ interface CommandItem {
   keywords: string[];
 }
 
-// ─── Student ─────────────────────────────────────────────────────────────────
-const studentCommands: CommandItem[] = [
-  { label: 'Dashboard',      description: 'Your study overview',            path: '/dashboard',          Icon: LayoutDashboard, keywords: ['home', 'overview'] },
-  { label: 'AI Mentor',      description: 'Chat with your AI tutor',        path: '/ai-mentor',          Icon: Bot,             keywords: ['chat', 'tutor', 'ai'] },
-  { label: 'Doubts',         description: 'Ask doubts via AI',              path: '/ai-mentor/doubts',   Icon: HelpCircle,      keywords: ['question', 'help', 'doubt', 'ask'] },
-  { label: 'Academic Plan',  description: 'AI curriculum & revision plans', path: '/academic-plan',      Icon: GraduationCap,   keywords: ['curriculum', 'revision', 'plan', 'study'] },
-  { label: 'Assessments',    description: 'Take tests and exams',           path: '/assessments',        Icon: ClipboardList,   keywords: ['test', 'exam', 'quiz'] },
-  { label: 'Assignments',    description: 'Your assignments & homework',    path: '/assignments',        Icon: ClipboardCheck,  keywords: ['homework', 'tasks', 'submission'] },
-  { label: 'Performance',    description: 'View your analytics',            path: '/performance',        Icon: BarChart3,       keywords: ['analytics', 'scores', 'weak'] },
-  { label: 'Career Oracle',  description: 'AI career guidance',             path: '/career',             Icon: Target,          keywords: ['career', 'guidance', 'future'] },
-  { label: 'Psychometric',   description: 'Personality insights',           path: '/psychometric',       Icon: Brain,           keywords: ['personality', 'big five', 'riasec'] },
-  { label: 'Mentors',        description: 'Connect with mentors',           path: '/mentors',            Icon: Users,           keywords: ['mentor', 'session', 'book'] },
-  { label: 'Exam Tracker',   description: 'Track upcoming exams',           path: '/exam-tracker',       Icon: Calendar,        keywords: ['schedule', 'countdown', 'mock'] },
-  { label: 'Question Bank',  description: 'Practice questions by topic',    path: '/question-bank',      Icon: BookOpen,        keywords: ['practice', 'mcq', 'questions', 'bank'] },
-  { label: 'Library',        description: 'Study materials & resources',    path: '/library',            Icon: Library,         keywords: ['books', 'notes', 'resources'] },
-  { label: 'AI Lab',         description: 'Hands-on AI projects',           path: '/lab',                Icon: Beaker,          keywords: ['project', 'lab', 'practical', 'experiment'] },
-  { label: 'Attendance',     description: 'Your attendance record',         path: '/attendance',         Icon: CalendarCheck,   keywords: ['present', 'absent', 'record'] },
-  { label: 'Fees',           description: 'Fee payments & history',         path: '/fees',               Icon: CreditCard,      keywords: ['payment', 'due', 'invoice'] },
-  { label: 'Announcements',  description: 'Centre announcements',           path: '/announcements',      Icon: Megaphone,       keywords: ['notice', 'update', 'news'] },
-  { label: 'Jobs',           description: 'Job & internship board',         path: '/jobs',               Icon: Briefcase,       keywords: ['internship', 'placement'] },
-  { label: 'Settings',       description: 'Account preferences',            path: '/settings',           Icon: Settings,        keywords: ['profile', 'account', 'password'] },
+// ─── Extras per role (items not in the main sidebar nav) ─────────────────────
+
+const STUDENT_EXTRAS: CommandItem[] = [
+  { label: 'Doubts',   description: 'Ask doubts via AI',      path: '/ai-mentor/doubts', Icon: HelpCircle, keywords: ['question', 'help', 'doubt', 'ask'] },
+  { label: 'Jobs',     description: 'Job & internship board', path: '/jobs',             Icon: Briefcase,  keywords: ['internship', 'placement', 'career'] },
+  { label: 'Settings', description: 'Account preferences',   path: '/settings',         Icon: Settings,   keywords: ['profile', 'account', 'password', 'theme'] },
 ];
 
-// ─── Parent ──────────────────────────────────────────────────────────────────
-const parentCommands: CommandItem[] = [
-  { label: 'Overview',       description: 'Parent dashboard',               path: '/parent',                    Icon: LayoutDashboard, keywords: ['home', 'overview'] },
-  { label: 'My Children',    description: 'Linked student profiles',        path: '/parent/children',           Icon: Users,           keywords: ['student', 'child', 'link'] },
-  { label: 'Academic Plan',  description: 'AI curriculum & revision plans', path: '/academic-plan',             Icon: GraduationCap,   keywords: ['curriculum', 'revision', 'plan'] },
-  { label: 'Fees',           description: 'Fee payments & history',         path: '/parent/fees',               Icon: CreditCard,      keywords: ['payment', 'due', 'invoice'] },
-  { label: 'Psychometric',   description: 'Personality insights',           path: '/parent/psychometric',       Icon: Brain,           keywords: ['personality', 'big five', 'riasec'] },
-  { label: 'Library',        description: 'Study materials & resources',    path: '/parent/library',            Icon: Library,         keywords: ['books', 'notes', 'resources'] },
-  { label: 'Question Bank',  description: 'Practice questions by topic',    path: '/parent/question-bank',      Icon: BookOpen,        keywords: ['practice', 'mcq', 'questions', 'bank'] },
-  { label: 'Copilot',        description: 'AI parent assistant',            path: '/parent/copilot',            Icon: Bot,             keywords: ['ai', 'chat', 'assistant'] },
-  { label: 'Attendance',     description: "Child's attendance record",      path: '/parent/attendance',         Icon: CalendarCheck,   keywords: ['present', 'absent', 'record'] },
-  { label: 'Announcements',  description: 'Centre announcements',           path: '/parent/announcements',      Icon: Megaphone,       keywords: ['notice', 'update', 'news'] },
-  { label: 'Profile',        description: 'Your profile & settings',        path: '/parent/profile',            Icon: Settings,        keywords: ['account', 'details'] },
+const TEACHER_EXTRAS: CommandItem[] = [
+  { label: 'Settings', description: 'Account preferences',   path: '/settings',         Icon: Settings,   keywords: ['profile', 'account', 'password', 'theme'] },
 ];
 
-// ─── Teacher (Mentor Portal) ──────────────────────────────────────────────────
-const teacherCommands: CommandItem[] = [
-  { label: 'Dashboard',      description: 'Mentor overview',                path: '/mentor-portal',                   Icon: LayoutDashboard, keywords: ['home', 'overview'] },
-  { label: 'Sessions',       description: 'Your mentoring sessions',        path: '/mentor-portal/sessions',          Icon: Calendar,        keywords: ['booking', 'schedule', 'meet'] },
-  { label: 'AI Insights',    description: 'AI-powered student insights',    path: '/mentor-portal/insights',          Icon: Brain,           keywords: ['analytics', 'ai', 'student'] },
-  { label: 'Academic Plan',  description: 'AI curriculum & revision plans', path: '/academic-plan',                   Icon: GraduationCap,   keywords: ['curriculum', 'revision', 'plan'] },
-  { label: 'Exams',          description: 'Manage exams',                   path: '/mentor-portal/exams',             Icon: ClipboardList,   keywords: ['test', 'assessment', 'create'] },
-  { label: 'Assignments',    description: 'Manage assignments',             path: '/mentor-portal/assignments',       Icon: BookCheck,       keywords: ['homework', 'tasks'] },
-  { label: 'My Performance', description: 'Your performance metrics',       path: '/mentor-portal/performance',       Icon: Award,           keywords: ['score', 'analytics', 'rating'] },
-  { label: 'Library',        description: 'Study materials & resources',    path: '/mentor-portal/library',           Icon: Library,         keywords: ['books', 'notes', 'resources'] },
-  { label: 'Question Bank',  description: 'Practice questions by topic',    path: '/mentor-portal/question-bank',     Icon: BookOpen,        keywords: ['practice', 'mcq', 'questions', 'bank'] },
-  { label: 'Attendance',     description: 'Attendance records',             path: '/mentor-portal/attendance',        Icon: CalendarCheck,   keywords: ['present', 'absent', 'record'] },
-  { label: 'Announcements',  description: 'Centre announcements',           path: '/mentor-portal/announcements',     Icon: Megaphone,       keywords: ['notice', 'update', 'news'] },
-  { label: 'Settings',       description: 'Account preferences',            path: '/settings',                        Icon: Settings,        keywords: ['profile', 'account', 'password'] },
+const ADMIN_EXTRAS: CommandItem[] = [
+  { label: 'Jobs',     description: 'Job board management',  path: '/admin?tab=jobs',   Icon: Briefcase,  keywords: ['internship', 'placement'] },
+  { label: 'Settings', description: 'Account preferences',   path: '/settings',         Icon: Settings,   keywords: ['profile', 'account', 'password', 'theme'] },
 ];
 
-// ─── Admin (CENTER_ADMIN / INSTITUTION_ADMIN / SUPER_ADMIN) ──────────────────
-const adminCommands: CommandItem[] = [
-  { label: 'Overview',           description: 'Admin dashboard',              path: '/admin?tab=overview',        Icon: LayoutDashboard, keywords: ['home', 'summary'] },
-  { label: 'Centers',            description: 'Manage centres',               path: '/admin?tab=centers',         Icon: Building2,       keywords: ['branch', 'centre', 'location'] },
-  { label: 'Batches',            description: 'Manage student batches',       path: '/admin?tab=batches',         Icon: Users,           keywords: ['group', 'class', 'section'] },
-  { label: 'Assessments',        description: 'Manage assessments & exams',   path: '/admin?tab=assessments',     Icon: ClipboardList,   keywords: ['test', 'exam', 'create'] },
-  { label: 'Bulk Import',        description: 'Import teachers via CSV',      path: '/admin?tab=teacher-import',  Icon: Upload,          keywords: ['csv', 'upload', 'import'] },
-  { label: 'Teacher Approvals',  description: 'Approve pending teachers',     path: '/admin?tab=teacher-pending', Icon: UserCheck,       keywords: ['approve', 'verify', 'pending'] },
-  { label: 'Staff',              description: 'Manage staff members',         path: '/admin?tab=staff',           Icon: UserCog,         keywords: ['employee', 'team'] },
-  { label: 'Jobs',               description: 'Job board management',         path: '/admin?tab=jobs',            Icon: Briefcase,       keywords: ['internship', 'placement'] },
-  { label: 'Assignments',        description: 'Manage assignments',           path: '/admin?tab=assignments',     Icon: BookCheck,       keywords: ['homework', 'tasks'] },
-  { label: 'Psychometric',       description: 'Psychometric tests',           path: '/admin?tab=psychometric',    Icon: Brain,           keywords: ['personality', 'test'] },
-  { label: 'Library',            description: 'Study materials & resources',  path: '/admin?tab=library',         Icon: Library,         keywords: ['books', 'notes', 'resources'] },
-  { label: 'Question Bank',      description: 'Practice questions by topic',  path: '/admin/question-bank',       Icon: BookOpen,        keywords: ['practice', 'mcq', 'questions', 'bank'] },
-  { label: 'Attendance',         description: 'Attendance records',           path: '/admin/attendance',          Icon: CalendarCheck,   keywords: ['present', 'absent', 'record'] },
-  { label: 'Announcements',      description: 'Publish announcements',        path: '/admin/announcements',       Icon: Megaphone,       keywords: ['notice', 'update', 'news'] },
-  { label: 'Accounts',           description: 'Fees & billing',               path: '/admin?tab=accounts',        Icon: Wallet,          keywords: ['fees', 'payment', 'billing'] },
-  { label: 'Settings',           description: 'Account preferences',          path: '/settings',                  Icon: Settings,        keywords: ['profile', 'account', 'password'] },
-];
+// ─── Auto-derive CommandItem from NavItem ─────────────────────────────────────
+
+function navItemToCommand(item: NavItem): CommandItem {
+  return {
+    label: item.label,
+    path: item.to,
+    Icon: item.icon,
+    keywords: item.label.toLowerCase().split(/[\s\/\-]+/).filter(Boolean),
+  };
+}
 
 function getCommands(role?: string): CommandItem[] {
-  if (role === 'PARENT') return parentCommands;
-  if (role === 'TEACHER') return teacherCommands;
-  if (role === 'CENTER_ADMIN' || role === 'INSTITUTION_ADMIN' || role === 'SUPER_ADMIN') return adminCommands;
-  return studentCommands;
+  const navItems = getNavItems(role);
+  const fromNav = navItems.map(navItemToCommand);
+  if (role === 'PARENT')   return fromNav;
+  if (role === 'TEACHER')  return [...fromNav, ...TEACHER_EXTRAS];
+  if (role === 'CENTER_ADMIN' || role === 'INSTITUTION_ADMIN' || role === 'SUPER_ADMIN') return [...fromNav, ...ADMIN_EXTRAS];
+  return [...fromNav, ...STUDENT_EXTRAS];
 }
 
 interface Props {
