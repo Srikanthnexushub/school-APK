@@ -29,7 +29,8 @@ public interface ContentRepository {
                               String classGrade, Short yearOfPaper,
                               String examType, String difficulty,
                               String language, String contentType,
-                              UUID centerId, Pageable pageable);
+                              UUID centerId, String stream, Boolean platformOnly,
+                              Pageable pageable);
 
     /** Top downloaded content, ordered by download_count DESC. */
     List<ContentItem> findTrending(Pageable pageable);

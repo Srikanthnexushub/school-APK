@@ -47,6 +47,8 @@ interface SpringDataContentRepository extends JpaRepository<ContentItem, UUID> {
               AND (CAST(:language AS VARCHAR) IS NULL OR c.language = CAST(:language AS VARCHAR))
               AND (CAST(:contentType AS VARCHAR) IS NULL OR c.type = CAST(:contentType AS VARCHAR))
               AND (:centerId IS NULL OR c.center_id = :centerId)
+              AND (CAST(:stream AS VARCHAR) IS NULL OR c.stream = CAST(:stream AS VARCHAR))
+              AND (:platformOnly IS NULL OR :platformOnly = FALSE OR c.is_platform_resource = TRUE)
             ORDER BY c.created_at DESC
             """,
             countQuery = """
@@ -62,6 +64,8 @@ interface SpringDataContentRepository extends JpaRepository<ContentItem, UUID> {
               AND (CAST(:language AS VARCHAR) IS NULL OR c.language = CAST(:language AS VARCHAR))
               AND (CAST(:contentType AS VARCHAR) IS NULL OR c.type = CAST(:contentType AS VARCHAR))
               AND (:centerId IS NULL OR c.center_id = :centerId)
+              AND (CAST(:stream AS VARCHAR) IS NULL OR c.stream = CAST(:stream AS VARCHAR))
+              AND (:platformOnly IS NULL OR :platformOnly = FALSE OR c.is_platform_resource = TRUE)
             """,
             nativeQuery = true)
     Page<ContentItem> searchWithFilters(
@@ -75,6 +79,8 @@ interface SpringDataContentRepository extends JpaRepository<ContentItem, UUID> {
             @Param("language") String language,
             @Param("contentType") String contentType,
             @Param("centerId") UUID centerId,
+            @Param("stream") String stream,
+            @Param("platformOnly") Boolean platformOnly,
             Pageable pageable);
 
     @Query(value = """

@@ -10,7 +10,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Upload, Library, Plus, X, Loader2, FileText, Trash2,
   CheckCircle, AlertCircle, ChevronRight, ChevronLeft,
-  Search, Filter, BookOpen, Building2,
+  Search, Filter, BookOpen, Building2, Link, Globe,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
@@ -81,6 +81,230 @@ const STATUS_COLOR: Record<string, string> = {
   PROCESSING: 'bg-amber-500/15 text-amber-400',
   ARCHIVED:   'bg-white/10 text-white/30',
 };
+
+// ─── Add Link Wizard Modal ────────────────────────────────────────────────────
+
+function AddLinkWizard({ centerId, onClose, onSuccess, isSuperAdmin }: {
+  centerId: string; onClose: () => void; onSuccess: () => void; isSuperAdmin: boolean;
+}) {
+  const queryClient = useQueryClient();
+  const [url, setUrl]                 = useState('');
+  const [title, setTitle]             = useState('');
+  const [description, setDescription] = useState('');
+  const [contentType, setContentType] = useState('VIDEO');
+  const [subject, setSubject]         = useState('');
+  const [board, setBoard]             = useState('');
+  const [classGrade, setClassGrade]   = useState('');
+  const [stream, setStream]           = useState('');
+  const [difficulty, setDifficulty]   = useState('');
+  const [isPlatform, setIsPlatform]   = useState(false);
+  const [tags, setTags]               = useState('');
+
+  // Auto-detect YouTube
+  useEffect(() => {
+    if (!url) return;
+    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+    if (ytMatch) {
+      setContentType('VIDEO');
+      // Try to auto-fill title from URL if blank
+      if (!title) setTitle('YouTube Video');
+    } else if (url.match(/\.(pdf)$/i)) {
+      setContentType('PDF');
+    }
+  }, [url]); // eslint-disable-line
+
+  const ytId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/)?.[1] ?? null;
+
+  const submitMutation = useMutation({
+    mutationFn: async () => {
+      const tagArr = tags.split(',').map(t => t.trim()).filter(Boolean);
+      return api.post(`/api/v1/centers/${centerId}/content/link`, {
+        externalUrl:        url,
+        title:              title.trim(),
+        description:        description || undefined,
+        contentType,
+        subject:            subject || undefined,
+        board:              board || undefined,
+        classGrade:         classGrade || undefined,
+        stream:             stream || undefined,
+        difficulty:         difficulty || undefined,
+        tags:               tagArr.length > 0 ? tagArr : undefined,
+        isPlatformResource: isPlatform,
+      });
+    },
+    onSuccess: () => {
+      toast.success('Link added to library!');
+      queryClient.invalidateQueries({ queryKey: ['admin-library', centerId] });
+      onSuccess();
+      onClose();
+    },
+    onError: () => toast.error('Failed to register link.'),
+  });
+
+  const canSubmit = url.trim().length > 0 && title.trim().length > 0 && !submitMutation.isPending;
+
+  const modal = (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-lg bg-surface-50 border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 flex-shrink-0">
+          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+            <Globe className="w-4 h-4 text-blue-400" />
+            Add External Link
+          </h2>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 p-5 space-y-4">
+          {/* URL */}
+          <div>
+            <label className="block text-xs font-medium text-white/50 mb-1.5">URL *</label>
+            <input
+              type="url"
+              value={url}
+              onChange={e => setUrl(e.target.value)}
+              placeholder="https://youtube.com/watch?v=... or any URL"
+              className="input w-full text-sm"
+            />
+          </div>
+
+          {/* YouTube preview */}
+          {ytId && (
+            <div className="rounded-xl overflow-hidden border border-white/10">
+              <img
+                src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+                alt="YouTube thumbnail"
+                className="w-full h-32 object-cover"
+              />
+              <div className="px-3 py-1.5 bg-surface-100/60 text-[10px] text-white/40 flex items-center gap-1">
+                <Globe className="w-3 h-3" /> YouTube video detected
+              </div>
+            </div>
+          )}
+
+          {/* Title */}
+          <div>
+            <label className="block text-xs font-medium text-white/50 mb-1.5">Title *</label>
+            <input
+              type="text"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="Descriptive title"
+              className="input w-full text-sm"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-xs font-medium text-white/50 mb-1.5">Description</label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              rows={2}
+              className="input w-full text-sm resize-none"
+            />
+          </div>
+
+          {/* Content Type + Difficulty */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-white/50 mb-1.5">Type</label>
+              <select value={contentType} onChange={e => setContentType(e.target.value)} className="input w-full text-sm">
+                {CONTENT_TYPES.map(ct => <option key={ct.value} value={ct.value}>{ct.label}</option>)}
+                <option value="LINK">Link</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-white/50 mb-1.5">Difficulty</label>
+              <select value={difficulty} onChange={e => setDifficulty(e.target.value)} className="input w-full text-sm">
+                <option value="">Any</option>
+                {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Subject + Board */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-white/50 mb-1.5">Subject</label>
+              <input type="text" value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Physics" className="input w-full text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-white/50 mb-1.5">Board</label>
+              <select value={board} onChange={e => setBoard(e.target.value)} className="input w-full text-sm">
+                <option value="">Any</option>
+                {BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Class + Stream */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-white/50 mb-1.5">Class Grade</label>
+              <input type="text" value={classGrade} onChange={e => setClassGrade(e.target.value)} placeholder="e.g. 12" className="input w-full text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-white/50 mb-1.5">Stream</label>
+              <input type="text" value={stream} onChange={e => setStream(e.target.value)} placeholder="e.g. SCIENCE" className="input w-full text-sm" />
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className="block text-xs font-medium text-white/50 mb-1.5">Tags (comma-separated)</label>
+            <input type="text" value={tags} onChange={e => setTags(e.target.value)} placeholder="physics, motion, newton" className="input w-full text-sm" />
+          </div>
+
+          {/* Platform resource toggle — only for SUPER_ADMIN / INSTITUTION_ADMIN */}
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={() => setIsPlatform(v => !v)}
+              className={cn(
+                'w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors',
+                isPlatform
+                  ? 'bg-brand-600/15 border-brand-500/30 text-brand-300'
+                  : 'bg-white/3 border-white/8 text-white/50 hover:border-white/15',
+              )}
+            >
+              <span className="text-xs font-medium">Platform-wide resource</span>
+              <div className={cn(
+                'w-8 h-4 rounded-full transition-colors relative',
+                isPlatform ? 'bg-brand-500' : 'bg-white/15',
+              )}>
+                <div className={cn(
+                  'absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all',
+                  isPlatform ? 'left-4.5' : 'left-0.5',
+                )} />
+              </div>
+            </button>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-4 border-t border-white/5 flex gap-3 flex-shrink-0">
+          <button onClick={onClose} className="btn-ghost flex-1 py-2.5 text-sm">Cancel</button>
+          <button
+            onClick={() => submitMutation.mutate()}
+            disabled={!canSubmit}
+            className="btn-primary flex-1 py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {submitMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link className="w-4 h-4" />}
+            Add Link
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+  return createPortal(modal, document.body);
+}
 
 // ─── Upload Wizard Modal ──────────────────────────────────────────────────────
 
@@ -662,10 +886,12 @@ export default function AdminLibraryPage() {
 
   const [selectedCenterId, setSelectedCenterId] = useState('');
   const [showUpload, setShowUpload] = useState(false);
+  const [showAddLink, setShowAddLink] = useState(false);
   const [search,    setSearch]    = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
   const effectiveCenterId = centerId || selectedCenterId;
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'INSTITUTION_ADMIN';
 
   // Fetch center info for center-type-aware auto-open
   const { data: centerInfo } = useQuery({
@@ -765,13 +991,23 @@ export default function AdminLibraryPage() {
             Upload and manage previous year papers, notes, formula sheets and more.
           </p>
         </div>
-        <button
-          onClick={() => setShowUpload(true)}
-          disabled={!effectiveCenterId}
-          className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white text-sm font-medium rounded-xl transition-colors flex-shrink-0"
-        >
-          <Plus className="w-4 h-4" /> Upload Document
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={() => setShowAddLink(true)}
+            disabled={!effectiveCenterId}
+            className="flex items-center gap-2 px-3 py-2 bg-blue-600/15 hover:bg-blue-600/20 border border-blue-500/25 text-blue-300 rounded-xl text-sm font-medium transition-colors disabled:opacity-40"
+          >
+            <Globe className="w-4 h-4" />
+            Add Link
+          </button>
+          <button
+            onClick={() => setShowUpload(true)}
+            disabled={!effectiveCenterId}
+            className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white text-sm font-medium rounded-xl transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Upload Document
+          </button>
+        </div>
       </div>
 
       {/* Stats strip */}
@@ -860,6 +1096,16 @@ export default function AdminLibraryPage() {
             ))}
           </AnimatePresence>
         </div>
+      )}
+
+      {/* Add Link wizard portal */}
+      {showAddLink && effectiveCenterId && (
+        <AddLinkWizard
+          centerId={effectiveCenterId}
+          onClose={() => setShowAddLink(false)}
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin-library', effectiveCenterId] })}
+          isSuperAdmin={isSuperAdmin}
+        />
       )}
 
       {/* Upload wizard portal */}

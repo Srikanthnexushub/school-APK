@@ -35,11 +35,13 @@ public class ContentPersistenceAdapter implements ContentRepository {
                                      String classGrade, Short yearOfPaper,
                                      String examType, String difficulty,
                                      String language, String contentType,
-                                     UUID centerId, Pageable pageable) {
+                                     UUID centerId, String stream, Boolean platformOnly,
+                                     Pageable pageable) {
         return jpa.searchWithFilters(
                 (query == null || query.isBlank()) ? null : query,
                 subject, board, classGrade, yearOfPaper,
-                examType, difficulty, language, contentType, centerId, pageable);
+                examType, difficulty, language, contentType, centerId,
+                stream, platformOnly, pageable);
     }
 
     @Override

@@ -47,11 +47,13 @@ public class LibraryController {
             @RequestParam(required = false) String language,
             @RequestParam(required = false) String contentType,
             @RequestParam(required = false) UUID centerId,
+            @RequestParam(required = false) String stream,
+            @RequestParam(required = false) Boolean platformOnly,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal AuthPrincipal principal) {
         return libraryService.search(q, subject, board, classGrade, yearOfPaper,
-                examType, difficulty, language, contentType, centerId,
+                examType, difficulty, language, contentType, centerId, stream, platformOnly,
                 PageRequest.of(page, size));
     }
 

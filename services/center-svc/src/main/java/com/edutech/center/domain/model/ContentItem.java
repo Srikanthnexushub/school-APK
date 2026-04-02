@@ -30,7 +30,7 @@ public class ContentItem {
     @Column(updatable = false, nullable = false)
     private UUID id;
 
-    @Column(name = "center_id", updatable = false, nullable = false)
+    @Column(name = "center_id", updatable = false)
     private UUID centerId;
 
     @Column(name = "batch_id")
@@ -112,6 +112,12 @@ public class ContentItem {
     @Column(name = "bucket_name", length = 200)
     private String bucketName;
 
+    @Column(name = "is_platform_resource", nullable = false)
+    private boolean platformResource;
+
+    @Column(name = "stream", length = 30)
+    private String stream;
+
     // ── Audit ─────────────────────────────────────────────────────────────────
 
     @Column(name = "created_at", updatable = false, nullable = false)
@@ -135,7 +141,8 @@ public class ContentItem {
                         Short yearOfPaper, ExamType examType, Difficulty difficulty,
                         String language, String[] tags, String thumbnailUrl,
                         String mimeType, Integer pageCount,
-                        String minioObjectKey, String bucketName) {
+                        String minioObjectKey, String bucketName,
+                        boolean platformResource, String stream) {
         this.id = id;
         this.centerId = centerId;
         this.batchId = batchId;
@@ -159,6 +166,8 @@ public class ContentItem {
         this.pageCount = pageCount;
         this.minioObjectKey = minioObjectKey;
         this.bucketName = bucketName;
+        this.platformResource = platformResource;
+        this.stream = stream;
         this.downloadCount = 0;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
@@ -172,7 +181,7 @@ public class ContentItem {
         return new ContentItem(UUID.randomUUID(), centerId, batchId, title,
                 description, type, fileUrl, fileSizeBytes, uploadedByUserId,
                 null, null, null, null, null, null, "ENGLISH", null,
-                null, null, null, null, null);
+                null, null, null, null, null, false, null);
     }
 
     /** Full factory used by the presigned-upload confirm flow. */
@@ -189,7 +198,47 @@ public class ContentItem {
                 description, type, null, fileSizeBytes, uploadedByUserId,
                 subject, board, classGrade, yearOfPaper, examType, difficulty,
                 language, tags, thumbnailUrl, mimeType, pageCount,
-                minioObjectKey, bucketName);
+                minioObjectKey, bucketName, false, null);
+    }
+
+    /**
+     * Factory for external link/YouTube content.
+     * Links go directly to AVAILABLE — no MinIO upload needed.
+     * fileUrl holds the external URL.
+     * isPlatformResource=false means center-scoped; use createPlatformLink for global.
+     */
+    public static ContentItem createLink(UUID centerId, String title, String description,
+                                          ContentType type, String externalUrl,
+                                          UUID uploadedByUserId, String subject, String board,
+                                          String classGrade, String stream, ExamType examType,
+                                          Difficulty difficulty, String language, String[] tags,
+                                          String thumbnailUrl) {
+        ContentItem item = new ContentItem(UUID.randomUUID(), centerId, null, title,
+                description, type, externalUrl, null, uploadedByUserId,
+                subject, board, classGrade, null, examType, difficulty,
+                language, tags, thumbnailUrl, null, null, null, null,
+                false, stream);
+        item.status = ContentStatus.AVAILABLE; // links are immediately available
+        return item;
+    }
+
+    /**
+     * Factory for SUPER_ADMIN / INSTITUTION_ADMIN platform-wide links.
+     * centerId is null — visible to all students matching the profile filters.
+     */
+    public static ContentItem createPlatformLink(String title, String description,
+                                                  ContentType type, String externalUrl,
+                                                  UUID uploadedByUserId, String subject, String board,
+                                                  String classGrade, String stream, ExamType examType,
+                                                  Difficulty difficulty, String language, String[] tags,
+                                                  String thumbnailUrl) {
+        ContentItem item = new ContentItem(UUID.randomUUID(), null, null, title,
+                description, type, externalUrl, null, uploadedByUserId,
+                subject, board, classGrade, null, examType, difficulty,
+                language, tags, thumbnailUrl, null, null, null, null,
+                true, stream);
+        item.status = ContentStatus.AVAILABLE;
+        return item;
     }
 
     public void markAvailable() {
@@ -257,6 +306,8 @@ public class ContentItem {
     public Integer getPageCount() { return pageCount; }
     public String getMinioObjectKey() { return minioObjectKey; }
     public String getBucketName() { return bucketName; }
+    public boolean isPlatformResource() { return platformResource; }
+    public String getStream() { return stream; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public Instant getDeletedAt() { return deletedAt; }

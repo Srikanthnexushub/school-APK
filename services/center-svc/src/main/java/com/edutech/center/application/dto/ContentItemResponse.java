@@ -34,5 +34,7 @@ public record ContentItemResponse(
         String mimeType,
         Integer pageCount,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        boolean platformResource,
+        String stream
 ) {}

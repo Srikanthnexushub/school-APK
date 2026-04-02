@@ -54,6 +54,10 @@ spring:
           uri: ${CENTER_SVC_URI}
           predicates:
             - Path=/api/v1/banners/**
+        - id: center-svc-platform-content
+          uri: ${CENTER_SVC_URI}
+          predicates:
+            - Path=/api/v1/platform/content/**
         - id: center-svc-library
           uri: ${CENTER_SVC_URI}
           predicates:

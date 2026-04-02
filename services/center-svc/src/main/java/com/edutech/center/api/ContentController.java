@@ -4,6 +4,7 @@ import com.edutech.center.application.dto.AuthPrincipal;
 import com.edutech.center.application.dto.ConfirmUploadRequest;
 import com.edutech.center.application.dto.ContentItemResponse;
 import com.edutech.center.application.dto.PresignedUploadResponse;
+import com.edutech.center.application.dto.RegisterLinkRequest;
 import com.edutech.center.application.dto.UploadContentRequest;
 import com.edutech.center.application.service.ContentService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -69,6 +70,15 @@ public class ContentController {
                                               @Valid @RequestBody ConfirmUploadRequest request,
                                               @AuthenticationPrincipal AuthPrincipal principal) {
         return contentService.confirmUpload(centerId, request, principal);
+    }
+
+    @PostMapping("/link")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Register an external link (YouTube, web) as library content — no file upload")
+    public ContentItemResponse registerLink(@PathVariable UUID centerId,
+                                             @Valid @RequestBody RegisterLinkRequest request,
+                                             @AuthenticationPrincipal AuthPrincipal principal) {
+        return contentService.registerLink(centerId, request, principal);
     }
 
     // ── Download ──────────────────────────────────────────────────────────────

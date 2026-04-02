@@ -4,11 +4,13 @@ import com.edutech.center.application.dto.AuthPrincipal;
 import com.edutech.center.application.dto.ConfirmUploadRequest;
 import com.edutech.center.application.dto.ContentItemResponse;
 import com.edutech.center.application.dto.PresignedUploadResponse;
+import com.edutech.center.application.dto.RegisterLinkRequest;
 import com.edutech.center.application.dto.UploadContentRequest;
 import com.edutech.center.application.exception.CenterAccessDeniedException;
 import com.edutech.center.application.exception.CenterNotFoundException;
 import com.edutech.center.domain.event.ContentUploadedEvent;
 import com.edutech.center.domain.model.ContentItem;
+import com.edutech.center.domain.model.ContentType;
 import com.edutech.center.domain.port.in.UploadContentUseCase;
 import com.edutech.center.domain.port.out.CenterEventPublisher;
 import com.edutech.center.domain.port.out.CenterRepository;
@@ -164,6 +166,50 @@ public class ContentService implements UploadContentUseCase {
         return toResponse(saved);
     }
 
+    // ── Link registration ─────────────────────────────────────────────────────
+
+    @Transactional
+    public ContentItemResponse registerLink(UUID centerId, RegisterLinkRequest request,
+                                             AuthPrincipal principal) {
+        centerRepository.findById(centerId).orElseThrow(() -> new CenterNotFoundException(centerId));
+        if (!canUpload(principal, centerId)) throw new CenterAccessDeniedException();
+        if (request.type() != ContentType.LINK && request.type() != ContentType.VIDEO) {
+            throw new IllegalArgumentException("registerLink only accepts LINK or VIDEO types");
+        }
+        String[] tagsArray = request.tags() != null ? request.tags().toArray(new String[0]) : null;
+        ContentItem item = ContentItem.createLink(
+                centerId, request.title(), request.description(), request.type(),
+                request.externalUrl(), principal.userId(), request.subject(), request.board(),
+                request.classGrade(), request.stream(), request.examType(), request.difficulty(),
+                request.language(), tagsArray, request.thumbnailUrl());
+        ContentItem saved = contentRepository.save(item);
+        eventPublisher.publish(new ContentUploadedEvent(
+                saved.getId(), centerId, null, saved.getTitle(), saved.getType(), principal.userId()));
+        log.info("Link registered: id={} centerId={} url={}", saved.getId(), centerId, request.externalUrl());
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public ContentItemResponse registerPlatformLink(RegisterLinkRequest request,
+                                                     AuthPrincipal principal) {
+        if (!principal.isSuperAdmin() && !principal.isInstitutionAdmin()) {
+            throw new CenterAccessDeniedException();
+        }
+        if (request.type() != ContentType.LINK && request.type() != ContentType.VIDEO) {
+            throw new IllegalArgumentException("registerPlatformLink only accepts LINK or VIDEO types");
+        }
+        String[] tagsArray = request.tags() != null ? request.tags().toArray(new String[0]) : null;
+        ContentItem item = ContentItem.createPlatformLink(
+                request.title(), request.description(), request.type(),
+                request.externalUrl(), principal.userId(), request.subject(), request.board(),
+                request.classGrade(), request.stream(), request.examType(), request.difficulty(),
+                request.language(), tagsArray, request.thumbnailUrl());
+        ContentItem saved = contentRepository.save(item);
+        log.info("Platform link registered: id={} subject={} board={} class={}",
+                saved.getId(), request.subject(), request.board(), request.classGrade());
+        return toResponse(saved);
+    }
+
     // ── Legacy upload (keep existing callers working) ─────────────────────────
 
     @Override
@@ -218,6 +264,7 @@ public class ContentService implements UploadContentUseCase {
                 c.getYearOfPaper(), c.getExamType(), c.getDifficulty(),
                 c.getLanguage(), c.getTags(), c.getDownloadCount(),
                 c.getAiSummary(), c.getThumbnailUrl(), c.getMimeType(),
-                c.getPageCount(), c.getCreatedAt(), c.getUpdatedAt());
+                c.getPageCount(), c.getCreatedAt(), c.getUpdatedAt(),
+                c.isPlatformResource(), c.getStream());
     }
 }

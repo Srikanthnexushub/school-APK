@@ -28,13 +28,14 @@ public class LibraryService {
                                              String classGrade, Short yearOfPaper,
                                              String examType, String difficulty,
                                              String language, String contentType,
-                                             UUID centerId, Pageable pageable) {
+                                             UUID centerId, String stream, Boolean platformOnly,
+                                             Pageable pageable) {
         return contentRepository.search(
                 blankToNull(query), blankToNull(subject), blankToNull(board),
                 blankToNull(classGrade), yearOfPaper,
                 blankToNull(examType), blankToNull(difficulty),
                 blankToNull(language), blankToNull(contentType),
-                centerId, pageable
+                centerId, blankToNull(stream), platformOnly, pageable
         ).map(contentService::toResponse);
     }
 

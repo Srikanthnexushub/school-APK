@@ -26,14 +26,6 @@ interface MentorSession {
   feedback?: { rating: number; comment: string };
 }
 
-const MOCK_SESSIONS: MentorSession[] = [
-  { id: 's1', mentorId: 'm1', mentorName: 'Dr. Priya Sharma', scheduledAt: new Date(Date.now() + 86400000 * 2).toISOString(), durationMinutes: 60, status: 'UPCOMING', subject: 'Differential Equations', zoomLink: 'https://zoom.us/j/123456789' },
-  { id: 's2', mentorId: 'm3', mentorName: 'Anika Mehta', scheduledAt: new Date(Date.now() + 86400000 * 5).toISOString(), durationMinutes: 90, status: 'UPCOMING', subject: 'Data Structures', zoomLink: 'https://zoom.us/j/987654321' },
-  { id: 's3', mentorId: 'm1', mentorName: 'Dr. Priya Sharma', scheduledAt: new Date(Date.now() - 86400000 * 3).toISOString(), durationMinutes: 60, status: 'COMPLETED', subject: 'Integration Techniques', feedback: { rating: 5, comment: 'Excellent session!' } },
-  { id: 's4', mentorId: 'm2', mentorName: 'Rahul Verma', scheduledAt: new Date(Date.now() - 86400000 * 10).toISOString(), durationMinutes: 60, status: 'COMPLETED', subject: 'Organic Chemistry' },
-  { id: 's5', mentorId: 'm4', mentorName: 'Suresh Iyer', scheduledAt: new Date(Date.now() - 86400000 * 7).toISOString(), durationMinutes: 30, status: 'CANCELLED', subject: 'Algebra' },
-];
-
 const STATUS_TABS: SessionStatus[] = ['UPCOMING', 'COMPLETED', 'CANCELLED'];
 const STATUS_LABELS: Record<SessionStatus, string> = { UPCOMING: 'Upcoming', COMPLETED: 'Completed', CANCELLED: 'Cancelled' };
 const STATUS_BADGE: Record<SessionStatus, string> = {
@@ -215,7 +207,6 @@ export default function MySessionsPage() {
     },
     enabled: !!user?.id,
     retry: false,
-    placeholderData: MOCK_SESSIONS,
   });
 
   const cancelMutation = useMutation({
@@ -230,7 +221,7 @@ export default function MySessionsPage() {
     },
   });
 
-  const all = sessions ?? MOCK_SESSIONS;
+  const all = sessions ?? [];
   const filtered = all.filter((s) => s.status === activeTab);
 
   const counts: Record<SessionStatus, number> = {
@@ -278,23 +269,24 @@ export default function MySessionsPage() {
           transition={{ duration: 0.2 }}
           className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"
         >
-          {filtered.map((session, i) => (
-            <SessionCard
-              key={session.id}
-              session={session}
-              index={i}
-              onFeedback={setFeedbackSession}
-              onCancel={(id) => cancelMutation.mutate(id)}
-            />
-          ))}
-          {filtered.length === 0 && (
-            <div className="col-span-full text-center py-16 text-white/30">
-              <Calendar className="w-10 h-10 mx-auto mb-3 opacity-40" />
-              <p className="text-lg">No {STATUS_LABELS[activeTab].toLowerCase()} sessions.</p>
+          {filtered.length === 0 ? (
+            <div className="col-span-full flex flex-col items-center justify-center py-20 text-white/30">
+              <Calendar className="w-12 h-12 mb-3 opacity-30" />
+              <p className="text-sm">No {STATUS_LABELS[activeTab].toLowerCase()} sessions</p>
               {activeTab === 'UPCOMING' && (
-                <p className="text-sm mt-1">Browse mentors and book your first session.</p>
+                <p className="text-xs text-white/20 mt-1">Book a session with a mentor to get started</p>
               )}
             </div>
+          ) : (
+            filtered.map((session, i) => (
+              <SessionCard
+                key={session.id}
+                session={session}
+                index={i}
+                onFeedback={setFeedbackSession}
+                onCancel={(id) => cancelMutation.mutate(id)}
+              />
+            ))
           )}
         </motion.div>
       </AnimatePresence>

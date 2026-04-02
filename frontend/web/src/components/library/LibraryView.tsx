@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   FileText, Video, File, Music, BookOpen, Search, Download,
   Filter, Library, Loader2, ChevronLeft, ChevronRight,
-  X, Flame, TrendingUp, Hash, Calendar, Star,
+  X, Flame, TrendingUp, Hash, Calendar, Star, ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
@@ -33,6 +33,8 @@ interface ContentItem {
   aiSummary?: string;
   fileSizeBytes?: number;
   pageCount?: number;
+  externalUrl?: string;
+  isPlatformResource?: boolean;
   createdAt: string;
 }
 
@@ -48,18 +50,20 @@ const TYPE_COLOR: Record<string, string> = {
   FORMULA_SHEET:       'bg-violet-500/15 text-violet-400 border-violet-500/20',
   MIND_MAP:            'bg-green-500/15 text-green-400 border-green-500/20',
   QUIZ_REF:            'bg-teal-500/15 text-teal-400 border-teal-500/20',
+  LINK:                'bg-blue-500/15 text-blue-400 border-blue-500/20',
 };
 
 const TYPE_ICON: Record<string, React.ElementType> = {
   PDF: FileText, VIDEO: Video, DOCUMENT: File, AUDIO: Music,
   PREVIOUS_YEAR_PAPER: BookOpen, NOTES: FileText, FORMULA_SHEET: FileText,
-  MIND_MAP: FileText, QUIZ_REF: FileText,
+  MIND_MAP: FileText, QUIZ_REF: FileText, LINK: ExternalLink,
 };
 
 const TYPE_LABEL: Record<string, string> = {
   PDF: 'PDF', VIDEO: 'Video', DOCUMENT: 'Document', AUDIO: 'Audio',
   PREVIOUS_YEAR_PAPER: 'Past Paper', NOTES: 'Notes',
   FORMULA_SHEET: 'Formula Sheet', MIND_MAP: 'Mind Map', QUIZ_REF: 'Quiz',
+  LINK: 'Link',
 };
 
 const DIFF_COLOR: Record<string, string> = {
@@ -114,6 +118,14 @@ function ContentCard({ item }: { item: ContentItem }) {
     }
   }
 
+  function extractYouTubeId(url: string): string | null {
+    const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+    return m ? m[1] : null;
+  }
+
+  const isLink = item.type === 'LINK' || (item.type === 'VIDEO' && !!item.externalUrl);
+  const ytId   = item.externalUrl ? extractYouTubeId(item.externalUrl) : null;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -143,6 +155,18 @@ function ContentCard({ item }: { item: ContentItem }) {
           )}
         </div>
       </div>
+
+      {/* YouTube thumbnail */}
+      {ytId && (
+        <div className="rounded-lg overflow-hidden -mx-1">
+          <img
+            src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+            alt={item.title}
+            className="w-full h-24 object-cover opacity-80"
+            loading="lazy"
+          />
+        </div>
+      )}
 
       {/* Title */}
       <div className="flex-1 min-w-0">
@@ -208,17 +232,29 @@ function ContentCard({ item }: { item: ContentItem }) {
         <span>{new Date(item.createdAt).toLocaleDateString()}</span>
       </div>
 
-      {/* Download button */}
-      <button
-        onClick={handleDownload}
-        disabled={downloading}
-        className="flex items-center justify-center gap-1.5 text-xs font-medium text-brand-400 hover:text-brand-300 bg-brand-500/10 hover:bg-brand-500/15 border border-brand-500/20 rounded-lg py-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {downloading
-          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          : <Download className="w-3.5 h-3.5" />}
-        {downloading ? 'Preparing…' : 'Download'}
-      </button>
+      {/* Action button */}
+      {isLink ? (
+        <a
+          href={item.externalUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-1.5 text-xs font-medium text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/15 border border-blue-500/20 rounded-lg py-2 transition-colors"
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+          Open
+        </a>
+      ) : (
+        <button
+          onClick={handleDownload}
+          disabled={downloading}
+          className="flex items-center justify-center gap-1.5 text-xs font-medium text-brand-400 hover:text-brand-300 bg-brand-500/10 hover:bg-brand-500/15 border border-brand-500/20 rounded-lg py-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {downloading
+            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            : <Download className="w-3.5 h-3.5" />}
+          {downloading ? 'Preparing…' : 'Download'}
+        </button>
+      )}
     </motion.div>
   );
 }
@@ -253,6 +289,10 @@ interface LibraryViewProps {
   emptyHint?: string;
   /** When true, show a platform-wide search banner */
   globalMode?: boolean;
+  /** Student profile stream — passed for platform resource discovery */
+  stream?: string;
+  /** When true, also fetch platform-wide resources (isPlatformResource=true) */
+  showPlatformResources?: boolean;
 }
 
 export function LibraryView({
@@ -260,6 +300,8 @@ export function LibraryView({
   isResolvingCenter = false,
   emptyHint,
   globalMode = false,
+  stream,
+  showPlatformResources = false,
 }: LibraryViewProps) {
   const [keyword,     setKeyword]     = useState('');
   const [debounced,   setDebounced]   = useState('');
@@ -289,17 +331,19 @@ export function LibraryView({
   const { data, isLoading, isFetching } = useQuery({
     queryKey: [
       'library-search', centerId, debounced, subject, board, examType,
-      difficulty, yearOfPaper, page,
+      difficulty, yearOfPaper, page, stream, showPlatformResources,
     ],
     queryFn: async () => {
       const p = new URLSearchParams();
-      if (debounced)   p.set('q',           debounced);
-      if (subject)     p.set('subject',     subject);
-      if (board)       p.set('board',       board);
-      if (examType)    p.set('examType',    examType);
-      if (difficulty)  p.set('difficulty',  difficulty);
-      if (yearOfPaper) p.set('yearOfPaper', yearOfPaper);
-      if (centerId)    p.set('centerId',    centerId);
+      if (debounced)             p.set('q',            debounced);
+      if (subject)               p.set('subject',      subject);
+      if (board)                 p.set('board',        board);
+      if (examType)              p.set('examType',     examType);
+      if (difficulty)            p.set('difficulty',   difficulty);
+      if (yearOfPaper)           p.set('yearOfPaper',  yearOfPaper);
+      if (centerId)              p.set('centerId',     centerId);
+      if (stream)                p.set('stream',       stream);
+      if (showPlatformResources) p.set('platformOnly', 'true');
       p.set('page', String(page));
       p.set('size', String(PAGE_SIZE));
       const res = await api.get(`/api/v1/library/search?${p.toString()}`);
