@@ -113,7 +113,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (207 fixes, latest: Fix #206-#207 — NexusChat role-based chatbot (RoleContext sealed interface, role-specific context aggregation + system prompts, 35 tests) + parent-svc GET /api/v1/parents/by-student — 2026-04-02).
+Full list → `memory/frozen-fixes.md` (209 fixes, latest: Fix #209 — ParentProfileDto @JsonProperty("name") NPE fix (NexusChat PARENT role 500 → working) — 2026-04-02).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
