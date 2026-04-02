@@ -137,7 +137,7 @@ function DoubtResolverTab() {
     if (status === 'RESOLVED')
       return <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />;
     if (status === 'IN_PROGRESS')
-      return <span className="w-2 h-2 rounded-full bg-indigo-400 shrink-0" />;
+      return <span className="w-2 h-2 rounded-full bg-brand-400 shrink-0" />;
     return <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />;
   }
 
@@ -229,7 +229,7 @@ function DoubtResolverTab() {
         {selected ? (
           <>
             <div className="px-5 py-3 border-b border-white/5 flex items-center gap-2 flex-wrap">
-              <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400">
                 {selected.subject}
               </span>
               <Badge
@@ -254,7 +254,7 @@ function DoubtResolverTab() {
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {/* User bubble */}
               <div className="flex justify-end">
-                <div className="max-w-[80%] bg-indigo-500/20 border border-indigo-500/20 rounded-2xl rounded-tr-sm px-4 py-3">
+                <div className="max-w-[80%] bg-brand-500/15 border border-brand-500/30 rounded-2xl rounded-tr-sm px-4 py-3" style={{ boxShadow: '0 0 12px rgba(0,245,255,0.06)' }}>
                   <p className="text-white/90 text-sm leading-relaxed">
                     {selected.questionText}
                   </p>
@@ -264,8 +264,8 @@ function DoubtResolverTab() {
               {/* AI answer */}
               {selected.answer ? (
                 <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-indigo-500/30 flex items-center justify-center shrink-0 mt-1">
-                    <Bot className="w-4 h-4 text-indigo-400" />
+                  <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center shrink-0 mt-1">
+                    <Bot className="w-4 h-4 text-brand-400" />
                   </div>
                   <div className="max-w-[80%] glass rounded-2xl rounded-tl-sm px-4 py-3 border border-white/10">
                     <p className="text-white/80 text-sm leading-relaxed">
@@ -275,15 +275,15 @@ function DoubtResolverTab() {
                 </div>
               ) : (
                 <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-indigo-500/30 flex items-center justify-center shrink-0">
-                    <Bot className="w-4 h-4 text-indigo-400" />
+                  <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center shrink-0">
+                    <Bot className="w-4 h-4 text-brand-400" />
                   </div>
                   <div className="glass rounded-2xl rounded-tl-sm px-4 py-3 border border-white/10 flex items-center gap-2">
                     <div className="flex gap-1">
                       {[...Array(3)].map((_, i) => (
                         <motion.span
                           key={i}
-                          className="w-1.5 h-1.5 rounded-full bg-indigo-400"
+                          className="w-1.5 h-1.5 rounded-full bg-brand-400"
                           animate={{ opacity: [0.3, 1, 0.3] }}
                           transition={{
                             duration: 1.2,
@@ -391,7 +391,7 @@ function RecommendationsTab() {
                 </Badge>
               </div>
               {rec.subject && (
-                <span className="text-xs text-indigo-400 font-medium">
+                <span className="text-xs text-brand-400 font-medium">
                   {rec.subject}
                 </span>
               )}
@@ -408,7 +408,7 @@ function RecommendationsTab() {
                   href={rec.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-auto flex items-center gap-1 text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
+                  className="mt-auto flex items-center gap-1 text-sm text-brand-400 hover:text-brand-300 transition-colors"
                 >
                   Open Resource <ChevronRight className="w-3 h-3" />
                 </a>
@@ -467,7 +467,7 @@ export default function AiMentorPage() {
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
               activeTab === tab.id
-                ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25'
+                ? 'bg-brand-500 text-white shadow-lg shadow-neon-sm-cyan'
                 : 'text-white/50 hover:text-white/80 hover:bg-white/5',
             )}
           >

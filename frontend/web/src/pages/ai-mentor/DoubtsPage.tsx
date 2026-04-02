@@ -73,12 +73,12 @@ function DoubtCard({ doubt }: { doubt: DoubtTicket }) {
         <div className={cn(
           'w-2 h-2 rounded-full mt-2 shrink-0',
           doubt.status === 'RESOLVED' ? 'bg-emerald-400' :
-          doubt.status === 'IN_PROGRESS' ? 'bg-indigo-400' : 'bg-amber-400'
+          doubt.status === 'IN_PROGRESS' ? 'bg-brand-400' : 'bg-amber-400'
         )} />
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400">
               {doubt.subject}
             </span>
             <Badge variant={statusVariant}>{doubt.status}</Badge>
@@ -230,8 +230,8 @@ export default function DoubtsPage() {
             <StatCard
               title="Total Submitted"
               value={all.length}
-              icon={<MessageSquare className="w-4 h-4 text-indigo-400" />}
-              iconBg="bg-indigo-500/20"
+              icon={<MessageSquare className="w-4 h-4 text-brand-400" />}
+              iconBg="bg-brand-500/20"
             />
             <StatCard
               title="Resolved"
@@ -265,7 +265,7 @@ export default function DoubtsPage() {
             className={cn(
               'flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all',
               filter === tab.id
-                ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25'
+                ? 'bg-brand-500 text-white shadow-lg shadow-neon-sm-cyan'
                 : 'text-white/50 hover:text-white/80 hover:bg-white/5'
             )}
           >
@@ -301,7 +301,7 @@ export default function DoubtsPage() {
       {/* FAB — Submit New Doubt */}
       <button
         onClick={() => setModalOpen(true)}
-        className="fixed bottom-8 right-8 w-14 h-14 bg-indigo-500 hover:bg-indigo-600 text-white rounded-full shadow-xl shadow-indigo-500/40 flex items-center justify-center transition-all hover:scale-110 active:scale-95 z-40"
+        className="fixed bottom-8 right-8 w-14 h-14 btn-primary rounded-full flex items-center justify-center hover:scale-110 active:scale-95 z-40"
         title="Submit New Doubt"
       >
         <Plus className="w-6 h-6" />
