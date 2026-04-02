@@ -528,9 +528,6 @@ export default function StudentDashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            <button onClick={() => navigate('/ai-mentor')} className="btn-primary px-5 py-2.5 text-sm flex items-center gap-2">
-              AI Study Plan <ChevronRight className="w-4 h-4" />
-            </button>
             <button onClick={() => navigate('/performance')} className="btn-ghost text-sm">View Details</button>
           </div>
         </div>

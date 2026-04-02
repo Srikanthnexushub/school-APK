@@ -13,8 +13,8 @@ interface Props {
 const ChatPanel: React.FC<Props> = ({ pageContext }) => {
   const {
     messages, streamingContent, isStreaming, isLoading,
-    inputText, setInputText, sendMessage, activeSessionId,
-    sessions, loadSessions, startSession,
+    inputText, setInputText, sendMessage,
+    loadSessions, startSession,
   } = useChatStore();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -47,18 +47,21 @@ const ChatPanel: React.FC<Props> = ({ pageContext }) => {
     startSession(ctx);
   };
 
-  const activeSession = sessions.find((s) => s.sessionId === activeSessionId);
-
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-indigo-600 text-white rounded-t-2xl flex-shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl flex-shrink-0"
+           style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' }}>
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-indigo-400 flex items-center justify-center text-sm font-bold">N</div>
+          <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-extrabold shadow-lg"
+               style={{ background: 'linear-gradient(135deg, #00f5ff 0%, #bf5af2 50%, #ff375f 100%)',
+                        boxShadow: '0 0 12px rgba(0,245,255,0.6), 0 0 24px rgba(191,90,242,0.4)' }}>
+            <span style={{ color: '#fff', textShadow: '0 0 6px rgba(255,255,255,0.9)' }}>N</span>
+          </div>
           <div>
-            <p className="font-semibold text-sm leading-tight">Nexus AI</p>
-            <p className="text-xs text-indigo-200 leading-tight">
-              {isStreaming ? 'typing...' : (activeSession?.title ?? 'Your study partner')}
+            <p className="font-bold text-sm leading-tight text-white" style={{ textShadow: '0 0 8px rgba(255,255,255,0.3)' }}>Nexus AI</p>
+            <p className="text-xs leading-tight" style={{ color: '#c4b5fd' }}>
+              {isStreaming ? '● typing...' : 'AI Study Partner'}
             </p>
           </div>
         </div>
