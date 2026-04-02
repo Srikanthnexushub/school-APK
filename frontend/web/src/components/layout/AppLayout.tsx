@@ -8,7 +8,7 @@ import {
   Users, Calendar, Settings, LogOut, BookOpen, Menu, X, ChevronLeft,
   Bell, Search, ChevronRight, BookOpenCheck, Library, Award,
   CreditCard, Beaker, UserCog, BookCheck, Building2, Upload, UserCheck,
-  Briefcase, Megaphone, CalendarCheck, Receipt, GraduationCap,
+  Megaphone, CalendarCheck, Receipt, GraduationCap,
   Sun, Moon, Wallet, CheckCircle2, ShieldCheck, Layers,
 } from 'lucide-react';
 import NexusEdLogo from '../NexusEdLogo';
@@ -96,7 +96,6 @@ const studentNav: NavItem[] = [
   { icon: Layers,          label: 'Curricular',   to: '/curricular' },
   { icon: Calendar,        label: 'Exam Tracker', to: '/exam-tracker' },
   { icon: CreditCard,      label: 'Fees',         to: '/fees' },
-  { icon: Briefcase,       label: 'Job Board',    to: '/jobs',           disabled: true },
   { icon: Library,         label: 'Library',      to: '/library' },
   { icon: Users,           label: 'Mentors',      to: '/mentors' },
   { icon: BarChart3,       label: 'Performance',  to: '/performance' },
@@ -120,7 +119,6 @@ function getAdminNav(role?: string): NavItem[] {
     { icon: Upload,          label: 'Bulk Import',      to: '/admin?tab=teacher-import' },
     { icon: Building2,       label: 'Centers',          to: '/admin?tab=centers' },
     { icon: Layers,          label: 'Curricular',       to: '/admin/curricular' },
-    { icon: Briefcase,       label: 'Jobs',             to: '/admin?tab=jobs' },
     { icon: Library,         label: 'Library',          to: '/admin?tab=library' },
     ...(role === 'SUPER_ADMIN' ? [
       { icon: ShieldCheck, label: 'NFR Audit',          to: '/admin/audit' },
@@ -141,7 +139,6 @@ const parentNav: NavItem[] = [
   { icon: Bot,             label: 'Copilot',       to: '/parent/copilot' },
   { icon: Layers,          label: 'Curricular',    to: '/parent/curricular' },
   { icon: CreditCard,      label: 'Fees',          to: '/parent/fees' },
-  { icon: Briefcase,       label: 'Job Board',     to: '/parent/jobs',       disabled: true },
   { icon: Library,         label: 'Library',       to: '/parent/library' },
   { icon: Settings,        label: 'Profile',       to: '/parent/profile' },
   { icon: Brain,           label: 'Psychometric',  to: '/parent/psychometric' },
@@ -157,7 +154,6 @@ const mentorNav: NavItem[] = [
   { icon: CalendarCheck,   label: 'Attendance',    to: '/mentor-portal/attendance' },
   { icon: Layers,          label: 'Curricular',    to: '/mentor-portal/curricular' },
   { icon: ClipboardList,   label: 'Exams',         to: '/mentor-portal/exams' },
-  { icon: Briefcase,       label: 'Job Board',     to: '/mentor-portal/jobs', disabled: true },
   { icon: Library,         label: 'Library',       to: '/mentor-portal/library' },
   { icon: Award,           label: 'My Performance',to: '/mentor-portal/performance' },
   { icon: BookOpen,        label: 'Question Bank', to: '/mentor-portal/question-bank' },
