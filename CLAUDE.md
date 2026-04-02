@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 211+ frozen fixes as of Fix #211 (2026-04-02 — NexusChat UI polish: neon avatar, gradient header, white title, static subtitle).
+- Read `memory/frozen-fixes.md` before touching any file. 212+ frozen fixes as of Fix #212 (2026-04-02 — Nexus AI forced white text + mobile chat overflow + guardian chip all-screen).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -113,7 +113,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (211 fixes, latest: Fix #211 — NexusChat UI polish: neon avatar logo, gradient header, explicit white title, static subtitle (2026-04-02)).
+Full list → `memory/frozen-fixes.md` (212 fixes, latest: Fix #212 — Nexus AI forced white text + mobile chat responsive sizing + guardian chip visible on all screens (2026-04-02)).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
