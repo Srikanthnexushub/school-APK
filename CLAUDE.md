@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 220+ frozen fixes as of Fix #220 (2026-04-02 — Question Bank AI /generate-questions endpoint).
+- Read `memory/frozen-fixes.md` before touching any file. 225+ frozen fixes as of Fix #225 (2026-04-03 — curricular-svc full EC2 deployment).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -114,7 +114,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (220 fixes, latest: Fix #220 — Question Bank AI /generate-questions endpoint (2026-04-02)).
+Full list → `memory/frozen-fixes.md` (225 fixes, latest: Fix #225 — curricular-svc full EC2 deployment (2026-04-03)).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
