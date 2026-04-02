@@ -327,6 +327,22 @@ function SidebarContent({
 
   const endPaths = ['/dashboard', '/parent', '/mentor-portal'];
   const roleColor = ROLE_COLORS[user?.role ?? 'GUEST'] ?? ROLE_COLORS['GUEST'];
+  const { theme } = useThemeStore();
+  const isDark = theme === 'dark';
+  // Theme-aware neutral colors (avoids invisible white-on-white in light mode)
+  const clr = {
+    text:         isDark ? 'rgba(255,255,255,0.58)' : 'rgba(8,10,28,0.65)',
+    textMuted:    isDark ? 'rgba(255,255,255,0.28)' : 'rgba(8,10,28,0.40)',
+    textActive:   isDark ? '#fff'                   : 'rgb(8,10,28)',
+    icon:         isDark ? 'rgba(255,255,255,0.40)' : 'rgba(8,10,28,0.38)',
+    border:       isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,100,220,0.10)',
+    divider:      isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,100,220,0.08)',
+    disabled:     isDark ? 'rgba(255,255,255,0.18)' : 'rgba(8,10,28,0.22)',
+    disabledBg:   isDark ? 'rgba(255,255,255,0.04)' : 'rgba(8,10,28,0.04)',
+    disabledBadge:isDark ? 'rgba(255,255,255,0.22)' : 'rgba(8,10,28,0.28)',
+    hoverBg:      isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
+    btnHoverText: isDark ? 'rgba(255,255,255,0.70)' : 'rgba(8,10,28,0.80)',
+  };
 
   return (
     <div className="flex flex-col h-full relative">
@@ -339,9 +355,8 @@ function SidebarContent({
       <div className={cn(
         'flex items-center h-14 flex-shrink-0 border-b px-3',
         collapsed ? 'justify-center' : 'justify-between'
-      )} style={{ borderBottomColor: 'rgba(255,255,255,0.05)' }}>
+      )} style={{ borderBottomColor: clr.divider }}>
         <div className="flex items-center gap-2.5 min-w-0">
-          {/* Logo with pulsing ring */}
           <div className="relative flex-shrink-0">
             {!collapsed && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -352,7 +367,7 @@ function SidebarContent({
           </div>
           {!collapsed && (
             <span className="font-black text-base tracking-wide truncate">
-              <span style={{ color: roleColor.neon, textShadow: `0 0 8px ${roleColor.neon}80` }}>NEXUS</span>
+              <span style={{ color: roleColor.neon, textShadow: isDark ? `0 0 8px ${roleColor.neon}80` : 'none' }}>NEXUS</span>
               <span className="text-white">ED</span>
             </span>
           )}
@@ -361,9 +376,9 @@ function SidebarContent({
           <button
             onClick={() => setCollapsed(true)}
             className="hidden lg:flex p-1.5 rounded-lg transition-all flex-shrink-0"
-            style={{ color: 'rgba(255,255,255,0.25)' }}
-            onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.70)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.25)'; e.currentTarget.style.background = 'transparent'; }}
+            style={{ color: clr.textMuted }}
+            onMouseEnter={e => { e.currentTarget.style.color = clr.btnHoverText; e.currentTarget.style.background = clr.hoverBg; }}
+            onMouseLeave={e => { e.currentTarget.style.color = clr.textMuted; e.currentTarget.style.background = 'transparent'; }}
             aria-label="Collapse sidebar"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -373,9 +388,9 @@ function SidebarContent({
           <button
             onClick={() => setCollapsed(false)}
             className="hidden lg:flex p-1.5 rounded-lg transition-all absolute bottom-[76px] left-1/2 -translate-x-1/2"
-            style={{ color: 'rgba(255,255,255,0.25)' }}
-            onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.70)'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.25)'; }}
+            style={{ color: clr.textMuted }}
+            onMouseEnter={e => { e.currentTarget.style.color = clr.btnHoverText; }}
+            onMouseLeave={e => { e.currentTarget.style.color = clr.textMuted; }}
             aria-label="Expand sidebar"
           >
             <ChevronRight className="w-3 h-3" />
@@ -385,7 +400,7 @@ function SidebarContent({
 
       {/* ── User card ── */}
       {user && (
-        <div className={cn('px-3 py-3 border-b flex-shrink-0', collapsed ? 'flex justify-center' : '')} style={{ borderBottomColor: 'rgba(255,255,255,0.05)' }}>
+        <div className={cn('px-3 py-3 border-b flex-shrink-0', collapsed ? 'flex justify-center' : '')} style={{ borderBottomColor: clr.divider }}>
           {collapsed ? (
             <CollapseTooltip label={user.name}>
               <div className="relative">
@@ -426,15 +441,15 @@ function SidebarContent({
           const entry = disabled ? (
             collapsed ? (
               <CollapseTooltip label={`${label} (coming soon)`}>
-                <span className="flex items-center justify-center p-2.5 rounded-xl cursor-not-allowed relative" style={{ color: 'rgba(255,255,255,0.18)' }}>
+                <span className="flex items-center justify-center p-2.5 rounded-xl cursor-not-allowed relative" style={{ color: clr.disabled }}>
                   <Icon style={{ width: 18, height: 18 }} className="flex-shrink-0" />
                 </span>
               </CollapseTooltip>
             ) : (
-              <span className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium cursor-not-allowed select-none" style={{ color: 'rgba(255,255,255,0.18)' }}>
+              <span className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium cursor-not-allowed select-none" style={{ color: clr.disabled }}>
                 <Icon style={{ width: 18, height: 18 }} className="flex-shrink-0" />
                 <span className="flex-1">{label}</span>
-                <span className="text-[8px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.25)' }}>SOON</span>
+                <span className="text-[8px] font-bold px-1.5 py-0.5 rounded" style={{ background: clr.disabledBg, color: clr.disabledBadge }}>SOON</span>
               </span>
             )
           ) : collapsed ? (
@@ -459,7 +474,7 @@ function SidebarContent({
                   const active = tabActive ?? isActive;
                   return (
                     <>
-                      <Icon style={{ width: 18, height: 18, color: active ? roleColor.neon : 'rgba(255,255,255,0.45)', filter: active ? `drop-shadow(0 0 4px ${roleColor.neon})` : 'none', transition: 'all 0.2s' }} className="flex-shrink-0" />
+                      <Icon style={{ width: 18, height: 18, color: active ? roleColor.neon : clr.icon, filter: active ? `drop-shadow(0 0 4px ${roleColor.neon})` : 'none', transition: 'all 0.2s' }} className="flex-shrink-0" />
                       {badge !== undefined && badge > 0 && (
                         <span className="absolute top-1 right-1 w-2 h-2 rounded-full" style={{ background: roleColor.neon }} />
                       )}
@@ -492,12 +507,11 @@ function SidebarContent({
                     <Icon
                       style={{
                         width: 18, height: 18, flexShrink: 0, transition: 'all 0.2s',
-                        color: active ? roleColor.neon : 'rgba(255,255,255,0.40)',
+                        color: active ? roleColor.neon : clr.icon,
                         filter: active ? `drop-shadow(0 0 5px ${roleColor.neon})` : 'none',
                       }}
-                      className="group-hover:!text-white/70"
                     />
-                    <span className="flex-1 transition-colors" style={{ color: active ? '#fff' : 'rgba(255,255,255,0.55)' }}>{label}</span>
+                    <span className="flex-1 transition-colors" style={{ color: active ? clr.textActive : clr.text }}>{label}</span>
                     {badge !== undefined && badge > 0 && (
                       <span className="text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center" style={{ background: roleColor.neon }}>
                         {badge}
@@ -516,8 +530,8 @@ function SidebarContent({
             <Fragment key={to}>
               {sectionLabel && !collapsed && (
                 <div className="flex items-center gap-2 px-3 pt-4 pb-1">
-                  <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, ${roleColor.neon}30, transparent)` }} />
-                  <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.22)' }}>
+                  <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, ${roleColor.neon}40, transparent)` }} />
+                  <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: clr.textMuted }}>
                     {sectionLabel}
                   </p>
                 </div>
@@ -529,12 +543,12 @@ function SidebarContent({
       </nav>
 
       {/* ── Bottom actions ── */}
-      <div className="p-2.5 border-t space-y-0.5 flex-shrink-0" style={{ borderTopColor: 'rgba(255,255,255,0.05)' }}>
+      <div className="p-2.5 border-t space-y-0.5 flex-shrink-0" style={{ borderTopColor: clr.divider }}>
         {/* Status indicator */}
         {!collapsed && (
           <div className="flex items-center gap-2 px-3 py-2 mb-1">
-            <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: '#00ff88', boxShadow: '0 0 6px #00ff88' }} />
-            <span className="text-[9px] font-mono uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.25)' }}>System Online</span>
+            <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: '#00ff88', boxShadow: isDark ? '0 0 6px #00ff88' : 'none' }} />
+            <span className="text-[9px] font-mono uppercase tracking-wider" style={{ color: clr.textMuted }}>System Online</span>
           </div>
         )}
         {collapsed ? (
@@ -569,12 +583,12 @@ function SidebarContent({
               className={({ isActive }) =>
                 cn('flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200', isActive ? '' : 'hover:bg-white/5')
               }
-              style={({ isActive }) => isActive ? { background: roleColor.bg, borderLeft: `2px solid ${roleColor.neon}` } : { color: 'rgba(255,255,255,0.50)' }}
+              style={({ isActive }) => isActive ? { background: roleColor.bg, borderLeft: `2px solid ${roleColor.neon}` } : { color: clr.text }}
             >
               {({ isActive }) => (
                 <>
-                  <Settings style={{ width: 18, height: 18, flexShrink: 0, color: isActive ? roleColor.neon : 'rgba(255,255,255,0.40)' }} />
-                  <span style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.55)' }}>Settings</span>
+                  <Settings style={{ width: 18, height: 18, flexShrink: 0, color: isActive ? roleColor.neon : clr.icon }} />
+                  <span style={{ color: isActive ? clr.textActive : clr.text }}>Settings</span>
                 </>
               )}
             </NavLink>
