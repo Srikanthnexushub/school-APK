@@ -281,12 +281,22 @@ export default function LoginPage() {
 
 
   return (
-    <div className="login-panel-left min-h-screen bg-gradient-to-br from-brand-950 via-slate-950 to-indigo-950 flex flex-col lg:flex-row relative">
-      {/* Theme toggle — top-right corner */}
+    <div className="min-h-screen flex items-stretch relative overflow-hidden" style={{ background: 'rgb(2,4,12)' }}>
+      {/* Ambient aurora blobs — behind everything */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+        <div className="absolute -top-60 -left-60 w-[700px] h-[700px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(0,245,255,0.07) 0%, transparent 70%)', filter: 'blur(80px)' }} />
+        <div className="absolute -bottom-60 -right-60 w-[600px] h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(155,0,255,0.09) 0%, transparent 70%)', filter: 'blur(100px)' }} />
+        <div className="absolute top-1/2 -translate-y-1/2 left-1/3 w-[400px] h-[400px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(240,0,255,0.05) 0%, transparent 70%)', filter: 'blur(60px)' }} />
+        {/* Tech grid */}
+        <div className="absolute inset-0 opacity-[0.025]" style={{ backgroundImage: 'linear-gradient(rgba(0,245,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,245,255,1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+      </div>
+
+      {/* Theme toggle */}
       <motion.button
         onClick={toggleTheme}
         whileTap={{ scale: 0.88 }}
-        className="absolute top-4 right-4 z-50 p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors backdrop-blur-sm"
+        className="absolute top-5 right-5 z-50 p-2.5 rounded-xl text-white/50 hover:text-white/90 transition-all"
+        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(8px)' }}
         aria-label="Toggle theme"
       >
         <AnimatePresence mode="wait" initial={false}>
@@ -302,458 +312,356 @@ export default function LoginPage() {
         </AnimatePresence>
       </motion.button>
 
-      {/* Ambient blobs — on wrapper so they span both panels evenly (no divider) */}
-      <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-brand-600/20 rounded-full blur-3xl animate-pulse pointer-events-none" />
-      <div className="absolute bottom-1/3 right-1/4 w-56 h-56 bg-brand-700/15 rounded-full blur-3xl animate-pulse delay-700 pointer-events-none" />
-      <div className="absolute top-1/2 right-1/3 w-40 h-40 bg-brand-500/10 rounded-full blur-2xl animate-pulse delay-1000 pointer-events-none" />
+      {/* ── LEFT PANEL: Neural Command Center ─────────────────────────── */}
+      <div className="hidden lg:flex flex-col items-center justify-center flex-1 relative px-12 py-16 overflow-hidden">
 
-      {/* Left panel */}
-      <div className="flex lg:flex-1 relative overflow-hidden items-center justify-center px-8 py-10 lg:p-12">
-
+        {/* Platform identity */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="relative z-10 max-w-md w-full text-center"
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="text-center mb-8 relative z-10"
         >
-          {/* Header */}
-          <div className="flex justify-center mb-4 lg:mb-6">
-            <div className="p-3 lg:p-4 rounded-2xl bg-brand-600/20 border border-brand-500/30 animate-pulse-glow">
-              <Sparkles className="w-7 h-7 lg:w-10 lg:h-10 text-brand-400" />
-            </div>
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <NexusEdLogo size={38} className="flex-shrink-0" />
+            <h1 className="text-5xl font-black tracking-tight leading-none">
+              <span className="neon-text-cyan">NEXUS</span>
+              <span className="text-white">ED</span>
+            </h1>
           </div>
-          <h1 className="text-2xl lg:text-4xl font-bold text-white mb-3 lg:mb-4">
-            Your AI-powered<br />
-            <span className="gradient-text">study companion</span>
-          </h1>
-          <p className="text-white/50 text-sm lg:text-base leading-relaxed mb-6 lg:mb-10">
-            Personalised study plans, real-time career guidance, and adaptive
-            assessments — all in one platform.
+          <p className="text-[11px] font-mono tracking-[0.35em] uppercase" style={{ color: 'rgba(0,245,255,0.55)' }}>
+            Neural · AI · Platform
           </p>
+        </motion.div>
 
-          {/* ── Open Book — folded/semi-folded V-shape ── */}
-          <div className="mt-2 flex justify-center">
-            <div className="scale-[0.68] lg:scale-100 origin-top -mb-20 lg:mb-0">
-            <div
-              style={{
-                display: 'inline-block',
-                filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.45)) drop-shadow(0 4px 12px rgba(99,102,241,0.25))',
-                perspective: '900px',
-                perspectiveOrigin: '50% 40%',
-              }}
-            >
-              {/* Book pages — left + spine + right */}
-              <div style={{ display: 'flex', position: 'relative', transformStyle: 'preserve-3d' }}>
+        {/* ── Orbital Feature Universe ── */}
+        <div className="relative flex items-center justify-center mb-10" style={{ width: 380, height: 380 }}>
+          {/* Orbital rings */}
+          <div className="orbital-ring-1" />
+          <div className="orbital-ring-2" />
+          <div className="orbital-ring-3" />
 
-                {/* ── Left page (folded back ~30deg from spine) ── */}
-                <div
-                  style={{
-                    width: 178, height: 260,
-                    background: 'rgba(255,255,255,0.07)',
-                    borderRadius: '14px 0 0 14px',
-                    transformOrigin: '100% 50%',
-                    transform: 'rotateY(30deg)',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    flexShrink: 0,
-                  }}
-                >
-                  {/* Main gloss — large top-left shine */}
-                  <div style={{
-                    position: 'absolute', inset: 0,
-                    background: 'linear-gradient(142deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.20) 30%, transparent 60%)',
-                    borderRadius: 'inherit', zIndex: 2, pointerEvents: 'none',
-                  }} />
-                  {/* Subtle bottom reflection */}
-                  <div style={{
-                    position: 'absolute', bottom: 0, left: 0, right: 0, height: '35%',
-                    background: 'linear-gradient(0deg, rgba(255,255,255,0.10) 0%, transparent 100%)',
-                    zIndex: 1, pointerEvents: 'none',
-                  }} />
-                  {/* Inner rim shadow near spine */}
-                  <div style={{
-                    position: 'absolute', top: 0, right: 0, bottom: 0, width: 22,
-                    background: 'linear-gradient(90deg, transparent, rgba(0,0,0,0.16))',
-                    zIndex: 1,
-                  }} />
-                </div>
-
-                {/* ── Spine (book binding) ── */}
-                <div
-                  style={{
-                    width: 20, height: 260, flexShrink: 0,
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(99,102,241,0.35) 40%, rgba(67,56,202,0.50) 100%)',
-                    boxShadow: 'inset -3px 0 6px rgba(0,0,0,0.30), inset 2px 0 4px rgba(255,255,255,0.25)',
-                    position: 'relative',
-                  }}
-                >
-                  {[20, 40, 60, 80].map(pct => (
-                    <div key={pct} style={{
-                      position: 'absolute', left: 3, right: 3, top: `${pct}%`,
-                      height: 1.5, background: 'rgba(255,255,255,0.30)', borderRadius: 1,
-                    }} />
-                  ))}
-                </div>
-
-                {/* ── Right page (physical page-turn, folded forward ~-30deg from spine) ── */}
-                {/* ── Right page: card-flip turn — exit sweeps left (back face over left page), enter opens from spine ── */}
-                <div
-                  style={{
-                    width: 178, height: 260,
-                    position: 'relative',
-                    flexShrink: 0,
-                    transformOrigin: '0% 50%',
-                    transform: 'rotateY(-30deg)',
-                    transformStyle: 'preserve-3d',
-                  }}
-                >
-                  <AnimatePresence mode="wait" initial={false}>
-                    <motion.div
-                      key={activeFeature}
-                      variants={pageVariants}
-                      initial="enter"
-                      animate="center"
-                      exit="exit"
-                      transition={{ duration: 0.5, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] }}
-                      style={{
-                        position: 'absolute', inset: 0,
-                        transformOrigin: '0% 50%',
-                        transformStyle: 'preserve-3d',
-                      }}
-                    >
-                      {/* ── Front face — feature content ── */}
-                      <div style={{
-                        position: 'absolute', inset: 0,
-                        background: feature.pageBg,
-                        borderRadius: '0 14px 14px 0',
-                        backfaceVisibility: 'hidden',
-                        overflow: 'hidden',
-                      }}>
-                        {/* Specular gloss */}
-                        <div style={{
-                          position: 'absolute', inset: 0,
-                          background: 'linear-gradient(142deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.12) 32%, transparent 60%)',
-                          borderRadius: 'inherit', zIndex: 2, pointerEvents: 'none',
-                        }} />
-                        {/* Inner rim shadow near spine */}
-                        <div style={{
-                          position: 'absolute', top: 0, left: 0, bottom: 0, width: 16,
-                          background: 'linear-gradient(90deg, rgba(0,0,0,0.18), transparent)',
-                          zIndex: 2, pointerEvents: 'none',
-                        }} />
-                        {/* Amber star */}
-                        <div style={{ position: 'absolute', top: 11, right: 13, zIndex: 3, pointerEvents: 'none' }}>
-                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                            <path
-                              d="M9 1.5l2.09 4.24 4.68.68-3.39 3.3.8 4.66L9 12.27l-4.18 2.2.8-4.66L2.23 6.42l4.68-.68L9 1.5z"
-                              fill="#fef08a" stroke="rgba(254,240,138,0.4)" strokeWidth="0.5"
-                            />
-                          </svg>
-                        </div>
-                        {/* Feature content */}
-                        <div className="absolute inset-0 z-10 flex flex-col items-center text-center px-4 pt-5 pb-4">
-                          <div style={{ padding: '10px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.20)', marginBottom: '10px' }}>
-                            <FeatureIcon style={{ width: 24, height: 24, color: '#fff' }} />
-                          </div>
-                          <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginBottom: '8px', lineHeight: 1.3 }}>
-                            {feature.label}
-                          </h3>
-                          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '11px', lineHeight: 1.6, marginBottom: '12px', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                            {feature.brief}
-                          </p>
-                          <span style={{ fontSize: '10px', fontWeight: 600, padding: '4px 10px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.20)', color: '#fff' }}>
-                            {feature.stat}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* ── Back face — next feature (sweeps over left page, readable via scaleX(-1) un-mirror) ── */}
-                      <div style={{
-                        position: 'absolute', inset: 0,
-                        background: feature.pageBg,
-                        borderRadius: '0 14px 14px 0',
-                        backfaceVisibility: 'hidden',
-                        transform: 'rotateY(180deg)',
-                        overflow: 'hidden',
-                      }}>
-                        {/* scaleX(-1) cancels the horizontal mirror introduced by rotateY(180deg) */}
-                        <div style={{ position: 'absolute', inset: 0, transform: 'scaleX(-1)' }}>
-                          {/* Specular gloss */}
-                          <div style={{
-                            position: 'absolute', inset: 0,
-                            background: 'linear-gradient(142deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.12) 32%, transparent 60%)',
-                            borderRadius: 'inherit', zIndex: 2, pointerEvents: 'none',
-                          }} />
-                          {/* Inner rim shadow near spine */}
-                          <div style={{
-                            position: 'absolute', top: 0, left: 0, bottom: 0, width: 16,
-                            background: 'linear-gradient(90deg, rgba(0,0,0,0.18), transparent)',
-                            zIndex: 2, pointerEvents: 'none',
-                          }} />
-                          {/* Amber star */}
-                          <div style={{ position: 'absolute', top: 11, right: 13, zIndex: 3, pointerEvents: 'none' }}>
-                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                              <path d="M9 1.5l2.09 4.24 4.68.68-3.39 3.3.8 4.66L9 12.27l-4.18 2.2.8-4.66L2.23 6.42l4.68-.68L9 1.5z" fill="#fef08a" stroke="rgba(254,240,138,0.4)" strokeWidth="0.5" />
-                            </svg>
-                          </div>
-                          {/* Feature content */}
-                          <div className="absolute inset-0 z-10 flex flex-col items-center text-center px-4 pt-5 pb-4">
-                            <div style={{ padding: '10px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.20)', marginBottom: '10px' }}>
-                              <FeatureIcon style={{ width: 24, height: 24, color: '#fff' }} />
-                            </div>
-                            <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginBottom: '8px', lineHeight: 1.3 }}>
-                              {feature.label}
-                            </h3>
-                            <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '11px', lineHeight: 1.6, marginBottom: '12px', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                              {feature.brief}
-                            </p>
-                            <span style={{ fontSize: '10px', fontWeight: 600, padding: '4px 10px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.20)', color: '#fff' }}>
-                              {feature.stat}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-              </div>
-
-              {/* ── Bottom edge — shows page stack depth ── */}
-              <div style={{
-                position: 'absolute', bottom: -8, left: 14, right: 12, height: 8,
-                background: 'linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 100%)',
-                borderRadius: '0 0 8px 8px',
-              }} />
-
-              {/* ── Right edge strips — stacked pages illusion ── */}
-              {[0,1,2,3,4,5,6].map(i => (
-                <div key={i} style={{
-                  position: 'absolute',
-                  right: -(i+1) * 2.4,
-                  top: 5 + i,
-                  bottom: 5 + i,
-                  width: 2,
-                  background: `rgba(99,102,241,${0.18 - i * 0.02})`,
-                  borderRadius: 1,
-                }} />
-              ))}
-
-              {/* ── Left edge strips — left page thickness ── */}
-              {[0,1,2].map(i => (
-                <div key={i} style={{
-                  position: 'absolute',
-                  left: -(i+1) * 2,
-                  top: 6 + i,
-                  bottom: 6 + i,
-                  width: 2,
-                  background: `rgba(99,102,241,${0.28 - i * 0.08})`,
-                  borderRadius: 1,
-                }} />
-              ))}
-            </div>
-            </div>{/* scale wrapper */}
+          {/* Central glowing orb */}
+          <div className="feature-orb">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeFeature}
+                initial={{ scale: 0.4, opacity: 0, rotate: -20 }}
+                animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                exit={{ scale: 0.4, opacity: 0, rotate: 20 }}
+                transition={{ duration: 0.45, ease: [0.23, 1, 0.32, 1] }}
+              >
+                <FeatureIcon style={{ width: 52, height: 52, color: '#00f5ff', filter: 'drop-shadow(0 0 12px #00f5ff)' }} />
+              </motion.div>
+            </AnimatePresence>
           </div>
+
+          {/* Orbiting feature icons — 8 icons around orbit-ring-2 (r=130px) */}
+          {FEATURES.map((f, i) => {
+            const FIcon = f.icon as React.ElementType;
+            const isActive = i === activeFeature;
+            const orbitDelay = -((i / FEATURES.length) * 20);
+            return (
+              <div
+                key={i}
+                className="orbit-icon"
+                style={{ animationDelay: `${orbitDelay}s`, animationDuration: '20s' } as React.CSSProperties}
+              >
+                <button
+                  onClick={() => { setDirection(i > activeFeature ? 1 : -1); setActiveFeature(i); }}
+                  className="transition-all duration-300"
+                  style={{
+                    width: 36, height: 36, borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: isActive ? 'rgba(0,245,255,0.18)' : 'rgba(2,4,12,0.85)',
+                    border: `1px solid ${isActive ? 'rgba(0,245,255,0.65)' : 'rgba(255,255,255,0.15)'}`,
+                    boxShadow: isActive ? '0 0 10px rgba(0,245,255,0.5), 0 0 20px rgba(0,245,255,0.2)' : 'none',
+                  }}
+                >
+                  <FIcon style={{ width: 15, height: 15, color: isActive ? '#00f5ff' : 'rgba(255,255,255,0.5)' }} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Feature card */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeFeature}
+            initial={{ opacity: 0, y: 16, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -16, scale: 0.96 }}
+            transition={{ duration: 0.38, ease: [0.23, 1, 0.32, 1] }}
+            className="holo-feature-card max-w-sm w-full text-center relative z-10"
+          >
+            <p className="text-[10px] font-mono tracking-[0.3em] uppercase mb-2" style={{ color: 'rgba(0,245,255,0.6)' }}>
+              FEATURE {String(activeFeature + 1).padStart(2, '0')} / {String(FEATURES.length).padStart(2, '0')}
+            </p>
+            <h3 className="text-base font-bold text-white mb-2 leading-tight">{feature.label}</h3>
+            <p className="text-sm leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.58)' }}>{feature.brief}</p>
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.65)' }}>
+              {feature.stat}
+            </span>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Dot indicators */}
+        <div className="flex items-center gap-2 mt-5 relative z-10">
+          {FEATURES.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => { setDirection(i > activeFeature ? 1 : -1); setActiveFeature(i); }}
+              className="transition-all duration-300 rounded-full"
+              style={{
+                width: i === activeFeature ? 24 : 6,
+                height: 6,
+                background: i === activeFeature ? '#00f5ff' : 'rgba(255,255,255,0.20)',
+                boxShadow: i === activeFeature ? '0 0 8px #00f5ff, 0 0 16px rgba(0,245,255,0.4)' : 'none',
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Platform stats */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2, duration: 0.6 }}
+          className="absolute bottom-8 left-0 right-0 flex justify-center gap-8 z-10"
+        >
+          {[
+            { value: '22+', label: 'AI Modules' },
+            { value: '100+', label: 'Career Paths' },
+            { value: '24/7', label: 'Always On' },
+          ].map(({ value, label }) => (
+            <div key={label} className="text-center">
+              <div className="text-lg font-black neon-text-cyan">{value}</div>
+              <div className="text-[10px] font-mono uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</div>
+            </div>
+          ))}
         </motion.div>
       </div>
 
-      {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-md"
-        >
-          <div className="flex items-center gap-3 mb-10">
-            <NexusEdLogo size={28} />
-            <span className="font-bold text-lg text-white">NexusEd</span>
-          </div>
+      {/* ── RIGHT PANEL: Cyber Terminal ────────────────────────────────── */}
+      <div className="flex items-center justify-center flex-shrink-0 w-full lg:w-[480px] p-5 lg:p-10 relative z-10">
+        <div className="cyber-terminal w-full max-w-md">
+          {/* Scan sweep — animates once on mount */}
+          <div className="scan-sweep" />
+          {/* Corner brackets */}
+          <div className="corner-tl" /><div className="corner-tr" />
+          <div className="corner-bl" /><div className="corner-br" />
 
-          {/* MFA step — replaces normal form after credentials are verified */}
-          {mfaStep ? (
-            <>
-              <div className="flex justify-center mb-5">
-                <div className="p-4 rounded-2xl bg-brand-600/20 border border-brand-500/30">
-                  <ShieldCheck className="w-8 h-8 text-brand-400" />
+          <div className="p-7 lg:p-8">
+            {/* Brand header */}
+            <div className="flex items-center gap-3 mb-7">
+              <div className="relative flex-shrink-0">
+                <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ background: 'radial-gradient(circle, rgba(0,245,255,0.6), transparent)' }} />
+                <NexusEdLogo size={30} className="relative z-10" />
+              </div>
+              <div>
+                <div className="font-black text-lg leading-none tracking-wide">
+                  <span className="neon-text-cyan" style={{ fontSize: 18 }}>NEXUS</span>
+                  <span className="text-white" style={{ fontSize: 18 }}>ED</span>
+                </div>
+                <div className="text-[9px] font-mono tracking-[0.25em] uppercase mt-0.5" style={{ color: 'rgba(0,245,255,0.45)' }}>
+                  Identity Verification · v1.0
                 </div>
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Two-factor verification</h2>
-              <p className="text-white/50 mb-8">
-                Enter the 6-digit code from your authenticator app.
-              </p>
-              <form onSubmit={handleMfaVerify} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-white/70 mb-1.5">
-                    Authenticator code
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={totpCode}
-                    onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="000000"
-                    className="input w-full text-center text-2xl tracking-widest font-mono"
-                    autoFocus
-                    disabled={isMfaSubmitting}
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={isMfaSubmitting || totpCode.length !== 6}
-                  className="btn-primary w-full flex items-center justify-center gap-2 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isMfaSubmitting ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    'Verify & Sign in'
-                  )}
-                </button>
-              </form>
-              <button
-                type="button"
-                onClick={() => { setMfaStep(null); setTotpCode(''); setCaptchaToken(null); }}
-                className="mt-4 w-full text-center text-white/40 hover:text-white/70 text-sm transition-colors"
-              >
-                ← Back to login
-              </button>
-            </>
-          ) : (
-            <>
-              <h2 className="text-3xl font-bold text-white mb-2">Welcome back</h2>
-              <p className="text-white/50 mb-8">Sign in to continue your learning journey.</p>
+            </div>
 
-              {/* Social sign-in — always visible; shows toast when provider not configured */}
-              <div className="mb-6 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  {GOOGLE_CLIENT_ID ? (
-                    <GoogleSignInButton
-                      onSuccess={handleGoogleSuccess}
-                      onError={() => toast.error('Google Sign-In was cancelled or failed.')}
-                      loading={isGoogleLoading}
-                      label="Google"
-                    />
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => toast.info('Google Sign-In is not configured on this server.')}
-                      className="flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-all"
-                    >
-                      <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                      </svg>
-                      Google
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={initiateGithubLogin}
-                    disabled={isGithubLoading}
-                    className="flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isGithubLoading ? (
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                    GitHub
-                  </button>
+            {/* ── MFA Step ── */}
+            {mfaStep ? (
+              <>
+                <div className="flex justify-center mb-5">
+                  <div className="p-4 rounded-2xl" style={{ background: 'rgba(0,245,255,0.08)', border: '1px solid rgba(0,245,255,0.25)' }}>
+                    <ShieldCheck className="w-8 h-8" style={{ color: '#00f5ff' }} />
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 h-px bg-white/10" />
-                  <span className="text-white/30 text-xs">or sign in with email</span>
-                  <div className="flex-1 h-px bg-white/10" />
-                </div>
-              </div>
-
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" autoComplete="off">
-                <div>
-                  <label className="block text-sm font-medium text-white/70 mb-1.5">Email</label>
-                  <input
-                    {...register('email')}
-                    type="email"
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                    className={cn('input w-full', errors.email && 'border-red-500/50')}
-                  />
-                  {errors.email && (
-                    <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-white/70 mb-1.5">Password</label>
-                  <div className="relative">
+                <h2 className="text-2xl font-bold text-white mb-2">Two-factor verification</h2>
+                <p className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.48)' }}>
+                  Enter the 6-digit code from your authenticator app.
+                </p>
+                <form onSubmit={handleMfaVerify} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                      Authenticator code
+                    </label>
                     <input
-                      {...register('password')}
-                      type={showPw ? 'text' : 'password'}
-                      placeholder="••••••••"
-                      autoComplete="new-password"
-                      className={cn('input w-full pr-10', errors.password && 'border-red-500/50')}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={totpCode}
+                      onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="000000"
+                      className="input w-full text-center text-2xl tracking-widest font-mono"
+                      autoFocus
+                      disabled={isMfaSubmitting}
                     />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isMfaSubmitting || totpCode.length !== 6}
+                    className="btn-primary w-full flex items-center justify-center gap-2 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isMfaSubmitting ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : 'Verify & Sign in'}
+                  </button>
+                </form>
+                <button
+                  type="button"
+                  onClick={() => { setMfaStep(null); setTotpCode(''); setCaptchaToken(null); }}
+                  className="mt-4 w-full text-center text-sm transition-colors"
+                  style={{ color: 'rgba(255,255,255,0.38)' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.70)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.38)')}
+                >
+                  ← Back to login
+                </button>
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl font-bold text-white mb-1">Welcome back</h2>
+                <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                  Sign in to continue your learning journey.
+                </p>
+
+                {/* Social sign-in */}
+                <div className="mb-5 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    {GOOGLE_CLIENT_ID ? (
+                      <GoogleSignInButton
+                        onSuccess={handleGoogleSuccess}
+                        onError={() => toast.error('Google Sign-In was cancelled or failed.')}
+                        loading={isGoogleLoading}
+                        label="Google"
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => toast.info('Google Sign-In is not configured on this server.')}
+                        className="flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl text-white text-sm font-medium transition-all"
+                        style={{ border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.04)' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                      >
+                        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        Google
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => setShowPw(!showPw)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors"
+                      onClick={initiateGithubLogin}
+                      disabled={isGithubLoading}
+                      className="flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl text-white text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.04)' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
                     >
-                      {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {isGithubLoading ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                          <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                      GitHub
                     </button>
                   </div>
-                  {errors.password && (
-                    <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>
-                  )}
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
+                    <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.28)' }}>or sign in with email</span>
+                    <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 text-sm text-white/50 cursor-pointer">
-                    <input type="checkbox" className="rounded" /> Remember me
-                  </label>
-                  <Link
-                    to="/forgot-password"
-                    className="text-sm text-brand-400 hover:text-brand-300 transition-colors"
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" autoComplete="off">
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5" style={{ color: 'rgba(255,255,255,0.65)' }}>Email</label>
+                    <input
+                      {...register('email')}
+                      type="email"
+                      placeholder="you@example.com"
+                      autoComplete="email"
+                      className={cn('input w-full', errors.email && 'border-red-500/50')}
+                    />
+                    {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5" style={{ color: 'rgba(255,255,255,0.65)' }}>Password</label>
+                    <div className="relative">
+                      <input
+                        {...register('password')}
+                        type={showPw ? 'text' : 'password'}
+                        placeholder="••••••••"
+                        autoComplete="new-password"
+                        className={cn('input w-full pr-10', errors.password && 'border-red-500/50')}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPw(!showPw)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+                        style={{ color: 'rgba(255,255,255,0.30)' }}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.70)')}
+                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.30)')}
+                      >
+                        {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                      <input type="checkbox" className="rounded" /> Remember me
+                    </label>
+                    <Link to="/forgot-password" className="text-sm transition-colors" style={{ color: '#00f5ff' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = '#7ffbff')}
+                      onMouseLeave={e => (e.currentTarget.style.color = '#00f5ff')}
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+
+                  <CaptchaWidget key={captchaKey} onVerify={handleCaptchaVerify} />
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !captchaToken}
+                    className="btn-primary w-full flex items-center justify-center gap-2 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Forgot password?
+                    {isSubmitting ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>Sign in <ArrowRight className="w-4 h-4" /></>
+                    )}
+                  </button>
+                </form>
+
+                <p className="mt-5 text-center text-sm" style={{ color: 'rgba(255,255,255,0.38)' }}>
+                  Don&apos;t have an account?{' '}
+                  <Link to="/register" className="font-medium transition-colors" style={{ color: '#00f5ff' }}
+                    onMouseEnter={e => (e.currentTarget.style.color = '#7ffbff')}
+                    onMouseLeave={e => (e.currentTarget.style.color = '#00f5ff')}
+                  >
+                    Create one
                   </Link>
-                </div>
+                </p>
 
-                <CaptchaWidget key={captchaKey} onVerify={handleCaptchaVerify} />
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !captchaToken}
-                  className="btn-primary w-full flex items-center justify-center gap-2 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      Sign in <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              </form>
-
-              <p className="mt-6 text-center text-white/40 text-sm">
-                Don&apos;t have an account?{' '}
-                <Link
-                  to="/register"
-                  className="text-brand-400 hover:text-brand-300 font-medium transition-colors"
-                >
-                  Create one
-                </Link>
-              </p>
-
-              <p className="mt-10 text-center text-white/15 text-xs">
-                © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
-              </p>
-            </>
-          )}
-        </motion.div>
+                <p className="mt-8 text-center text-[10px]" style={{ color: 'rgba(255,255,255,0.13)' }}>
+                  © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
+                </p>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

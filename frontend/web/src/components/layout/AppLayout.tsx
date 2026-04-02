@@ -167,6 +167,16 @@ function getNavItems(role?: string): NavItem[] {
   return studentNav;
 }
 
+const ROLE_COLORS: Record<string, { neon: string; bg: string; border: string; badgeBg: string; badgeText: string; ring: string }> = {
+  STUDENT:           { neon: '#00f5ff', bg: 'rgba(0,245,255,0.08)',   border: '#00f5ff',   badgeBg: 'rgba(0,245,255,0.15)',   badgeText: '#00f5ff',   ring: 'rgba(0,245,255,0.30)' },
+  PARENT:            { neon: '#f000ff', bg: 'rgba(240,0,255,0.08)',   border: '#f000ff',   badgeBg: 'rgba(240,0,255,0.15)',   badgeText: '#f000ff',   ring: 'rgba(240,0,255,0.30)' },
+  TEACHER:           { neon: '#00ff88', bg: 'rgba(0,255,136,0.08)',   border: '#00ff88',   badgeBg: 'rgba(0,255,136,0.15)',   badgeText: '#00ff88',   ring: 'rgba(0,255,136,0.30)' },
+  CENTER_ADMIN:      { neon: '#ffd700', bg: 'rgba(255,215,0,0.08)',   border: '#ffd700',   badgeBg: 'rgba(255,215,0,0.15)',   badgeText: '#ffd700',   ring: 'rgba(255,215,0,0.30)' },
+  INSTITUTION_ADMIN: { neon: '#9b00ff', bg: 'rgba(155,0,255,0.08)',   border: '#9b00ff',   badgeBg: 'rgba(155,0,255,0.15)',   badgeText: '#9b00ff',   ring: 'rgba(155,0,255,0.30)' },
+  SUPER_ADMIN:       { neon: '#ff6b00', bg: 'rgba(255,107,0,0.08)',   border: '#ff6b00',   badgeBg: 'rgba(255,107,0,0.15)',   badgeText: '#ff6b00',   ring: 'rgba(255,107,0,0.30)' },
+  GUEST:             { neon: 'rgba(255,255,255,0.5)', bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.2)', badgeBg: 'rgba(255,255,255,0.08)', badgeText: 'rgba(255,255,255,0.5)', ring: 'rgba(255,255,255,0.15)' },
+};
+
 const roleBadgeColors: Record<string, string> = {
   STUDENT:           'bg-brand-500/20 text-brand-400',
   CENTER_ADMIN:      'bg-red-500/20 text-red-400',
@@ -316,21 +326,44 @@ function SidebarContent({
   }
 
   const endPaths = ['/dashboard', '/parent', '/mentor-portal'];
+  const roleColor = ROLE_COLORS[user?.role ?? 'GUEST'] ?? ROLE_COLORS['GUEST'];
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Logo + collapse */}
-      <div className={cn('flex items-center p-4 border-b border-white/5 h-14 flex-shrink-0', collapsed ? 'justify-center' : 'justify-between')}>
+    <div className="flex flex-col h-full relative">
+      {/* Sidebar right-edge neon gradient line */}
+      <div className="absolute top-0 right-0 bottom-0 w-px pointer-events-none" style={{
+        background: `linear-gradient(180deg, transparent 0%, ${roleColor.neon}22 30%, ${roleColor.neon}18 70%, transparent 100%)`
+      }} />
+
+      {/* ── Logo + collapse ── */}
+      <div className={cn(
+        'flex items-center h-14 flex-shrink-0 border-b px-3',
+        collapsed ? 'justify-center' : 'justify-between'
+      )} style={{ borderBottomColor: 'rgba(255,255,255,0.05)' }}>
         <div className="flex items-center gap-2.5 min-w-0">
-          <NexusEdLogo size={collapsed ? 22 : 24} className="flex-shrink-0" />
+          {/* Logo with pulsing ring */}
+          <div className="relative flex-shrink-0">
+            {!collapsed && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-10 h-10 rounded-full animate-ping opacity-15" style={{ border: `1px solid ${roleColor.neon}` }} />
+              </div>
+            )}
+            <NexusEdLogo size={collapsed ? 20 : 22} className="relative z-10" />
+          </div>
           {!collapsed && (
-            <span className="font-bold text-white truncate">NexusEd</span>
+            <span className="font-black text-base tracking-wide truncate">
+              <span style={{ color: roleColor.neon, textShadow: `0 0 8px ${roleColor.neon}80` }}>NEXUS</span>
+              <span className="text-white">ED</span>
+            </span>
           )}
         </div>
         {!collapsed && (
           <button
             onClick={() => setCollapsed(true)}
-            className="hidden lg:flex p-1.5 rounded-lg hover:bg-white/5 text-white/30 hover:text-white/70 transition-all flex-shrink-0"
+            className="hidden lg:flex p-1.5 rounded-lg transition-all flex-shrink-0"
+            style={{ color: 'rgba(255,255,255,0.25)' }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.70)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.25)'; e.currentTarget.style.background = 'transparent'; }}
             aria-label="Collapse sidebar"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -339,7 +372,10 @@ function SidebarContent({
         {collapsed && (
           <button
             onClick={() => setCollapsed(false)}
-            className="hidden lg:flex p-1.5 rounded-lg hover:bg-white/5 text-white/30 hover:text-white/70 transition-all absolute bottom-[76px] left-1/2 -translate-x-1/2"
+            className="hidden lg:flex p-1.5 rounded-lg transition-all absolute bottom-[76px] left-1/2 -translate-x-1/2"
+            style={{ color: 'rgba(255,255,255,0.25)' }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.70)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.25)'; }}
             aria-label="Expand sidebar"
           >
             <ChevronRight className="w-3 h-3" />
@@ -347,43 +383,58 @@ function SidebarContent({
         )}
       </div>
 
-      {/* User card */}
+      {/* ── User card ── */}
       {user && (
-        <div className={cn('px-3 py-3 border-b border-white/5 flex-shrink-0', collapsed ? 'flex justify-center' : '')}>
+        <div className={cn('px-3 py-3 border-b flex-shrink-0', collapsed ? 'flex justify-center' : '')} style={{ borderBottomColor: 'rgba(255,255,255,0.05)' }}>
           {collapsed ? (
             <CollapseTooltip label={user.name}>
-              <Avatar name={user.name} size="sm" imageUrl={user.avatarUrl} />
+              <div className="relative">
+                <div className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 10px ${roleColor.ring}` }} />
+                <Avatar name={user.name} size="sm" imageUrl={user.avatarUrl} />
+              </div>
             </CollapseTooltip>
           ) : (
             <div className="flex items-center gap-3">
-              <Avatar name={user.name} size="sm" imageUrl={user.avatarUrl} />
+              <div className="relative flex-shrink-0">
+                <div className="absolute -inset-0.5 rounded-full opacity-50" style={{ background: `radial-gradient(circle, ${roleColor.neon}30, transparent)` }} />
+                <Avatar name={user.name} size="sm" imageUrl={user.avatarUrl} />
+              </div>
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold text-white truncate">{user.name}</div>
-                <div className="mt-0.5">
-                  <RoleBadge role={user.role} />
-                </div>
+                <div className="text-sm font-semibold text-white truncate leading-tight">{user.name}</div>
+                <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full mt-0.5" style={{ background: roleColor.badgeBg, color: roleColor.badgeText }}>
+                  <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: roleColor.neon }} />
+                  {user.role}
+                </span>
               </div>
             </div>
           )}
         </div>
       )}
 
-      {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+      {/* ── Navigation ── */}
+      <nav className="flex-1 p-2.5 space-y-0.5 overflow-y-auto">
         {navItems.map(({ icon: Icon, label, to, badge, disabled, sectionLabel }) => {
           const tabActive = isTabActive(to);
+
+          const activeStyle = {
+            background: roleColor.bg,
+            borderLeft: `2px solid ${roleColor.neon}`,
+            boxShadow: `inset 0 0 20px ${roleColor.bg}, 0 0 8px ${roleColor.neon}10`,
+          };
+          const inactiveStyle = {};
 
           const entry = disabled ? (
             collapsed ? (
               <CollapseTooltip label={`${label} (coming soon)`}>
-                <span className="flex items-center justify-center p-2.5 rounded-xl text-white/20 cursor-not-allowed relative">
+                <span className="flex items-center justify-center p-2.5 rounded-xl cursor-not-allowed relative" style={{ color: 'rgba(255,255,255,0.18)' }}>
                   <Icon style={{ width: 18, height: 18 }} className="flex-shrink-0" />
                 </span>
               </CollapseTooltip>
             ) : (
-              <span className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/20 cursor-not-allowed select-none">
+              <span className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium cursor-not-allowed select-none" style={{ color: 'rgba(255,255,255,0.18)' }}>
                 <Icon style={{ width: 18, height: 18 }} className="flex-shrink-0" />
                 <span className="flex-1">{label}</span>
+                <span className="text-[8px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.25)' }}>SOON</span>
               </span>
             )
           ) : collapsed ? (
@@ -396,19 +447,21 @@ function SidebarContent({
                   const active = tabActive ?? isActive;
                   return cn(
                     'flex items-center justify-center p-2.5 rounded-xl transition-all duration-200 relative',
-                    active
-                      ? 'bg-brand-500/10 text-white border-l-2 border-brand-500'
-                      : 'text-white/50 hover:text-white hover:bg-white/5'
+                    active ? '' : 'hover:bg-white/5'
                   );
+                }}
+                style={({ isActive }) => {
+                  const active = tabActive ?? isActive;
+                  return active ? activeStyle : inactiveStyle;
                 }}
               >
                 {({ isActive }) => {
                   const active = tabActive ?? isActive;
                   return (
                     <>
-                      <Icon style={{ width: 18, height: 18 }} className={cn('flex-shrink-0', active ? 'text-brand-400' : '')} />
+                      <Icon style={{ width: 18, height: 18, color: active ? roleColor.neon : 'rgba(255,255,255,0.45)', filter: active ? `drop-shadow(0 0 4px ${roleColor.neon})` : 'none', transition: 'all 0.2s' }} className="flex-shrink-0" />
                       {badge !== undefined && badge > 0 && (
-                        <span className="absolute top-1 right-1 w-2 h-2 bg-brand-500 rounded-full" />
+                        <span className="absolute top-1 right-1 w-2 h-2 rounded-full" style={{ background: roleColor.neon }} />
                       )}
                     </>
                   );
@@ -424,10 +477,12 @@ function SidebarContent({
                 const active = tabActive ?? isActive;
                 return cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative',
-                  active
-                    ? 'bg-brand-500/10 text-white border-l-2 border-brand-500'
-                    : 'text-white/50 hover:text-white hover:bg-white/5'
+                  active ? '' : 'hover:bg-white/5'
                 );
+              }}
+              style={({ isActive }) => {
+                const active = tabActive ?? isActive;
+                return active ? activeStyle : inactiveStyle;
               }}
             >
               {({ isActive }) => {
@@ -435,14 +490,21 @@ function SidebarContent({
                 return (
                   <>
                     <Icon
-                      style={{ width: 18, height: 18 }}
-                      className={cn('flex-shrink-0 transition-colors', active ? 'text-brand-400' : 'text-white/40 group-hover:text-white/70')}
+                      style={{
+                        width: 18, height: 18, flexShrink: 0, transition: 'all 0.2s',
+                        color: active ? roleColor.neon : 'rgba(255,255,255,0.40)',
+                        filter: active ? `drop-shadow(0 0 5px ${roleColor.neon})` : 'none',
+                      }}
+                      className="group-hover:!text-white/70"
                     />
-                    <span className="flex-1">{label}</span>
+                    <span className="flex-1 transition-colors" style={{ color: active ? '#fff' : 'rgba(255,255,255,0.55)' }}>{label}</span>
                     {badge !== undefined && badge > 0 && (
-                      <span className="bg-brand-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                      <span className="text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center" style={{ background: roleColor.neon }}>
                         {badge}
                       </span>
+                    )}
+                    {active && (
+                      <div className="w-1 h-1 rounded-full" style={{ background: roleColor.neon, boxShadow: `0 0 4px ${roleColor.neon}` }} />
                     )}
                   </>
                 );
@@ -453,9 +515,12 @@ function SidebarContent({
           return (
             <Fragment key={to}>
               {sectionLabel && !collapsed && (
-                <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/25 select-none">
-                  {sectionLabel}
-                </p>
+                <div className="flex items-center gap-2 px-3 pt-4 pb-1">
+                  <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, ${roleColor.neon}30, transparent)` }} />
+                  <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.22)' }}>
+                    {sectionLabel}
+                  </p>
+                </div>
               )}
               {entry}
             </Fragment>
@@ -463,24 +528,35 @@ function SidebarContent({
         })}
       </nav>
 
-      {/* Bottom actions */}
-      <div className="p-3 border-t border-white/5 space-y-0.5 flex-shrink-0">
+      {/* ── Bottom actions ── */}
+      <div className="p-2.5 border-t space-y-0.5 flex-shrink-0" style={{ borderTopColor: 'rgba(255,255,255,0.05)' }}>
+        {/* Status indicator */}
+        {!collapsed && (
+          <div className="flex items-center gap-2 px-3 py-2 mb-1">
+            <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: '#00ff88', boxShadow: '0 0 6px #00ff88' }} />
+            <span className="text-[9px] font-mono uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.25)' }}>System Online</span>
+          </div>
+        )}
         {collapsed ? (
           <>
             <CollapseTooltip label="Settings">
               <NavLink
                 to="/settings"
                 className={({ isActive }) =>
-                  cn('flex items-center justify-center p-2.5 rounded-xl transition-all duration-200', isActive ? 'bg-brand-500/10 text-brand-400' : 'text-white/50 hover:text-white hover:bg-white/5')
+                  cn('flex items-center justify-center p-2.5 rounded-xl transition-all duration-200', isActive ? '' : 'hover:bg-white/5')
                 }
+                style={({ isActive }) => isActive ? { background: roleColor.bg, borderLeft: `2px solid ${roleColor.neon}` } : {}}
               >
-                <Settings style={{ width: 18, height: 18 }} />
+                {({ isActive }) => <Settings style={{ width: 18, height: 18, color: isActive ? roleColor.neon : 'rgba(255,255,255,0.45)' }} />}
               </NavLink>
             </CollapseTooltip>
             <CollapseTooltip label="Sign out">
               <button
                 onClick={handleLogout}
-                className="flex items-center justify-center p-2.5 rounded-xl w-full text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+                className="flex items-center justify-center p-2.5 rounded-xl w-full transition-all duration-200"
+                style={{ color: 'rgba(239,68,68,0.65)' }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'rgb(239,68,68)'; e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'rgba(239,68,68,0.65)'; e.currentTarget.style.background = 'transparent'; }}
               >
                 <LogOut style={{ width: 18, height: 18 }} />
               </button>
@@ -491,17 +567,25 @@ function SidebarContent({
             <NavLink
               to="/settings"
               className={({ isActive }) =>
-                cn('flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200', isActive ? 'bg-brand-500/10 text-brand-400' : 'text-white/50 hover:text-white hover:bg-white/5')
+                cn('flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200', isActive ? '' : 'hover:bg-white/5')
               }
+              style={({ isActive }) => isActive ? { background: roleColor.bg, borderLeft: `2px solid ${roleColor.neon}` } : { color: 'rgba(255,255,255,0.50)' }}
             >
-              <Settings style={{ width: 18, height: 18 }} className="flex-shrink-0" />
-              Settings
+              {({ isActive }) => (
+                <>
+                  <Settings style={{ width: 18, height: 18, flexShrink: 0, color: isActive ? roleColor.neon : 'rgba(255,255,255,0.40)' }} />
+                  <span style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.55)' }}>Settings</span>
+                </>
+              )}
             </NavLink>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 w-full text-red-400/70 hover:text-red-400 hover:bg-red-500/10"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 w-full"
+              style={{ color: 'rgba(239,68,68,0.65)' }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'rgb(239,68,68)'; e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'rgba(239,68,68,0.65)'; e.currentTarget.style.background = 'transparent'; }}
             >
-              <LogOut style={{ width: 18, height: 18 }} className="flex-shrink-0" />
+              <LogOut style={{ width: 18, height: 18, flexShrink: 0 }} />
               Sign out
             </button>
           </>
@@ -745,11 +829,16 @@ export default function AppLayout() {
             {/* Search bar — opens command palette */}
             <button
               onClick={() => setCommandOpen(true)}
-              className="hidden sm:flex items-center gap-2 bg-surface-100/50 border border-white/10 rounded-xl px-3 py-1.5 w-56 text-left hover:border-white/20 transition-colors"
+              className="hidden sm:flex items-center gap-2 rounded-xl px-3 py-1.5 w-56 text-left transition-all group relative overflow-hidden"
+              style={{ background: 'rgba(11,15,34,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(0,245,255,0.20)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)'; }}
             >
-              <Search className="w-3.5 h-3.5 text-white/50 flex-shrink-0" />
-              <span className="text-sm text-white/50 flex-1">Search...</span>
-              <kbd className="text-[10px] text-white/40 font-mono bg-white/10 px-1.5 py-0.5 rounded border border-white/10 hidden md:block">
+              {/* Scan shimmer on hover */}
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none" style={{ background: 'linear-gradient(90deg, transparent, rgba(0,245,255,0.06), transparent)' }} />
+              <Search className="w-3.5 h-3.5 flex-shrink-0 transition-colors" style={{ color: 'rgba(255,255,255,0.45)' }} />
+              <span className="text-sm flex-1 transition-colors" style={{ color: 'rgba(255,255,255,0.45)' }}>Search...</span>
+              <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded border hidden md:block" style={{ color: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.08)' }}>
                 ⌘K
               </kbd>
             </button>
