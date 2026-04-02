@@ -64,8 +64,10 @@ const NexusChatWidget: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.97 }}
             transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-            className="fixed bottom-24 right-6 z-50 w-[380px] h-[580px] flex flex-col
-                       bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
+            className="fixed z-50 flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden
+                       bottom-20 right-3 left-3
+                       sm:left-auto sm:right-6 sm:w-[380px] sm:bottom-24
+                       h-[70vh] sm:h-[580px] max-h-[600px]"
           >
             <ChatPanel pageContext={location.pathname} />
           </motion.div>

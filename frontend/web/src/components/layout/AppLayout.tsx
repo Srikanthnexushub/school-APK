@@ -772,7 +772,7 @@ export default function AppLayout() {
 
             {/* Guardian chip — student role, only when a parent is linked */}
             {user?.role === 'STUDENT' && (guardians ?? []).length > 0 && (
-              <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                 <ShieldCheck className="w-3 h-3 text-emerald-400 flex-shrink-0" />
                 <span className="text-xs font-medium text-emerald-300 truncate max-w-[100px]">
                   {guardians![0].name}

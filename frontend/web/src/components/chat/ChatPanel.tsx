@@ -59,7 +59,7 @@ const ChatPanel: React.FC<Props> = ({ pageContext }) => {
             <span style={{ color: '#fff', textShadow: '0 0 6px rgba(255,255,255,0.9)' }}>N</span>
           </div>
           <div>
-            <p className="font-bold text-sm leading-tight text-white" style={{ textShadow: '0 0 8px rgba(255,255,255,0.3)' }}>Nexus AI</p>
+            <p className="font-bold text-sm leading-tight" style={{ color: '#ffffff', textShadow: '0 0 8px rgba(255,255,255,0.3)' }}>Nexus AI</p>
             <p className="text-xs leading-tight" style={{ color: '#c4b5fd' }}>
               {isStreaming ? '● typing...' : 'AI Study Partner'}
             </p>
