@@ -24,13 +24,12 @@ public interface JpaActivityEnrollmentRepository extends JpaRepository<ActivityE
     @Override
     Optional<ActivityEnrollment> findByActivityIdAndStudentId(UUID activityId, UUID studentId);
 
-    @Override
     @Query("SELECT COUNT(ae) FROM ActivityEnrollment ae WHERE ae.activityId = :activityId AND ae.status IN :statuses")
-    long countActiveByActivityId(@Param("activityId") UUID activityId, @Param("statuses") java.util.List<com.edutech.curricular.domain.model.enums.EnrollmentStatus> statuses);
+    long countByActivityIdAndStatusIn(@Param("activityId") UUID activityId, @Param("statuses") List<EnrollmentStatus> statuses);
 
+    @Override
     default long countActiveByActivityId(UUID activityId) {
-        return countActiveByActivityId(activityId,
-            java.util.List.of(com.edutech.curricular.domain.model.enums.EnrollmentStatus.ENROLLED,
-                com.edutech.curricular.domain.model.enums.EnrollmentStatus.WAITLISTED));
+        return countByActivityIdAndStatusIn(activityId,
+            List.of(EnrollmentStatus.ENROLLED, EnrollmentStatus.WAITLISTED));
     }
 }

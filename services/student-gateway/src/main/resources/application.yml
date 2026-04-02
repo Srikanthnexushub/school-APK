@@ -86,6 +86,10 @@ spring:
           uri: ${NEXUS_CHAT_SVC_URI:http://localhost:8097}
           predicates:
             - Path=/api/v1/chat/**
+        - id: curricular-svc
+          uri: ${CURRICULAR_SVC_URI:http://localhost:8098}
+          predicates:
+            - Path=/api/v1/curricular/**
 
 server:
   port: ${STUDENT_GATEWAY_PORT}
