@@ -845,7 +845,7 @@ export default function AppLayout() {
       {/* Command Palette */}
       <AnimatePresence>
         {commandOpen && (
-          <CommandPalette onClose={() => setCommandOpen(false)} />
+          <CommandPalette onClose={() => setCommandOpen(false)} role={user?.role} />
         )}
       </AnimatePresence>
 

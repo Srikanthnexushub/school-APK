@@ -1,0 +1,82 @@
+server:
+  port: ${CURRICULAR_SVC_PORT:8098}
+  shutdown: graceful
+
+spring:
+  application:
+    name: ${CURRICULAR_SVC_NAME:curricular-svc}
+  threads:
+    virtual:
+      enabled: true
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.data.redis.RedisReactiveHealthContributorAutoConfiguration
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${CURRICULAR_DB_NAME}
+    username: ${CURRICULAR_DB_USER}
+    password: ${CURRICULAR_DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${CURRICULAR_DB_POOL_MAX_SIZE:5}
+      minimum-idle: ${CURRICULAR_DB_POOL_MIN_IDLE:2}
+      connection-timeout: ${CURRICULAR_DB_CONNECTION_TIMEOUT_MS:30000}
+      idle-timeout: ${CURRICULAR_DB_IDLE_TIMEOUT_MS:600000}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: curricular_schema
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    schemas: curricular_schema
+    locations: classpath:db/migration/curricular
+    baseline-on-migrate: false
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+jwt:
+  public-key-path: ${JWT_PUBLIC_KEY_PATH}
+  issuer: ${JWT_ISSUER}
+
+service:
+  api-key: ${SERVICE_API_KEY}
+
+# Downstream service URIs
+downstream:
+  performance:
+    uri: ${PERFORMANCE_SVC_URI}
+    timeout-ms: ${CURRICULAR_PERF_TIMEOUT_MS:500}
+  student-profile:
+    uri: ${STUDENT_PROFILE_SVC_URI}
+    timeout-ms: ${CURRICULAR_PROFILE_TIMEOUT_MS:500}
+  notification:
+    uri: ${NOTIFICATION_SVC_URI}
+
+kafka:
+  topics:
+    curricular-events: ${CURRICULAR_EVENTS_TOPIC:curricular-events}
+    notification-send: ${NOTIFICATION_SEND_TOPIC:notification-send}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${ACTUATOR_ENDPOINTS:health,info,prometheus,metrics}
+  metrics:
+    tags:
+      application: ${CURRICULAR_SVC_NAME:curricular-svc}
+      environment: ${APP_ENVIRONMENT:local}
+
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.edutech: ${LOG_LEVEL_APP:DEBUG}

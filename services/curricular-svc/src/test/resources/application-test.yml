@@ -1,0 +1,41 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: curricular_schema
+  flyway:
+    schemas: curricular_schema
+    locations: classpath:db/migration/curricular
+    baseline-on-migrate: false
+  kafka:
+    bootstrap-servers: localhost:9092   # overridden by @MockBean KafkaTemplate
+
+jwt:
+  public-key-path: classpath:test-public-key.pem
+  issuer: test-issuer
+
+service:
+  api-key: test-service-key
+
+downstream:
+  performance:
+    uri: http://localhost:9999
+    timeout-ms: 500
+  student-profile:
+    uri: http://localhost:9999
+    timeout-ms: 500
+  notification:
+    uri: http://localhost:9999
+
+kafka:
+  topics:
+    curricular-events: curricular-events
+    notification-send: notification-send
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
