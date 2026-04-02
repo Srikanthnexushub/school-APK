@@ -32,12 +32,6 @@ interface PendingReminder {
   remindAt: string;
 }
 
-interface GuardianSummary {
-  parentProfileId: string;
-  name: string;
-  relationship: string;
-  verified: boolean;
-}
 
 function GlobalReminderModal({ reminders, onAcknowledge }: { reminders: PendingReminder[]; onAcknowledge: (id: string) => void }) {
   const [current, setCurrent] = useState(0);
@@ -643,17 +637,6 @@ export default function AppLayout() {
     throwOnError: false,
   });
 
-  const { data: guardians } = useQuery<GuardianSummary[]>({
-    queryKey: ['student-guardians'],
-    queryFn: () => api.get('/api/v1/parents/by-student').then((r) => {
-      const d = r.data;
-      return Array.isArray(d) ? d : [];
-    }),
-    enabled: !!user && user.role === 'STUDENT',
-    staleTime: 10 * 60 * 1000,
-    retry: false,
-    throwOnError: false,
-  });
 
   let profilePct = 0;
   if (user) {
@@ -770,17 +753,6 @@ export default function AppLayout() {
               </kbd>
             </button>
 
-            {/* Guardian chip — student role, only when a parent is linked */}
-            {user?.role === 'STUDENT' && (guardians ?? []).length > 0 && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                <ShieldCheck className="w-3 h-3 text-emerald-400 flex-shrink-0" />
-                <span className="text-xs font-medium text-emerald-300 truncate max-w-[100px]">
-                  {guardians![0].name}
-                </span>
-                <span className="text-white/25 text-xs">·</span>
-                <span className="text-xs text-white/40 capitalize">{guardians![0].relationship.toLowerCase()}</span>
-              </div>
-            )}
           </div>
 
           <div className="flex items-center gap-2">
