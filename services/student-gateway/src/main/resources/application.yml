@@ -22,6 +22,10 @@ spring:
             redis-rate-limiter.burst-capacity: ${STUDENT_GW_RATE_LIMIT_BURST_CAPACITY}
             redis-rate-limiter.requested-tokens: ${STUDENT_GW_RATE_LIMIT_REQUESTED_TOKENS}
       routes:
+        - id: parent-svc-by-student
+          uri: ${PARENT_SVC_URI}
+          predicates:
+            - Path=/api/v1/parents/by-student
         - id: assess-svc-student-assignments
           uri: ${ASSESS_SVC_URI}
           predicates:

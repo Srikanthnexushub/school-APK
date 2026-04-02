@@ -32,7 +32,8 @@ public class ChatController {
             @RequestHeader("Authorization") String authHeader) {
 
         String jwt = authHeader.replace("Bearer ", "");
-        var result = chatSessionService.startSession(principal.userId(), principal.role(),
+        var result = chatSessionService.startSession(
+            principal.userId(), principal.role(), principal.centerId(),
             request.pageContext(), jwt);
 
         String firstName = result.context().fullName() != null && !result.context().fullName().isBlank()
@@ -54,7 +55,8 @@ public class ChatController {
             @RequestHeader("Authorization") String authHeader) {
 
         String jwt = authHeader.replace("Bearer ", "");
-        return chatSessionService.streamMessage(sessionId, principal.userId(),
+        return chatSessionService.streamMessage(
+            sessionId, principal.userId(), principal.centerId(),
             request.message(), request.pageContext(), jwt);
     }
 

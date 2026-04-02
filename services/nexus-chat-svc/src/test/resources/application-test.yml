@@ -1,0 +1,70 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: chat_schema
+  flyway:
+    schemas: chat_schema
+    locations: classpath:db/migration/chat
+    baseline-on-migrate: false
+  kafka:
+    bootstrap-servers: localhost:9092   # overridden by @MockBean KafkaTemplate
+
+jwt:
+  public-key-path: classpath:test-public-key.pem
+  issuer: test-issuer
+
+service:
+  api-key: test-service-key
+
+downstream:
+  ai-gateway:
+    uri: http://localhost:9999
+    timeout-ms: 1000
+  student-profile:
+    uri: http://localhost:9999
+    timeout-ms: 500
+  performance:
+    uri: http://localhost:9999
+    timeout-ms: 500
+  ai-mentor:
+    uri: http://localhost:9999
+    timeout-ms: 500
+  assess:
+    uri: http://localhost:9999
+    timeout-ms: 500
+  center:
+    uri: http://localhost:9999
+    timeout-ms: 500
+  mentor:
+    uri: http://localhost:9999
+    timeout-ms: 500
+  parent:
+    uri: http://localhost:9999
+    timeout-ms: 500
+  notification:
+    uri: http://localhost:9999
+
+context:
+  total-timeout-ms: 800
+
+chat:
+  max-history-messages: 20
+  session-ttl-hours: 24
+  stream-thread-pool-size: 2
+  proactive-inactivity-days: 3
+
+kafka:
+  topics:
+    nexus-chat-events: nexus-chat-events
+    notification-send: notification-send
+    assess-events: assess-events
+    performance-events: performance-events
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

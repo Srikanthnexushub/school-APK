@@ -24,7 +24,11 @@ public record StudentContext(
     Optional<String> batchName,
     Optional<String> centerName,
     String currentPage
-) {
+) implements RoleContext {
+
+    @Override
+    public String role() { return "STUDENT"; }
+
     public static StudentContext empty(UUID userId, String currentPage) {
         return new StudentContext(userId, "Student", "Unknown", "CBSE", null,
             List.of(), 2026, BigDecimal.ZERO, "UNKNOWN", List.of(), List.of(),

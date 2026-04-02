@@ -75,6 +75,12 @@ downstream:
   center:
     uri: ${CENTER_SVC_URI}
     timeout-ms: ${CTX_CENTER_TIMEOUT_MS:500}
+  mentor:
+    uri: ${MENTOR_SVC_URI}
+    timeout-ms: ${CTX_MENTOR_PROFILE_TIMEOUT_MS:500}
+  parent:
+    uri: ${PARENT_SVC_URI}
+    timeout-ms: ${CTX_PARENT_TIMEOUT_MS:500}
   notification:
     uri: ${NOTIFICATION_SVC_URI}
 

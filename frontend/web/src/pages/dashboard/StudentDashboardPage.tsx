@@ -9,6 +9,9 @@ import {
   Clock,
   ChevronRight,
   AlertTriangle,
+  Users,
+  ShieldCheck,
+  Phone,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -60,6 +63,15 @@ interface ExamEnrollment {
   scheduledDate?: string;
   status?: string;
   daysLeft?: number;
+}
+
+interface ParentSummary {
+  parentProfileId: string;
+  name: string;
+  maskedPhone: string | null;
+  email: string | null;
+  relationship: string;
+  verified: boolean;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -159,6 +171,19 @@ export default function StudentDashboardPage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // ── Guardian (parent) info — reverse lookup from student's perspective ──
+  const guardiansQuery = useQuery<ParentSummary[]>({
+    queryKey: ['student-guardians'],
+    queryFn: () =>
+      api.get('/api/v1/parents/by-student').then((r) => {
+        const d = r.data;
+        return Array.isArray(d) ? d : [];
+      }),
+    enabled: !!studentId,
+    staleTime: 10 * 60 * 1000,
+    retry: false, // silently skip if endpoint is unreachable during dev
+  });
+
   const readinessScore = readinessQuery.data?.score ?? 0;
   const { label: readinessLabel, color: readinessColor } =
     getReadinessLabel(readinessScore);
@@ -247,6 +272,48 @@ export default function StudentDashboardPage() {
         </h1>
         <p className="text-white/40 text-sm mt-1">Here&apos;s your study snapshot for today.</p>
       </motion.div>
+
+      {/* Guardian info strip — shown only when at least one parent is linked */}
+      {(guardiansQuery.data ?? []).length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05, duration: 0.35 }}
+          className="flex items-center gap-3 flex-wrap"
+        >
+          {(guardiansQuery.data ?? []).map((g) => (
+            <div
+              key={g.parentProfileId}
+              className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/15 min-w-0"
+            >
+              <div className="w-8 h-8 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+                <Users className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-medium text-white truncate">{g.name}</span>
+                  {g.verified && (
+                    <span title="Verified parent">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                  <span className="text-[10px] text-emerald-400/70 uppercase tracking-wide font-medium">
+                    {g.relationship}
+                  </span>
+                  {g.maskedPhone && (
+                    <span className="text-xs text-white/30 flex items-center gap-1">
+                      <Phone className="w-3 h-3" />
+                      {g.maskedPhone}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </motion.div>
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">

@@ -23,11 +23,30 @@ public class ContextAggregatorService {
     private final AiMentorWebClientAdapter mentorClient;
     private final AssessWebClientAdapter assessClient;
     private final CenterWebClientAdapter centerClient;
+    private final TeacherProfileWebClientAdapter teacherProfileClient;
+    private final ParentProfileWebClientAdapter parentProfileClient;
 
     @Value("${context.total-timeout-ms:800}")
     private long totalTimeoutMs;
 
-    public StudentContext aggregate(UUID userId, String userRole, String pageContext, String jwt) {
+    public RoleContext aggregate(UUID userId, String userRole, UUID centerId,
+                                  String pageContext, String jwt) {
+        return switch (userRole) {
+            case "STUDENT" -> aggregateStudent(userId, pageContext, jwt);
+            case "TEACHER" -> aggregateTeacher(userId, centerId, pageContext, jwt);
+            case "CENTER_ADMIN", "INSTITUTION_ADMIN" -> aggregateAdmin(userId, centerId, pageContext, jwt);
+            case "PARENT" -> aggregateParent(userId, pageContext, jwt);
+            default -> {
+                log.warn("Unknown role '{}' for userId={}, falling back to student context", userRole, userId);
+                yield aggregateStudent(userId, pageContext, jwt);
+            }
+        };
+    }
+
+    // ─────────────────────────────────────────────
+    // STUDENT — 5-service parallel aggregation
+    // ─────────────────────────────────────────────
+    private StudentContext aggregateStudent(UUID userId, String pageContext, String jwt) {
         try {
             Tuple5<StudentProfileDto, PerformanceDto, MentorContextDto, AssessContextDto, CenterContextDto> tuple =
                 Mono.zip(
@@ -45,18 +64,76 @@ public class ContextAggregatorService {
                 .block(Duration.ofMillis(totalTimeoutMs));
 
             if (tuple == null) {
-                log.warn("Context aggregation timed out for userId={}", userId);
+                log.warn("Student context aggregation timed out for userId={}", userId);
                 return StudentContext.empty(userId, pageContext);
             }
-
             return mapToStudentContext(tuple, userId, pageContext);
 
         } catch (Exception e) {
-            log.error("Context aggregation failed for userId={}: {}", userId, e.getMessage());
+            log.error("Student context aggregation failed for userId={}: {}", userId, e.getMessage());
             return StudentContext.empty(userId, pageContext);
         }
     }
 
+    // ─────────────────────────────────────────────
+    // TEACHER — mentor profile only
+    // ─────────────────────────────────────────────
+    private TeacherContext aggregateTeacher(UUID userId, UUID centerId, String pageContext, String jwt) {
+        try {
+            TeacherProfileDto profile = teacherProfileClient.fetchProfile(userId, jwt)
+                .block(Duration.ofMillis(totalTimeoutMs));
+
+            if (profile == null) profile = TeacherProfileDto.empty();
+
+            return new TeacherContext(
+                userId,
+                profile.fullName(),
+                profile.bio(),
+                profile.specializations() != null ? profile.specializations() : List.of(),
+                null,   // centerName not fetched — avoid chained blocking call in hot path
+                centerId,
+                pageContext
+            );
+        } catch (Exception e) {
+            log.error("Teacher context aggregation failed for userId={}: {}", userId, e.getMessage());
+            return TeacherContext.empty(userId, centerId, pageContext);
+        }
+    }
+
+    // ─────────────────────────────────────────────
+    // ADMIN (CENTER_ADMIN / INSTITUTION_ADMIN)
+    // ─────────────────────────────────────────────
+    private AdminContext aggregateAdmin(UUID userId, UUID centerId, String pageContext, String jwt) {
+        // For admin, we have centerId from JWT — no extra call needed for a functional prompt.
+        // CenterName resolution would require a chained blocking call; deferred to future enhancement.
+        return new AdminContext(userId, "Admin", null, centerId, pageContext);
+    }
+
+    // ─────────────────────────────────────────────
+    // PARENT
+    // ─────────────────────────────────────────────
+    private ParentContext aggregateParent(UUID userId, String pageContext, String jwt) {
+        try {
+            ParentProfileDto profile = parentProfileClient.fetchProfile(userId, jwt)
+                .block(Duration.ofMillis(totalTimeoutMs));
+
+            if (profile == null) profile = ParentProfileDto.empty();
+
+            return new ParentContext(
+                userId,
+                profile.fullName(),
+                profile.linkedStudentNames() != null ? profile.linkedStudentNames() : List.of(),
+                pageContext
+            );
+        } catch (Exception e) {
+            log.error("Parent context aggregation failed for userId={}: {}", userId, e.getMessage());
+            return ParentContext.empty(userId, pageContext);
+        }
+    }
+
+    // ─────────────────────────────────────────────
+    // Student context mapping (unchanged logic)
+    // ─────────────────────────────────────────────
     private StudentContext mapToStudentContext(
             Tuple5<StudentProfileDto, PerformanceDto, MentorContextDto, AssessContextDto, CenterContextDto> t,
             UUID userId, String pageContext) {

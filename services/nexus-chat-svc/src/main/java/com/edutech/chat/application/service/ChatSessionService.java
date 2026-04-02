@@ -39,14 +39,14 @@ public class ChatSessionService {
     // ─────────────────────────────────────────────
     @Transactional
     public ChatSessionStartResult startSession(UUID userId, String userRole,
-                                               String pageContext, String jwtToken) {
+                                               UUID centerId, String pageContext,
+                                               String jwtToken) {
         ChatSession session = ChatSession.create(userId, userRole, pageContext);
         session = sessionRepo.save(session);
 
-        StudentContext ctx = contextAggregator.aggregate(userId, userRole, pageContext, jwtToken);
+        RoleContext ctx = contextAggregator.aggregate(userId, userRole, centerId, pageContext, jwtToken);
         String greeting = buildGreeting(ctx, pageContext);
 
-        // Persist system prompt as SYSTEM message (not shown to user)
         ChatMessage systemMsg = new ChatMessage();
         systemMsg.setSession(session);
         systemMsg.setRole(MessageRole.SYSTEM);
@@ -54,7 +54,6 @@ public class ChatSessionService {
         systemMsg.setMessageType(MessageType.TEXT);
         messageRepo.save(systemMsg);
 
-        // Persist greeting
         ChatMessage greetingMsg = ChatMessage.assistantMessage(session, greeting, 0, 0, 0);
         messageRepo.save(greetingMsg);
         session.recordMessage();
@@ -69,7 +68,7 @@ public class ChatSessionService {
     // ─────────────────────────────────────────────
     // STREAM MESSAGE
     // ─────────────────────────────────────────────
-    public ResponseBodyEmitter streamMessage(UUID sessionId, UUID userId,
+    public ResponseBodyEmitter streamMessage(UUID sessionId, UUID userId, UUID centerId,
                                               String userMessage, String pageContext,
                                               String jwtToken) {
         ResponseBodyEmitter emitter = new ResponseBodyEmitter(30_000L);
@@ -79,8 +78,8 @@ public class ChatSessionService {
                 ChatSession session = sessionRepo.findByIdAndUserId(sessionId, userId)
                     .orElseThrow(() -> new SessionNotFoundException(sessionId));
 
-                StudentContext ctx = contextAggregator.aggregate(
-                    userId, session.getUserRole(), pageContext, jwtToken);
+                RoleContext ctx = contextAggregator.aggregate(
+                    userId, session.getUserRole(), centerId, pageContext, jwtToken);
 
                 List<Map<String, String>> history = buildHistory(sessionId);
 
@@ -98,9 +97,7 @@ public class ChatSessionService {
                             fullResponse.append(token);
                             tokenCounts[1]++;
                             try {
-                                // Emit OpenRouter-style delta so frontend can reuse same parser
-                                String deltaLine = "data: " + buildDeltaJson(token) + "\n\n";
-                                emitter.send(deltaLine);
+                                emitter.send("data: " + buildDeltaJson(token) + "\n\n");
                             } catch (IOException e) {
                                 log.debug("Client disconnected during stream for session {}", sessionId);
                             }
@@ -179,7 +176,6 @@ public class ChatSessionService {
         session.recordMessage();
         sessionRepo.save(session);
 
-        // Blocking response — just echo for action-result messages
         return new SendMessageResponse(userMsg.getId(), "Message recorded.", null);
     }
 
@@ -255,6 +251,32 @@ public class ChatSessionService {
     // ─────────────────────────────────────────────
     // PRIVATE HELPERS
     // ─────────────────────────────────────────────
+    private String buildGreeting(RoleContext ctx, String pageContext) {
+        String name = ctx.fullName() != null && !ctx.fullName().isBlank()
+            ? ctx.fullName().split(" ")[0] : "there";
+
+        if (ctx instanceof StudentContext s) return buildStudentGreeting(s, name, pageContext);
+        if (ctx instanceof TeacherContext)  return "Hi " + name + "! I\u2019m NexusChat, your AI teaching assistant. "
+            + "Ask me about your batches, student progress, or exam creation.";
+        if (ctx instanceof AdminContext)    return "Hi " + name + "! I\u2019m NexusChat. "
+            + "I can help with center operations, batch health, teacher approvals, and more.";
+        if (ctx instanceof ParentContext)   return "Hi " + name + "! I\u2019m NexusChat. "
+            + "I can help you track your child\u2019s progress, fees, and attendance.";
+        return "Hi " + name + "! I\u2019m NexusChat. How can I help you today?";
+    }
+
+    private String buildStudentGreeting(StudentContext s, String name, String pageContext) {
+        Map<String, String> greetings = Map.of(
+            "dashboard",    "Hi " + name + "! Your ERS is " + s.ersScore() + "/100. What would you like to work on today?",
+            "performance",  "Hi " + name + "! I can see your performance data. Want me to explain your weak areas or create a study plan?",
+            "assessments",  "Hi " + name + "! Ready for exam prep? I can explain past results or help you prepare for upcoming exams.",
+            "fees",         "Hi " + name + "! I can help you understand your fee status. What would you like to know?",
+            "attendance",   "Hi " + name + "! I can see your attendance summary. Any concerns I can help with?"
+        );
+        return greetings.getOrDefault(pageContext,
+            "Hi " + name + "! I\u2019m NexusChat, your AI study partner. How can I help you today?");
+    }
+
     private List<Map<String, String>> buildHistory(UUID sessionId) {
         return messageRepo.findLastNBySessionId(sessionId, maxHistoryMessages)
             .stream()
@@ -275,19 +297,6 @@ public class ChatSessionService {
         session.recordMessage();
         session.recordMessage();
         sessionRepo.save(session);
-    }
-
-    private String buildGreeting(StudentContext ctx, String pageContext) {
-        String name = ctx.fullName().split(" ")[0];
-        Map<String, String> greetings = Map.of(
-            "dashboard",    "Hi " + name + "! Your ERS is " + ctx.ersScore() + "/100. What would you like to work on today?",
-            "performance",  "Hi " + name + "! I can see your performance data. Want me to explain your weak areas or create a study plan?",
-            "assessments",  "Hi " + name + "! Ready for exam prep? I can explain past results or help you prepare for upcoming exams.",
-            "fees",         "Hi " + name + "! I can help you understand your fee status. What would you like to know?",
-            "attendance",   "Hi " + name + "! I can see your attendance summary. Any concerns I can help with?"
-        );
-        return greetings.getOrDefault(pageContext,
-            "Hi " + name + "! I\u2019m NexusChat, your AI study partner. How can I help you today?");
     }
 
     private String buildDeltaJson(String token) {

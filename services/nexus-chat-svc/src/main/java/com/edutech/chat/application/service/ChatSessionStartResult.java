@@ -1,10 +1,10 @@
 package com.edutech.chat.application.service;
 
-import com.edutech.chat.domain.model.StudentContext;
+import com.edutech.chat.domain.model.RoleContext;
 import java.util.UUID;
 
 public record ChatSessionStartResult(
     UUID sessionId,
     String greeting,
-    StudentContext context
+    RoleContext context
 ) {}

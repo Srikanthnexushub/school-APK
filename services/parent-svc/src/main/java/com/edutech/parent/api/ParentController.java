@@ -4,6 +4,7 @@ package com.edutech.parent.api;
 import com.edutech.parent.application.dto.AuthPrincipal;
 import com.edutech.parent.application.dto.CreateParentProfileRequest;
 import com.edutech.parent.application.dto.ParentProfileResponse;
+import com.edutech.parent.application.dto.ParentSummaryForStudentResponse;
 import com.edutech.parent.application.dto.RequestParentLinkRequest;
 import com.edutech.parent.application.dto.StudentLinkResponse;
 import com.edutech.parent.application.dto.UpdateParentProfileRequest;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -80,6 +82,12 @@ public class ParentController {
             @Valid @RequestBody UpdateParentProfileRequest request,
             @AuthenticationPrincipal AuthPrincipal principal) {
         return parentProfileService.updateProfile(profileId, request, principal);
+    }
+
+    @GetMapping("/by-student")
+    @Operation(summary = "Get all active parent profiles linked to the authenticated student")
+    public List<ParentSummaryForStudentResponse> getMyParents(@AuthenticationPrincipal AuthPrincipal principal) {
+        return studentLinkService.getMyParents(principal.userId());
     }
 
     @PostMapping("/request-link")

@@ -9,7 +9,18 @@ import java.util.stream.Collectors;
 @Component
 public class SystemPromptBuilder {
 
-    public String build(StudentContext ctx) {
+    public String build(RoleContext ctx) {
+        if (ctx instanceof StudentContext s) return buildStudentPrompt(s);
+        if (ctx instanceof TeacherContext t) return buildTeacherPrompt(t);
+        if (ctx instanceof AdminContext a)   return buildAdminPrompt(a);
+        if (ctx instanceof ParentContext p)  return buildParentPrompt(p);
+        throw new IllegalArgumentException("Unknown RoleContext type: " + ctx.getClass().getSimpleName());
+    }
+
+    // ─────────────────────────────────────────────
+    // STUDENT
+    // ─────────────────────────────────────────────
+    private String buildStudentPrompt(StudentContext ctx) {
         return """
             You are NexusChat, an intelligent AI academic assistant built into NexusEd platform.
             You have access to this student's real-time academic data below. Use it proactively.
@@ -75,6 +86,134 @@ public class SystemPromptBuilder {
         );
     }
 
+    // ─────────────────────────────────────────────
+    // TEACHER
+    // ─────────────────────────────────────────────
+    private String buildTeacherPrompt(TeacherContext ctx) {
+        String name = ctx.fullName().split(" ")[0];
+        String specs = ctx.specializations().isEmpty()
+            ? "Not specified"
+            : String.join(", ", ctx.specializations());
+
+        return """
+            You are NexusChat, an AI teaching assistant built into NexusEd for educators.
+
+            ## TEACHER PROFILE
+            Name: %s
+            Specializations: %s
+            %s
+
+            ## PAGE CONTEXT
+            Teacher is currently on the "%s" page.
+
+            ## YOUR ROLE
+            You assist teachers with:
+            - Batch management — attendance, schedules, student progress queries
+            - Exam creation and question bank guidance
+            - Pedagogy tips and lesson planning for their subjects
+            - Understanding student performance patterns in their batches
+            - Navigating platform features (scheduling, attendance marking, etc.)
+
+            ## RESPONSE STYLE
+            - Address teacher by first name (%s)
+            - Be professional, collaborative, and solution-oriented
+            - Keep responses concise unless asked for detail
+            - Today's date: %s
+            """.formatted(
+                ctx.fullName(),
+                specs,
+                ctx.bio() != null && !ctx.bio().isBlank() ? "Bio: " + ctx.bio() : "",
+                ctx.currentPage(),
+                name,
+                LocalDate.now()
+        );
+    }
+
+    // ─────────────────────────────────────────────
+    // CENTER_ADMIN / INSTITUTION_ADMIN
+    // ─────────────────────────────────────────────
+    private String buildAdminPrompt(AdminContext ctx) {
+        String name = ctx.fullName().split(" ")[0];
+        String centerInfo = ctx.centerId() != null
+            ? "Center ID: " + ctx.centerId()
+            : "Platform-wide admin (no specific center)";
+
+        return """
+            You are NexusChat, an AI operations assistant built into NexusEd for administrators.
+
+            ## ADMIN PROFILE
+            Name: %s
+            %s
+
+            ## PAGE CONTEXT
+            Admin is currently on the "%s" page.
+
+            ## YOUR ROLE
+            You assist center and institution admins with:
+            - Center operations — teacher approvals, batch health, enrollment stats
+            - Fee management — payment tracking, outstanding dues, reminders
+            - Staff management — onboarding, role assignments, approval workflows
+            - Reporting — attendance summaries, performance overviews, batch fill rates
+            - Platform navigation and troubleshooting
+
+            ## RESPONSE STYLE
+            - Address admin by first name (%s)
+            - Be precise, data-focused, and action-oriented
+            - Lead with actionable insights rather than explanations
+            - Today's date: %s
+            """.formatted(
+                ctx.fullName(),
+                centerInfo,
+                ctx.currentPage(),
+                name,
+                LocalDate.now()
+        );
+    }
+
+    // ─────────────────────────────────────────────
+    // PARENT
+    // ─────────────────────────────────────────────
+    private String buildParentPrompt(ParentContext ctx) {
+        String name = ctx.fullName().split(" ")[0];
+        String students = ctx.linkedStudentNames().isEmpty()
+            ? "No linked students yet"
+            : String.join(", ", ctx.linkedStudentNames());
+
+        return """
+            You are NexusChat, an AI parent liaison assistant built into NexusEd.
+
+            ## PARENT PROFILE
+            Name: %s
+            Linked Students: %s
+
+            ## PAGE CONTEXT
+            Parent is currently on the "%s" page.
+
+            ## YOUR ROLE
+            You assist parents with:
+            - Understanding their child's academic progress, ERS score, and weak areas
+            - Fee payment status, due dates, and outstanding dues
+            - Attendance summaries and alerts
+            - Exam schedules and upcoming assessments
+            - How to communicate with teachers or center admins through the platform
+
+            ## RESPONSE STYLE
+            - Address parent by first name (%s)
+            - Be warm, reassuring, and clear — avoid academic jargon
+            - Always frame performance data in a constructive, positive way
+            - Today's date: %s
+            """.formatted(
+                ctx.fullName(),
+                students,
+                ctx.currentPage(),
+                name,
+                LocalDate.now()
+        );
+    }
+
+    // ─────────────────────────────────────────────
+    // Student helpers
+    // ─────────────────────────────────────────────
     private String formatMastery(StudentContext ctx) {
         if (ctx.subjectMastery().isEmpty()) return "  No mastery data yet";
         return ctx.subjectMastery().stream()

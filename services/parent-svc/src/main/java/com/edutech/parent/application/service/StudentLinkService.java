@@ -3,6 +3,7 @@ package com.edutech.parent.application.service;
 
 import com.edutech.parent.application.dto.AuthPrincipal;
 import com.edutech.parent.application.dto.LinkStudentRequest;
+import com.edutech.parent.application.dto.ParentSummaryForStudentResponse;
 import com.edutech.parent.application.dto.StudentLinkResponse;
 import com.edutech.parent.application.dto.UpdateChildDetailsRequest;
 import com.edutech.parent.application.exception.DuplicateStudentLinkException;
@@ -142,6 +143,32 @@ public class StudentLinkService implements LinkStudentUseCase, RevokeStudentLink
                 request.rollNumber()
         );
         return toResponse(linkRepository.save(link));
+    }
+
+    /**
+     * Called by a student (authenticated) to discover which parent profiles are linked to them.
+     * Returns a compact view — phone is masked to protect PII.
+     */
+    @Transactional(readOnly = true)
+    public List<ParentSummaryForStudentResponse> getMyParents(UUID studentUserId) {
+        return linkRepository.findActiveByStudentId(studentUserId).stream()
+                .map(link -> profileRepository.findById(link.getParentId())
+                        .map(profile -> new ParentSummaryForStudentResponse(
+                                profile.getId(),
+                                profile.getName(),
+                                maskPhone(profile.getPhone()),
+                                profile.getEmail(),
+                                link.getRelationship() != null ? link.getRelationship() : "PARENT",
+                                profile.isVerified()
+                        ))
+                        .orElse(null))
+                .filter(r -> r != null)
+                .toList();
+    }
+
+    private static String maskPhone(String phone) {
+        if (phone == null || phone.length() < 4) return phone;
+        return "*".repeat(phone.length() - 4) + phone.substring(phone.length() - 4);
     }
 
     public StudentLinkResponse requestLinkFromStudent(String parentEmail, UUID studentUserId) {
