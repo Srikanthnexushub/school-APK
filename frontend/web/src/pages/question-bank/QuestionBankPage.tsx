@@ -612,22 +612,32 @@ export default function QuestionBankPage() {
           toast.info(`${questions.length} questions available offline for this selection.`);
         }
       } else {
-        // Online — call AI completions endpoint
-        const userMessage = `Generate ${numQuestions} ${difficulty} difficulty MCQ questions for ${subject} covering chapters: ${chaptersToUse.join(', ')}. Target exam: ${targetExam}. Format: [{"q":"question","options":["A)...","B)...","C)...","D)..."],"answer":"A","explanation":"...","chapter":"..."}]`;
-        const response = await api.post('/api/v1/ai/completions', {
-          requesterId: 'QUESTION_BANK',
-          systemPrompt: 'You are an expert exam paper generator for Indian competitive exams. Generate MCQ questions with options A, B, C, D and answers. Format as JSON array only.',
-          userMessage,
-          maxTokens: 2000,
-          temperature: 0.7,
+        // Online — call dedicated question generation endpoint (structured response + server-side fallback)
+        const topic = `${subject}: ${chaptersToUse.join(', ')} (Target exam: ${targetExam})`;
+        const response = await api.post('/api/v1/ai/generate-questions', {
+          topic,
+          difficulty: difficulty.toUpperCase(),
+          count: numQuestions,
         });
-        const content: string = response.data?.content ?? response.data?.text ?? JSON.stringify(response.data);
-        const parsed = extractJsonArray(content);
-        if (!parsed || parsed.length === 0) {
-          toast.error('Could not parse questions from AI response. Please try again.');
+        const generated: Array<{
+          questionText: string;
+          options: string[];
+          correctAnswer: number;
+          explanation: string;
+          difficulty: string;
+        }> = Array.isArray(response.data) ? response.data : [];
+        if (generated.length === 0) {
+          toast.error('No questions returned from AI. Please try again.');
           return;
         }
-        questions = parsed;
+        const ANSWER_LETTERS = ['A', 'B', 'C', 'D'] as const;
+        questions = generated.map((gq, idx) => ({
+          q: gq.questionText,
+          options: gq.options,
+          answer: ANSWER_LETTERS[gq.correctAnswer] ?? 'A',
+          explanation: gq.explanation,
+          chapter: chaptersToUse[idx % chaptersToUse.length] ?? subject,
+        }));
       }
 
       const paper: GeneratedPaper = {
