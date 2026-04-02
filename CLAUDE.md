@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 212+ frozen fixes as of Fix #212 (2026-04-02 — Nexus AI forced white text + mobile chat overflow + guardian chip all-screen).
+- Read `memory/frozen-fixes.md` before touching any file. 215+ frozen fixes as of Fix #215 (2026-04-02 — curricular-svc fully wired: port 8098, /api/v1/curricular/**, dual-gateway, Wave 4).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -57,6 +57,7 @@ Infrastructure details → `memory/quick-ref-infra.md`
 | student-profile-svc | 8090 | Tomcat WAR |
 | notification-svc | 8094 | Tomcat WAR |
 | nexus-chat-svc | 8097 | Tomcat WAR |
+| curricular-svc | 8098 | Tomcat WAR — curriculum + extracurricular, all 5 roles |
 | exam-tracker-svc | 8091 | Tomcat WAR |
 | career-oracle-svc | 8087 | Tomcat WAR |
 | performance-svc | 8092 | Tomcat WAR |
@@ -113,7 +114,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (212 fixes, latest: Fix #212 — Nexus AI forced white text + mobile chat responsive sizing + guardian chip visible on all screens (2026-04-02)).
+Full list → `memory/frozen-fixes.md` (215 fixes, latest: Fix #215 — curricular-svc infra wiring (2026-04-02)).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
@@ -194,8 +195,8 @@ EC2: 13.126.138.9  (i-0e9a180c6cb8af4c3, ap-south-1, t3.xlarge — Elastic IP, u
 mvn clean package -DskipTests -T 4 -Drevision=1.0.0-PROD
 ```
 
-**Artifact breakdown** (16 services total):
-- **12 Tomcat WARs**: auth-svc, parent-svc, center-svc, assess-svc, psych-svc, student-profile-svc, exam-tracker-svc, performance-svc, career-oracle-svc, mentor-svc, notification-svc, nexus-chat-svc
+**Artifact breakdown** (17 services total):
+- **13 Tomcat WARs**: auth-svc, parent-svc, center-svc, assess-svc, psych-svc, student-profile-svc, exam-tracker-svc, performance-svc, career-oracle-svc, mentor-svc, notification-svc, nexus-chat-svc, curricular-svc
 - **4 Exec (java -jar)**: ai-gateway-svc (exec WAR), api-gateway (JAR), student-gateway (JAR), **ai-mentor-svc (JAR — no WAR packaging)**
 - **1 Python sidecar**: python-ai-svc (FastAPI/Uvicorn, port 8095)
 
