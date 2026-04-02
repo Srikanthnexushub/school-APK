@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   Layers, Activity, BarChart3, Calendar, Plus, X,
-  Users, CheckCircle2, AlertCircle,
+  Users, CheckCircle2, AlertCircle, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
@@ -14,6 +14,9 @@ import { cn } from '../../lib/utils';
 interface ActivityResponse {
   id: string; name: string; description: string; category: string;
   maxParticipants: number; scheduleDescription: string; active: boolean;
+}
+interface ActivitySessionResponse {
+  id: string; activityId: string; sessionDate: string; venue: string; durationMins: number; notes: string;
 }
 interface AcademicYearResponse {
   id: string; yearLabel: string; startDate: string; endDate: string; active: boolean;
@@ -33,21 +36,102 @@ const ACTIVITY_CATEGORIES = [
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
-  SPORTS: 'bg-green-500/20 text-green-300',
-  ARTS:   'bg-pink-500/20 text-pink-300',
-  MUSIC:  'bg-purple-500/20 text-purple-300',
-  DANCE:  'bg-fuchsia-500/20 text-fuchsia-300',
-  DRAMA:  'bg-rose-500/20 text-rose-300',
-  CODING_CLUB: 'bg-cyan-500/20 text-cyan-300',
-  DEBATE: 'bg-blue-500/20 text-blue-300',
-  SCIENCE_CLUB: 'bg-teal-500/20 text-teal-300',
-  COMMUNITY_SERVICE: 'bg-amber-500/20 text-amber-300',
-  LEADERSHIP: 'bg-indigo-500/20 text-indigo-300',
-  CULTURAL_EVENTS: 'bg-orange-500/20 text-orange-300',
-  OTHER:  'bg-slate-500/20 text-slate-300',
+  SPORTS: 'bg-green-500/20 text-green-300 border-green-500/30',
+  ARTS:   'bg-pink-500/20 text-pink-300 border-pink-500/30',
+  MUSIC:  'bg-purple-500/20 text-purple-300 border-purple-500/30',
+  DANCE:  'bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/30',
+  DRAMA:  'bg-rose-500/20 text-rose-300 border-rose-500/30',
+  CODING_CLUB: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+  DEBATE: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  SCIENCE_CLUB: 'bg-teal-500/20 text-teal-300 border-teal-500/30',
+  COMMUNITY_SERVICE: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+  LEADERSHIP: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+  CULTURAL_EVENTS: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
+  OTHER:  'bg-slate-500/20 text-slate-300 border-slate-500/30',
+};
+
+const CATEGORY_ICONS: Record<string, string> = {
+  SPORTS: '⚽', ARTS: '🎨', MUSIC: '🎵', DANCE: '💃', DRAMA: '🎭',
+  CODING_CLUB: '💻', DEBATE: '🗣️', SCIENCE_CLUB: '🔬',
+  COMMUNITY_SERVICE: '🤝', LEADERSHIP: '🏆', CULTURAL_EVENTS: '🎪', OTHER: '✨',
 };
 
 type Tab = 'activities' | 'coverage' | 'calendar';
+
+// ─── Activity Row with expandable sessions ───────────────────────────────────
+
+function AdminActivityRow({ a, onDeactivate, deactivating }: {
+  a: ActivityResponse;
+  onDeactivate: (id: string) => void;
+  deactivating: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const { data: sessions = [], isLoading: sessionsLoading } = useQuery<ActivitySessionResponse[]>({
+    queryKey: ['admin-activity-sessions', a.id],
+    queryFn:  () => api.get(`/api/v1/curricular/activities/${a.id}/sessions`).then(r => Array.isArray(r.data) ? r.data : []),
+    enabled: expanded,
+  });
+
+  return (
+    <div className={cn('border rounded-xl overflow-hidden', a.active ? 'bg-surface-100/40 border-white/5' : 'bg-red-500/5 border-red-500/10 opacity-60')}>
+      <div className="flex items-start gap-3 p-4">
+        <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0',
+          CATEGORY_COLORS[a.category]?.split(' ')[0] ?? 'bg-slate-500/20')}>
+          {CATEGORY_ICONS[a.category] ?? '✨'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-semibold text-white">{a.name}</p>
+            <span className={cn('text-[10px] px-2 py-0.5 rounded-full border', CATEGORY_COLORS[a.category] ?? 'bg-slate-500/20 text-slate-300 border-slate-500/30')}>
+              {a.category.replace(/_/g, ' ')}
+            </span>
+            {!a.active && <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">Inactive</span>}
+          </div>
+          {a.description && <p className="text-xs text-white/40 mt-1 line-clamp-2">{a.description}</p>}
+          <div className="flex items-center gap-3 mt-2 text-xs text-white/30">
+            <span><Users className="w-3 h-3 inline mr-1" />{a.maxParticipants} max</span>
+            {a.scheduleDescription && <span>📅 {a.scheduleDescription}</span>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {a.active && (
+            <button onClick={() => onDeactivate(a.id)} disabled={deactivating}
+              className="px-3 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs transition-colors">
+              Deactivate
+            </button>
+          )}
+          <button onClick={() => setExpanded(v => !v)}
+            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors">
+            {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="border-t border-white/5 p-4 space-y-2 bg-white/[0.02]">
+          <p className="text-xs text-white/40 font-semibold uppercase tracking-wide">
+            Sessions {sessions.length > 0 ? `(${sessions.length})` : ''}
+          </p>
+          {sessionsLoading && <p className="text-xs text-white/30">Loading sessions…</p>}
+          {!sessionsLoading && sessions.length === 0 && (
+            <p className="text-xs text-white/30">No sessions recorded yet. Teachers can add sessions from their portal.</p>
+          )}
+          {sessions.map(s => (
+            <div key={s.id} className="flex items-center gap-3 p-2.5 bg-white/[0.03] rounded-lg">
+              <Calendar className="w-4 h-4 text-brand-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-white">{new Date(s.sessionDate).toLocaleDateString()}{s.venue ? ` — ${s.venue}` : ''}</p>
+                {s.notes && <p className="text-[10px] text-white/30 truncate">{s.notes}</p>}
+              </div>
+              <span className="text-xs text-white/30 shrink-0">{s.durationMins} mins</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Create Activity Modal ───────────────────────────────────────────────────
 
@@ -195,8 +279,7 @@ export default function AdminCurricularPage() {
     setSelectedGradeId('');
   };
 
-  const activeCount  = activities.filter(a => a.active).length;
-  const totalEnrolled = 0; // would need aggregation API
+  const activeCount = activities.filter(a => a.active).length;
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
@@ -273,33 +356,12 @@ export default function AdminCurricularPage() {
 
           <div className="space-y-3">
             {activities.map(a => (
-              <div key={a.id} className={cn('p-4 border rounded-xl transition-all', a.active ? 'bg-surface-100/40 border-white/5' : 'bg-red-500/5 border-red-500/10 opacity-60')}>
-                <div className="flex items-start gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-semibold text-white">{a.name}</p>
-                      <span className={cn('text-[10px] px-2 py-0.5 rounded-full', CATEGORY_COLORS[a.category] ?? 'bg-slate-500/20 text-slate-300')}>
-                        {a.category.replace('_', ' ')}
-                      </span>
-                      {!a.active && <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-300">Inactive</span>}
-                    </div>
-                    {a.description && <p className="text-xs text-white/40 mt-1 line-clamp-2">{a.description}</p>}
-                    <div className="flex items-center gap-3 mt-2 text-xs text-white/30">
-                      <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {a.maxParticipants} max</span>
-                      {a.scheduleDescription && <span>{a.scheduleDescription}</span>}
-                    </div>
-                  </div>
-                  {a.active && (
-                    <button
-                      onClick={() => deactivateMutation.mutate(a.id)}
-                      disabled={deactivateMutation.isPending}
-                      className="px-3 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs transition-colors shrink-0"
-                    >
-                      Deactivate
-                    </button>
-                  )}
-                </div>
-              </div>
+              <AdminActivityRow
+                key={a.id}
+                a={a}
+                onDeactivate={id => deactivateMutation.mutate(id)}
+                deactivating={deactivateMutation.isPending}
+              />
             ))}
           </div>
         </div>
