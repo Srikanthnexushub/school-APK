@@ -96,7 +96,7 @@ export default function StudentCurricularPage() {
     enabled:  !!studentId,
     staleTime: 5 * 60_000,
   });
-  const centerId = resolveCenterId(grades);
+  const centerId = resolveCenterId(grades) || user?.centerId || '';
 
   // ── Curriculum framework ─────────────────────────────────────────────────
   const { data: boards = [] }   = useQuery<BoardResponse[]>({
