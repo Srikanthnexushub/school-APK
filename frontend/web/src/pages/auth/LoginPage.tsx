@@ -281,7 +281,7 @@ export default function LoginPage() {
 
 
   return (
-    <div className="min-h-screen flex items-stretch relative overflow-hidden" style={{ background: 'rgb(2,4,12)' }}>
+    <div className="min-h-screen flex flex-col lg:flex-row items-stretch relative overflow-hidden" style={{ background: 'rgb(2,4,12)' }}>
       {/* Ambient aurora blobs — behind everything */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
         <div className="absolute -top-60 -left-60 w-[700px] h-[700px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(0,245,255,0.07) 0%, transparent 70%)', filter: 'blur(80px)' }} />
@@ -313,18 +313,18 @@ export default function LoginPage() {
       </motion.button>
 
       {/* ── LEFT PANEL: Neural Command Center ─────────────────────────── */}
-      <div className="hidden lg:flex flex-col items-center justify-center flex-1 relative px-12 py-16 overflow-hidden">
+      <div className="flex flex-col items-center justify-center lg:flex-1 relative px-5 py-5 lg:px-12 lg:py-16 overflow-hidden">
 
         {/* Platform identity */}
         <motion.div
           initial={{ opacity: 0, y: -24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="text-center mb-8 relative z-10"
+          className="text-center mb-3 lg:mb-8 relative z-10"
         >
           <div className="flex items-center justify-center gap-3 mb-3">
             <NexusEdLogo size={38} className="flex-shrink-0" />
-            <h1 className="text-5xl font-black tracking-tight leading-none">
+            <h1 className="text-3xl lg:text-5xl font-black tracking-tight leading-none">
               <span className="neon-text-cyan">NEXUS</span>
               <span className="text-white">ED</span>
             </h1>
@@ -334,7 +334,34 @@ export default function LoginPage() {
           </p>
         </motion.div>
 
-        {/* ── Orbital Feature Universe ── */}
+        {/* ── Mobile-only: active feature badge + compact stats ── */}
+        <div className="flex lg:hidden flex-col items-center gap-2 relative z-10 mb-1">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeFeature}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              transition={{ duration: 0.3 }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full"
+              style={{ background: 'rgba(0,245,255,0.08)', border: '1px solid rgba(0,245,255,0.22)' }}
+            >
+              <FeatureIcon style={{ width: 12, height: 12, color: '#00f5ff' }} />
+              <span className="text-[11px] font-semibold" style={{ color: 'rgba(0,245,255,0.85)' }}>{feature.label}</span>
+            </motion.div>
+          </AnimatePresence>
+          <div className="flex items-center gap-5 mt-1">
+            {[{ value: '22+', label: 'AI Modules' }, { value: '100+', label: 'Career Paths' }, { value: '24/7', label: 'Always On' }].map(({ value, label }) => (
+              <div key={label} className="text-center">
+                <div className="text-sm font-black neon-text-cyan">{value}</div>
+                <div className="text-[9px] font-mono uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Orbital Feature Universe + Feature Card + Dots (desktop only) ── */}
+        <div className="hidden lg:flex lg:flex-col lg:items-center">
         <div className="relative flex items-center justify-center mb-10" style={{ width: 380, height: 380 }}>
           {/* Orbital rings */}
           <div className="orbital-ring-1" />
@@ -422,13 +449,14 @@ export default function LoginPage() {
             />
           ))}
         </div>
+        </div>{/* end hidden lg:block orbital wrapper */}
 
-        {/* Platform stats */}
+        {/* Platform stats — desktop only (absolute positioned within full-height panel) */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.2, duration: 0.6 }}
-          className="absolute bottom-8 left-0 right-0 flex justify-center gap-8 z-10"
+          className="hidden lg:flex absolute bottom-8 left-0 right-0 justify-center gap-8 z-10"
         >
           {[
             { value: '22+', label: 'AI Modules' },
@@ -444,7 +472,7 @@ export default function LoginPage() {
       </div>
 
       {/* ── RIGHT PANEL: Cyber Terminal ────────────────────────────────── */}
-      <div className="flex items-center justify-center flex-shrink-0 w-full lg:w-[480px] p-5 lg:p-10 relative z-10">
+      <div className="flex items-center justify-center w-full lg:flex-shrink-0 lg:w-[480px] p-4 lg:p-10 relative z-10">
         <div className="cyber-terminal w-full max-w-md">
           {/* Scan sweep — animates once on mount */}
           <div className="scan-sweep" />

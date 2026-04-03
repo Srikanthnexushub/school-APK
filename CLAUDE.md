@@ -4,8 +4,33 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 225+ frozen fixes as of Fix #225 (2026-04-03 — curricular-svc EC2 deployment, navConfig, accent-color, brand neon theme).
+- Read `memory/frozen-fixes.md` before touching any file. 227+ frozen fixes as of Fix #227 (2026-04-03 — LoginPage mobile 2-panel layout restored).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
+
+---
+
+## 📱 WEB + MOBILE APK — DUAL TARGET
+
+This app targets **both web (desktop browser) and mobile (WebView APK / mobile browser)**.
+
+| Target | Path | Status |
+|--------|------|--------|
+| Web (React + Vite) | `frontend/web/` | ✅ Live at http://13.126.138.9 |
+| Mobile APK | `frontend/mobile/` | 🚧 Scaffolded — directory exists, Capacitor NOT yet configured |
+
+**Mobile is currently served as a responsive web app** (same Vite build, accessed via mobile browser or WebView).
+
+### Responsive Breakpoint Strategy
+- **`lg:` (1024px)** is the primary breakpoint — controls desktop vs mobile layouts
+- `sm:` (640px) used only for fine-tuning (chat panel, search bar)
+- **NO Capacitor, Ionic, or native mobile code yet** — `frontend/mobile/` has only `.gitkeep`
+
+### ⛔ Mobile Rules (Fix #227 origin)
+- NEVER use `hidden lg:flex` on a panel that must be visible on mobile — use a compact mobile-only variant instead
+- NEVER remove `flex-col lg:flex-row` from two-panel page roots — it enables vertical stacking on mobile
+- ALWAYS test new pages/features at mobile viewport (375px and 768px) before freezing
+- AppLayout already has a proper mobile sidebar drawer (hamburger button + overlay) — do NOT add a second nav
+- LoginPage left panel uses `flex lg:hidden` compact strip for mobile — NEVER revert to `hidden lg:flex`
 
 ---
 
@@ -17,6 +42,7 @@ Before any new UI component, navigation, or feature — answer these first:
 3. **State location**: Local / Zustand / React Query?
 4. **Role impact**: Does this affect CENTER_ADMIN / INSTITUTION_ADMIN / STUDENT / PARENT / TEACHER?
 5. **Frozen conflict**: Does this touch any file in `frozen-fixes.md`? Ask permission explicitly.
+6. **Mobile impact**: Does this change a page layout, panel, or fixed width? Test at 375px + 768px. Add `flex-col lg:flex-row` for two-panel pages.
 
 ---
 
