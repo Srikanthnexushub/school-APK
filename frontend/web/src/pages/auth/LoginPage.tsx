@@ -361,7 +361,7 @@ export default function LoginPage() {
       </motion.button>
 
       {/* ── LEFT PANEL: Neural Command Center ─────────────────────────── */}
-      <div className="flex flex-col items-center justify-center lg:flex-1 relative px-5 py-5 lg:px-12 lg:py-16 overflow-hidden">
+      <div className="flex flex-col items-center justify-center lg:flex-1 relative px-5 py-6 lg:px-12 overflow-hidden">
 
         {/* Platform identity */}
         <motion.div
@@ -495,7 +495,7 @@ export default function LoginPage() {
       </div>
 
       {/* ── RIGHT PANEL: Cyber Terminal ────────────────────────────────── */}
-      <div className="flex items-center justify-center flex-shrink-0 w-full lg:w-[480px] p-5 lg:p-10 relative z-10">
+      <div className="flex items-center justify-center flex-shrink-0 w-full lg:w-[480px] px-5 py-6 lg:px-10 relative z-10">
         <div className="cyber-terminal w-full max-w-md">
           {/* Scan sweep — animates once on mount */}
           <div className="scan-sweep" />

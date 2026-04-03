@@ -43,6 +43,7 @@ public class QuestionGenerationService implements GenerateQuestionsUseCase {
         );
 
         return routeCompletionUseCase.routeCompletion(completionRequest, principal)
+                .timeout(java.time.Duration.ofSeconds(20))
                 .map(response -> parseQuestions(response.content(), request))
                 .onErrorResume(e -> {
                     log.warn("Question generation LLM call failed, using fallback: {}", e.getMessage());

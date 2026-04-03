@@ -727,7 +727,7 @@ export default function QuestionBankPage() {
         topic,
         difficulty: difficulty.toUpperCase(),
         count: numQuestions,
-      });
+      }, { timeout: 22000 });
       const generated: Array<{
         questionText: string;
         options: string[];
