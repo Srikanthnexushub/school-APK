@@ -56,6 +56,11 @@ public class UserPersistenceAdapter implements UserRepository {
     }
 
     @Override
+    public List<User> findAllByIds(List<UUID> ids) {
+        return jpaRepository.findAllById(ids);
+    }
+
+    @Override
     public long countActiveUsers() {
         return jpaRepository.countActiveUsers();
     }

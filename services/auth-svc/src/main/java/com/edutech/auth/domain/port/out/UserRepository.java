@@ -17,6 +17,8 @@ public interface UserRepository {
     List<User> findExpiredPendingVerification(Instant cutoff);
     Optional<User> findByProviderAndProviderId(String provider, String providerId);
 
+    List<User> findAllByIds(List<UUID> ids);
+
     // ── Audit stats queries ────────────────────────────────────────────────────
     long countActiveUsers();
     long countDeletedUsers();

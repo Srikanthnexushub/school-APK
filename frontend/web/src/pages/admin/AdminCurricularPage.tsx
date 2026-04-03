@@ -20,6 +20,9 @@ interface ActivitySessionResponse {
 interface ActivityEnrollmentAdminResponse {
   enrollmentId: string; studentId: string; status: string; enrolledAt: string;
 }
+interface UserSummaryResponse {
+  userId: string; firstName: string; lastName: string; email: string;
+}
 interface AcademicYearResponse {
   id: string; yearLabel: string; startDate: string; endDate: string; active: boolean;
 }
@@ -87,6 +90,15 @@ function AdminActivityRow({ a, onDeactivate, deactivating }: {
     enabled: expanded,
   });
 
+  const studentIds = enrollments.map(e => e.studentId);
+  const { data: userSummaries = [] } = useQuery<UserSummaryResponse[]>({
+    queryKey: ['admin-user-summaries', studentIds.join(',')],
+    queryFn:  () => api.post('/api/v1/auth/admin/users/batch', studentIds).then(r => Array.isArray(r.data) ? r.data : []),
+    enabled: studentIds.length > 0,
+    staleTime: 5 * 60_000,
+  });
+  const nameMap = Object.fromEntries(userSummaries.map(u => [u.userId, `${u.firstName} ${u.lastName}`.trim() || u.email]));
+
   return (
     <div className={cn('border rounded-xl overflow-hidden', a.active ? 'bg-surface-100/40 border-white/5' : 'bg-red-500/5 border-red-500/10 opacity-60')}>
       <div className="flex items-start gap-3 p-4">
@@ -142,8 +154,8 @@ function AdminActivityRow({ a, onDeactivate, deactivating }: {
                   <Users className="w-3.5 h-3.5 text-brand-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-white font-mono truncate">{e.studentId}</p>
-                  <p className="text-[10px] text-white/30">{new Date(e.enrolledAt).toLocaleDateString()}</p>
+                  <p className="text-xs text-white font-medium truncate">{nameMap[e.studentId] ?? e.studentId}</p>
+                  <p className="text-[10px] text-white/30">Enrolled {new Date(e.enrolledAt).toLocaleDateString()}</p>
                 </div>
                 <span className={cn('text-[10px] px-2 py-0.5 rounded-full border', ENROLLMENT_STATUS_COLORS[e.status] ?? 'bg-slate-500/20 text-slate-300 border-slate-500/30')}>
                   {e.status}
