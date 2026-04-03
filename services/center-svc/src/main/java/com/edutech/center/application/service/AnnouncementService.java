@@ -12,8 +12,10 @@ import com.edutech.center.domain.port.in.SendAnnouncementUseCase;
 import com.edutech.center.domain.port.out.AnnouncementRepository;
 import com.edutech.center.domain.port.out.BatchMemberRepository;
 import com.edutech.center.domain.port.out.BatchRepository;
+import com.edutech.center.domain.port.out.CenterEventPublisher;
 import com.edutech.center.domain.port.out.NotificationPublisher;
 import com.edutech.center.domain.port.out.TeacherRepository;
+import com.edutech.events.center.AnnouncementCreatedEvent;
 import com.edutech.events.notification.NotificationSendEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,17 +39,20 @@ public class AnnouncementService implements SendAnnouncementUseCase {
     private final BatchRepository batchRepository;
     private final TeacherRepository teacherRepository;
     private final NotificationPublisher notificationPublisher;
+    private final CenterEventPublisher centerEventPublisher;
 
     public AnnouncementService(AnnouncementRepository announcementRepository,
                                BatchMemberRepository batchMemberRepository,
                                BatchRepository batchRepository,
                                TeacherRepository teacherRepository,
-                               NotificationPublisher notificationPublisher) {
+                               NotificationPublisher notificationPublisher,
+                               CenterEventPublisher centerEventPublisher) {
         this.announcementRepository = announcementRepository;
         this.batchMemberRepository = batchMemberRepository;
         this.batchRepository = batchRepository;
         this.teacherRepository = teacherRepository;
         this.notificationPublisher = notificationPublisher;
+        this.centerEventPublisher = centerEventPublisher;
     }
 
     @Override
@@ -109,11 +114,20 @@ public class AnnouncementService implements SendAnnouncementUseCase {
                 "centerId", a.getCenterId().toString(),
                 "targetType", a.getTargetType().name()
         );
+        // Notify students and teachers directly via notification-svc
         for (UUID recipientId : recipientIds) {
             NotificationSendEvent event = NotificationSendEvent.inApp(
                     recipientId, a.getTitle(), a.getBody(), metadata);
             notificationPublisher.publish(event);
         }
+        // Publish to center-events so parent-svc can fan out to affected parents
+        List<UUID> batchStudentIds = (a.getTargetType() == AnnouncementTargetType.BATCH && a.getTargetId() != null)
+                ? batchMemberRepository.findActiveByBatchId(a.getTargetId()).stream()
+                    .map(BatchMember::getStudentId).toList()
+                : List.of();
+        centerEventPublisher.publish(new AnnouncementCreatedEvent(
+                a.getId(), a.getCenterId(), a.getTitle(), a.getBody(),
+                a.getTargetType().name(), a.getTargetId(), batchStudentIds, a.getTargetRole()));
         log.info("Announcement delivered: id={} recipientCount={}", a.getId(), recipientIds.size());
     }
 
