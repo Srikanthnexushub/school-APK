@@ -5,7 +5,7 @@ import {
   Users, UserPlus, Search, Filter, RefreshCw, Loader2,
   Upload, ChevronDown, Sparkles, X, CheckCircle2,
   AlertCircle, Clock, UserX, RotateCcw, Bot,
-  GraduationCap, Briefcase, MapPin, Star, Building2,
+  GraduationCap, Briefcase, MapPin, Star, Building2, Send,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -180,6 +180,7 @@ function StaffCard({ member, centerId, onRefresh }: {
   const [showBio, setShowBio] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
   const [reactivating, setReactivating] = useState(false);
+  const [resending, setResending] = useState(false);
 
   const fullName    = `${member.firstName} ${member.lastName}`;
   const subjectList = member.subjects?.split(',').map(s => s.trim()) ?? [];
@@ -208,6 +209,19 @@ function StaffCard({ member, centerId, onRefresh }: {
       toast.error('Reactivation failed');
     } finally {
       setReactivating(false);
+    }
+  }
+
+  async function handleResendInvitation() {
+    setResending(true);
+    try {
+      await api.post(`/api/v1/centers/${centerId}/staff/${member.id}/resend-invitation`);
+      toast.success(`Invitation email sent to ${member.email}`);
+      onRefresh();
+    } catch {
+      toast.error('Failed to send invitation');
+    } finally {
+      setResending(false);
     }
   }
 
@@ -320,9 +334,19 @@ function StaffCard({ member, centerId, onRefresh }: {
           </button>
         )}
         {member.status === 'INVITATION_SENT' && (
-          <span className="flex items-center gap-1 text-xs text-amber-400/60">
-            <Clock className="w-3 h-3" /> Awaiting acceptance
-          </span>
+          <>
+            <span className="flex items-center gap-1 text-xs text-amber-400/60">
+              <Clock className="w-3 h-3" /> Awaiting acceptance
+            </span>
+            <button
+              onClick={handleResendInvitation}
+              disabled={resending}
+              className="flex items-center gap-1 text-xs text-brand-400/70 hover:text-brand-400 transition-colors disabled:opacity-50 ml-auto"
+            >
+              {resending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+              {resending ? 'Sending…' : 'Resend Invite'}
+            </button>
+          </>
         )}
         {member.status === 'PENDING_APPROVAL' && (
           <span className="flex items-center gap-1 text-xs text-orange-400/60">

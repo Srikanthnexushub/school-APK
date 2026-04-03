@@ -16,13 +16,19 @@ import com.edutech.center.domain.model.TeacherStatus;
 import com.edutech.center.domain.port.out.CenterEventPublisher;
 import com.edutech.center.domain.port.out.CenterRepository;
 import com.edutech.center.domain.port.out.TeacherRepository;
+import com.edutech.center.infrastructure.config.KafkaTopicProperties;
+import com.edutech.events.notification.NotificationSendEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -36,23 +42,34 @@ import java.util.UUID;
 public class StaffService {
 
     private static final Logger log = LoggerFactory.getLogger(StaffService.class);
+
     private final TeacherRepository teacherRepository;
     private final CenterRepository  centerRepository;
     private final CenterEventPublisher eventPublisher;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaTopicProperties topicProperties;
+
+    @Value("${app.base-url:http://localhost:3000}")
+    private String appBaseUrl;
 
     public StaffService(TeacherRepository teacherRepository,
                         CenterRepository centerRepository,
-                        CenterEventPublisher eventPublisher) {
+                        CenterEventPublisher eventPublisher,
+                        KafkaTemplate<String, Object> kafkaTemplate,
+                        KafkaTopicProperties topicProperties) {
         this.teacherRepository = teacherRepository;
         this.centerRepository  = centerRepository;
         this.eventPublisher    = eventPublisher;
+        this.kafkaTemplate     = kafkaTemplate;
+        this.topicProperties   = topicProperties;
     }
 
     // ─── Create ───────────────────────────────────────────────────────────────
 
     /**
-     * Admin creates a staff member directly — the record is immediately set to
-     * {@code ACTIVE} status with no email invitation required.
+     * Admin creates a staff member by invitation — generates a token, saves the record
+     * in {@code INVITATION_SENT} status, and publishes an invitation email via notification-svc.
+     * The teacher must click the link to register and complete account activation.
      */
     @Transactional
     public TeacherResponse createStaff(UUID centerId, CreateStaffRequest req, AuthPrincipal principal) {
@@ -64,19 +81,69 @@ public class StaffService {
             throw new TeacherAlreadyAssignedException(req.email(), centerId);
         }
 
+        String token = UUID.randomUUID().toString();
+        Instant tokenExpiry = Instant.now().plus(7, ChronoUnit.DAYS);
+
         Teacher staff = Teacher.createStaffInvitation(
                 centerId,
                 req.firstName(), req.lastName(), req.email(), req.phoneNumber(),
                 req.subjects(), req.district(), req.employeeId(),
                 req.roleType(), req.qualification(), req.yearsOfExperience(),
                 req.designation(), req.bio(),
-                null, null);
+                token, tokenExpiry);
 
         Teacher saved = teacherRepository.save(staff);
+        publishInvitationEmail(saved, center.getName(), token);
 
-        log.info("Staff member created (direct): staffId={} centerId={} roleType={}",
+        log.info("Staff member created with invitation: staffId={} centerId={} roleType={}",
                 saved.getId(), centerId, req.roleType());
         return toResponse(saved);
+    }
+
+    /**
+     * Resend (or send for the first time) an invitation email to an INVITATION_SENT staff member.
+     * Regenerates the token and resets the 7-day expiry window.
+     * Used to fix existing records created before invitation emails were wired up.
+     */
+    @Transactional
+    public TeacherResponse resendInvitation(UUID centerId, UUID staffId, AuthPrincipal principal) {
+        assertAdminAccess(centerId, principal);
+        CoachingCenter center = centerRepository.findById(centerId)
+                .orElseThrow(() -> new CenterNotFoundException(centerId));
+        Teacher staff = teacherRepository.findByIdAndCenterId(staffId, centerId)
+                .orElseThrow(() -> new TeacherNotFoundException(staffId));
+
+        if (staff.getStatus() != TeacherStatus.INVITATION_SENT) {
+            throw new IllegalStateException(
+                "Cannot resend invitation — teacher status is " + staff.getStatus());
+        }
+
+        String token = UUID.randomUUID().toString();
+        Instant tokenExpiry = Instant.now().plus(7, ChronoUnit.DAYS);
+        staff.refreshInvitationToken(token, tokenExpiry);
+        Teacher saved = teacherRepository.save(staff);
+        publishInvitationEmail(saved, center.getName(), token);
+
+        log.info("Invitation resent: staffId={} centerId={}", staffId, centerId);
+        return toResponse(saved);
+    }
+
+    private void publishInvitationEmail(Teacher teacher, String centerName, String token) {
+        String inviteUrl = appBaseUrl + "/accept-invitation?token=" + token;
+        String roleLabel = teacher.getRoleType() != null ? teacher.getRoleType().name() : "Staff";
+        String subject = "You've been invited to join " + centerName + " on NexusEd";
+        String body = "Hi " + teacher.getFirstName() + ",\n\n"
+            + "You have been invited to join " + centerName + " as a " + roleLabel + " on NexusEd.\n\n"
+            + "Click the link below to set your password and activate your account:\n\n"
+            + inviteUrl + "\n\n"
+            + "This link expires in 7 days. If you did not expect this invitation, please ignore this email.";
+
+        NotificationSendEvent event = NotificationSendEvent.email(
+            null, teacher.getEmail(), subject, body,
+            Map.of("teacherId", teacher.getId().toString(), "centerId", teacher.getCenterId().toString()));
+
+        kafkaTemplate.send(topicProperties.notificationSend(), event);
+        log.info("Invitation email queued: staffId={} email={}", teacher.getId(), teacher.getEmail());
     }
 
     // ─── Update ───────────────────────────────────────────────────────────────

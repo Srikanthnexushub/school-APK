@@ -207,6 +207,13 @@ public class Teacher {
         this.updatedAt = Instant.now();
     }
 
+    /** Regenerate invitation token and reset expiry — used for resend-invitation. */
+    public void refreshInvitationToken(String token, Instant tokenExpiry) {
+        this.invitationToken = token;
+        this.invitationTokenExpiresAt = tokenExpiry;
+        this.updatedAt = Instant.now();
+    }
+
     /** Invitation accepted — link to auth-svc user and activate. */
     public void acceptInvitation(UUID userId) {
         if (this.status != TeacherStatus.INVITATION_SENT) {

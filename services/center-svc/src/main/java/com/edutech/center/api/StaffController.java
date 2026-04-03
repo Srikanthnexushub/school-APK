@@ -110,4 +110,16 @@ public class StaffController {
                                            @AuthenticationPrincipal AuthPrincipal principal) {
         return staffService.reactivateStaff(centerId, staffId, principal);
     }
+
+    /**
+     * Resend (or send for first time) an invitation email to an INVITATION_SENT staff member.
+     * Regenerates the token and resets the 7-day expiry window.
+     */
+    @PostMapping("/{staffId}/resend-invitation")
+    @Operation(summary = "Resend invitation email to an INVITATION_SENT staff member")
+    public TeacherResponse resendInvitation(@PathVariable UUID centerId,
+                                            @PathVariable UUID staffId,
+                                            @AuthenticationPrincipal AuthPrincipal principal) {
+        return staffService.resendInvitation(centerId, staffId, principal);
+    }
 }
