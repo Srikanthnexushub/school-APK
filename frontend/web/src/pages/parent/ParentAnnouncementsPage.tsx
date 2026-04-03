@@ -10,16 +10,52 @@ interface Notification {
   body: string;
   readAt?: string;
   createdAt?: string;
+  metadata?: Record<string, string>;
+}
+
+interface ParentProfile { id: string; }
+interface StudentLink { centerId: string; status: string; }
+interface CenterAnnouncement {
+  id: string;
+  title: string;
+  body: string;
+  sentAt?: string;
+  createdAt: string;
 }
 
 export default function ParentAnnouncementsPage() {
   const { user } = useAuthStore();
   const qc = useQueryClient();
 
-  const { data: notifications = [], isLoading } = useQuery<Notification[]>({
+  const { data: profile } = useQuery<ParentProfile>({
+    queryKey: ['parent-profile-me'],
+    queryFn: () => api.get('/api/v1/parents/me').then(r => r.data),
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+  });
+
+  const { data: studentLinks = [] } = useQuery<StudentLink[]>({
+    queryKey: ['parent-student-links', profile?.id],
+    queryFn: () => api.get(`/api/v1/parents/${profile!.id}/students`).then(r =>
+      Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
+    enabled: !!profile?.id,
+    staleTime: 5 * 60_000,
+  });
+
+  const centerId = studentLinks.find(l => l.status !== 'REVOKED')?.centerId;
+
+  const { data: centerAnnouncements = [], isLoading } = useQuery<CenterAnnouncement[]>({
+    queryKey: ['center-announcements-parent', centerId],
+    queryFn: () => api.get(`/api/v1/centers/${centerId}/announcements`).then(r =>
+      Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
+    enabled: !!centerId,
+    staleTime: 60_000,
+  });
+
+  const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ['parent-notifications-inapp'],
     queryFn: () =>
-      api.get('/api/v1/notifications/inapp?size=50').then(r =>
+      api.get('/api/v1/notifications/inapp?size=100').then(r =>
         Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
     enabled: !!user,
     refetchInterval: 30_000,
@@ -35,7 +71,13 @@ export default function ParentAnnouncementsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['parent-notifications-inapp'] }),
   });
 
+  const notifByAnnouncementId = new Map(
+    notifications.filter(n => n.metadata?.announcementId).map(n => [n.metadata!.announcementId, n])
+  );
   const unread = notifications.filter(n => !n.readAt).length;
+  const sorted = [...centerAnnouncements].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
   return (
     <div className="p-6 space-y-6 max-w-2xl mx-auto">
@@ -63,37 +105,41 @@ export default function ParentAnnouncementsPage() {
 
       {isLoading ? (
         <div className="text-center py-16 text-white/40">Loading...</div>
-      ) : notifications.length === 0 ? (
+      ) : sorted.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16 text-white/40">
           <Bell className="w-10 h-10" />
           <p>No announcements from school yet.</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {notifications.map((n, i) => (
-            <motion.div
-              key={n.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.03 }}
-              onClick={() => !n.readAt && markRead(n.id)}
-              className={`relative bg-surface-50/40 border rounded-xl p-4 cursor-pointer transition-colors hover:bg-surface-50/60 ${
-                n.readAt ? 'border-white/5 opacity-60' : 'border-brand-500/20'
-              }`}
-            >
-              {!n.readAt && (
-                <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-brand-500" />
-              )}
-              <div className="text-sm font-semibold text-white pr-4">{n.subject}</div>
-              <div className="text-xs text-white/50 mt-1 line-clamp-3">{n.body}</div>
-              <div className="flex items-center gap-1 mt-2 text-xs text-white/30">
-                <Clock className="w-3 h-3" />
-                {n.createdAt
-                  ? new Date(n.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-                  : 'Recently'}
-              </div>
-            </motion.div>
-          ))}
+          {sorted.map((a, i) => {
+            const notif = notifByAnnouncementId.get(a.id);
+            const isUnread = notif ? !notif.readAt : false;
+            return (
+              <motion.div
+                key={a.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03 }}
+                onClick={() => notif && isUnread && markRead(notif.id)}
+                className={`relative bg-surface-50/40 border rounded-xl p-4 transition-colors hover:bg-surface-50/60 ${
+                  isUnread ? 'border-brand-500/20 cursor-pointer' : 'border-white/5'
+                }`}
+              >
+                {isUnread && (
+                  <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-brand-500" />
+                )}
+                <div className="text-sm font-semibold text-white pr-4">{a.title}</div>
+                <div className="text-xs text-white/50 mt-1 line-clamp-3">{a.body}</div>
+                <div className="flex items-center gap-1 mt-2 text-xs text-white/30">
+                  <Clock className="w-3 h-3" />
+                  {new Date(a.sentAt ?? a.createdAt).toLocaleDateString('en-IN', {
+                    day: 'numeric', month: 'short', year: 'numeric',
+                  })}
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       )}
     </div>
