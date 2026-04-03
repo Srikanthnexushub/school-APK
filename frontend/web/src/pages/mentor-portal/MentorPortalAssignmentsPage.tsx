@@ -131,7 +131,10 @@ export function CreateAssignmentModal({
       toast.error(`${batchLabel}, title, and due date are required.`);
       return;
     }
-    createMutation.mutate(form as CreateAssignmentRequest);
+    createMutation.mutate({
+      ...(form as CreateAssignmentRequest),
+      dueDate: new Date(form.dueDate as string).toISOString(),
+    });
   }
 
   return createPortal(
