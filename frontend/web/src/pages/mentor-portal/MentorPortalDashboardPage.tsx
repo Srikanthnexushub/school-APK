@@ -18,6 +18,10 @@ interface BatchSummary {
   status: 'ACTIVE' | 'INACTIVE' | 'COMPLETED' | 'UPCOMING';
   mode?: 'ONLINE' | 'OFFLINE';
 }
+interface CenterDetails {
+  id: string; name: string; code: string;
+  city?: string; state?: string; board?: string; centerType?: string;
+}
 
 interface MentorStats {
   sessionsThisWeek: number;
@@ -122,6 +126,14 @@ export default function MentorPortalDashboardPage() {
     queryFn: () => api.get(`/api/v1/centers/${centerId}/batches`).then(r =>
       Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
     enabled: !!centerId,
+    retry: false,
+  });
+
+  const centerDetailsQuery = useQuery<CenterDetails | null>({
+    queryKey: ['teacher-center-detail', centerId],
+    queryFn: () => api.get(`/api/v1/centers/${centerId}`).then(r => r.data),
+    enabled: !!centerId,
+    staleTime: 10 * 60 * 1000,
     retry: false,
   });
 
@@ -260,6 +272,57 @@ export default function MentorPortalDashboardPage() {
           </div>
         </div>
       </motion.div>
+
+      {/* School / Center info strip */}
+      {(centerDetailsQuery.data || myBatches.length > 0) && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.04, duration: 0.35 }}
+          className="grid grid-cols-1 sm:grid-cols-3 gap-3"
+        >
+          {centerDetailsQuery.data && (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-violet-500/5 border border-violet-500/15">
+              <div className="w-8 h-8 rounded-full bg-violet-500/15 flex items-center justify-center flex-shrink-0">
+                <GraduationCap className="w-4 h-4 text-violet-400" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] text-violet-400/70 uppercase tracking-wide font-medium mb-0.5">School / Center</div>
+                <div className="text-sm font-semibold text-white truncate">{centerDetailsQuery.data.name}</div>
+                <div className="text-xs text-white/40 truncate">
+                  {[centerDetailsQuery.data.board, centerDetailsQuery.data.city].filter(Boolean).join(' · ') || centerDetailsQuery.data.code}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-brand-500/5 border border-brand-500/15">
+            <div className="w-8 h-8 rounded-full bg-brand-500/15 flex items-center justify-center flex-shrink-0">
+              <BookOpen className="w-4 h-4 text-brand-400" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] text-brand-400/70 uppercase tracking-wide font-medium mb-0.5">My Batches</div>
+              <div className="text-sm font-semibold text-white">{myBatches.length} assigned</div>
+              <div className="text-xs text-white/40">
+                {myBatches.filter(b => b.status === 'ACTIVE').length} active
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
+            <div className="w-8 h-8 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+              <Users className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] text-emerald-400/70 uppercase tracking-wide font-medium mb-0.5">My Students</div>
+              <div className="text-sm font-semibold text-white">
+                {myBatches.reduce((sum, b) => sum + b.enrolledCount, 0)} enrolled
+              </div>
+              <div className="text-xs text-white/40">across {myBatches.length} batch{myBatches.length !== 1 ? 'es' : ''}</div>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-5">
