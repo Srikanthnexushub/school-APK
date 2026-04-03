@@ -334,35 +334,10 @@ export default function LoginPage() {
           </p>
         </motion.div>
 
-        {/* ── Mobile-only: active feature badge + compact stats ── */}
-        <div className="flex lg:hidden flex-col items-center gap-2 relative z-10 mb-1">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeFeature}
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -5 }}
-              transition={{ duration: 0.3 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full"
-              style={{ background: 'rgba(0,245,255,0.08)', border: '1px solid rgba(0,245,255,0.22)' }}
-            >
-              <FeatureIcon style={{ width: 12, height: 12, color: '#00f5ff' }} />
-              <span className="text-[11px] font-semibold" style={{ color: 'rgba(0,245,255,0.85)' }}>{feature.label}</span>
-            </motion.div>
-          </AnimatePresence>
-          <div className="flex items-center gap-5 mt-1">
-            {[{ value: '22+', label: 'AI Modules' }, { value: '100+', label: 'Career Paths' }, { value: '24/7', label: 'Always On' }].map(({ value, label }) => (
-              <div key={label} className="text-center">
-                <div className="text-sm font-black neon-text-cyan">{value}</div>
-                <div className="text-[9px] font-mono uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Orbital Feature Universe + Feature Card + Dots (desktop only) ── */}
-        <div className="hidden lg:flex lg:flex-col lg:items-center">
-        <div className="relative flex items-center justify-center mb-10" style={{ width: 380, height: 380 }}>
+        {/* ── Orbital Feature Universe — 65% scale on mobile, full on desktop ── */}
+        {/* Wrapper clips the 380px layout box to the 247px visual size on mobile */}
+        <div className="relative h-[248px] lg:h-auto w-full overflow-hidden lg:overflow-visible flex items-center justify-center mb-2 lg:mb-10">
+        <div className="scale-[0.65] lg:scale-100 flex-shrink-0 relative flex items-center justify-center" style={{ width: 380, height: 380 }}>
           {/* Orbital rings */}
           <div className="orbital-ring-1" />
           <div className="orbital-ring-2" />
@@ -411,6 +386,7 @@ export default function LoginPage() {
             );
           })}
         </div>
+        </div>{/* end orbital clip container */}
 
         {/* Feature card */}
         <AnimatePresence mode="wait">
@@ -420,7 +396,7 @@ export default function LoginPage() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -16, scale: 0.96 }}
             transition={{ duration: 0.38, ease: [0.23, 1, 0.32, 1] }}
-            className="holo-feature-card max-w-sm w-full text-center relative z-10"
+            className="holo-feature-card max-w-[280px] lg:max-w-sm w-full text-center relative z-10"
           >
             <p className="text-[10px] font-mono tracking-[0.3em] uppercase mb-2" style={{ color: 'rgba(0,245,255,0.6)' }}>
               FEATURE {String(activeFeature + 1).padStart(2, '0')} / {String(FEATURES.length).padStart(2, '0')}
@@ -449,14 +425,13 @@ export default function LoginPage() {
             />
           ))}
         </div>
-        </div>{/* end hidden lg:block orbital wrapper */}
 
-        {/* Platform stats — desktop only (absolute positioned within full-height panel) */}
+        {/* Platform stats — inline on mobile, absolute-bottom on desktop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.2, duration: 0.6 }}
-          className="hidden lg:flex absolute bottom-8 left-0 right-0 justify-center gap-8 z-10"
+          className="relative lg:absolute flex justify-center gap-6 lg:gap-8 z-10 mt-5 lg:mt-0 lg:bottom-8 lg:left-0 lg:right-0"
         >
           {[
             { value: '22+', label: 'AI Modules' },
