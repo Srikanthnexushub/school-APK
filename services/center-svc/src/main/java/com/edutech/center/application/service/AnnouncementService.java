@@ -11,15 +11,20 @@ import com.edutech.center.domain.model.BatchMember;
 import com.edutech.center.domain.port.in.SendAnnouncementUseCase;
 import com.edutech.center.domain.port.out.AnnouncementRepository;
 import com.edutech.center.domain.port.out.BatchMemberRepository;
+import com.edutech.center.domain.port.out.BatchRepository;
 import com.edutech.center.domain.port.out.NotificationPublisher;
+import com.edutech.center.domain.port.out.TeacherRepository;
 import com.edutech.events.notification.NotificationSendEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -29,13 +34,19 @@ public class AnnouncementService implements SendAnnouncementUseCase {
 
     private final AnnouncementRepository announcementRepository;
     private final BatchMemberRepository batchMemberRepository;
+    private final BatchRepository batchRepository;
+    private final TeacherRepository teacherRepository;
     private final NotificationPublisher notificationPublisher;
 
     public AnnouncementService(AnnouncementRepository announcementRepository,
                                BatchMemberRepository batchMemberRepository,
+                               BatchRepository batchRepository,
+                               TeacherRepository teacherRepository,
                                NotificationPublisher notificationPublisher) {
         this.announcementRepository = announcementRepository;
         this.batchMemberRepository = batchMemberRepository;
+        this.batchRepository = batchRepository;
+        this.teacherRepository = teacherRepository;
         this.notificationPublisher = notificationPublisher;
     }
 
@@ -107,15 +118,36 @@ public class AnnouncementService implements SendAnnouncementUseCase {
     }
 
     private List<UUID> resolveRecipients(Announcement a) {
+        UUID centerId = a.getCenterId();
+        String targetRole = a.getTargetRole(); // null, "STUDENT", "TEACHER", "PARENT", "ALL"
+
         if (a.getTargetType() == AnnouncementTargetType.BATCH && a.getTargetId() != null) {
             return batchMemberRepository.findActiveByBatchId(a.getTargetId()).stream()
                     .map(BatchMember::getStudentId).toList();
         }
-        // CENTER / ROLE / ALL — in a real system would query all users in center.
-        // For now returns empty; full fanout requires cross-service query.
-        log.warn("Announcement {} targetType={} fanout not fully implemented for non-BATCH targets",
-                a.getId(), a.getTargetType());
-        return List.of();
+
+        // CENTER / ROLE / ALL — fanout using center-svc local data
+        Set<UUID> recipients = new LinkedHashSet<>();
+        boolean includeStudents = targetRole == null || "STUDENT".equals(targetRole) || "ALL".equals(targetRole)
+                || a.getTargetType() == AnnouncementTargetType.CENTER
+                || a.getTargetType() == AnnouncementTargetType.ALL;
+        boolean includeTeachers = targetRole == null || "TEACHER".equals(targetRole) || "ALL".equals(targetRole)
+                || a.getTargetType() == AnnouncementTargetType.CENTER
+                || a.getTargetType() == AnnouncementTargetType.ALL;
+
+        if (includeStudents) {
+            batchRepository.findByCenterId(centerId).forEach(batch ->
+                batchMemberRepository.findActiveByBatchId(batch.getId()).forEach(m ->
+                    recipients.add(m.getStudentId())));
+        }
+        if (includeTeachers) {
+            teacherRepository.findByCenterId(centerId).forEach(t ->
+                recipients.add(t.getUserId()));
+        }
+
+        log.info("Announcement {} targetType={} targetRole={} recipientCount={}",
+                a.getId(), a.getTargetType(), targetRole, recipients.size());
+        return new ArrayList<>(recipients);
     }
 
     private AnnouncementResponse toResponse(Announcement a) {
