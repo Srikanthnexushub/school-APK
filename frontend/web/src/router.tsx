@@ -44,7 +44,6 @@ import StudentLibraryPage from './pages/library/StudentLibraryPage';
 import ProjectLabPage from './pages/lab/ProjectLabPage';
 import StudentAssignmentsPage from './pages/assignments/StudentAssignmentsPage';
 import MentorPortalAssignmentsPage from './pages/mentor-portal/MentorPortalAssignmentsPage';
-import JobBoardPage from './pages/jobs/JobBoardPage';
 import StudentAttendancePage from './pages/attendance/StudentAttendancePage';
 import StudentFeesPage from './pages/fees/StudentFeesPage';
 import StudentAnnouncementsPage from './pages/announcements/StudentAnnouncementsPage';
@@ -112,7 +111,6 @@ export const router = createBrowserRouter([
       { path: 'library', element: <StudentLibraryPage /> },
       { path: 'lab', element: <ProjectLabPage /> },
       { path: 'assignments',   element: <StudentAssignmentsPage /> },
-      { path: 'jobs',          element: <JobBoardPage /> },
       { path: 'attendance',    element: <StudentAttendancePage /> },
       { path: 'fees',          element: <StudentFeesPage /> },
       { path: 'announcements', element: <StudentAnnouncementsPage /> },
@@ -142,7 +140,6 @@ export const router = createBrowserRouter([
       { path: 'psychometric', element: <ParentPsychometricPage /> },
       { path: 'question-bank', element: <QuestionBankPage /> },
       { path: 'library',        element: <ParentLibraryPage /> },
-      { path: 'jobs',           element: <JobBoardPage /> },
       { path: 'attendance',     element: <ParentAttendancePage /> },
       { path: 'announcements',  element: <ParentAnnouncementsPage /> },
       { path: 'curricular',     element: <ParentCurricularPage /> },
@@ -186,7 +183,6 @@ export const router = createBrowserRouter([
       { path: 'assignments', element: <MentorPortalAssignmentsPage /> },
       { path: 'performance', element: <MentorPortalPerformancePage /> },
       { path: 'library',        element: <MentorPortalLibraryPage /> },
-      { path: 'jobs',           element: <JobBoardPage /> },
       { path: 'attendance',     element: <MentorPortalAttendancePage /> },
       { path: 'announcements',  element: <MentorPortalAnnouncementsPage /> },
       { path: 'question-bank',  element: <QuestionBankPage /> },

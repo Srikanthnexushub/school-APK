@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, X, HelpCircle, Briefcase, Settings } from 'lucide-react';
+import { Search, X, HelpCircle, Settings } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { getNavItems, NavItem } from '../../lib/navConfig';
 
@@ -16,9 +16,8 @@ interface CommandItem {
 // ─── Extras per role (items not in the main sidebar nav) ─────────────────────
 
 const STUDENT_EXTRAS: CommandItem[] = [
-  { label: 'Doubts',   description: 'Ask doubts via AI',      path: '/ai-mentor/doubts', Icon: HelpCircle, keywords: ['question', 'help', 'doubt', 'ask'] },
-  { label: 'Jobs',     description: 'Job & internship board', path: '/jobs',             Icon: Briefcase,  keywords: ['internship', 'placement', 'career'] },
-  { label: 'Settings', description: 'Account preferences',   path: '/settings',         Icon: Settings,   keywords: ['profile', 'account', 'password', 'theme'] },
+  { label: 'Doubts',   description: 'Ask doubts via AI',    path: '/ai-mentor/doubts', Icon: HelpCircle, keywords: ['question', 'help', 'doubt', 'ask'] },
+  { label: 'Settings', description: 'Account preferences', path: '/settings',         Icon: Settings,   keywords: ['profile', 'account', 'password', 'theme'] },
 ];
 
 const TEACHER_EXTRAS: CommandItem[] = [
@@ -26,8 +25,7 @@ const TEACHER_EXTRAS: CommandItem[] = [
 ];
 
 const ADMIN_EXTRAS: CommandItem[] = [
-  { label: 'Jobs',     description: 'Job board management',  path: '/admin?tab=jobs',   Icon: Briefcase,  keywords: ['internship', 'placement'] },
-  { label: 'Settings', description: 'Account preferences',   path: '/settings',         Icon: Settings,   keywords: ['profile', 'account', 'password', 'theme'] },
+  { label: 'Settings', description: 'Account preferences', path: '/settings', Icon: Settings, keywords: ['profile', 'account', 'password', 'theme'] },
 ];
 
 // ─── Auto-derive CommandItem from NavItem ─────────────────────────────────────

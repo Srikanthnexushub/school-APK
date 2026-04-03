@@ -918,8 +918,7 @@ export default function AdminJobsPage() {
       {/* Sub-tab bar */}
       <div className="flex items-center gap-1 px-6 lg:px-8 py-3 border-b border-white/5">
         {([
-          { id: 'my-postings' as SubTab, label: 'My Postings',  icon: Briefcase },
-          { id: 'job-board'   as SubTab, label: 'Job Board',    icon: Globe    },
+          { id: 'my-postings' as SubTab, label: 'My Postings', icon: Briefcase },
         ]).map(tab => {
           const Icon = tab.icon;
           return (
@@ -949,7 +948,6 @@ export default function AdminJobsPage() {
         className="flex-1 p-6 lg:p-8 max-w-5xl mx-auto w-full"
       >
         {subTab === 'my-postings' && <MyPostingsTab centerId={effectiveCenterId} centerType={centerType} />}
-        {subTab === 'job-board'   && <JobBoardTab />}
       </motion.div>
     </div>
   );
