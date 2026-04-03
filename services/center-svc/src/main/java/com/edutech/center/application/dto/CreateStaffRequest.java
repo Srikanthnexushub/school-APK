@@ -9,6 +9,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.util.UUID;
+
 /**
  * Request payload for creating a new staff member via admin-initiated invitation.
  * The created record starts in INVITATION_SENT status; the staff member activates
@@ -60,6 +62,12 @@ public record CreateStaffRequest(
      * Professional bio — may be AI-generated on the frontend before submission.
      * Stored as-is; no length cap enforced here (DB column is TEXT).
      */
-    String bio
+    String bio,
+
+    /**
+     * If provided, the auth account already exists — create the staff record as ACTIVE immediately.
+     * If null, fall back to invitation flow (INVITATION_SENT + email).
+     */
+    UUID userId
 
 ) {}

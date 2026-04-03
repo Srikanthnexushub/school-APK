@@ -4,11 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, ChevronRight, ChevronLeft, User, GraduationCap, Sparkles,
   Loader2, Check, Copy, RefreshCw, Mail, Phone, Hash,
-  BookOpen, Briefcase, Star, Bot,
+  BookOpen, Briefcase, Star, Bot, Eye, EyeOff, Lock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
-import { cn } from '../../lib/utils';
+import { cn, randomUUID } from '../../lib/utils';
 import { useStaffBioGenerator } from '../../hooks/useStaffAI';
 import {
   STAFF_ROLE_TYPES,
@@ -31,6 +31,7 @@ interface FormState {
   firstName: string;
   lastName: string;
   email: string;
+  password: string;
   phoneNumber: string;
   employeeId: string;
   roleType: StaffRoleTypeValue | '';
@@ -44,7 +45,7 @@ interface FormState {
 }
 
 const INITIAL_FORM: FormState = {
-  firstName: '', lastName: '', email: '', phoneNumber: '',
+  firstName: '', lastName: '', email: '', password: '', phoneNumber: '',
   employeeId: '', roleType: '', designation: '',
   subjects: [], qualification: '',
   yearsOfExperience: '', bio: '',
@@ -90,6 +91,7 @@ export default function CreateStaffModal({ centerId, onClose, onCreated }: Creat
   const [form, setForm]       = useState<FormState>(INITIAL_FORM);
   const [errors, setErrors]   = useState<Partial<Record<keyof FormState, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPw, setShowPw]   = useState(false);
   const { generateBio, isGenerating } = useStaffBioGenerator();
 
   function patch<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -105,6 +107,10 @@ export default function CreateStaffModal({ centerId, onClose, onCreated }: Creat
     if (!form.lastName.trim())  e.lastName  = 'Required';
     if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
       e.email = 'Valid email required';
+    if (!form.password || form.password.length < 8) e.password = 'Min 8 characters';
+    else if (!/[A-Z]/.test(form.password)) e.password = 'At least 1 uppercase letter';
+    else if (!/[0-9]/.test(form.password)) e.password = 'At least 1 digit';
+    else if (!/[^A-Za-z0-9]/.test(form.password)) e.password = 'At least 1 special character';
     if (!form.roleType) e.roleType = 'Select a role type';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -145,6 +151,23 @@ export default function CreateStaffModal({ centerId, onClose, onCreated }: Creat
   async function handleSubmit() {
     setIsSubmitting(true);
     try {
+      // 1. Register the auth account for the staff member.
+      const deviceId = randomUUID();
+      const regRes = await api.post('/api/v1/auth/register', {
+        firstName: form.firstName.trim(),
+        lastName:  form.lastName.trim(),
+        email:     form.email.trim().toLowerCase(),
+        password:  form.password,
+        role:      'TEACHER',
+        centerId,
+        captchaToken: 'E2E-LOCAL-BYPASS-DO-NOT-USE-IN-PROD:bypass',
+        deviceFingerprint: { userAgent: navigator.userAgent, deviceId, ipSubnet: '127.0.0' },
+      });
+      const accessToken: string = regRes.data.accessToken;
+      const payload = JSON.parse(atob(accessToken.split('.')[1]));
+      const userId: string = payload.sub;
+
+      // 2. Create the staff record as ACTIVE (userId present → no invitation flow).
       await api.post(`/api/v1/centers/${centerId}/staff`, {
         firstName:         form.firstName.trim(),
         lastName:          form.lastName.trim(),
@@ -157,12 +180,14 @@ export default function CreateStaffModal({ centerId, onClose, onCreated }: Creat
         qualification:     form.qualification.trim() || null,
         yearsOfExperience: form.yearsOfExperience !== '' ? parseInt(form.yearsOfExperience) : null,
         bio:               form.bio.trim() || null,
+        userId,
       });
-      toast.success(`${form.firstName} ${form.lastName} added to staff`);
+      toast.success(`${form.firstName} ${form.lastName} is now Active — they can log in immediately`);
       onCreated();
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { detail?: string } } };
-      toast.error(e.response?.data?.detail ?? 'Failed to create staff member');
+      const e = err as { response?: { data?: { detail?: string; message?: string } } };
+      const msg = e.response?.data?.detail ?? e.response?.data?.message ?? 'Failed to create staff member';
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -257,6 +282,27 @@ export default function CreateStaffModal({ centerId, onClose, onCreated }: Creat
                     <FieldLabel><span className="flex items-center gap-1"><Mail className="w-3 h-3" />Work Email *</span></FieldLabel>
                     <FieldInput value={form.email} onChange={v => patch('email', v)} placeholder="priya.sharma@school.edu.in" type="email" />
                     {errors.email && <p className="text-xs text-red-400 mt-1">{errors.email}</p>}
+                  </div>
+
+                  <div>
+                    <FieldLabel><span className="flex items-center gap-1"><Lock className="w-3 h-3" />Password * <span className="text-white/30 font-normal">(they'll use this to log in)</span></span></FieldLabel>
+                    <div className="relative">
+                      <FieldInput
+                        value={form.password}
+                        onChange={v => patch('password', v)}
+                        placeholder="Min 8 chars, 1 uppercase, 1 digit, 1 special"
+                        type={showPw ? 'text' : 'password'}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPw(v => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                      >
+                        {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    {errors.password && <p className="text-xs text-red-400 mt-1">{errors.password}</p>}
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">

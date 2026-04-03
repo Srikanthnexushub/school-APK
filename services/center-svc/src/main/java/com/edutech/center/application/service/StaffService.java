@@ -81,10 +81,26 @@ public class StaffService {
             throw new TeacherAlreadyAssignedException(req.email(), centerId);
         }
 
+        Teacher staff;
+        if (req.userId() != null) {
+            // Auth account already created by admin — activate immediately, no email needed.
+            staff = Teacher.createStaffDirect(
+                    centerId, req.userId(),
+                    req.firstName(), req.lastName(), req.email(), req.phoneNumber(),
+                    req.subjects(), req.district(), req.employeeId(),
+                    req.roleType(), req.qualification(), req.yearsOfExperience(),
+                    req.designation(), req.bio());
+            Teacher saved = teacherRepository.save(staff);
+            log.info("Staff member created as ACTIVE (direct): staffId={} centerId={} roleType={}",
+                    saved.getId(), centerId, req.roleType());
+            return toResponse(saved);
+        }
+
+        // Invitation flow — generate token and send email.
         String token = UUID.randomUUID().toString();
         Instant tokenExpiry = Instant.now().plus(7, ChronoUnit.DAYS);
 
-        Teacher staff = Teacher.createStaffInvitation(
+        staff = Teacher.createStaffInvitation(
                 centerId,
                 req.firstName(), req.lastName(), req.email(), req.phoneNumber(),
                 req.subjects(), req.district(), req.employeeId(),
@@ -243,6 +259,7 @@ public class StaffService {
                 t.getPhoneNumber(), t.getSubjects(), t.getDistrict(), t.getCountry(), t.getEmployeeId(),
                 t.getStatus(), t.getJoinedAt(),
                 t.getRoleType(), t.getQualification(), t.getYearsOfExperience(),
-                t.getDesignation(), t.getBio());
+                t.getDesignation(), t.getBio(),
+                t.getInvitationToken());
     }
 }

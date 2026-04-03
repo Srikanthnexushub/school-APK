@@ -135,6 +135,6 @@ public class TeacherApprovalService {
             t.getPhoneNumber(), t.getSubjects(), t.getDistrict(), t.getCountry(), t.getEmployeeId(),
             t.getStatus(), t.getJoinedAt(),
             t.getRoleType(), t.getQualification(), t.getYearsOfExperience(),
-            t.getDesignation(), t.getBio());
+            t.getDesignation(), t.getBio(), null);
     }
 }

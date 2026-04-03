@@ -26,5 +26,7 @@ public record TeacherResponse(
     String qualification,
     Integer yearsOfExperience,
     String designation,
-    String bio
+    String bio,
+    // ── Invitation token (only present for INVITATION_SENT — dev/admin use) ──
+    String invitationToken
 ) {}

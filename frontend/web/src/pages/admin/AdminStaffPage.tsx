@@ -5,7 +5,7 @@ import {
   Users, UserPlus, Search, Filter, RefreshCw, Loader2,
   Upload, ChevronDown, Sparkles, X, CheckCircle2,
   AlertCircle, Clock, UserX, RotateCcw, Bot,
-  GraduationCap, Briefcase, MapPin, Star, Building2, Send,
+  GraduationCap, Briefcase, MapPin, Star, Building2, Send, Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -44,6 +44,7 @@ interface StaffMember {
   yearsOfExperience: number | null;
   designation: string | null;
   bio: string | null;
+  invitationToken: string | null;
 }
 
 type SubTab = 'directory' | 'import';
@@ -280,7 +281,7 @@ function StaffCard({ member, centerId, onRefresh }: {
           {subjectList.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {subjectList.map(s => (
-                <span key={s} className="text-xs px-1.5 py-0.5 bg-brand-500/10 border border-brand-500/15 rounded text-brand-300/80">{s}</span>
+                <span key={s} className="text-xs px-1.5 py-0.5 bg-indigo-100 dark:bg-brand-500/10 border border-indigo-300 dark:border-brand-500/20 rounded text-indigo-700 dark:text-brand-300 font-medium">{s}</span>
               ))}
             </div>
           )}
@@ -338,14 +339,28 @@ function StaffCard({ member, centerId, onRefresh }: {
             <span className="flex items-center gap-1 text-xs text-amber-400/60">
               <Clock className="w-3 h-3" /> Awaiting acceptance
             </span>
-            <button
-              onClick={handleResendInvitation}
-              disabled={resending}
-              className="flex items-center gap-1 text-xs text-brand-400/70 hover:text-brand-400 transition-colors disabled:opacity-50 ml-auto"
-            >
-              {resending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-              {resending ? 'Sending…' : 'Resend Invite'}
-            </button>
+            <div className="flex items-center gap-2 ml-auto">
+              {member.invitationToken && (
+                <button
+                  onClick={() => {
+                    const link = `${window.location.origin}/accept-invitation?token=${member.invitationToken}`;
+                    navigator.clipboard.writeText(link);
+                    toast.success('Invite link copied — share it with the teacher');
+                  }}
+                  className="flex items-center gap-1 text-xs text-emerald-500/70 hover:text-emerald-500 transition-colors"
+                >
+                  <Copy className="w-3 h-3" /> Copy Link
+                </button>
+              )}
+              <button
+                onClick={handleResendInvitation}
+                disabled={resending}
+                className="flex items-center gap-1 text-xs text-brand-400/70 hover:text-brand-400 transition-colors disabled:opacity-50"
+              >
+                {resending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                {resending ? 'Sending…' : 'Resend Invite'}
+              </button>
+            </div>
           </>
         )}
         {member.status === 'PENDING_APPROVAL' && (

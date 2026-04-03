@@ -586,7 +586,7 @@ class TeacherControllerIT {
                 "Head of Mathematics Department",
                 "Mathematics,Physics", "Bengaluru",
                 "M.Sc Mathematics, B.Ed", 8,
-                "Dr. Priya Sharma is an accomplished educator specialising in Mathematics.");
+                "Dr. Priya Sharma is an accomplished educator specialising in Mathematics.", null);
 
         ResponseEntity<TeacherResponse> response = restTemplate.exchange(
                 "/api/v1/centers/" + centerId + "/staff",
@@ -621,7 +621,7 @@ class TeacherControllerIT {
         CreateStaffRequest req = new CreateStaffRequest(
                 "Amit", "Verma", "amit.sf2" + R + "@school.com", null,
                 null, StaffRoleType.TEACHER, "Senior Teacher",
-                "Biology", null, "B.Sc Biology, B.Ed", 3, null);
+                "Biology", null, "B.Sc Biology, B.Ed", 3, null, null);
 
         // First creation — should succeed
         restTemplate.exchange("/api/v1/centers/" + centerId + "/staff",
@@ -652,7 +652,7 @@ class TeacherControllerIT {
         CreateStaffRequest create = new CreateStaffRequest(
                 "Lakshmi", "Nair", "lakshmi.sf3" + R + "@school.com", "+911234567890",
                 "EMP-202", StaffRoleType.COORDINATOR, "Academic Coordinator",
-                "English,History", "Chennai", "MA English, B.Ed", 5, "A dedicated educator.");
+                "English,History", "Chennai", "MA English, B.Ed", 5, "A dedicated educator.", null);
 
         TeacherResponse created = restTemplate.exchange(
                 "/api/v1/centers/" + centerId + "/staff",
@@ -696,7 +696,7 @@ class TeacherControllerIT {
         CreateStaffRequest create = new CreateStaffRequest(
                 "Rahul", "Gupta", "rahul.sf4" + R + "@school.com", null,
                 "EMP-303", StaffRoleType.LAB_ASSISTANT, "Chemistry Lab Assistant",
-                "Chemistry", "Mumbai", "B.Sc Chemistry", 2, null);
+                "Chemistry", "Mumbai", "B.Sc Chemistry", 2, null, null);
 
         TeacherResponse created = restTemplate.exchange(
                 "/api/v1/centers/" + centerId + "/staff",
@@ -729,13 +729,13 @@ class TeacherControllerIT {
         restTemplate.exchange("/api/v1/centers/" + centerId + "/staff", HttpMethod.POST,
                 authEntity(new CreateStaffRequest("Anita", "Reddy", "anita.sf5" + R + "@school.com",
                         null, null, StaffRoleType.HOD, "HOD Chemistry",
-                        "Chemistry", null, "M.Sc Chemistry", 12, null)),
+                        "Chemistry", null, "M.Sc Chemistry", 12, null, null)),
                 TeacherResponse.class);
 
         restTemplate.exchange("/api/v1/centers/" + centerId + "/staff", HttpMethod.POST,
                 authEntity(new CreateStaffRequest("Kiran", "Rao", "kiran.sf5" + R + "@school.com",
                         null, null, StaffRoleType.TEACHER, "Physics Teacher",
-                        "Physics", null, "M.Sc Physics", 4, null)),
+                        "Physics", null, "M.Sc Physics", 4, null, null)),
                 TeacherResponse.class);
 
         ResponseEntity<TeacherResponse[]> response = restTemplate.exchange(
@@ -766,13 +766,13 @@ class TeacherControllerIT {
         restTemplate.exchange("/api/v1/centers/" + centerId + "/staff", HttpMethod.POST,
                 authEntity(new CreateStaffRequest("Meena", "Pillai", "meena.sf6" + R + "@school.com",
                         null, null, StaffRoleType.COUNSELOR, "Career Counselor",
-                        null, null, "M.A Psychology", 6, null)),
+                        null, null, "M.A Psychology", 6, null, null)),
                 TeacherResponse.class);
 
         restTemplate.exchange("/api/v1/centers/" + centerId + "/staff", HttpMethod.POST,
                 authEntity(new CreateStaffRequest("Deepa", "Nambiar", "deepa.sf6" + R + "@school.com",
                         null, null, StaffRoleType.LIBRARIAN, "Senior Librarian",
-                        null, null, "M.Lib Science", 10, null)),
+                        null, null, "M.Lib Science", 10, null, null)),
                 TeacherResponse.class);
 
         // All should be INVITATION_SENT since no one accepted yet

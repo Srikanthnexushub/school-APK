@@ -160,6 +160,26 @@ public class Teacher {
         return t;
     }
 
+    /**
+     * Admin direct-creation — auth account already exists, activate immediately.
+     * Used when the admin provides a password and registers the auth account on behalf of the staff.
+     */
+    public static Teacher createStaffDirect(UUID centerId, UUID userId, String firstName, String lastName,
+                                             String email, String phoneNumber, String subjects,
+                                             String district, String employeeId,
+                                             StaffRoleType roleType, String qualification,
+                                             Integer yearsOfExperience, String designation, String bio) {
+        Teacher t = new Teacher(UUID.randomUUID(), centerId, userId,
+                firstName, lastName, email, phoneNumber, subjects, district, employeeId,
+                TeacherStatus.ACTIVE);
+        t.roleType = roleType;
+        t.qualification = qualification;
+        t.yearsOfExperience = yearsOfExperience;
+        t.designation = designation;
+        t.bio = bio;
+        return t;
+    }
+
     /** Self-registration — teacher registered independently, needs coordinator approval. */
     public static Teacher createPending(UUID centerId, UUID userId, String firstName,
                                         String lastName, String email, String phoneNumber,
