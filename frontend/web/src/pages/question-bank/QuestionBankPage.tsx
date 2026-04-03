@@ -1,23 +1,23 @@
 // Centralized Question Bank — accessible to all roles (STUDENT, PARENT, TEACHER, CENTER_ADMIN, INSTITUTION_ADMIN, SUPER_ADMIN)
-// Features: Online (AI) / Offline (static) mode · Print · PDF download · Reports tab
+// Features: AI generation · Print · PDF download · .txt download · Assign to Batch (Fix #231)
 
 import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen, Loader2, Eye, EyeOff, Download, Sparkles, FileText,
-  ChevronDown, ChevronUp, CheckCircle2, Printer, Wifi, WifiOff,
+  ChevronDown, ChevronUp, CheckCircle2, Printer,
   BarChart2, Settings2, BookMarked, ClipboardList, TrendingUp, Trophy,
-  RefreshCw,
+  RefreshCw, Users, X,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
+import { useQuery } from '@tanstack/react-query';
 import { cn } from '../../lib/utils';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
-import { getOfflineQuestions, type OfflineDifficulty, type OfflineQuestion } from '../../data/offlineQuestions';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -36,7 +36,6 @@ const DIFFICULTIES = ['Low', 'Medium', 'High'] as const;
 type Difficulty = typeof DIFFICULTIES[number];
 const QUESTION_COUNTS = [10, 20, 30] as const;
 type QuestionCount = typeof QUESTION_COUNTS[number];
-type Mode = 'online' | 'offline';
 type Tab = 'generator' | 'reports';
 
 const DIFFICULTY_COLORS: Record<string, string> = {
@@ -78,7 +77,6 @@ interface GeneratedPaper {
   chapters: string[];
   questions: MCQQuestion[];
   generatedAt: string;
-  mode: Mode;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -139,7 +137,6 @@ function generatePrintableHTML(paper: GeneratedPaper): string {
       Chapters: ${paper.chapters.join(', ')} &nbsp;|&nbsp;
       Questions: ${paper.questions.length} &nbsp;|&nbsp;
       Generated: ${formatDate(paper.generatedAt)}
-      ${paper.mode === 'offline' ? ' &nbsp;|&nbsp; <em>Offline Mode</em>' : ''}
     </div>
     <hr class="divider">
     ${questionsHTML}
@@ -156,7 +153,7 @@ function generateDownloadText(paper: GeneratedPaper): string {
     `Subject: ${paper.subject} | Exam: ${paper.targetExam} | Difficulty: ${paper.difficulty}`,
     `Chapters: ${paper.chapters.join(', ')}`,
     `Total Questions: ${paper.questions.length} | Generated: ${formatDate(paper.generatedAt)}`,
-    paper.mode === 'offline' ? '[Offline Mode — pre-loaded question bank]' : '[Online Mode — AI-generated]',
+    '[AI-Generated]',
     '',
     '='.repeat(60),
     '',
@@ -224,9 +221,107 @@ function QuestionCard({ question, index, showAnswers }: { question: MCQQuestion;
   );
 }
 
+// ─── Assign to Batch Modal ────────────────────────────────────────────────────
+
+interface BatchOption { id: string; name: string; }
+
+function AssignToBatchModal({ paper, centerId, onClose }: {
+  paper: GeneratedPaper;
+  centerId: string;
+  onClose: () => void;
+}) {
+  const [selectedBatchId, setSelectedBatchId] = useState('');
+
+  const { data: batches = [], isLoading } = useQuery<BatchOption[]>({
+    queryKey: ['batches-for-assign', centerId],
+    queryFn: () =>
+      api.get(`/api/v1/centers/${centerId}/batches`).then(r => {
+        const d = r.data;
+        return Array.isArray(d) ? d : (d.content ?? []);
+      }),
+    enabled: !!centerId,
+  });
+
+  function handleAssign() {
+    const batch = batches.find(b => b.id === selectedBatchId);
+    if (!batch) return;
+    // Trigger PDF download so the teacher/admin can distribute to the batch
+    const html = generatePrintableHTML(paper);
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${paper.subject}-${paper.difficulty}-${batch.name}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Paper assigned to ${batch.name} — distribute the downloaded file to students.`);
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="glass rounded-2xl p-6 w-full max-w-sm border border-white/10 space-y-4"
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-white font-semibold flex items-center gap-2">
+            <Users className="w-4 h-4 text-brand-400" />
+            Assign to Batch
+          </h2>
+          <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <p className="text-xs text-white/40 leading-relaxed">
+          Select a batch to assign <span className="text-white/70">{paper.subject} — {paper.targetExam}</span> ({paper.questions.length} questions). A PDF will be downloaded for distribution.
+        </p>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-6 text-white/30">
+            <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading batches…
+          </div>
+        ) : batches.length === 0 ? (
+          <p className="text-xs text-white/30 text-center py-4">No batches found for this centre.</p>
+        ) : (
+          <select
+            value={selectedBatchId}
+            onChange={e => setSelectedBatchId(e.target.value)}
+            className="w-full bg-surface-100/40 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500"
+          >
+            <option value="">— Select a batch —</option>
+            {batches.map(b => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        )}
+
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2 rounded-xl border border-white/10 text-white/50 hover:text-white hover:bg-white/5 text-sm transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleAssign}
+            disabled={!selectedBatchId}
+            className="flex-1 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm transition-colors disabled:opacity-40"
+          >
+            Assign &amp; Download
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 // ─── Paper Display ────────────────────────────────────────────────────────────
 
-function PaperDisplay({ paper }: { paper: GeneratedPaper }) {
+function PaperDisplay({ paper, onAssign }: { paper: GeneratedPaper; onAssign: () => void }) {
   const [showAnswers, setShowAnswers] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -291,14 +386,9 @@ function PaperDisplay({ paper }: { paper: GeneratedPaper }) {
               <h3 className="font-bold text-white text-base print:text-black">
                 {paper.subject} — {paper.targetExam}
               </h3>
-              <span className={cn(
-                'text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1',
-                paper.mode === 'offline'
-                  ? 'bg-violet-500/15 text-violet-400 print:bg-violet-100 print:text-violet-700'
-                  : 'bg-sky-500/15 text-sky-400 print:bg-sky-100 print:text-sky-700'
-              )}>
-                {paper.mode === 'offline' ? <WifiOff className="w-2.5 h-2.5" /> : <Wifi className="w-2.5 h-2.5" />}
-                {paper.mode === 'offline' ? 'Offline' : 'AI-Generated'}
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 bg-sky-500/15 text-sky-400 print:bg-sky-100 print:text-sky-700">
+                <Sparkles className="w-2.5 h-2.5" />
+                AI-Generated
               </span>
             </div>
             <div className="flex items-center gap-3 mt-1 flex-wrap">
@@ -354,6 +444,14 @@ function PaperDisplay({ paper }: { paper: GeneratedPaper }) {
               <FileText className="w-4 h-4" />
               .txt
             </button>
+            <button
+              onClick={onAssign}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+              title="Assign to a batch"
+            >
+              <Users className="w-4 h-4" />
+              Assign to Batch
+            </button>
           </div>
         </div>
       </div>
@@ -383,8 +481,6 @@ function ReportsTab({ papers }: { papers: GeneratedPaper[] }) {
 
   const totalQuestions = papers.reduce((s, p) => s + p.questions.length, 0);
   const uniqueSubjects = [...new Set(papers.map((p) => p.subject))];
-  const onlinePapers = papers.filter((p) => p.mode === 'online').length;
-  const offlinePapers = papers.filter((p) => p.mode === 'offline').length;
 
   // Bar chart: questions per subject
   const subjectData = uniqueSubjects.map((subj) => ({
@@ -398,12 +494,6 @@ function ReportsTab({ papers }: { papers: GeneratedPaper[] }) {
     name: d,
     value: papers.filter((p) => p.difficulty === d).reduce((s, p) => s + p.questions.length, 0),
   })).filter((d) => d.value > 0);
-
-  // Mode distribution
-  const modeData = [
-    { name: 'AI Online', value: onlinePapers, color: '#38bdf8' },
-    { name: 'Offline', value: offlinePapers, color: '#a78bfa' },
-  ].filter((d) => d.value > 0);
 
   return (
     <div className="space-y-6">
@@ -488,36 +578,9 @@ function ReportsTab({ papers }: { papers: GeneratedPaper[] }) {
         </div>
       </div>
 
-      {/* Mode split + paper history */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Mode split */}
+      {/* Paper history */}
+      <div>
         <div className="card border border-white/5">
-          <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-            <Wifi className="w-4 h-4 text-sky-400" />
-            Generation Mode
-          </h3>
-          <ResponsiveContainer width="100%" height={160}>
-            <PieChart>
-              <Pie data={modeData} cx="50%" cy="50%" outerRadius={60} dataKey="value">
-                {modeData.map((entry) => (
-                  <Cell key={entry.name} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{ background: '#1a1a2e', border: '1px solid #ffffff15', borderRadius: 8, fontSize: 12 }}
-                itemStyle={{ color: '#fff' }}
-              />
-              <Legend
-                iconType="circle"
-                iconSize={8}
-                formatter={(value) => <span style={{ color: '#ffffff80', fontSize: 11 }}>{value}</span>}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Paper history table */}
-        <div className="lg:col-span-2 card border border-white/5">
           <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
             <FileText className="w-4 h-4 text-white/40" />
             Paper History ({papers.length})
@@ -539,7 +602,6 @@ function ReportsTab({ papers }: { papers: GeneratedPaper[] }) {
                       'bg-emerald-500/15 text-emerald-400'
                     )}>{p.difficulty}</span>
                     <span>{p.questions.length}Q</span>
-                    <span>{p.mode === 'offline' ? '· Offline' : '· AI'}</span>
                     <span>{formatDate(p.generatedAt)}</span>
                   </div>
                 </div>
@@ -619,16 +681,27 @@ export default function QuestionBankPage() {
   const [selectedChapters, setSelectedChapters] = useState<string[]>([]);
   const [difficulty, setDifficulty] = useState<Difficulty>('Medium');
   const [numQuestions, setNumQuestions] = useState<QuestionCount>(10);
-  const [mode, setMode] = useState<Mode>('online');
 
   // UI state
   const [generating, setGenerating] = useState(false);
+  const [assignPaperId, setAssignPaperId] = useState<string | null>(null);
   const [papers, setPapers] = useState<GeneratedPaper[]>([]);
   const [activePaperId, setActivePaperId] = useState<string | null>(null);
   const [showPrevious, setShowPrevious] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('generator');
 
   const chapters = CHAPTERS_BY_SUBJECT[subject] ?? [];
+
+  // centerId needed for Assign to Batch — only for roles that manage batches
+  const canAssign = role && !['STUDENT', 'PARENT'].includes(role);
+  const jwtCenterId = user?.centerId ?? '';
+  const { data: centers = [] } = useQuery<{ id: string }[]>({
+    queryKey: ['centers'],
+    queryFn: () => api.get('/api/v1/centers').then(r => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }),
+    enabled: !!canAssign && !jwtCenterId,
+    staleTime: 5 * 60_000,
+  });
+  const centerId = jwtCenterId || centers[0]?.id || '';
 
   const toggleChapter = useCallback((ch: string) => {
     setSelectedChapters((prev) =>
@@ -648,52 +721,32 @@ export default function QuestionBankPage() {
     try {
       let questions: MCQQuestion[];
 
-      if (mode === 'offline') {
-        // Pull from static bundled question pool — no network call
-        const raw = getOfflineQuestions(subject, chaptersToUse, difficulty as OfflineDifficulty, numQuestions);
-        if (raw.length === 0) {
-          toast.error('No offline questions available for this combination. Try a different subject or difficulty.');
-          return;
-        }
-        questions = raw.map((q) => ({
-          q: q.q,
-          options: q.options,
-          answer: q.answer,
-          explanation: q.explanation,
-          chapter: q.chapter,
-        }));
-        // Pad with available questions if fewer than requested
-        if (questions.length < numQuestions) {
-          toast.info(`${questions.length} questions available offline for this selection.`);
-        }
-      } else {
-        // Online — call dedicated question generation endpoint (structured response + server-side fallback)
-        const topic = `${subject}: ${chaptersToUse.join(', ')} (Target exam: ${targetExam})`;
-        const response = await api.post('/api/v1/ai/generate-questions', {
-          topic,
-          difficulty: difficulty.toUpperCase(),
-          count: numQuestions,
-        });
-        const generated: Array<{
-          questionText: string;
-          options: string[];
-          correctAnswer: number;
-          explanation: string;
-          difficulty: string;
-        }> = Array.isArray(response.data) ? response.data : [];
-        if (generated.length === 0) {
-          toast.error('No questions returned from AI. Please try again.');
-          return;
-        }
-        const ANSWER_LETTERS = ['A', 'B', 'C', 'D'] as const;
-        questions = generated.map((gq, idx) => ({
-          q: gq.questionText,
-          options: gq.options,
-          answer: ANSWER_LETTERS[gq.correctAnswer] ?? 'A',
-          explanation: gq.explanation,
-          chapter: chaptersToUse[idx % chaptersToUse.length] ?? subject,
-        }));
+      // AI generation — call dedicated question generation endpoint
+      const topic = `${subject}: ${chaptersToUse.join(', ')} (Target exam: ${targetExam})`;
+      const response = await api.post('/api/v1/ai/generate-questions', {
+        topic,
+        difficulty: difficulty.toUpperCase(),
+        count: numQuestions,
+      });
+      const generated: Array<{
+        questionText: string;
+        options: string[];
+        correctAnswer: number;
+        explanation: string;
+        difficulty: string;
+      }> = Array.isArray(response.data) ? response.data : [];
+      if (generated.length === 0) {
+        toast.error('No questions returned from AI. Please try again.');
+        return;
       }
+      const ANSWER_LETTERS = ['A', 'B', 'C', 'D'] as const;
+      questions = generated.map((gq, idx) => ({
+        q: gq.questionText,
+        options: gq.options,
+        answer: ANSWER_LETTERS[gq.correctAnswer] ?? 'A',
+        explanation: gq.explanation,
+        chapter: chaptersToUse[idx % chaptersToUse.length] ?? subject,
+      }));
 
       const paper: GeneratedPaper = {
         id: `paper-${Date.now()}`,
@@ -703,7 +756,6 @@ export default function QuestionBankPage() {
         chapters: chaptersToUse,
         questions,
         generatedAt: new Date().toISOString(),
-        mode,
       };
 
       setPapers((prev) => [paper, ...prev]);
@@ -778,49 +830,10 @@ export default function QuestionBankPage() {
           >
             {/* ── Configuration card ── */}
             <div className="card border border-white/5 space-y-5">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-brand-400" />
-                  <h3 className="font-semibold text-white text-sm">Configure Question Paper</h3>
-                </div>
-
-                {/* ── Mode toggle ── */}
-                <div className="flex items-center gap-1 bg-white/[0.04] rounded-lg p-0.5 border border-white/5">
-                  <button
-                    onClick={() => setMode('online')}
-                    className={cn(
-                      'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
-                      mode === 'online'
-                        ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
-                        : 'text-white/40 hover:text-white/70'
-                    )}
-                  >
-                    <Wifi className="w-3.5 h-3.5" />
-                    Online (AI)
-                  </button>
-                  <button
-                    onClick={() => setMode('offline')}
-                    className={cn(
-                      'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
-                      mode === 'offline'
-                        ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30'
-                        : 'text-white/40 hover:text-white/70'
-                    )}
-                  >
-                    <WifiOff className="w-3.5 h-3.5" />
-                    Offline
-                  </button>
-                </div>
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-brand-400" />
+                <h3 className="font-semibold text-white text-sm">Configure Question Paper</h3>
               </div>
-
-              {mode === 'offline' && (
-                <div className="flex items-start gap-2 p-3 bg-violet-500/5 border border-violet-500/15 rounded-xl">
-                  <WifiOff className="w-4 h-4 text-violet-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-violet-300/80 leading-relaxed">
-                    <strong className="text-violet-300">Offline mode:</strong> Questions are drawn from a built-in question bank — no AI call or internet needed. Ideal for low-connectivity environments.
-                  </p>
-                </div>
-              )}
 
               {/* Subject + Target Exam */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -839,7 +852,6 @@ export default function QuestionBankPage() {
                 <div>
                   <label className="block text-xs font-medium text-white/60 mb-1.5">
                     Target Exam
-                    {mode === 'offline' && <span className="text-white/30 ml-1">(used for labelling only)</span>}
                   </label>
                   <select
                     value={targetExam}
@@ -940,11 +952,6 @@ export default function QuestionBankPage() {
                       <Loader2 className="w-4 h-4 animate-spin" />
                       Generating…
                     </>
-                  ) : mode === 'offline' ? (
-                    <>
-                      <WifiOff className="w-4 h-4" />
-                      Generate Offline Paper
-                    </>
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4" />
@@ -952,7 +959,7 @@ export default function QuestionBankPage() {
                     </>
                   )}
                 </button>
-                {generating && mode === 'online' && (
+                {generating && (
                   <p className="text-xs text-white/40 animate-pulse">
                     AI is writing your questions — this can take up to 45 seconds…
                   </p>
@@ -961,7 +968,12 @@ export default function QuestionBankPage() {
             </div>
 
             {/* Active paper */}
-            {activePaper && <PaperDisplay paper={activePaper} />}
+            {activePaper && (
+              <PaperDisplay
+                paper={activePaper}
+                onAssign={() => setAssignPaperId(activePaper.id)}
+              />
+            )}
 
             {/* Previous papers */}
             {previousPapers.length > 0 && (
@@ -1005,7 +1017,7 @@ export default function QuestionBankPage() {
                                 <span>·</span>
                                 <span>{p.questions.length}Q</span>
                                 <span>·</span>
-                                <span>{p.mode === 'offline' ? 'Offline' : 'AI'}</span>
+                                <span>AI</span>
                                 <span>·</span>
                                 <span>{formatDate(p.generatedAt)}</span>
                               </div>
@@ -1024,9 +1036,7 @@ export default function QuestionBankPage() {
               <div className="card text-center py-12 border border-dashed border-white/5">
                 <Sparkles className="w-10 h-10 text-white/15 mx-auto mb-3" />
                 <p className="text-white/40 text-sm">Configure and generate your first practice paper above.</p>
-                <p className="text-white/25 text-xs mt-1">
-                  {mode === 'offline' ? 'Offline mode — draws from built-in question bank.' : 'Online mode — powered by AI.'}
-                </p>
+                <p className="text-white/25 text-xs mt-1">AI-powered generation — configure options above and click Generate.</p>
               </div>
             )}
           </motion.div>
@@ -1042,6 +1052,15 @@ export default function QuestionBankPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Assign to Batch modal */}
+      {assignPaperId && (
+        <AssignToBatchModal
+          paper={papers.find((p) => p.id === assignPaperId)!}
+          centerId={centerId}
+          onClose={() => setAssignPaperId(null)}
+        />
+      )}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.GetPresignedObjectUrlArgs;
+import io.minio.PutObjectArgs;
 import io.minio.http.Method;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.io.InputStream;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -63,6 +65,21 @@ public class MinioStorageAdapter implements DocumentStoragePort {
         } catch (Exception e) {
             log.error("Failed to generate presigned download URL for objectKey={}", objectKey, e);
             throw new RuntimeException("Could not generate download URL", e);
+        }
+    }
+
+    @Override
+    public void putObject(String objectKey, InputStream data, long size, String contentType) {
+        try {
+            minioClient.putObject(PutObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(objectKey)
+                    .stream(data, size, -1)
+                    .contentType(contentType)
+                    .build());
+        } catch (Exception e) {
+            log.error("Failed to put object objectKey={}", objectKey, e);
+            throw new RuntimeException("Could not upload file to storage", e);
         }
     }
 

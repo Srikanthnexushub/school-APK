@@ -39,12 +39,15 @@ public class ActivityController {
         return ResponseEntity.ok(responses);
     }
 
+    private static final java.util.Set<String> ADMIN_ROLES =
+            java.util.Set.of("CENTER_ADMIN", "INSTITUTION_ADMIN", "SUPER_ADMIN");
+
     @PostMapping("/activities")
     public ResponseEntity<?> createActivity(
             @RequestBody ActivityCreateRequest request,
             @RequestParam UUID centerId,
             @AuthenticationPrincipal AuthPrincipal principal) {
-        if (!"CENTER_ADMIN".equals(principal.role())) {
+        if (!ADMIN_ROLES.contains(principal.role())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         ExtracurricularActivity activity = manageActivityUseCase.createActivity(centerId, request, principal.userId());
@@ -55,7 +58,7 @@ public class ActivityController {
     public ResponseEntity<Void> deactivateActivity(
             @PathVariable UUID id,
             @AuthenticationPrincipal AuthPrincipal principal) {
-        if (!"CENTER_ADMIN".equals(principal.role())) {
+        if (!ADMIN_ROLES.contains(principal.role())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         manageActivityUseCase.deactivateActivity(id, principal.userId());

@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Megaphone, Plus, X, Send, Trash2, Clock, Users, CheckCircle } from 'lucide-react';
+import { Megaphone, Plus, X, Send, Trash2, Clock, Users, CheckCircle, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
 
 interface Batch { id: string; name: string; code: string; }
-interface Center { id: string; name: string; }
+interface Center { id: string; name: string; city?: string; }
 interface Announcement {
   id: string; centerId: string; title: string; body: string;
   targetType: string; targetId?: string; targetRole?: string;
@@ -19,7 +19,23 @@ type TargetRole = 'STUDENT' | 'PARENT' | 'TEACHER' | 'ALL';
 export default function AdminAnnouncementsPage() {
   const { user } = useAuthStore();
   const qc = useQueryClient();
-  const centerId = user?.centerId;
+
+  // INSTITUTION_ADMIN / SUPER_ADMIN have no centerId in JWT — must pick from API
+  const jwtCenterId = user?.centerId ?? '';
+  const isInstAdmin = user?.role === 'INSTITUTION_ADMIN' || user?.role === 'SUPER_ADMIN';
+  const [selectedCenterId, setSelectedCenterId] = useState('');
+
+  const { data: centers = [] } = useQuery<Center[]>({
+    queryKey: ['admin-centers-picker'],
+    queryFn: () => api.get('/api/v1/centers').then(r => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }),
+    enabled: isInstAdmin && !jwtCenterId,
+    staleTime: 5 * 60_000,
+  });
+
+  const effectiveCenterId = jwtCenterId || selectedCenterId;
+  // Only admin roles may delete/expire announcements — matches backend AnnouncementService.expire() guard
+  const canModify = ['SUPER_ADMIN', 'INSTITUTION_ADMIN', 'CENTER_ADMIN'].includes(user?.role ?? '');
+
   const [showCompose, setShowCompose] = useState(false);
   const [form, setForm] = useState({
     title: '', body: '',
@@ -30,22 +46,22 @@ export default function AdminAnnouncementsPage() {
   });
 
   const { data: batches = [] } = useQuery<Batch[]>({
-    queryKey: ['batches', centerId],
-    queryFn: () => api.get(`/api/v1/centers/${centerId}/batches`).then(r =>
+    queryKey: ['batches', effectiveCenterId],
+    queryFn: () => api.get(`/api/v1/centers/${effectiveCenterId}/batches`).then(r =>
       Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
-    enabled: !!centerId,
+    enabled: !!effectiveCenterId,
   });
 
   const { data: announcements = [], isLoading } = useQuery<Announcement[]>({
-    queryKey: ['admin-announcements', centerId],
-    queryFn: () => api.get(`/api/v1/centers/${centerId}/announcements`).then(r =>
+    queryKey: ['admin-announcements', effectiveCenterId],
+    queryFn: () => api.get(`/api/v1/centers/${effectiveCenterId}/announcements`).then(r =>
       Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
-    enabled: !!centerId,
+    enabled: !!effectiveCenterId,
   });
 
   const { mutate: send, isPending } = useMutation({
-    mutationFn: () => api.post(`/api/v1/centers/${centerId}/announcements`, {
-      centerId,
+    mutationFn: () => api.post(`/api/v1/centers/${effectiveCenterId}/announcements`, {
+      centerId: effectiveCenterId,
       title: form.title,
       body: form.body,
       targetType: form.targetType,
@@ -58,18 +74,59 @@ export default function AdminAnnouncementsPage() {
       toast.success('Announcement sent!');
       setShowCompose(false);
       setForm({ title: '', body: '', targetType: 'CENTER', targetId: '', targetRole: 'ALL', scheduledAt: '' });
-      qc.invalidateQueries({ queryKey: ['admin-announcements', centerId] });
+      qc.invalidateQueries({ queryKey: ['admin-announcements', effectiveCenterId] });
     },
     onError: () => toast.error('Failed to send announcement'),
   });
 
   const { mutate: expire } = useMutation({
-    mutationFn: (id: string) => api.delete(`/api/v1/centers/${centerId}/announcements/${id}`),
+    mutationFn: (id: string) => api.delete(`/api/v1/centers/${effectiveCenterId}/announcements/${id}`),
     onSuccess: () => {
       toast.success('Announcement removed');
-      qc.invalidateQueries({ queryKey: ['admin-announcements', centerId] });
+      qc.invalidateQueries({ queryKey: ['admin-announcements', effectiveCenterId] });
     },
   });
+
+  // INSTITUTION_ADMIN / SUPER_ADMIN: show center picker if no center resolved yet
+  if (isInstAdmin && !jwtCenterId && !selectedCenterId) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-brand-500/10 border border-brand-500/20">
+            <Megaphone className="w-5 h-5 text-brand-400" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-white">Announcements</h1>
+            <p className="text-sm text-white/50">Select a center to manage its announcements</p>
+          </div>
+        </div>
+        {centers.length === 0 ? (
+          <div className="text-center py-16 text-white/30">
+            <Building2 className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <p>No centers found.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {centers.map(c => (
+              <button
+                key={c.id}
+                onClick={() => setSelectedCenterId(c.id)}
+                className="flex items-center gap-3 p-4 bg-white/3 border border-white/8 rounded-xl hover:border-white/15 hover:bg-white/5 transition-colors text-left"
+              >
+                <div className="w-8 h-8 rounded-lg bg-brand-500/15 border border-brand-500/20 flex items-center justify-center flex-shrink-0">
+                  <Building2 className="w-4 h-4 text-brand-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">{c.name}</p>
+                  {c.city && <p className="text-xs text-white/35">{c.city}</p>}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
@@ -80,7 +137,14 @@ export default function AdminAnnouncementsPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">Announcements</h1>
-            <p className="text-sm text-white/50">Broadcast messages to students, parents, and staff</p>
+            <p className="text-sm text-white/50">
+              Broadcast messages to students, parents, and staff
+              {isInstAdmin && selectedCenterId && (
+                <> — <button onClick={() => setSelectedCenterId('')} className="text-brand-400 hover:underline">
+                  {centers.find(c => c.id === selectedCenterId)?.name ?? 'Change center'}
+                </button></>
+              )}
+            </p>
           </div>
         </div>
         <button
@@ -237,12 +301,14 @@ export default function AdminAnnouncementsPage() {
                   </div>
                   <div className="text-xs text-white/50 mt-1 line-clamp-2">{a.body}</div>
                 </div>
-                <button
-                  onClick={() => expire(a.id)}
-                  className="p-1.5 hover:bg-red-500/10 rounded-lg text-white/20 hover:text-red-400 transition-colors flex-shrink-0"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {canModify && (
+                  <button
+                    onClick={() => expire(a.id)}
+                    className="p-1.5 hover:bg-red-500/10 rounded-lg text-white/20 hover:text-red-400 transition-colors flex-shrink-0"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
               <div className="flex items-center gap-4 text-xs text-white/30">
                 <span className="flex items-center gap-1">

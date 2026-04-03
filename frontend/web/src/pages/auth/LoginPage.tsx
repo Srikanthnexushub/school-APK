@@ -270,6 +270,54 @@ export default function LoginPage() {
   const feature = FEATURES[activeFeature];
   const FeatureIcon = feature.icon as React.ElementType;
 
+  // Theme-aware colour map (Fix #218b pattern — never hardcode dark rgba in inline styles)
+  const isDark = theme === 'dark';
+  const clr = {
+    pageBg:            isDark ? 'rgb(2,4,12)'                                                              : 'rgb(238,240,255)',
+    aurora1:           isDark ? 'rgba(0,245,255,0.07)'                                                     : 'rgba(0,100,220,0.05)',
+    aurora2:           isDark ? 'rgba(155,0,255,0.09)'                                                     : 'rgba(100,0,200,0.06)',
+    aurora3:           isDark ? 'rgba(240,0,255,0.05)'                                                     : 'rgba(80,0,180,0.04)',
+    gridLine:          isDark ? 'rgba(0,245,255,1)'                                                        : 'rgba(0,100,220,0.35)',
+    toggleBg:          isDark ? 'rgba(255,255,255,0.06)'                                                   : 'rgba(8,10,28,0.06)',
+    toggleBorder:      isDark ? 'rgba(255,255,255,0.10)'                                                   : 'rgba(8,10,28,0.15)',
+    platformSubtitle:  isDark ? 'rgba(0,245,255,0.55)'                                                     : 'rgba(0,80,200,0.70)',
+    accentSolid:       isDark ? '#00f5ff'                                                                   : 'rgba(0,80,200,0.90)',
+    accentHover:       isDark ? '#7ffbff'                                                                   : 'rgba(0,100,220,1)',
+    accentIconFilter:  isDark ? 'drop-shadow(0 0 12px #00f5ff)'                                            : 'drop-shadow(0 0 12px rgba(0,100,220,0.5))',
+    orbActiveBg:       isDark ? 'rgba(0,245,255,0.18)'                                                     : 'rgba(0,100,220,0.12)',
+    orbInactiveBg:     isDark ? 'rgba(2,4,12,0.85)'                                                        : 'rgba(238,240,255,0.85)',
+    orbActiveBorder:   isDark ? 'rgba(0,245,255,0.65)'                                                     : 'rgba(0,100,220,0.50)',
+    orbInactiveBorder: isDark ? 'rgba(255,255,255,0.15)'                                                   : 'rgba(8,10,28,0.15)',
+    orbActiveShadow:   isDark ? '0 0 10px rgba(0,245,255,0.5), 0 0 20px rgba(0,245,255,0.2)'              : '0 0 10px rgba(0,100,220,0.25), 0 0 20px rgba(0,100,220,0.10)',
+    orbActiveIcon:     isDark ? '#00f5ff'                                                                   : 'rgba(0,80,200,0.90)',
+    orbInactiveIcon:   isDark ? 'rgba(255,255,255,0.50)'                                                   : 'rgba(8,10,28,0.45)',
+    cardLabel:         isDark ? 'rgba(0,245,255,0.60)'                                                     : 'rgba(0,80,200,0.70)',
+    cardDesc:          isDark ? 'rgba(255,255,255,0.58)'                                                    : 'rgba(8,10,28,0.60)',
+    cardStatBg:        isDark ? 'rgba(255,255,255,0.05)'                                                    : 'rgba(8,10,28,0.04)',
+    cardStatBorder:    isDark ? 'rgba(255,255,255,0.10)'                                                    : 'rgba(8,10,28,0.12)',
+    cardStatText:      isDark ? 'rgba(255,255,255,0.65)'                                                    : 'rgba(8,10,28,0.65)',
+    dotActive:         isDark ? '#00f5ff'                                                                   : 'rgba(0,80,200,0.90)',
+    dotInactive:       isDark ? 'rgba(255,255,255,0.20)'                                                    : 'rgba(8,10,28,0.15)',
+    dotActiveShadow:   isDark ? '0 0 8px #00f5ff, 0 0 16px rgba(0,245,255,0.4)'                           : '0 0 8px rgba(0,100,220,0.4)',
+    statsLabel:        isDark ? 'rgba(255,255,255,0.35)'                                                    : 'rgba(8,10,28,0.45)',
+    pingBg:            isDark ? 'radial-gradient(circle, rgba(0,245,255,0.6), transparent)'                : 'radial-gradient(circle, rgba(0,100,220,0.4), transparent)',
+    idVerifyText:      isDark ? 'rgba(0,245,255,0.45)'                                                     : 'rgba(0,80,200,0.55)',
+    labelText:         isDark ? 'rgba(255,255,255,0.65)'                                                    : 'rgba(8,10,28,0.70)',
+    subtleText:        isDark ? 'rgba(255,255,255,0.45)'                                                    : 'rgba(8,10,28,0.55)',
+    mutedText:         isDark ? 'rgba(255,255,255,0.48)'                                                    : 'rgba(8,10,28,0.55)',
+    dimText:           isDark ? 'rgba(255,255,255,0.38)'                                                    : 'rgba(8,10,28,0.45)',
+    faintText:         isDark ? 'rgba(255,255,255,0.28)'                                                    : 'rgba(8,10,28,0.40)',
+    copyright:         isDark ? 'rgba(255,255,255,0.13)'                                                    : 'rgba(8,10,28,0.22)',
+    eyeBtn:            isDark ? 'rgba(255,255,255,0.30)'                                                    : 'rgba(8,10,28,0.35)',
+    eyeBtnHover:       isDark ? 'rgba(255,255,255,0.70)'                                                    : 'rgba(8,10,28,0.75)',
+    separatorLine:     isDark ? 'rgba(255,255,255,0.08)'                                                    : 'rgba(8,10,28,0.10)',
+    socialBtnBg:       isDark ? 'rgba(255,255,255,0.04)'                                                    : 'rgba(8,10,28,0.03)',
+    socialBtnBorder:   isDark ? 'rgba(255,255,255,0.15)'                                                    : 'rgba(8,10,28,0.12)',
+    socialBtnHoverBg:  isDark ? 'rgba(255,255,255,0.08)'                                                    : 'rgba(8,10,28,0.06)',
+    mfaBadgeBg:        isDark ? 'rgba(0,245,255,0.08)'                                                     : 'rgba(0,100,220,0.07)',
+    mfaBadgeBorder:    isDark ? 'rgba(0,245,255,0.25)'                                                     : 'rgba(0,100,220,0.20)',
+  };
+
   // Book page-turn — right page flips left (back face = next feature sweeps over left page, lingers), then new page opens from spine.
   // Exit:  0 → -180  slow-eased (lingers near -180 so back face is visible over left page briefly)
   // Enter: 90 → 0    small delay (gap between exit completing and new page opening)
@@ -281,14 +329,14 @@ export default function LoginPage() {
 
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row items-stretch relative overflow-hidden" style={{ background: 'rgb(2,4,12)' }}>
+    <div className="min-h-screen flex flex-col lg:flex-row items-stretch relative overflow-hidden" style={{ background: clr.pageBg }}>
       {/* Ambient aurora blobs — behind everything */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-        <div className="absolute -top-60 -left-60 w-[700px] h-[700px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(0,245,255,0.07) 0%, transparent 70%)', filter: 'blur(80px)' }} />
-        <div className="absolute -bottom-60 -right-60 w-[600px] h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(155,0,255,0.09) 0%, transparent 70%)', filter: 'blur(100px)' }} />
-        <div className="absolute top-1/2 -translate-y-1/2 left-1/3 w-[400px] h-[400px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(240,0,255,0.05) 0%, transparent 70%)', filter: 'blur(60px)' }} />
+        <div className="absolute -top-60 -left-60 w-[700px] h-[700px] rounded-full" style={{ background: `radial-gradient(circle, ${clr.aurora1} 0%, transparent 70%)`, filter: 'blur(80px)' }} />
+        <div className="absolute -bottom-60 -right-60 w-[600px] h-[600px] rounded-full" style={{ background: `radial-gradient(circle, ${clr.aurora2} 0%, transparent 70%)`, filter: 'blur(100px)' }} />
+        <div className="absolute top-1/2 -translate-y-1/2 left-1/3 w-[400px] h-[400px] rounded-full" style={{ background: `radial-gradient(circle, ${clr.aurora3} 0%, transparent 70%)`, filter: 'blur(60px)' }} />
         {/* Tech grid */}
-        <div className="absolute inset-0 opacity-[0.025]" style={{ backgroundImage: 'linear-gradient(rgba(0,245,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,245,255,1) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+        <div className="absolute inset-0 opacity-[0.025]" style={{ backgroundImage: `linear-gradient(${clr.gridLine} 1px, transparent 1px), linear-gradient(90deg, ${clr.gridLine} 1px, transparent 1px)`, backgroundSize: '60px 60px' }} />
       </div>
 
       {/* Theme toggle */}
@@ -296,7 +344,7 @@ export default function LoginPage() {
         onClick={toggleTheme}
         whileTap={{ scale: 0.88 }}
         className="absolute top-5 right-5 z-50 p-2.5 rounded-xl text-white/50 hover:text-white/90 transition-all"
-        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(8px)' }}
+        style={{ background: clr.toggleBg, border: `1px solid ${clr.toggleBorder}`, backdropFilter: 'blur(8px)' }}
         aria-label="Toggle theme"
       >
         <AnimatePresence mode="wait" initial={false}>
@@ -329,14 +377,14 @@ export default function LoginPage() {
               <span className="text-white">ED</span>
             </h1>
           </div>
-          <p className="text-[11px] font-mono tracking-[0.35em] uppercase" style={{ color: 'rgba(0,245,255,0.55)' }}>
+          <p className="text-[11px] font-mono tracking-[0.35em] uppercase" style={{ color: clr.platformSubtitle }}>
             Neural · AI · Platform
           </p>
         </motion.div>
 
         {/* ── Orbital Feature Universe — 65% scale on mobile, full on desktop ── */}
         {/* Wrapper clips the 380px layout box to the 247px visual size on mobile */}
-        <div className="relative h-[248px] lg:h-auto w-full overflow-hidden lg:overflow-visible flex items-center justify-center mb-2 lg:mb-10">
+        <div className="relative h-[248px] lg:h-auto w-full lg:w-[380px] overflow-hidden lg:overflow-visible flex items-center justify-center mb-2 lg:mb-10">
         <div className="scale-[0.65] lg:scale-100 flex-shrink-0 relative flex items-center justify-center" style={{ width: 380, height: 380 }}>
           {/* Orbital rings */}
           <div className="orbital-ring-1" />
@@ -353,7 +401,7 @@ export default function LoginPage() {
                 exit={{ scale: 0.4, opacity: 0, rotate: 20 }}
                 transition={{ duration: 0.45, ease: [0.23, 1, 0.32, 1] }}
               >
-                <FeatureIcon style={{ width: 52, height: 52, color: '#00f5ff', filter: 'drop-shadow(0 0 12px #00f5ff)' }} />
+                <FeatureIcon style={{ width: 52, height: 52, color: clr.accentSolid, filter: clr.accentIconFilter }} />
               </motion.div>
             </AnimatePresence>
           </div>
@@ -375,12 +423,12 @@ export default function LoginPage() {
                   style={{
                     width: 36, height: 36, borderRadius: '50%',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: isActive ? 'rgba(0,245,255,0.18)' : 'rgba(2,4,12,0.85)',
-                    border: `1px solid ${isActive ? 'rgba(0,245,255,0.65)' : 'rgba(255,255,255,0.15)'}`,
-                    boxShadow: isActive ? '0 0 10px rgba(0,245,255,0.5), 0 0 20px rgba(0,245,255,0.2)' : 'none',
+                    background: isActive ? clr.orbActiveBg : clr.orbInactiveBg,
+                    border: `1px solid ${isActive ? clr.orbActiveBorder : clr.orbInactiveBorder}`,
+                    boxShadow: isActive ? clr.orbActiveShadow : 'none',
                   }}
                 >
-                  <FIcon style={{ width: 15, height: 15, color: isActive ? '#00f5ff' : 'rgba(255,255,255,0.5)' }} />
+                  <FIcon style={{ width: 15, height: 15, color: isActive ? clr.orbActiveIcon : clr.orbInactiveIcon }} />
                 </button>
               </div>
             );
@@ -398,12 +446,12 @@ export default function LoginPage() {
             transition={{ duration: 0.38, ease: [0.23, 1, 0.32, 1] }}
             className="holo-feature-card max-w-[280px] lg:max-w-sm w-full text-center relative z-10"
           >
-            <p className="text-[10px] font-mono tracking-[0.3em] uppercase mb-2" style={{ color: 'rgba(0,245,255,0.6)' }}>
+            <p className="text-[10px] font-mono tracking-[0.3em] uppercase mb-2" style={{ color: clr.cardLabel }}>
               FEATURE {String(activeFeature + 1).padStart(2, '0')} / {String(FEATURES.length).padStart(2, '0')}
             </p>
             <h3 className="text-base font-bold text-white mb-2 leading-tight">{feature.label}</h3>
-            <p className="text-sm leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.58)' }}>{feature.brief}</p>
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.65)' }}>
+            <p className="text-sm leading-relaxed mb-3" style={{ color: clr.cardDesc }}>{feature.brief}</p>
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full" style={{ background: clr.cardStatBg, border: `1px solid ${clr.cardStatBorder}`, color: clr.cardStatText }}>
               {feature.stat}
             </span>
           </motion.div>
@@ -419,8 +467,8 @@ export default function LoginPage() {
               style={{
                 width: i === activeFeature ? 24 : 6,
                 height: 6,
-                background: i === activeFeature ? '#00f5ff' : 'rgba(255,255,255,0.20)',
-                boxShadow: i === activeFeature ? '0 0 8px #00f5ff, 0 0 16px rgba(0,245,255,0.4)' : 'none',
+                background: i === activeFeature ? clr.dotActive : clr.dotInactive,
+                boxShadow: i === activeFeature ? clr.dotActiveShadow : 'none',
               }}
             />
           ))}
@@ -440,14 +488,14 @@ export default function LoginPage() {
           ].map(({ value, label }) => (
             <div key={label} className="text-center">
               <div className="text-lg font-black neon-text-cyan">{value}</div>
-              <div className="text-[10px] font-mono uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</div>
+              <div className="text-[10px] font-mono uppercase tracking-wider" style={{ color: clr.statsLabel }}>{label}</div>
             </div>
           ))}
         </motion.div>
       </div>
 
       {/* ── RIGHT PANEL: Cyber Terminal ────────────────────────────────── */}
-      <div className="flex items-center justify-center w-full lg:flex-shrink-0 lg:w-[480px] p-4 lg:p-10 relative z-10">
+      <div className="flex items-center justify-center flex-shrink-0 w-full lg:w-[480px] p-5 lg:p-10 relative z-10">
         <div className="cyber-terminal w-full max-w-md">
           {/* Scan sweep — animates once on mount */}
           <div className="scan-sweep" />
@@ -459,7 +507,7 @@ export default function LoginPage() {
             {/* Brand header */}
             <div className="flex items-center gap-3 mb-7">
               <div className="relative flex-shrink-0">
-                <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ background: 'radial-gradient(circle, rgba(0,245,255,0.6), transparent)' }} />
+                <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ background: clr.pingBg }} />
                 <NexusEdLogo size={30} className="relative z-10" />
               </div>
               <div>
@@ -467,7 +515,7 @@ export default function LoginPage() {
                   <span className="neon-text-cyan" style={{ fontSize: 18 }}>NEXUS</span>
                   <span className="text-white" style={{ fontSize: 18 }}>ED</span>
                 </div>
-                <div className="text-[9px] font-mono tracking-[0.25em] uppercase mt-0.5" style={{ color: 'rgba(0,245,255,0.45)' }}>
+                <div className="text-[9px] font-mono tracking-[0.25em] uppercase mt-0.5" style={{ color: clr.idVerifyText }}>
                   Identity Verification · v1.0
                 </div>
               </div>
@@ -477,17 +525,17 @@ export default function LoginPage() {
             {mfaStep ? (
               <>
                 <div className="flex justify-center mb-5">
-                  <div className="p-4 rounded-2xl" style={{ background: 'rgba(0,245,255,0.08)', border: '1px solid rgba(0,245,255,0.25)' }}>
-                    <ShieldCheck className="w-8 h-8" style={{ color: '#00f5ff' }} />
+                  <div className="p-4 rounded-2xl" style={{ background: clr.mfaBadgeBg, border: `1px solid ${clr.mfaBadgeBorder}` }}>
+                    <ShieldCheck className="w-8 h-8" style={{ color: clr.accentSolid }} />
                   </div>
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-2">Two-factor verification</h2>
-                <p className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.48)' }}>
+                <p className="text-sm mb-8" style={{ color: clr.mutedText }}>
                   Enter the 6-digit code from your authenticator app.
                 </p>
                 <form onSubmit={handleMfaVerify} className="space-y-5">
                   <div>
-                    <label className="block text-sm font-medium mb-1.5" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                    <label className="block text-sm font-medium mb-1.5" style={{ color: clr.labelText }}>
                       Authenticator code
                     </label>
                     <input
@@ -516,9 +564,9 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => { setMfaStep(null); setTotpCode(''); setCaptchaToken(null); }}
                   className="mt-4 w-full text-center text-sm transition-colors"
-                  style={{ color: 'rgba(255,255,255,0.38)' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.70)')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.38)')}
+                  style={{ color: clr.dimText }}
+                  onMouseEnter={e => (e.currentTarget.style.color = clr.eyeBtnHover)}
+                  onMouseLeave={e => (e.currentTarget.style.color = clr.dimText)}
                 >
                   ← Back to login
                 </button>
@@ -526,7 +574,7 @@ export default function LoginPage() {
             ) : (
               <>
                 <h2 className="text-2xl font-bold text-white mb-1">Welcome back</h2>
-                <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                <p className="text-sm mb-6" style={{ color: clr.subtleText }}>
                   Sign in to continue your learning journey.
                 </p>
 
@@ -545,9 +593,9 @@ export default function LoginPage() {
                         type="button"
                         onClick={() => toast.info('Google Sign-In is not configured on this server.')}
                         className="flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl text-white text-sm font-medium transition-all"
-                        style={{ border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.04)' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                        style={{ border: `1px solid ${clr.socialBtnBorder}`, background: clr.socialBtnBg }}
+                        onMouseEnter={e => { e.currentTarget.style.background = clr.socialBtnHoverBg; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = clr.socialBtnBg; }}
                       >
                         <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -563,9 +611,9 @@ export default function LoginPage() {
                       onClick={initiateGithubLogin}
                       disabled={isGithubLoading}
                       className="flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl text-white text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.04)' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                      style={{ border: `1px solid ${clr.socialBtnBorder}`, background: clr.socialBtnBg }}
+                      onMouseEnter={e => { e.currentTarget.style.background = clr.socialBtnHoverBg; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = clr.socialBtnBg; }}
                     >
                       {isGithubLoading ? (
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -578,15 +626,15 @@ export default function LoginPage() {
                     </button>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
-                    <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.28)' }}>or sign in with email</span>
-                    <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
+                    <div className="flex-1 h-px" style={{ background: clr.separatorLine }} />
+                    <span className="text-xs font-mono" style={{ color: clr.faintText }}>or sign in with email</span>
+                    <div className="flex-1 h-px" style={{ background: clr.separatorLine }} />
                   </div>
                 </div>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" autoComplete="off">
                   <div>
-                    <label className="block text-sm font-medium mb-1.5" style={{ color: 'rgba(255,255,255,0.65)' }}>Email</label>
+                    <label className="block text-sm font-medium mb-1.5" style={{ color: clr.labelText }}>Email</label>
                     <input
                       {...register('email')}
                       type="email"
@@ -598,7 +646,7 @@ export default function LoginPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1.5" style={{ color: 'rgba(255,255,255,0.65)' }}>Password</label>
+                    <label className="block text-sm font-medium mb-1.5" style={{ color: clr.labelText }}>Password</label>
                     <div className="relative">
                       <input
                         {...register('password')}
@@ -611,9 +659,9 @@ export default function LoginPage() {
                         type="button"
                         onClick={() => setShowPw(!showPw)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-                        style={{ color: 'rgba(255,255,255,0.30)' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.70)')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.30)')}
+                        style={{ color: clr.eyeBtn }}
+                        onMouseEnter={e => (e.currentTarget.style.color = clr.eyeBtnHover)}
+                        onMouseLeave={e => (e.currentTarget.style.color = clr.eyeBtn)}
                       >
                         {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -622,12 +670,12 @@ export default function LoginPage() {
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: clr.subtleText }}>
                       <input type="checkbox" className="rounded" /> Remember me
                     </label>
-                    <Link to="/forgot-password" className="text-sm transition-colors" style={{ color: '#00f5ff' }}
-                      onMouseEnter={e => (e.currentTarget.style.color = '#7ffbff')}
-                      onMouseLeave={e => (e.currentTarget.style.color = '#00f5ff')}
+                    <Link to="/forgot-password" className="text-sm transition-colors" style={{ color: clr.accentSolid }}
+                      onMouseEnter={e => (e.currentTarget.style.color = clr.accentHover)}
+                      onMouseLeave={e => (e.currentTarget.style.color = clr.accentSolid)}
                     >
                       Forgot password?
                     </Link>
@@ -648,17 +696,17 @@ export default function LoginPage() {
                   </button>
                 </form>
 
-                <p className="mt-5 text-center text-sm" style={{ color: 'rgba(255,255,255,0.38)' }}>
+                <p className="mt-5 text-center text-sm" style={{ color: clr.dimText }}>
                   Don&apos;t have an account?{' '}
-                  <Link to="/register" className="font-medium transition-colors" style={{ color: '#00f5ff' }}
-                    onMouseEnter={e => (e.currentTarget.style.color = '#7ffbff')}
-                    onMouseLeave={e => (e.currentTarget.style.color = '#00f5ff')}
+                  <Link to="/register" className="font-medium transition-colors" style={{ color: clr.accentSolid }}
+                    onMouseEnter={e => (e.currentTarget.style.color = clr.accentHover)}
+                    onMouseLeave={e => (e.currentTarget.style.color = clr.accentSolid)}
                   >
                     Create one
                   </Link>
                 </p>
 
-                <p className="mt-8 text-center text-[10px]" style={{ color: 'rgba(255,255,255,0.13)' }}>
+                <p className="mt-8 text-center text-[10px]" style={{ color: clr.copyright }}>
                   © {new Date().getFullYear()} Ai Nexus Innovation Hub Pvt Ltd. All rights reserved.
                 </p>
               </>

@@ -12,6 +12,7 @@ import {
   Users,
   ShieldCheck,
   Phone,
+  GraduationCap,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -72,6 +73,14 @@ interface ParentSummary {
   email: string | null;
   relationship: string;
   verified: boolean;
+}
+
+interface BatchEnrollment { centerId: string; batchId: string; }
+interface BatchDetails {
+  id: string; name: string; code: string; subject: string;
+  enrolledCount: number; maxStudents: number;
+  status: 'ACTIVE' | 'INACTIVE' | 'COMPLETED' | 'UPCOMING';
+  mode?: 'ONLINE' | 'OFFLINE';
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -181,7 +190,28 @@ export default function StudentDashboardPage() {
       }),
     enabled: !!studentId,
     staleTime: 10 * 60 * 1000,
-    retry: false, // silently skip if endpoint is unreachable during dev
+    retry: false,
+  });
+
+  // ── Batch enrollment ──
+  const enrollmentQuery = useQuery<BatchEnrollment | null>({
+    queryKey: ['student-enrollment-me'],
+    queryFn: () =>
+      api.get('/api/v1/centers/student-enrollment/me').then((r) => r.data).catch(() => null),
+    enabled: !!studentId,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+
+  const enrollment = enrollmentQuery.data;
+
+  const batchQuery = useQuery<BatchDetails | null>({
+    queryKey: ['student-batch-detail', enrollment?.centerId, enrollment?.batchId],
+    queryFn: () =>
+      api.get(`/api/v1/centers/${enrollment!.centerId}/batches/${enrollment!.batchId}`).then((r) => r.data),
+    enabled: !!enrollment?.centerId && !!enrollment?.batchId,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 
   const readinessScore = readinessQuery.data?.score ?? 0;
@@ -312,6 +342,38 @@ export default function StudentDashboardPage() {
               </div>
             </div>
           ))}
+        </motion.div>
+      )}
+
+      {/* Batch enrollment strip */}
+      {batchQuery.data && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.06, duration: 0.35 }}
+          className="flex items-center gap-3 flex-wrap px-4 py-3 rounded-xl bg-brand-500/5 border border-brand-500/15"
+        >
+          <div className="w-8 h-8 rounded-full bg-brand-500/15 flex items-center justify-center flex-shrink-0">
+            <GraduationCap className="w-4 h-4 text-brand-400" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-semibold text-white">{batchQuery.data.name}</span>
+              <span className="text-xs text-white/40 font-mono">{batchQuery.data.code}</span>
+              <span className={[
+                'text-xs px-2 py-0.5 rounded-full font-medium',
+                batchQuery.data.status === 'ACTIVE'    ? 'bg-emerald-500/15 text-emerald-400' :
+                batchQuery.data.status === 'UPCOMING'  ? 'bg-amber-500/15 text-amber-400' :
+                batchQuery.data.status === 'COMPLETED' ? 'bg-sky-500/15 text-sky-400' :
+                                                          'bg-white/5 text-white/30'
+              ].join(' ')}>{batchQuery.data.status}</span>
+            </div>
+            <div className="text-xs text-white/40 mt-0.5">{batchQuery.data.subject}</div>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-white/40 flex-shrink-0">
+            <Users className="w-3.5 h-3.5" />
+            <span>{batchQuery.data.enrolledCount} / {batchQuery.data.maxStudents} enrolled</span>
+          </div>
         </motion.div>
       )}
 

@@ -1,6 +1,6 @@
 // src/pages/admin/AdminLibraryPage.tsx
 // CENTER_ADMIN / INSTITUTION_ADMIN document library management.
-// Upload wizard: Step 1 file pick → presigned PUT to MinIO (XHR progress)
+// Upload wizard: Step 1 file pick → POST multipart to backend /upload-direct (Fix #231 — no CORS)
 //                Step 2 metadata form → Step 3 confirm POST to center-svc.
 // Manage table: list all content items + archive action.
 import { useState, useRef, useCallback, useEffect } from 'react';
@@ -344,37 +344,31 @@ function UploadWizard({ centerId, onClose, onSuccess }: UploadWizardProps) {
 
   function setM(k: string, v: string) { setMeta(m => ({ ...m, [k]: v })); }
 
-  // ── Step 1: pick file → presigned URL → XHR PUT ──
+  // ── Step 1: pick file → POST multipart to backend → backend uploads to MinIO/S3 ──
+  // Fix #231: replaced direct XHR PUT to S3/MinIO (CORS blocked) with server-side upload.
+  // Backend endpoint: POST /api/v1/centers/{centerId}/content/upload-direct (MultipartFile)
+  // Returns { objectKey } used in /confirm step — same confirm flow as before.
 
   async function startUpload(f: File) {
     setFile(f);
     setUploading(true);
     setProgress(0);
     try {
-      // 1. Get presigned URL
-      const presignedRes = await api.get<PresignedUploadResponse>(
-        `/api/v1/centers/${centerId}/content/presigned-upload`,
-        { params: { filename: f.name, mimeType: f.type || 'application/octet-stream' } },
+      const formData = new FormData();
+      formData.append('file', f);
+
+      const res = await api.post<PresignedUploadResponse>(
+        `/api/v1/centers/${centerId}/content/upload-direct`,
+        formData,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: (e) => {
+            if (e.total) setProgress(Math.round((e.loaded / e.total) * 100));
+          },
+        },
       );
-      const { uploadUrl, objectKey: key } = presignedRes.data;
-      setObjectKey(key);
 
-      // 2. XHR PUT directly to MinIO with progress
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.upload.onprogress = e => {
-          if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100));
-        };
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) resolve();
-          else reject(new Error(`Upload failed: ${xhr.status}`));
-        };
-        xhr.onerror = () => reject(new Error('Network error during upload'));
-        xhr.open('PUT', uploadUrl);
-        xhr.setRequestHeader('Content-Type', f.type || 'application/octet-stream');
-        xhr.send(f);
-      });
-
+      setObjectKey(res.data.objectKey);
       setProgress(100);
       setUploadDone(true);
       // Pre-fill title from filename
@@ -406,7 +400,7 @@ function UploadWizard({ centerId, onClose, onSuccess }: UploadWizardProps) {
         objectKey,
         title:       meta.title,
         description: meta.description || undefined,
-        contentType: meta.contentType,
+        type:        meta.contentType,
         fileSizeBytes: file?.size,
         mimeType:    file?.type || 'application/octet-stream',
         pageCount:   meta.pageCount ? parseInt(meta.pageCount) : undefined,
@@ -774,10 +768,11 @@ function UploadWizard({ centerId, onClose, onSuccess }: UploadWizardProps) {
 
 // ─── Manage Table Row ─────────────────────────────────────────────────────────
 
-function ContentRow({ item, centerId, onArchived }: {
+function ContentRow({ item, centerId, onArchived, canModify }: {
   item: ContentItemResponse;
   centerId: string;
   onArchived: () => void;
+  canModify: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
 
@@ -815,30 +810,32 @@ function ContentRow({ item, centerId, onArchived }: {
         {item.downloadCount} dl
       </span>
 
-      {!confirming ? (
-        <button
-          onClick={() => setConfirming(true)}
-          className="p-1.5 rounded-lg text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0"
-          title="Archive document"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
-      ) : (
-        <div className="flex items-center gap-1 flex-shrink-0">
+      {canModify && (
+        !confirming ? (
           <button
-            onClick={() => archiveMutation.mutate()}
-            disabled={archiveMutation.isPending}
-            className="text-xs px-2 py-1 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors disabled:opacity-50"
+            onClick={() => setConfirming(true)}
+            className="p-1.5 rounded-lg text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0"
+            title="Archive document"
           >
-            {archiveMutation.isPending ? '…' : 'Archive'}
+            <Trash2 className="w-3.5 h-3.5" />
           </button>
-          <button
-            onClick={() => setConfirming(false)}
-            className="text-xs px-2 py-1 text-white/40 hover:text-white transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
+        ) : (
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={() => archiveMutation.mutate()}
+              disabled={archiveMutation.isPending}
+              className="text-xs px-2 py-1 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors disabled:opacity-50"
+            >
+              {archiveMutation.isPending ? '…' : 'Archive'}
+            </button>
+            <button
+              onClick={() => setConfirming(false)}
+              className="text-xs px-2 py-1 text-white/40 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        )
       )}
     </div>
   );
@@ -892,6 +889,9 @@ export default function AdminLibraryPage() {
 
   const effectiveCenterId = centerId || selectedCenterId;
   const isSuperAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'INSTITUTION_ADMIN';
+  // Only SUPER_ADMIN, INSTITUTION_ADMIN, and CENTER_ADMIN may modify existing content (archive, re-tag).
+  // Teachers have upload-only access — they cannot delete or alter existing library items.
+  const canModify = ['SUPER_ADMIN', 'INSTITUTION_ADMIN', 'CENTER_ADMIN'].includes(user?.role ?? '');
 
   // Fetch center info for center-type-aware auto-open
   const { data: centerInfo } = useQuery({
@@ -1091,6 +1091,7 @@ export default function AdminLibraryPage() {
                   item={item}
                   centerId={effectiveCenterId}
                   onArchived={onArchived}
+                  canModify={canModify}
                 />
               </motion.div>
             ))}

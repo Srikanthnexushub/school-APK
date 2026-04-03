@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Megaphone, Plus, X, Send, Trash2, Clock, Users } from 'lucide-react';
+import { Megaphone, Plus, X, Send, Clock, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
@@ -53,14 +53,6 @@ export default function MentorPortalAnnouncementsPage() {
       qc.invalidateQueries({ queryKey: ['announcements', centerId] });
     },
     onError: () => toast.error('Failed to send announcement'),
-  });
-
-  const { mutate: expire } = useMutation({
-    mutationFn: (id: string) => api.delete(`/api/v1/centers/${centerId}/announcements/${id}`),
-    onSuccess: () => {
-      toast.success('Announcement removed');
-      qc.invalidateQueries({ queryKey: ['announcements', centerId] });
-    },
   });
 
   return (
@@ -178,17 +170,11 @@ export default function MentorPortalAnnouncementsPage() {
               transition={{ delay: i * 0.04 }}
               className="bg-surface-50/40 border border-white/5 rounded-xl p-4 space-y-2"
             >
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-white">{a.title}</div>
                   <div className="text-xs text-white/50 mt-1 line-clamp-2">{a.body}</div>
                 </div>
-                <button
-                  onClick={() => expire(a.id)}
-                  className="p-1.5 hover:bg-red-500/10 rounded-lg text-white/20 hover:text-red-400 transition-colors flex-shrink-0"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
               </div>
               <div className="flex items-center gap-3 text-xs text-white/30">
                 <span className="flex items-center gap-1">

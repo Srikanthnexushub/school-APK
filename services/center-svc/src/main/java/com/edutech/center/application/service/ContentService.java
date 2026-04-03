@@ -28,6 +28,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -74,11 +77,20 @@ public class ContentService implements UploadContentUseCase {
                 .orElse(false);
     }
 
-    /** True if principal can upload/manage content (not read-only student/parent). */
+    /** True if principal can upload new content (admins + teachers of that center). */
     private boolean canUpload(AuthPrincipal principal, UUID centerId) {
         if (principal.isSuperAdmin() || principal.isInstitutionAdmin()) return true;
         if (principal.isCenterAdmin() && principal.belongsToCenter(centerId)) return true;
         return teacherRepository.existsByUserIdAndCenterId(principal.userId(), centerId);
+    }
+
+    /**
+     * True if principal can modify or delete EXISTING content items.
+     * Stricter than canUpload — teachers are excluded; only platform/institution/center admins.
+     */
+    private boolean canModifyExisting(AuthPrincipal principal, UUID centerId) {
+        if (principal.isSuperAdmin() || principal.isInstitutionAdmin()) return true;
+        return principal.isCenterAdmin() && principal.belongsToCenter(centerId);
     }
 
     // ── Presigned upload flow ─────────────────────────────────────────────────
@@ -90,6 +102,28 @@ public class ContentService implements UploadContentUseCase {
         String objectKey = storagePort.buildObjectKey(centerId, "documents", filename);
         String url = storagePort.generateUploadUrl(objectKey, mimeType, uploadExpiryMinutes);
         return new PresignedUploadResponse(url, objectKey, uploadExpiryMinutes * 60);
+    }
+
+    /**
+     * Server-side multipart upload — file goes through center-svc → MinIO/S3.
+     * Avoids browser CORS restrictions on direct-to-S3 XHR PUT.
+     * Returns objectKey and fileSizeBytes for the subsequent /confirm call.
+     */
+    public PresignedUploadResponse uploadDirect(UUID centerId, MultipartFile file, AuthPrincipal principal) {
+        centerRepository.findById(centerId).orElseThrow(() -> new CenterNotFoundException(centerId));
+        if (!canUpload(principal, centerId)) throw new CenterAccessDeniedException();
+        String filename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload";
+        String mimeType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
+        String objectKey = storagePort.buildObjectKey(centerId, "documents", filename);
+        try {
+            storagePort.putObject(objectKey, file.getInputStream(), file.getSize(), mimeType);
+        } catch (IOException e) {
+            log.error("uploadDirect IOException centerId={} filename={}", centerId, filename, e);
+            throw new RuntimeException("Failed to read uploaded file", e);
+        }
+        log.info("uploadDirect: centerId={} objectKey={} size={}", centerId, objectKey, file.getSize());
+        // Return same PresignedUploadResponse shape so frontend confirm step is unchanged
+        return new PresignedUploadResponse(null, objectKey, (int) file.getSize());
     }
 
     @Transactional
@@ -141,7 +175,7 @@ public class ContentService implements UploadContentUseCase {
 
     @Transactional
     public void archiveContent(UUID centerId, UUID contentId, AuthPrincipal principal) {
-        if (!canUpload(principal, centerId)) throw new CenterAccessDeniedException();
+        if (!canModifyExisting(principal, centerId)) throw new CenterAccessDeniedException();
         ContentItem item = contentRepository.findByIdActive(contentId)
                 .orElseThrow(() -> new NoSuchElementException("Content not found: " + contentId));
         if (!item.getCenterId().equals(centerId)) throw new CenterAccessDeniedException();
@@ -154,7 +188,7 @@ public class ContentService implements UploadContentUseCase {
 
     @Transactional
     public ContentItemResponse reTag(UUID centerId, UUID contentId, AuthPrincipal principal) {
-        if (!canUpload(principal, centerId)) throw new CenterAccessDeniedException();
+        if (!canModifyExisting(principal, centerId)) throw new CenterAccessDeniedException();
         ContentItem item = contentRepository.findByIdActive(contentId)
                 .orElseThrow(() -> new NoSuchElementException("Content not found: " + contentId));
         if (!item.getCenterId().equals(centerId)) throw new CenterAccessDeniedException();

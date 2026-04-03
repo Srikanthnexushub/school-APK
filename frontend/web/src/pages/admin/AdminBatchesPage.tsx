@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, X, AlertTriangle, CheckCircle2, Clock,
   Users, BookOpen, Calendar, ChevronDown, ChevronUp,
-  Search, UserMinus, UserPlus, Loader2, UserPen,
-  GraduationCap, Briefcase, Mail, Download, Printer,
+  UserMinus, UserPen, Loader2, UserPlus, Search,
+  GraduationCap, Download, Printer,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '../../lib/utils';
@@ -84,6 +84,7 @@ interface CreateBatchRequest {
   startDate: string;
   endDate: string;
   mode: 'ONLINE' | 'OFFLINE';
+  centerId: string; // path param — used to determine URL; not sent in request body
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -186,26 +187,29 @@ interface AddBatchFormState {
   startDate: string;
   endDate: string;
   mode: string;
+  centerId: string;
 }
 
 const emptyForm: AddBatchFormState = {
   name: '', code: '', subject: '', teacherId: '',
-  maxStudents: '', startDate: '', endDate: '', mode: 'OFFLINE',
+  maxStudents: '', startDate: '', endDate: '', mode: 'OFFLINE', centerId: '',
 };
 
 interface AddBatchFormProps {
+  centers: CenterResponse[];
   teachers: TeacherResponse[];
   onSubmit: (data: CreateBatchRequest) => void;
   onCancel: () => void;
   isSubmitting: boolean;
 }
 
-function AddBatchForm({ teachers, onSubmit, onCancel, isSubmitting }: AddBatchFormProps) {
-  const [form, setForm] = useState<AddBatchFormState>(emptyForm);
+function AddBatchForm({ centers, teachers, onSubmit, onCancel, isSubmitting }: AddBatchFormProps) {
+  const [form, setForm] = useState<AddBatchFormState>({ ...emptyForm, centerId: centers[0]?.id ?? '' });
   const [errors, setErrors] = useState<Partial<AddBatchFormState>>({});
 
   function validate(): boolean {
     const e: Partial<AddBatchFormState> = {};
+    if (!form.centerId)         e.centerId   = 'Center is required';
     if (!form.name.trim())      e.name       = 'Batch name is required';
     if (!form.code.trim())      e.code       = 'Batch code is required';
     if (!form.subject.trim())   e.subject    = 'Subject is required';
@@ -229,6 +233,7 @@ function AddBatchForm({ teachers, onSubmit, onCancel, isSubmitting }: AddBatchFo
       startDate:   form.startDate,
       endDate:     form.endDate,
       mode:        (form.mode || 'OFFLINE') as 'ONLINE' | 'OFFLINE',
+      centerId:    form.centerId,
     });
   }
 
@@ -258,6 +263,23 @@ function AddBatchForm({ teachers, onSubmit, onCancel, isSubmitting }: AddBatchFo
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Center selector — always visible so admin knows which center the batch belongs to */}
+        <div>
+          <label className="block text-xs font-medium text-white/60 mb-1.5">Center</label>
+          <select
+            value={form.centerId}
+            onChange={(ev) => setForm((p) => ({ ...p, centerId: ev.target.value }))}
+            className="input w-full"
+            disabled={centers.length === 1}
+          >
+            <option value="">— Select center —</option>
+            {centers.map((c) => (
+              <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+            ))}
+          </select>
+          {errors.centerId && <p className="text-xs text-red-400 mt-1">{errors.centerId}</p>}
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-white/60 mb-1.5">Batch Name</label>
@@ -285,9 +307,9 @@ function AddBatchForm({ teachers, onSubmit, onCancel, isSubmitting }: AddBatchFo
               className="input w-full"
             >
               <option value="">— Select teacher —</option>
-              {teachers.map((t) => (
-                <option key={t.id} value={t.userId ?? ''} disabled={!t.userId}>
-                  {t.firstName} {t.lastName}{t.subjects ? ` (${t.subjects})` : ''}{!t.userId ? ' (pending registration)' : ''}
+              {teachers.filter((t) => !!t.userId).map((t) => (
+                <option key={t.id} value={t.userId!}>
+                  {t.firstName} {t.lastName}{t.subjects ? ` (${t.subjects})` : ''}
                 </option>
               ))}
             </select>
@@ -631,156 +653,6 @@ function StudentsModal({ batch, centerId, onClose }: StudentsModalProps) {
     </Modal>
   );
 }
-
-// ─── Teacher assign modal ─────────────────────────────────────────────────────
-
-interface TeacherAssignModalProps {
-  isOpen: boolean;
-  centerId: string;
-  onClose: () => void;
-}
-
-function TeacherAssignModal({ isOpen, centerId, onClose }: TeacherAssignModalProps) {
-  const qc = useQueryClient();
-  const [email, setEmail] = useState('');
-  const [foundUser, setFoundUser] = useState<UserLookupResponse | null>(null);
-  const [lookupError, setLookupError] = useState('');
-  const [isLooking, setIsLooking] = useState(false);
-  const [subjects, setSubjects] = useState('');
-
-  function reset() {
-    setEmail('');
-    setFoundUser(null);
-    setLookupError('');
-    setSubjects('');
-  }
-
-  const assignTeacher = useMutation({
-    mutationFn: async (user: UserLookupResponse) => {
-      await api.post(`/api/v1/centers/${centerId}/teachers`, {
-        userId: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        subjects: subjects.trim() || undefined,
-      });
-    },
-    onSuccess: (_, user) => {
-      qc.invalidateQueries({ queryKey: ['teachers', centerId] });
-      toast.success(`${user.firstName} ${user.lastName} assigned as teacher`);
-      reset();
-      onClose();
-    },
-    onError: (err: unknown) => {
-      const msg =
-        (err as { response?: { data?: { detail?: string; message?: string } } })?.response?.data?.detail ??
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        'Failed to assign teacher';
-      toast.error(msg);
-    },
-  });
-
-  async function handleLookup() {
-    if (!email.trim()) return;
-    setIsLooking(true);
-    setLookupError('');
-    setFoundUser(null);
-    try {
-      const r = await api.get<UserLookupResponse>(
-        `/api/v1/auth/users/lookup?email=${encodeURIComponent(email.trim())}`
-      );
-      if (r.data.role !== 'TEACHER') {
-        setLookupError(`Found user is ${r.data.role}, not a TEACHER. Only registered teachers can be assigned.`);
-      } else {
-        setFoundUser(r.data);
-      }
-    } catch {
-      setLookupError('No user found with that email. Teacher must self-register first.');
-    } finally {
-      setIsLooking(false);
-    }
-  }
-
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={() => { reset(); onClose(); }}
-      title="Assign Teacher to Center"
-      maxWidth="max-w-md"
-    >
-      <p className="text-xs text-white/40 mb-4">
-        Look up a registered teacher by email and assign them to your center. They will appear in the teacher dropdown when creating or editing batches.
-      </p>
-
-      <div className="flex gap-2 mb-3">
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => { setEmail(e.target.value); setFoundUser(null); setLookupError(''); }}
-          onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
-          placeholder="teacher@email.com"
-          className="input flex-1 text-sm"
-        />
-        <button
-          onClick={handleLookup}
-          disabled={isLooking || !email.trim()}
-          className="btn-primary px-3 py-2 text-sm disabled:opacity-50 flex items-center gap-1.5"
-        >
-          {isLooking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-          Find
-        </button>
-      </div>
-
-      {lookupError && (
-        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-3">
-          <p className="text-xs text-amber-400">{lookupError}</p>
-          <p className="text-xs text-white/30 mt-1.5 flex items-center gap-1.5">
-            <Mail className="w-3 h-3" />
-            Teacher must register at <span className="font-mono text-white/50">/register</span> with role TEACHER first.
-          </p>
-        </div>
-      )}
-
-      {foundUser && (
-        <motion.div
-          initial={{ opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-3"
-        >
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-brand-500/10 border border-brand-500/20">
-            <div className="w-9 h-9 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-              <Briefcase className="w-4 h-4 text-amber-400" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-white">{foundUser.firstName} {foundUser.lastName}</p>
-              <p className="text-xs text-white/40">{foundUser.email} · TEACHER</p>
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-white/60 mb-1.5">
-              Subjects (optional — override teacher's registered subjects)
-            </label>
-            <input
-              value={subjects}
-              onChange={(e) => setSubjects(e.target.value)}
-              placeholder="Physics, Chemistry, Maths"
-              className="input w-full text-sm"
-            />
-          </div>
-          <button
-            onClick={() => assignTeacher.mutate(foundUser)}
-            disabled={assignTeacher.isPending}
-            className="btn-primary w-full py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            {assignTeacher.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-            Assign to Center
-          </button>
-        </motion.div>
-      )}
-    </Modal>
-  );
-}
-
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function AdminBatchesPage() {
@@ -788,7 +660,6 @@ export default function AdminBatchesPage() {
   const [showForm, setShowForm] = useState(false);
   const [expandedHealth, setExpandedHealth] = useState(true);
   const [studentsBatch, setStudentsBatch] = useState<BatchResponse | null>(null);
-  const [showTeacherModal, setShowTeacherModal] = useState(false);
 
   // ── Fetch centers to get centerId ──────────────────────────────────────────
   const { data: centers = [], isLoading: centersLoading } = useQuery<CenterResponse[]>({
@@ -844,8 +715,10 @@ export default function AdminBatchesPage() {
 
   // ── Create batch mutation ──────────────────────────────────────────────────
   const createBatch = useMutation({
-    mutationFn: (data: CreateBatchRequest) =>
-      api.post(`/api/v1/centers/${centerId}/batches`, data),
+    mutationFn: (data: CreateBatchRequest) => {
+      const { centerId: reqCenterId, ...body } = data;
+      return api.post(`/api/v1/centers/${reqCenterId || centerId}/batches`, body);
+    },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['batches', centerId] });
       qc.invalidateQueries({ queryKey: ['batches-health', centerId] });
@@ -876,12 +749,6 @@ export default function AdminBatchesPage() {
           </p>
         </div>
           <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowTeacherModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-white/10 text-white/60 hover:text-white hover:border-white/20 transition-colors"
-          >
-            <Briefcase className="w-4 h-4" /> Assign Teacher
-          </button>
           {!showForm && (
             <button
               onClick={() => setShowForm(true)}
@@ -897,6 +764,7 @@ export default function AdminBatchesPage() {
       <AnimatePresence>
         {showForm && (
           <AddBatchForm
+            centers={centers}
             teachers={teachers}
             onSubmit={(data) => createBatch.mutate(data)}
             onCancel={() => setShowForm(false)}
@@ -977,13 +845,6 @@ export default function AdminBatchesPage() {
         batch={studentsBatch}
         centerId={centerId}
         onClose={() => setStudentsBatch(null)}
-      />
-
-      {/* Teacher assign modal */}
-      <TeacherAssignModal
-        isOpen={showTeacherModal}
-        centerId={centerId}
-        onClose={() => setShowTeacherModal(false)}
       />
 
       {/* Batches table */}

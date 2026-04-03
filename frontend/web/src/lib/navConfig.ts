@@ -1,7 +1,7 @@
 import type { ElementType } from 'react';
 import {
   LayoutDashboard, Bot, ClipboardList, BarChart3, Target, Brain,
-  Users, Calendar, Settings, BookOpen, Library, Award,
+  Users, Calendar, BookOpen, Library, Award,
   CreditCard, Beaker, UserCog, BookCheck, Building2, Upload, UserCheck,
   Megaphone, CalendarCheck, GraduationCap, Wallet, ShieldCheck, Layers, Bell,
 } from 'lucide-react';
@@ -72,7 +72,6 @@ export const parentNav: NavItem[] = [
   { icon: Layers,          label: 'Curricular',    to: '/parent/curricular' },
   { icon: CreditCard,      label: 'Fees',          to: '/parent/fees' },
   { icon: Library,         label: 'Library',       to: '/parent/library' },
-  { icon: Settings,        label: 'Profile',       to: '/parent/profile' },
   { icon: Brain,           label: 'Psychometric',  to: '/parent/psychometric' },
   { icon: BookOpen,        label: 'Question Bank', to: '/parent/question-bank' },
 ];

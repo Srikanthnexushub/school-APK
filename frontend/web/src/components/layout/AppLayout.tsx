@@ -5,7 +5,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar, Settings, LogOut, Menu, X, ChevronLeft,
-  Bell, Search, ChevronRight,
+  Bell, Search, ChevronRight, User,
   Sun, Moon, CheckCircle2,
 } from 'lucide-react';
 import { NavItem, getNavItems, ROLE_COLORS } from '../../lib/navConfig';
@@ -164,7 +164,7 @@ function AvatarDropdown({ name, avatarUrl }: { name: string; avatarUrl?: string 
                 onClick={() => { navigate('/settings'); setOpen(false); }}
                 className="w-full text-left px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors flex items-center gap-2"
               >
-                <Settings className="w-4 h-4" /> Profile
+                <User className="w-4 h-4" /> Profile
               </button>
               <button
                 onClick={() => { navigate('/settings'); setOpen(false); }}
@@ -448,57 +448,28 @@ function SidebarContent({
           </div>
         )}
         {collapsed ? (
-          <>
-            <CollapseTooltip label="Settings">
-              <NavLink
-                to="/settings"
-                className={({ isActive }) =>
-                  cn('flex items-center justify-center p-2.5 rounded-xl transition-all duration-200', isActive ? '' : 'hover:bg-white/5')
-                }
-                style={({ isActive }) => isActive ? { background: roleColor.bg, borderLeft: `2px solid ${roleColor.neon}` } : {}}
-              >
-                {({ isActive }) => <Settings style={{ width: 18, height: 18, color: isActive ? roleColor.neon : 'rgba(255,255,255,0.45)' }} />}
-              </NavLink>
-            </CollapseTooltip>
-            <CollapseTooltip label="Sign out">
-              <button
-                onClick={handleLogout}
-                className="flex items-center justify-center p-2.5 rounded-xl w-full transition-all duration-200"
-                style={{ color: 'rgba(239,68,68,0.65)' }}
-                onMouseEnter={e => { e.currentTarget.style.color = 'rgb(239,68,68)'; e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'rgba(239,68,68,0.65)'; e.currentTarget.style.background = 'transparent'; }}
-              >
-                <LogOut style={{ width: 18, height: 18 }} />
-              </button>
-            </CollapseTooltip>
-          </>
-        ) : (
-          <>
-            <NavLink
-              to="/settings"
-              className={({ isActive }) =>
-                cn('flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200', isActive ? '' : 'hover:bg-white/5')
-              }
-              style={({ isActive }) => isActive ? { background: roleColor.bg, borderLeft: `2px solid ${roleColor.neon}` } : { color: clr.text }}
-            >
-              {({ isActive }) => (
-                <>
-                  <Settings style={{ width: 18, height: 18, flexShrink: 0, color: isActive ? roleColor.neon : clr.icon }} />
-                  <span style={{ color: isActive ? clr.textActive : clr.text }}>Settings</span>
-                </>
-              )}
-            </NavLink>
+          <CollapseTooltip label="Sign out">
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 w-full"
+              className="flex items-center justify-center p-2.5 rounded-xl w-full transition-all duration-200"
               style={{ color: 'rgba(239,68,68,0.65)' }}
               onMouseEnter={e => { e.currentTarget.style.color = 'rgb(239,68,68)'; e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; }}
               onMouseLeave={e => { e.currentTarget.style.color = 'rgba(239,68,68,0.65)'; e.currentTarget.style.background = 'transparent'; }}
             >
-              <LogOut style={{ width: 18, height: 18, flexShrink: 0 }} />
-              Sign out
+              <LogOut style={{ width: 18, height: 18 }} />
             </button>
-          </>
+          </CollapseTooltip>
+        ) : (
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 w-full"
+            style={{ color: 'rgba(239,68,68,0.65)' }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'rgb(239,68,68)'; e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(239,68,68,0.65)'; e.currentTarget.style.background = 'transparent'; }}
+          >
+            <LogOut style={{ width: 18, height: 18, flexShrink: 0 }} />
+            Sign out
+          </button>
         )}
       </div>
     </div>

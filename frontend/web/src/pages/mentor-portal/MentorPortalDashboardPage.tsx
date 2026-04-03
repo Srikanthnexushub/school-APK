@@ -4,12 +4,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Users, Star, Clock, TrendingUp, Video, Calendar,
   CheckCircle2, XCircle, AlertCircle, Check, Loader2, RefreshCw,
+  GraduationCap, BookOpen,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../lib/utils';
 import { Avatar } from '../../components/ui/Avatar';
+
+interface BatchSummary {
+  id: string; name: string; code: string; subject: string;
+  teacherId: string; enrolledCount: number; maxStudents: number;
+  status: 'ACTIVE' | 'INACTIVE' | 'COMPLETED' | 'UPCOMING';
+  mode?: 'ONLINE' | 'OFFLINE';
+}
 
 interface MentorStats {
   sessionsThisWeek: number;
@@ -99,6 +107,25 @@ export default function MentorPortalDashboardPage() {
     enabled: !!profileId,
     retry: false,
   });
+
+  // Fetch teacher's assigned batches
+  const { data: centers = [] } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ['centers'],
+    queryFn: () => api.get('/api/v1/centers').then(r => Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
+    enabled: !!user,
+    retry: false,
+  });
+  const centerId = centers[0]?.id ?? '';
+
+  const { data: allBatches = [] } = useQuery<BatchSummary[]>({
+    queryKey: ['batches', centerId],
+    queryFn: () => api.get(`/api/v1/centers/${centerId}/batches`).then(r =>
+      Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
+    enabled: !!centerId,
+    retry: false,
+  });
+
+  const myBatches = allBatches.filter(b => b.teacherId === user?.id);
 
   // Accept/Decline mutations for pending sessions in the upcoming table
   const updateStatusMutation = useMutation({
@@ -264,6 +291,62 @@ export default function MentorPortalDashboardPage() {
           color="bg-emerald-600/20"
         />
       </div>
+
+      {/* My Batches */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.08 }}
+        className="card"
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <GraduationCap className="w-5 h-5 text-brand-400" />
+          <h2 className="text-lg font-semibold text-white">My Batches</h2>
+          <span className="ml-auto text-xs text-white/30">{myBatches.length} assigned</span>
+        </div>
+        {myBatches.length === 0 ? (
+          <div className="py-8 flex flex-col items-center gap-3 text-white/30">
+            <BookOpen className="w-8 h-8 opacity-40" />
+            <p className="text-sm">No batches assigned to you yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {myBatches.map((batch) => {
+              const fillPct = batch.maxStudents > 0 ? Math.round((batch.enrolledCount / batch.maxStudents) * 100) : 0;
+              return (
+                <div key={batch.id} className="flex items-center gap-4 px-4 py-3 rounded-xl bg-white/3 hover:bg-white/5 transition-colors">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-white">{batch.name}</span>
+                      <span className="text-xs font-mono text-white/30">{batch.code}</span>
+                      <span className={cn(
+                        'text-xs px-2 py-0.5 rounded-full font-medium',
+                        batch.status === 'ACTIVE'    ? 'bg-emerald-500/15 text-emerald-400' :
+                        batch.status === 'UPCOMING'  ? 'bg-amber-500/15 text-amber-400' :
+                        batch.status === 'COMPLETED' ? 'bg-sky-500/15 text-sky-400' :
+                                                        'bg-white/5 text-white/30'
+                      )}>{batch.status}</span>
+                    </div>
+                    <p className="text-xs text-white/40 mt-0.5">{batch.subject}</p>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-white">{batch.enrolledCount}<span className="text-white/30 font-normal">/{batch.maxStudents}</span></p>
+                      <p className="text-xs text-white/30">students</p>
+                    </div>
+                    <div className="w-16 hidden sm:block">
+                      <div className="w-full bg-white/5 rounded-full h-1.5">
+                        <div className="h-1.5 rounded-full bg-brand-400" style={{ width: `${fillPct}%` }} />
+                      </div>
+                      <p className="text-[10px] text-white/25 mt-0.5 text-right">{fillPct}%</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </motion.div>
 
       {/* Upcoming Sessions */}
       <motion.div

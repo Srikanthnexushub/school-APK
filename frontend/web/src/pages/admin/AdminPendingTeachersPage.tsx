@@ -150,12 +150,15 @@ export default function AdminPendingTeachersPage() {
   const [rejectTarget, setRejectTarget] = useState<TeacherResponse | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
+  // JWT centerId first (same pattern as AdminStaffPage effectiveCenterId — Fix #232)
+  const jwtCenterId = user?.centerId ?? '';
+
   const { data: centers = [] } = useQuery<{ id: string }[]>({
     queryKey: ['centers'],
     queryFn: () => api.get('/api/v1/centers').then(r => Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
-    enabled: !!user,
+    enabled: !!user && !jwtCenterId,
   });
-  const centerId = centers[0]?.id ?? '';
+  const centerId = jwtCenterId || centers[0]?.id || '';
 
   const { data: pending = [], isLoading } = useQuery<TeacherResponse[]>({
     queryKey: ['admin-pending-teachers', centerId],

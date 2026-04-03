@@ -80,7 +80,9 @@ public class AnnouncementService implements SendAnnouncementUseCase {
     @Override
     @Transactional
     public void expire(UUID centerId, UUID announcementId, AuthPrincipal principal) {
-        if (!principal.belongsToCenter(centerId) && !principal.isSuperAdmin() && !principal.isInstitutionAdmin()) {
+        // Only admin roles may delete/expire announcements — teachers, students, parents excluded
+        if (!principal.isSuperAdmin() && !principal.isInstitutionAdmin()
+                && !(principal.isCenterAdmin() && principal.belongsToCenter(centerId))) {
             throw new CenterAccessDeniedException();
         }
         announcementRepository.findById(announcementId).ifPresent(a -> {

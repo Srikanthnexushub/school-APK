@@ -37,6 +37,16 @@ public interface DocumentStoragePort {
     String buildObjectKey(UUID centerId, String contentType, String filename);
 
     /**
+     * Uploads an object directly from an InputStream (server-side upload — no browser CORS needed).
+     *
+     * @param objectKey   the target object key in the bucket
+     * @param data        the raw bytes to upload
+     * @param size        content length in bytes (-1 if unknown, triggers chunked upload)
+     * @param contentType MIME type of the file
+     */
+    void putObject(String objectKey, java.io.InputStream data, long size, String contentType);
+
+    /**
      * Ensures the configured bucket exists, creating it if necessary.
      * Called once at application startup.
      */

@@ -6,7 +6,6 @@ import {
   Users, CheckCircle2, AlertCircle, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import api from '../../lib/api';
-import { useAuthStore } from '../../stores/authStore';
 import { cn } from '../../lib/utils';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -212,7 +211,6 @@ function CreateActivityModal({ centerId, onClose, onCreated }: { centerId: strin
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function AdminCurricularPage() {
-  const { user } = useAuthStore();
   const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>('activities');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -220,7 +218,17 @@ export default function AdminCurricularPage() {
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [selectedGradeId, setSelectedGradeId] = useState('');
 
-  const centerId = user?.centerId ?? '';
+  // ── Fetch centers to get centerId (same pattern as AdminBatchesPage Fix #176) ─
+  const { data: centers = [] } = useQuery<{ id: string }[]>({
+    queryKey: ['centers'],
+    queryFn: () =>
+      api.get('/api/v1/centers').then((r) => {
+        const d = r.data;
+        return Array.isArray(d) ? d : (d.content ?? []);
+      }),
+  });
+
+  const centerId = centers[0]?.id ?? '';
 
   // ── Activities ────────────────────────────────────────────────────────────
   const { data: activities = [], isLoading: activitiesLoading } = useQuery<ActivityResponse[]>({

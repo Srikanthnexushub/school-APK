@@ -12,8 +12,10 @@
     <file url="file://$PROJECT_DIR$/services/auth-svc/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/services/career-oracle-svc/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/services/center-svc/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/curricular-svc/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/services/exam-tracker-svc/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/services/mentor-svc/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/services/nexus-chat-svc/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/services/notification-svc/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/services/parent-svc/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/services/performance-svc/src/main/java" charset="UTF-8" />
