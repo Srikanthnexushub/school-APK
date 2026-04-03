@@ -82,6 +82,10 @@ interface BatchDetails {
   status: 'ACTIVE' | 'INACTIVE' | 'COMPLETED' | 'UPCOMING';
   mode?: 'ONLINE' | 'OFFLINE';
 }
+interface CenterDetails {
+  id: string; name: string; code: string;
+  city?: string; state?: string; board?: string; centerType?: string;
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -211,6 +215,15 @@ export default function StudentDashboardPage() {
       api.get(`/api/v1/centers/${enrollment!.centerId}/batches/${enrollment!.batchId}`).then((r) => r.data),
     enabled: !!enrollment?.centerId && !!enrollment?.batchId,
     staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+
+  const centerQuery = useQuery<CenterDetails | null>({
+    queryKey: ['student-center-detail', enrollment?.centerId],
+    queryFn: () =>
+      api.get(`/api/v1/centers/${enrollment!.centerId}`).then((r) => r.data),
+    enabled: !!enrollment?.centerId,
+    staleTime: 10 * 60 * 1000,
     retry: false,
   });
 
@@ -345,35 +358,66 @@ export default function StudentDashboardPage() {
         </motion.div>
       )}
 
-      {/* Batch enrollment strip */}
-      {batchQuery.data && (
+      {/* Enrollment info card — center, batch, school */}
+      {(batchQuery.data || centerQuery.data) && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.06, duration: 0.35 }}
-          className="flex items-center gap-3 flex-wrap px-4 py-3 rounded-xl bg-brand-500/5 border border-brand-500/15"
+          className="grid grid-cols-1 sm:grid-cols-3 gap-3"
         >
-          <div className="w-8 h-8 rounded-full bg-brand-500/15 flex items-center justify-center flex-shrink-0">
-            <GraduationCap className="w-4 h-4 text-brand-400" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-semibold text-white">{batchQuery.data.name}</span>
-              <span className="text-xs text-white/40 font-mono">{batchQuery.data.code}</span>
-              <span className={[
-                'text-xs px-2 py-0.5 rounded-full font-medium',
-                batchQuery.data.status === 'ACTIVE'    ? 'bg-emerald-500/15 text-emerald-400' :
-                batchQuery.data.status === 'UPCOMING'  ? 'bg-amber-500/15 text-amber-400' :
-                batchQuery.data.status === 'COMPLETED' ? 'bg-sky-500/15 text-sky-400' :
-                                                          'bg-white/5 text-white/30'
-              ].join(' ')}>{batchQuery.data.status}</span>
+          {/* Center / School */}
+          {centerQuery.data && (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-violet-500/5 border border-violet-500/15">
+              <div className="w-8 h-8 rounded-full bg-violet-500/15 flex items-center justify-center flex-shrink-0">
+                <GraduationCap className="w-4 h-4 text-violet-400" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] text-violet-400/70 uppercase tracking-wide font-medium mb-0.5">School / Center</div>
+                <div className="text-sm font-semibold text-white truncate">{centerQuery.data.name}</div>
+                <div className="text-xs text-white/40 truncate">
+                  {[centerQuery.data.board, centerQuery.data.city].filter(Boolean).join(' · ') || centerQuery.data.code}
+                </div>
+              </div>
             </div>
-            <div className="text-xs text-white/40 mt-0.5">{batchQuery.data.subject}</div>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-white/40 flex-shrink-0">
-            <Users className="w-3.5 h-3.5" />
-            <span>{batchQuery.data.enrolledCount} / {batchQuery.data.maxStudents} enrolled</span>
-          </div>
+          )}
+
+          {/* Batch */}
+          {batchQuery.data && (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-brand-500/5 border border-brand-500/15">
+              <div className="w-8 h-8 rounded-full bg-brand-500/15 flex items-center justify-center flex-shrink-0">
+                <BookOpen className="w-4 h-4 text-brand-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] text-brand-400/70 uppercase tracking-wide font-medium mb-0.5">Batch</div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-sm font-semibold text-white truncate">{batchQuery.data.name}</span>
+                  <span className={[
+                    'text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0',
+                    batchQuery.data.status === 'ACTIVE'    ? 'bg-emerald-500/15 text-emerald-400' :
+                    batchQuery.data.status === 'UPCOMING'  ? 'bg-amber-500/15 text-amber-400' :
+                    batchQuery.data.status === 'COMPLETED' ? 'bg-sky-500/15 text-sky-400' :
+                                                              'bg-white/5 text-white/30'
+                  ].join(' ')}>{batchQuery.data.status}</span>
+                </div>
+                <div className="text-xs text-white/40 truncate">{batchQuery.data.subject}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Enrollment count */}
+          {batchQuery.data && (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
+              <div className="w-8 h-8 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+                <Users className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] text-emerald-400/70 uppercase tracking-wide font-medium mb-0.5">Classmates</div>
+                <div className="text-sm font-semibold text-white">{batchQuery.data.enrolledCount} / {batchQuery.data.maxStudents}</div>
+                <div className="text-xs text-white/40">{batchQuery.data.mode ?? 'enrolled'}</div>
+              </div>
+            </div>
+          )}
         </motion.div>
       )}
 
