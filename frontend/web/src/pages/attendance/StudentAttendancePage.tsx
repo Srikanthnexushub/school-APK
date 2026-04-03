@@ -60,9 +60,10 @@ export default function StudentAttendancePage() {
   const centerId = enrollment?.centerId;
   const batchId = enrollment?.batchId;
 
-  const { data: summary, isLoading } = useQuery<AttendanceSummary>({
+  const { data: summary, isLoading } = useQuery<AttendanceSummary | null>({
     queryKey: ['my-attendance', centerId, batchId],
-    queryFn: () => api.get(`/api/v1/centers/${centerId}/batches/${batchId}/attendance/my-summary`).then(r => r.data),
+    queryFn: () => api.get(`/api/v1/centers/${centerId}/batches/${batchId}/attendance/my-summary`)
+      .then(r => { const d = r.data; return Array.isArray(d) ? (d[0] ?? null) : d; }),
     enabled: !!centerId && !!batchId,
   });
 
