@@ -44,7 +44,7 @@ export default function StudentLibraryPage() {
     staleTime: 5 * 60_000,
   });
 
-  const centerId = resolveCenterId(grades);
+  const centerId = resolveCenterId(grades) || user?.centerId || '';
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
