@@ -2,6 +2,8 @@
 package com.edutech.auth.api;
 
 import com.edutech.auth.application.dto.AssignUserCenterRequest;
+import com.edutech.auth.application.dto.RegisterStaffRequest;
+import com.edutech.auth.application.dto.RegisterStaffResponse;
 import com.edutech.auth.application.dto.AuthAuditStatsResponse;
 import com.edutech.auth.application.dto.AuthPrincipal;
 import com.edutech.auth.application.dto.ChangePasswordRequest;
@@ -222,6 +224,20 @@ public class AuthController {
             .map(authMapper::toUserResponse)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/admin/register-staff")
+    @ResponseStatus(HttpStatus.CREATED)
+    @SecurityRequirement(name = "BearerAuth")
+    @Operation(summary = "Admin creates a staff auth account — CENTER_ADMIN/SUPER_ADMIN only, no captcha")
+    public RegisterStaffResponse registerStaff(@Valid @RequestBody RegisterStaffRequest request,
+                                               @AuthenticationPrincipal AuthPrincipal principal) {
+        if (principal.role() != Role.SUPER_ADMIN
+                && principal.role() != Role.INSTITUTION_ADMIN
+                && principal.role() != Role.CENTER_ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Insufficient privileges");
+        }
+        return userRegistrationService.registerStaff(request);
     }
 
     @PatchMapping("/admin/users/{userId}/center")

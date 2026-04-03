@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
-import { cn, randomUUID } from '../../lib/utils';
+import { cn } from '../../lib/utils';
 import { useStaffBioGenerator } from '../../hooks/useStaffAI';
 import {
   STAFF_ROLE_TYPES,
@@ -151,21 +151,16 @@ export default function CreateStaffModal({ centerId, onClose, onCreated }: Creat
   async function handleSubmit() {
     setIsSubmitting(true);
     try {
-      // 1. Register the auth account for the staff member.
-      const deviceId = randomUUID();
-      const regRes = await api.post('/api/v1/auth/register', {
-        firstName: form.firstName.trim(),
-        lastName:  form.lastName.trim(),
-        email:     form.email.trim().toLowerCase(),
-        password:  form.password,
-        role:      'TEACHER',
+      // 1. Register the auth account — admin endpoint, no captcha required.
+      const regRes = await api.post('/api/v1/auth/admin/register-staff', {
+        firstName:   form.firstName.trim(),
+        lastName:    form.lastName.trim(),
+        email:       form.email.trim().toLowerCase(),
+        password:    form.password,
+        phoneNumber: form.phoneNumber.trim() || null,
         centerId,
-        captchaToken: 'E2E-LOCAL-BYPASS-DO-NOT-USE-IN-PROD:bypass',
-        deviceFingerprint: { userAgent: navigator.userAgent, deviceId, ipSubnet: '127.0.0' },
       });
-      const accessToken: string = regRes.data.accessToken;
-      const payload = JSON.parse(atob(accessToken.split('.')[1]));
-      const userId: string = payload.sub;
+      const userId: string = regRes.data.userId;
 
       // 2. Create the staff record as ACTIVE (userId present → no invitation flow).
       await api.post(`/api/v1/centers/${centerId}/staff`, {

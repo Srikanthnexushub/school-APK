@@ -17,5 +17,6 @@ interface SpringDataBatchMemberRepository extends JpaRepository<BatchMember, UUI
 
     Optional<BatchMember> findByBatchIdAndStudentId(UUID batchId, UUID studentId);
 
-    List<BatchMember> findByStudentId(UUID studentId);
+    @Query("SELECT m FROM BatchMember m WHERE m.studentId = :studentId ORDER BY m.enrolledAt DESC")
+    List<BatchMember> findByStudentId(@Param("studentId") UUID studentId);
 }

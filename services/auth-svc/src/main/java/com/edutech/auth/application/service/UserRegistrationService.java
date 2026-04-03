@@ -4,6 +4,8 @@ package com.edutech.auth.application.service;
 import com.edutech.auth.application.dto.RegisterChildRequest;
 import com.edutech.auth.application.dto.RegisterChildResponse;
 import com.edutech.auth.application.dto.RegisterRequest;
+import com.edutech.auth.application.dto.RegisterStaffRequest;
+import com.edutech.auth.application.dto.RegisterStaffResponse;
 import com.edutech.auth.application.dto.TokenPair;
 import com.edutech.auth.application.exception.CaptchaVerificationException;
 import com.edutech.auth.application.exception.EmailAlreadyExistsException;
@@ -131,6 +133,39 @@ public class UserRegistrationService implements RegisterUserUseCase {
         log.info("Child account created by parent: id={} email={}", saved.getId(), saved.getEmail());
 
         return new RegisterChildResponse(saved.getId(), saved.getEmail());
+    }
+
+    /**
+     * Admin-initiated staff registration — no captcha, requires authenticated admin caller.
+     * Creates the auth account as ACTIVE immediately so the staff member can log in right away.
+     */
+    @Transactional
+    public RegisterStaffResponse registerStaff(RegisterStaffRequest request) {
+        if (userRepository.existsByEmail(request.email())) {
+            throw new EmailAlreadyExistsException(request.email());
+        }
+
+        String passwordHash = passwordHasher.hash(request.password());
+
+        User user = User.create(
+            request.email(),
+            passwordHash,
+            Role.TEACHER,
+            request.centerId(),
+            request.firstName(),
+            request.lastName(),
+            request.phoneNumber(),
+            null
+        );
+        user.activate();
+        User saved = userRepository.save(user);
+
+        auditEventPublisher.publish(new UserRegisteredEvent(
+            saved.getId(), saved.getEmail(), saved.getRole(), saved.getCenterId()
+        ));
+
+        log.info("Staff account created by admin: id={} email={}", saved.getId(), maskEmail(saved.getEmail()));
+        return new RegisterStaffResponse(saved.getId(), saved.getEmail());
     }
 
     /** Masks an email address for safe logging: alice@example.com → a***@example.com */
