@@ -15,4 +15,5 @@ public interface QueryActivityUseCase {
     List<ActivitySession> getActivitySessions(UUID activityId);
     List<ActivityAchievement> getStudentAchievements(UUID studentId);
     List<ActivityAchievement> getChildActivitiesAndAchievements(UUID studentId);
+    List<ActivityEnrollment> getActivityEnrollments(UUID activityId);
 }

@@ -122,7 +122,7 @@ function AddLinkWizard({ centerId, onClose, onSuccess, isSuperAdmin }: {
         externalUrl:        url,
         title:              title.trim(),
         description:        description || undefined,
-        contentType,
+        type:               contentType,
         subject:            subject || undefined,
         board:              board || undefined,
         classGrade:         classGrade || undefined,

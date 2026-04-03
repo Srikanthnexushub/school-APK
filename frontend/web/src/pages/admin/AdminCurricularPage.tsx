@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   Layers, Activity, BarChart3, Calendar, Plus, X,
-  Users, CheckCircle2, AlertCircle, ChevronDown, ChevronRight,
+  Users, CheckCircle2, AlertCircle, ChevronDown, ChevronRight, UserCheck,
 } from 'lucide-react';
 import api from '../../lib/api';
 import { cn } from '../../lib/utils';
@@ -12,10 +12,13 @@ import { cn } from '../../lib/utils';
 
 interface ActivityResponse {
   id: string; name: string; description: string; category: string;
-  maxParticipants: number; scheduleDescription: string; active: boolean;
+  maxParticipants: number; scheduleDescription: string; active: boolean; enrollmentCount: number;
 }
 interface ActivitySessionResponse {
   id: string; activityId: string; sessionDate: string; venue: string; durationMins: number; notes: string;
+}
+interface ActivityEnrollmentAdminResponse {
+  enrollmentId: string; studentId: string; status: string; enrolledAt: string;
 }
 interface AcademicYearResponse {
   id: string; yearLabel: string; startDate: string; endDate: string; active: boolean;
@@ -59,6 +62,12 @@ type Tab = 'activities' | 'coverage' | 'calendar';
 
 // ─── Activity Row with expandable sessions ───────────────────────────────────
 
+const ENROLLMENT_STATUS_COLORS: Record<string, string> = {
+  ENROLLED:   'bg-green-500/20 text-green-300 border-green-500/30',
+  WAITLISTED: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+  COMPLETED:  'bg-blue-500/20 text-blue-300 border-blue-500/30',
+};
+
 function AdminActivityRow({ a, onDeactivate, deactivating }: {
   a: ActivityResponse;
   onDeactivate: (id: string) => void;
@@ -69,6 +78,12 @@ function AdminActivityRow({ a, onDeactivate, deactivating }: {
   const { data: sessions = [], isLoading: sessionsLoading } = useQuery<ActivitySessionResponse[]>({
     queryKey: ['admin-activity-sessions', a.id],
     queryFn:  () => api.get(`/api/v1/curricular/activities/${a.id}/sessions`).then(r => Array.isArray(r.data) ? r.data : []),
+    enabled: expanded,
+  });
+
+  const { data: enrollments = [], isLoading: enrollmentsLoading } = useQuery<ActivityEnrollmentAdminResponse[]>({
+    queryKey: ['admin-activity-enrollments', a.id],
+    queryFn:  () => api.get(`/api/v1/curricular/activities/${a.id}/enrollments`).then(r => Array.isArray(r.data) ? r.data : []),
     enabled: expanded,
   });
 
@@ -89,7 +104,9 @@ function AdminActivityRow({ a, onDeactivate, deactivating }: {
           </div>
           {a.description && <p className="text-xs text-white/40 mt-1 line-clamp-2">{a.description}</p>}
           <div className="flex items-center gap-3 mt-2 text-xs text-white/30">
-            <span><Users className="w-3 h-3 inline mr-1" />{a.maxParticipants} max</span>
+            <span className={cn('flex items-center gap-1', a.enrollmentCount >= a.maxParticipants ? 'text-yellow-400' : 'text-green-400')}>
+              <UserCheck className="w-3 h-3" />{a.enrollmentCount}/{a.maxParticipants} enrolled
+            </span>
             {a.scheduleDescription && <span>📅 {a.scheduleDescription}</span>}
           </div>
         </div>
@@ -108,24 +125,54 @@ function AdminActivityRow({ a, onDeactivate, deactivating }: {
       </div>
 
       {expanded && (
-        <div className="border-t border-white/5 p-4 space-y-2 bg-white/[0.02]">
-          <p className="text-xs text-white/40 font-semibold uppercase tracking-wide">
-            Sessions {sessions.length > 0 ? `(${sessions.length})` : ''}
-          </p>
-          {sessionsLoading && <p className="text-xs text-white/30">Loading sessions…</p>}
-          {!sessionsLoading && sessions.length === 0 && (
-            <p className="text-xs text-white/30">No sessions recorded yet. Teachers can add sessions from their portal.</p>
-          )}
-          {sessions.map(s => (
-            <div key={s.id} className="flex items-center gap-3 p-2.5 bg-white/[0.03] rounded-lg">
-              <Calendar className="w-4 h-4 text-brand-400 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-white">{new Date(s.sessionDate).toLocaleDateString()}{s.venue ? ` — ${s.venue}` : ''}</p>
-                {s.notes && <p className="text-[10px] text-white/30 truncate">{s.notes}</p>}
+        <div className="border-t border-white/5 p-4 space-y-4 bg-white/[0.02]">
+          {/* Enrolled Students */}
+          <div className="space-y-2">
+            <p className="text-xs text-white/40 font-semibold uppercase tracking-wide flex items-center gap-1.5">
+              <UserCheck className="w-3.5 h-3.5" />
+              Enrolled Students {enrollments.length > 0 ? `(${enrollments.length})` : ''}
+            </p>
+            {enrollmentsLoading && <p className="text-xs text-white/30">Loading enrollments…</p>}
+            {!enrollmentsLoading && enrollments.length === 0 && (
+              <p className="text-xs text-white/30">No students enrolled yet.</p>
+            )}
+            {enrollments.map(e => (
+              <div key={e.enrollmentId} className="flex items-center gap-3 p-2.5 bg-white/[0.03] rounded-lg">
+                <div className="w-7 h-7 rounded-full bg-brand-500/20 flex items-center justify-center shrink-0">
+                  <Users className="w-3.5 h-3.5 text-brand-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-white font-mono truncate">{e.studentId}</p>
+                  <p className="text-[10px] text-white/30">{new Date(e.enrolledAt).toLocaleDateString()}</p>
+                </div>
+                <span className={cn('text-[10px] px-2 py-0.5 rounded-full border', ENROLLMENT_STATUS_COLORS[e.status] ?? 'bg-slate-500/20 text-slate-300 border-slate-500/30')}>
+                  {e.status}
+                </span>
               </div>
-              <span className="text-xs text-white/30 shrink-0">{s.durationMins} mins</span>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {/* Sessions */}
+          <div className="space-y-2">
+            <p className="text-xs text-white/40 font-semibold uppercase tracking-wide flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5" />
+              Sessions {sessions.length > 0 ? `(${sessions.length})` : ''}
+            </p>
+            {sessionsLoading && <p className="text-xs text-white/30">Loading sessions…</p>}
+            {!sessionsLoading && sessions.length === 0 && (
+              <p className="text-xs text-white/30">No sessions recorded yet. Teachers can add sessions from their portal.</p>
+            )}
+            {sessions.map(s => (
+              <div key={s.id} className="flex items-center gap-3 p-2.5 bg-white/[0.03] rounded-lg">
+                <Calendar className="w-4 h-4 text-brand-400 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-white">{new Date(s.sessionDate).toLocaleDateString()}{s.venue ? ` — ${s.venue}` : ''}</p>
+                  {s.notes && <p className="text-[10px] text-white/30 truncate">{s.notes}</p>}
+                </div>
+                <span className="text-xs text-white/30 shrink-0">{s.durationMins} mins</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

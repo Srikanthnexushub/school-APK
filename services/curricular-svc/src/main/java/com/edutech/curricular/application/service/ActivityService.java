@@ -152,4 +152,12 @@ public class ActivityService implements ManageActivityUseCase, QueryActivityUseC
     public List<ActivityAchievement> getChildActivitiesAndAchievements(UUID studentId) {
         return achievementRepository.findByStudentId(studentId);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ActivityEnrollment> getActivityEnrollments(UUID activityId) {
+        return enrollmentRepository.findByActivityId(activityId).stream()
+            .filter(e -> e.getStatus() != EnrollmentStatus.WITHDRAWN)
+            .toList();
+    }
 }

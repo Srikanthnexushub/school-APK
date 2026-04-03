@@ -6,6 +6,7 @@ import com.edutech.curricular.domain.model.*;
 import com.edutech.curricular.domain.model.enums.ActivityCategory;
 import com.edutech.curricular.domain.port.in.ManageActivityUseCase;
 import com.edutech.curricular.domain.port.in.QueryActivityUseCase;
+import com.edutech.curricular.domain.port.out.ActivityEnrollmentRepository;
 import com.edutech.curricular.domain.port.out.ActivityRepository;
 import com.edutech.curricular.infrastructure.config.AuthPrincipal;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class ActivityController {
     private final ManageActivityUseCase manageActivityUseCase;
     private final QueryActivityUseCase queryActivityUseCase;
     private final ActivityRepository activityRepository;
+    private final ActivityEnrollmentRepository enrollmentRepository;
     private final ChildJourneyService childJourneyService;
 
     @GetMapping("/activities")
@@ -183,11 +185,26 @@ public class ActivityController {
         return ResponseEntity.ok(journey);
     }
 
+    @GetMapping("/activities/{id}/enrollments")
+    public ResponseEntity<List<ActivityEnrollmentAdminResponse>> getActivityEnrollments(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal AuthPrincipal principal) {
+        if (!ADMIN_ROLES.contains(principal.role())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        List<ActivityEnrollmentAdminResponse> responses = queryActivityUseCase.getActivityEnrollments(id).stream()
+            .map(e -> new ActivityEnrollmentAdminResponse(e.getId(), e.getStudentId(), e.getStatus().name(), e.getEnrolledAt()))
+            .toList();
+        return ResponseEntity.ok(responses);
+    }
+
     private ActivityResponse toResponse(ExtracurricularActivity activity) {
+        int enrollmentCount = (int) enrollmentRepository.countActiveByActivityId(activity.getId());
         return new ActivityResponse(
             activity.getId(), activity.getCenterId(), activity.getName(),
             activity.getDescription(), activity.getCategory().name(),
-            activity.getMaxParticipants(), activity.getScheduleDescription(), activity.isActive()
+            activity.getMaxParticipants(), activity.getScheduleDescription(), activity.isActive(),
+            enrollmentCount
         );
     }
 }
