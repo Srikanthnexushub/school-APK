@@ -283,7 +283,7 @@ export default function CareerOraclePage() {
     .map(r => ({
       stream: r.careerStream,
       displayName: STREAM_DISPLAY[r.careerStream] ?? r.careerStream,
-      score: Math.round(Number(r.fitScore)),
+      score: Math.round(Number(r.fitScore) || 0),
       description: r.rationale,
       requiredSkills: SKILLS_MAP[r.careerStream] ?? [],
       salaryRange: SALARY_MAP[r.careerStream] ?? '',
@@ -607,8 +607,8 @@ export default function CareerOraclePage() {
               </div>
               <div className="space-y-2">
                 {ERS_KEYS.map(({ key, label }) => {
-                  const comp = gap.ersBreakdown[key];
-                  const pct = Math.min(100, (comp.score / 10) * 100);
+                  const comp = gap.ersBreakdown[key] ?? { score: 0, weight: 0, gap: 0 };
+                  const pct = Math.min(100, ((comp.score ?? 0) / 10) * 100);
                   return (
                     <div key={key}>
                       <div className="flex justify-between text-xs text-white/50 mb-1">

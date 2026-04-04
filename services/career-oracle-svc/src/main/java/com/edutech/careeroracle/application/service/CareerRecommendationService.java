@@ -14,6 +14,7 @@ import com.edutech.careeroracle.domain.port.out.CareerRecommendationRepository;
 import com.edutech.careeroracle.domain.service.CareerScoreCalculator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -55,18 +56,7 @@ public class CareerRecommendationService implements GenerateCareerRecommendation
                                                                        Map<String, BigDecimal> subjectStrengths) {
         CareerProfile profile = careerProfileRepository.findByStudentId(studentId)
                 .filter(p -> !p.isDeleted())
-                .orElseGet(() -> {
-                    log.info("No career profile found for studentId={}. Auto-creating default profile.", studentId);
-                    CareerProfile defaultProfile = CareerProfile.create(
-                            studentId,
-                            UUID.randomUUID(),
-                            "SCIENCE",
-                            11,
-                            java.math.BigDecimal.valueOf(50),
-                            null
-                    );
-                    return careerProfileRepository.save(defaultProfile);
-                });
+                .orElseGet(() -> autoCreateProfile(studentId));
 
         Map<CareerStream, BigDecimal> fitScores = careerScoreCalculator.calculate(
                 profile.getErsScore(),
@@ -134,6 +124,32 @@ public class CareerRecommendationService implements GenerateCareerRecommendation
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Auto-creates a default career profile for a student who has none.
+     * Handles concurrent race condition: if two requests arrive simultaneously for the same
+     * student, the second save() hits a unique-constraint violation (student_id is unique).
+     * In that case we retry findByStudentId() — the first request already saved the profile.
+     */
+    private CareerProfile autoCreateProfile(UUID studentId) {
+        log.info("No career profile found for studentId={}. Auto-creating default profile.", studentId);
+        CareerProfile defaultProfile = CareerProfile.create(
+                studentId,
+                UUID.randomUUID(),
+                "SCIENCE",
+                11,
+                BigDecimal.valueOf(50),
+                null
+        );
+        try {
+            return careerProfileRepository.save(defaultProfile);
+        } catch (DataIntegrityViolationException ex) {
+            log.warn("Concurrent auto-create conflict for studentId={}, retrying find.", studentId);
+            return careerProfileRepository.findByStudentId(studentId)
+                    .filter(p -> !p.isDeleted())
+                    .orElseThrow(() -> new CareerProfileNotFoundException("studentId", studentId));
+        }
     }
 
     private ConfidenceLevel determineConfidenceLevel(BigDecimal score) {
