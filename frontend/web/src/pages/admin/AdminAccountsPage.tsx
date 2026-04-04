@@ -153,7 +153,7 @@ function InvoiceModal({ student, fees, totalFeePerStu, onClose }: {
         className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
         onClick={onClose}>
         <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-          className="bg-[#0f1117] border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl"
+          className="bg-surface-50 border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl"
           onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
             <div className="flex items-center gap-2">
@@ -240,7 +240,7 @@ function CampaignModal({ type, targets, centerId, onClose, onSent }: {
         className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
         onClick={!sending ? onClose : undefined}>
         <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-          className="bg-[#0f1117] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl"
+          className="bg-surface-50 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl"
           onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
             <div className="flex items-center gap-2.5">
@@ -353,7 +353,7 @@ function BillingWizard({ students, centerId, totalFeePerStu, fees, onClose, onSu
         className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
         onClick={onClose}>
         <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-          className="bg-[#0f1117] border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl"
+          className="bg-surface-50 border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl"
           onClick={e => e.stopPropagation()}>
 
           {/* Header */}
@@ -404,7 +404,7 @@ function BillingWizard({ students, centerId, totalFeePerStu, fees, onClose, onSu
                           'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all border',
                           student?.studentId === s.studentId
                             ? 'bg-brand-500/15 border-brand-500/30'
-                            : 'bg-white/[0.06] border-white/8 hover:bg-white/[0.10] hover:border-white/15'
+                            : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
                         )}>
                         {/* Avatar */}
                         <div className="w-9 h-9 rounded-full bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-sm font-bold text-brand-300 flex-shrink-0">
