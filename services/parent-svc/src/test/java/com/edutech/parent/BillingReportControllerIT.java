@@ -350,4 +350,137 @@ class BillingReportControllerIT {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
+
+    // ---------------------------------------------------------------------------
+    // Test 9: Student with no payments at all → NO_PAYMENT status, totalPaid=0
+    // ---------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("GET /report — student with no payments → NO_PAYMENT, totalPaid=0")
+    void getBillingReport_noPayments_noPaymentStatus() {
+        UUID noPayStu = UUID.randomUUID();
+        StudentLink link = StudentLink.create(parentAProfileId, noPayStu, "Zero Student", CENTER_ID, "PARENT");
+        studentLinkRepository.save(link);
+
+        mockAuth(centerAdminPrincipal());
+        ResponseEntity<List<StudentFeeReportItem>> response = restTemplate.exchange(
+                "/api/v1/parents/billing/report?centerId=" + CENTER_ID,
+                HttpMethod.GET, authEntity(),
+                new ParameterizedTypeReference<List<StudentFeeReportItem>>() {});
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        StudentFeeReportItem item = response.getBody().stream()
+                .filter(i -> noPayStu.equals(i.studentId()))
+                .findFirst().orElse(null);
+        assertThat(item).isNotNull();
+        assertThat(item.paymentStatus()).isEqualTo("NO_PAYMENT");
+        assertThat(item.totalPaid()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(item.paymentCount()).isZero();
+    }
+
+    // ---------------------------------------------------------------------------
+    // Test 10: Multiple CONFIRMED payments → totalPaid = sum, FULLY_PAID
+    // ---------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("GET /report — multiple CONFIRMED payments → FULLY_PAID, totalPaid aggregated")
+    void getBillingReport_multipleConfirmed_totalPaidAggregated() {
+        UUID multiStu = UUID.randomUUID();
+        StudentLink link = StudentLink.create(parentAProfileId, multiStu, "Multi Student", CENTER_ID, "PARENT");
+        studentLinkRepository.save(link);
+
+        FeePayment p1 = FeePayment.create(parentAProfileId, multiStu, CENTER_ID, null,
+                new BigDecimal("5000.00"), "INR", LocalDate.now(),
+                "REF-M1-" + UUID.randomUUID(), null, "TUITION", "ONLINE");
+        p1.confirm();
+        feePaymentRepository.save(p1);
+
+        FeePayment p2 = FeePayment.create(parentAProfileId, multiStu, CENTER_ID, null,
+                new BigDecimal("7500.00"), "INR", LocalDate.now(),
+                "REF-M2-" + UUID.randomUUID(), null, "EXAM_FEE", "ONLINE");
+        p2.confirm();
+        feePaymentRepository.save(p2);
+
+        mockAuth(centerAdminPrincipal());
+        ResponseEntity<List<StudentFeeReportItem>> response = restTemplate.exchange(
+                "/api/v1/parents/billing/report?centerId=" + CENTER_ID,
+                HttpMethod.GET, authEntity(),
+                new ParameterizedTypeReference<List<StudentFeeReportItem>>() {});
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        StudentFeeReportItem item = response.getBody().stream()
+                .filter(i -> multiStu.equals(i.studentId()))
+                .findFirst().orElse(null);
+        assertThat(item).isNotNull();
+        assertThat(item.paymentStatus()).isEqualTo("FULLY_PAID");
+        assertThat(item.totalPaid()).isEqualByComparingTo(new BigDecimal("12500.00"));
+        assertThat(item.paymentCount()).isEqualTo(2);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Test 11: REFUNDED-only payments → deriveStatus returns NO_PAYMENT
+    // ---------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("GET /report — all payments REFUNDED → NO_PAYMENT status, totalPaid=0")
+    void getBillingReport_allRefunded_noPaymentStatus() {
+        UUID refundStu = UUID.randomUUID();
+        StudentLink link = StudentLink.create(parentAProfileId, refundStu, "Refunded Student", CENTER_ID, "PARENT");
+        studentLinkRepository.save(link);
+
+        // PENDING → CONFIRMED → DISPUTED → REFUNDED
+        FeePayment p = FeePayment.create(parentAProfileId, refundStu, CENTER_ID, null,
+                new BigDecimal("10000.00"), "INR", LocalDate.now(),
+                "REF-R1-" + UUID.randomUUID(), null, "TUITION", "ONLINE");
+        p.confirm();
+        p.dispute();
+        p.refund();
+        feePaymentRepository.save(p);
+
+        mockAuth(centerAdminPrincipal());
+        ResponseEntity<List<StudentFeeReportItem>> response = restTemplate.exchange(
+                "/api/v1/parents/billing/report?centerId=" + CENTER_ID,
+                HttpMethod.GET, authEntity(),
+                new ParameterizedTypeReference<List<StudentFeeReportItem>>() {});
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        StudentFeeReportItem item = response.getBody().stream()
+                .filter(i -> refundStu.equals(i.studentId()))
+                .findFirst().orElse(null);
+        assertThat(item).isNotNull();
+        assertThat(item.paymentStatus()).isEqualTo("NO_PAYMENT");
+        assertThat(item.totalPaid()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Test 12: PARENT role calling admin billing endpoint → 403
+    // ---------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("GET /report — PARENT role → 403")
+    void getBillingReport_parentRole_returns403() {
+        mockAuth(new AuthPrincipal(PARENT_A_USER_ID, "parent@test.com", Role.PARENT, CENTER_ID, "fp-parent"));
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/v1/parents/billing/report?centerId=" + CENTER_ID,
+                HttpMethod.GET, authEntity(), String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Test 13: Missing centerId query param → 400 Bad Request
+    // ---------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("GET /report — missing centerId param → 400")
+    void getBillingReport_missingCenterId_returns400() {
+        mockAuth(centerAdminPrincipal());
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/v1/parents/billing/report",
+                HttpMethod.GET, authEntity(), String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
 }

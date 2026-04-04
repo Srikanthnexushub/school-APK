@@ -48,6 +48,12 @@ const RISK_CFG = {
   LOW:  { label: 'Healthy',     color: 'text-emerald-400', dot: 'bg-emerald-500' },
 };
 
+const AI_ACTION = {
+  NO_PAYMENT: { label: 'Immediate Follow-up', color: 'text-red-400',      bg: 'bg-red-500/10 border-red-500/20',      icon: ShieldAlert    },
+  PARTIAL:    { label: 'Schedule a Plan',     color: 'text-amber-400',    bg: 'bg-amber-500/10 border-amber-500/20',  icon: Clock          },
+  FULLY_PAID: { label: 'All Clear',           color: 'text-emerald-400',  bg: 'bg-emerald-500/10 border-emerald-500/20', icon: CheckCircle2 },
+} as const;
+
 const CAMPAIGN_CFG: Record<CampaignType, {
   label: string; icon: React.ElementType; color: string; bg: string;
   subject: string; body: string; target: ColFilter;
@@ -147,13 +153,13 @@ function CollectionRing({ rate }: { rate: number }) {
 
 // ─── Invoice Modal ────────────────────────────────────────────────────────────
 
-function InvoiceModal({ student, centerId, fees, onClose }: {
+function InvoiceModal({ student, centerId, fees, onClose, totalFeePerStu }: {
   student: StudentFeeReportItem; centerId: string;
-  fees: FeeStructure[]; onClose: () => void;
+  fees: FeeStructure[]; onClose: () => void; totalFeePerStu: number;
 }) {
   const printRef = useRef<HTMLDivElement>(null);
   const handlePrint = () => window.print();
-  const totalFee = fees.reduce((s, f) => s + f.amount, 0);
+  const totalFee = totalFeePerStu > 0 ? totalFeePerStu : fees.reduce((s, f) => s + f.amount, 0);
   const outstanding = Math.max(0, totalFee - student.totalPaid);
 
   return (
@@ -402,6 +408,28 @@ export default function AdminAccountsPage() {
   const collectionRate = totalStudents > 0 ? Math.round((fullyPaid / totalStudents) * 100) : 0;
   const atRisk         = noPayment + partial;
 
+  // ── Derived financial values ──────────────────────────────────────────────
+
+  const activeFees        = fees.filter(f => f.status === 'ACTIVE');
+  const totalFeePerStu    = activeFees.reduce((s, f) => s + f.amount, 0);
+  const expectedRevenue   = totalStudents * totalFeePerStu;
+  const revenueGap        = Math.max(0, expectedRevenue - totalCollected);
+  const collectionEfficiency = expectedRevenue > 0 ? Math.round((totalCollected / expectedRevenue) * 100) : 0;
+
+  // Next due date derived from first active fee structure's dueDay
+  const nextDueDate = (() => {
+    const f = activeFees.find(x => x.dueDay > 0);
+    if (!f) return '—';
+    const today = new Date();
+    const d = new Date(today.getFullYear(), today.getMonth(), f.dueDay);
+    if (d <= today) d.setMonth(d.getMonth() + 1);
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' });
+  })();
+
+  // Per-student balance (outstanding amount)
+  const getBalance = (item: StudentFeeReportItem): number =>
+    totalFeePerStu > 0 ? Math.max(0, totalFeePerStu - item.totalPaid) : 0;
+
   // ── Mutations ─────────────────────────────────────────────────────────────
 
   const [sending, setSending] = useState<string | null>(null);
@@ -471,9 +499,9 @@ Focus on: collection health, at-risk students, actionable recommendations. Be pr
     });
 
   function exportAuditCsv() {
-    const header = 'Student Name,Status,Total Paid,Payment Count,Risk Level\n';
+    const header = 'Student Name,Status,Total Fee,Paid,Balance,Due Date,AI Recommendation,Payment Count\n';
     const rows = auditRows.map(r =>
-      `"${r.studentName}",${STATUS_CFG[r.paymentStatus].label},${r.totalPaid},${r.paymentCount},${STATUS_CFG[r.paymentStatus].risk}`
+      `"${r.studentName}",${STATUS_CFG[r.paymentStatus].label},${totalFeePerStu},${r.totalPaid},${getBalance(r)},${nextDueDate},${AI_ACTION[r.paymentStatus].label},${r.paymentCount}`
     ).join('\n');
     const blob = new Blob([header + rows], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -642,6 +670,43 @@ Focus on: collection health, at-risk students, actionable recommendations. Be pr
             </div>
           </div>
 
+          {/* Gap Analysis */}
+          {expectedRevenue > 0 && (
+            <div className="glass rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <BarChart3 className="w-4 h-4 text-brand-400" />
+                <h3 className="text-sm font-semibold text-white">Revenue Gap Analysis</h3>
+                <span className={cn(
+                  'ml-auto text-xs font-medium px-2 py-0.5 rounded-full',
+                  collectionEfficiency >= 80 ? 'bg-emerald-500/10 text-emerald-400' :
+                  collectionEfficiency >= 50 ? 'bg-amber-500/10 text-amber-400' :
+                  'bg-red-500/10 text-red-400'
+                )}>{collectionEfficiency}% efficiency</span>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { label: 'Expected Revenue', value: `₹${(expectedRevenue / 1000).toFixed(1)}k`, sub: `${totalStudents} × ₹${(totalFeePerStu / 1000).toFixed(1)}k`, color: 'text-white/70', bar: 'bg-white/20' },
+                  { label: 'Collected',        value: `₹${(totalCollected / 1000).toFixed(1)}k`,  sub: `${collectionRate}% of students paid`, color: 'text-emerald-400', bar: 'bg-emerald-500' },
+                  { label: 'Revenue Gap',      value: `₹${(revenueGap / 1000).toFixed(1)}k`,      sub: revenueGap === 0 ? 'Fully collected!' : `${noPayment + partial} students pending`, color: revenueGap === 0 ? 'text-emerald-400' : 'text-red-400', bar: 'bg-red-500' },
+                ].map(({ label, value, sub, color, bar }) => (
+                  <div key={label} className="flex flex-col gap-2">
+                    <p className="text-xs text-white/40 uppercase tracking-wide">{label}</p>
+                    <p className={cn('text-xl font-bold', color)}>{value}</p>
+                    <p className="text-xs text-white/30">{sub}</p>
+                    <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                      <motion.div
+                        className={cn('h-full rounded-full', bar)}
+                        initial={{ width: '0%' }}
+                        animate={{ width: label === 'Expected Revenue' ? '100%' : label === 'Collected' ? `${collectionEfficiency}%` : `${Math.round((revenueGap / expectedRevenue) * 100)}%` }}
+                        transition={{ duration: 0.8, ease: 'easeOut' }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Quick Campaign Actions */}
           <div className="glass rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-4">
@@ -782,7 +847,7 @@ Focus on: collection health, at-risk students, actionable recommendations. Be pr
             </div>
           </div>
 
-          {/* Table */}
+          {/* Collections table */}
           {reportLoading ? (
             <div className="flex items-center justify-center py-16">
               <Loader2 className="w-6 h-6 text-brand-400 animate-spin" />
@@ -794,10 +859,10 @@ Focus on: collection health, at-risk students, actionable recommendations. Be pr
             </div>
           ) : (
             <div className="glass rounded-2xl overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm min-w-[720px]">
                 <thead>
                   <tr className="border-b border-white/5">
-                    <th className="px-4 py-3 text-left">
+                    <th className="px-4 py-3 w-8">
                       <input
                         type="checkbox"
                         checked={selected.size === filteredReport.length && filteredReport.length > 0}
@@ -806,18 +871,19 @@ Focus on: collection health, at-risk students, actionable recommendations. Be pr
                       />
                     </th>
                     <th className="px-4 py-3 text-left text-xs text-white/30 uppercase tracking-wider font-medium">Student</th>
-                    <th className="px-4 py-3 text-left text-xs text-white/30 uppercase tracking-wider font-medium">Status</th>
-                    <th className="px-4 py-3 text-left text-xs text-white/30 uppercase tracking-wider font-medium hidden sm:table-cell">Risk</th>
-                    <th className="px-4 py-3 text-left text-xs text-white/30 uppercase tracking-wider font-medium hidden md:table-cell">Paid</th>
-                    <th className="px-4 py-3 text-left text-xs text-white/30 uppercase tracking-wider font-medium hidden md:table-cell">Count</th>
+                    <th className="px-4 py-3 text-right text-xs text-white/30 uppercase tracking-wider font-medium">Total Fee</th>
+                    <th className="px-4 py-3 text-right text-xs text-white/30 uppercase tracking-wider font-medium">Paid</th>
+                    <th className="px-4 py-3 text-right text-xs text-white/30 uppercase tracking-wider font-medium">Balance</th>
+                    <th className="px-4 py-3 text-center text-xs text-white/30 uppercase tracking-wider font-medium hidden lg:table-cell">Due Date</th>
+                    <th className="px-4 py-3 text-left text-xs text-white/30 uppercase tracking-wider font-medium hidden md:table-cell">AI Recommendation</th>
                     <th className="px-4 py-3 text-right text-xs text-white/30 uppercase tracking-wider font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {filteredReport.map((item, i) => {
-                    const cfg  = STATUS_CFG[item.paymentStatus];
-                    const risk = RISK_CFG[cfg.risk];
-                    const Icon = cfg.icon;
+                    const bal  = getBalance(item);
+                    const ai   = AI_ACTION[item.paymentStatus];
+                    const AiIcon = ai.icon;
                     return (
                       <motion.tr
                         key={item.studentId}
@@ -825,10 +891,11 @@ Focus on: collection health, at-risk students, actionable recommendations. Be pr
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.02 }}
                         className={cn(
-                          'hover:bg-white/3 transition-colors',
+                          'hover:bg-white/[0.02] transition-colors',
                           selected.has(item.studentId) && 'bg-brand-500/5'
                         )}
                       >
+                        {/* Checkbox */}
                         <td className="px-4 py-3">
                           <input
                             type="checkbox"
@@ -837,30 +904,59 @@ Focus on: collection health, at-risk students, actionable recommendations. Be pr
                             className="rounded border-white/20 bg-white/5 text-brand-500"
                           />
                         </td>
+
+                        {/* Student Name */}
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
                             <div className="w-7 h-7 rounded-full bg-surface-100 flex items-center justify-center text-xs font-bold text-white/60 flex-shrink-0">
                               {item.studentName.charAt(0).toUpperCase()}
                             </div>
-                            <span className="font-medium text-white">{item.studentName}</span>
+                            <span className="font-medium text-white truncate max-w-[140px]">{item.studentName}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3">
-                          <span className={cn('inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium', cfg.color)}>
-                            <Icon className="w-3 h-3" />
-                            {cfg.label}
+
+                        {/* Total Fee */}
+                        <td className="px-4 py-3 text-right">
+                          <span className="text-white/50 text-sm">
+                            {totalFeePerStu > 0 ? `₹${totalFeePerStu.toLocaleString('en-IN')}` : '—'}
                           </span>
                         </td>
-                        <td className="px-4 py-3 hidden sm:table-cell">
-                          <div className="flex items-center gap-1.5">
-                            <div className={cn('w-1.5 h-1.5 rounded-full', risk.dot)} />
-                            <span className={cn('text-xs font-medium', risk.color)}>{risk.label}</span>
-                          </div>
+
+                        {/* Paid */}
+                        <td className="px-4 py-3 text-right">
+                          <span className={cn('font-semibold text-sm', item.totalPaid > 0 ? 'text-emerald-400' : 'text-white/30')}>
+                            {item.totalPaid > 0 ? `₹${item.totalPaid.toLocaleString('en-IN')}` : '—'}
+                          </span>
                         </td>
-                        <td className="px-4 py-3 text-white/60 text-sm hidden md:table-cell">
-                          {item.totalPaid > 0 ? `₹${item.totalPaid.toLocaleString('en-IN')}` : '—'}
+
+                        {/* Balance */}
+                        <td className="px-4 py-3 text-right">
+                          {bal === 0 ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400">
+                              <CheckCircle2 className="w-3 h-3" /> Nil
+                            </span>
+                          ) : (
+                            <span className="font-bold text-red-400 text-sm">₹{bal.toLocaleString('en-IN')}</span>
+                          )}
                         </td>
-                        <td className="px-4 py-3 text-white/40 text-sm hidden md:table-cell">{item.paymentCount}</td>
+
+                        {/* Due Date */}
+                        <td className="px-4 py-3 text-center hidden lg:table-cell">
+                          <span className="text-xs text-white/40">{nextDueDate}</span>
+                        </td>
+
+                        {/* AI Recommendation */}
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <span className={cn(
+                            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border',
+                            ai.color, ai.bg
+                          )}>
+                            <AiIcon className="w-3 h-3" />
+                            {ai.label}
+                          </span>
+                        </td>
+
+                        {/* Actions */}
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
@@ -875,7 +971,7 @@ Focus on: collection health, at-risk students, actionable recommendations. Be pr
                                 onClick={() => singleReminder.mutate(item.studentId)}
                                 disabled={sending === item.studentId}
                                 className="p-1.5 rounded-lg bg-brand-500/10 text-brand-400 hover:bg-brand-500/20 transition-colors disabled:opacity-50"
-                                title="Send reminder"
+                                title="Send AI-recommended follow-up"
                               >
                                 {sending === item.studentId ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                               </button>
@@ -1024,6 +1120,7 @@ Focus on: collection health, at-risk students, actionable recommendations. Be pr
           student={invoiceStudent}
           centerId={centerId}
           fees={fees.filter(f => f.status === 'ACTIVE')}
+          totalFeePerStu={totalFeePerStu}
           onClose={() => setInvoiceStudent(null)}
         />
       )}

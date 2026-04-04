@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -46,6 +47,8 @@ public class BillingReportService {
     }
 
     public List<StudentFeeReportItem> getBillingReport(UUID centerId, AuthPrincipal principal) {
+        Objects.requireNonNull(centerId, "centerId must not be null");
+        Objects.requireNonNull(principal, "principal must not be null");
         requireAdminAccess(centerId, principal);
 
         List<StudentLink> links = studentLinkRepository.findActiveByCenterId(centerId);
@@ -74,6 +77,9 @@ public class BillingReportService {
 
     @Transactional
     public void sendFeeReminder(UUID centerId, UUID studentId, AuthPrincipal principal) {
+        Objects.requireNonNull(centerId,  "centerId must not be null");
+        Objects.requireNonNull(studentId, "studentId must not be null");
+        Objects.requireNonNull(principal, "principal must not be null");
         requireAdminAccess(centerId, principal);
 
         List<StudentLink> links = studentLinkRepository.findActiveByStudentId(studentId);
@@ -106,10 +112,12 @@ public class BillingReportService {
     }
 
     private String deriveStatus(List<FeePayment> payments) {
-        if (payments.isEmpty()) return "NO_PAYMENT";
+        if (payments == null || payments.isEmpty()) return "NO_PAYMENT";
         boolean hasConfirmed = payments.stream().anyMatch(p -> p.getStatus() == PaymentStatus.CONFIRMED);
         boolean hasPending   = payments.stream().anyMatch(p -> p.getStatus() == PaymentStatus.PENDING);
-        if (hasConfirmed && !hasPending) return "FULLY_PAID";
+        // Only DISPUTED/REFUNDED payments remaining — net amount paid is zero
+        if (!hasConfirmed && !hasPending) return "NO_PAYMENT";
+        if (hasConfirmed && !hasPending)  return "FULLY_PAID";
         return "PARTIAL";
     }
 }
