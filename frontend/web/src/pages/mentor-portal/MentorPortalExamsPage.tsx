@@ -877,8 +877,8 @@ export default function MentorPortalExamsPage() {
   const createExamMutation = useMutation({
     mutationFn: (payload: CreateExamRequest) => api.post('/api/v1/exams', {
       ...payload,
-      startAt: payload.startAt || undefined,
-      endAt:   payload.endAt   || undefined,
+      startAt: payload.startAt ? new Date(payload.startAt).toISOString() : undefined,
+      endAt:   payload.endAt   ? new Date(payload.endAt).toISOString()   : undefined,
     }),
     onSuccess: (res) => {
       const id: string = res.data?.id ?? res.data;
