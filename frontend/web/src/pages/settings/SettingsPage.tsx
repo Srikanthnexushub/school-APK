@@ -9,7 +9,7 @@ import { z } from 'zod';
 import {
   User, Bell, Palette, Shield, Camera, Check, AlertTriangle,
   Smartphone, Monitor, Eye, EyeOff, GraduationCap, Calendar, MapPin, BookOpen,
-  Plus, Loader2, Search, UserPlus, X,
+  Plus, Loader2, Search, UserPlus, X, Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
@@ -480,6 +480,7 @@ function ProfileTab() {
     fullName: '', bio: '', specializations: '', yearsOfExperience: 0,
     hourlyRate: '', gender: '', district: '',
   });
+  const [generatingBio, setGeneratingBio] = useState(false);
   const teacherFormInitialized = useRef(false);
   useEffect(() => {
     if (mentorProfile && !teacherFormInitialized.current) {
@@ -920,11 +921,48 @@ function ProfileTab() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-1.5">Bio</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-white/70">Bio</label>
+                <button
+                  type="button"
+                  disabled={generatingBio}
+                  onClick={async () => {
+                    setGeneratingBio(true);
+                    try {
+                      const name = teacherForm.fullName || user?.name || 'Teacher';
+                      const specs = teacherForm.specializations || 'teaching';
+                      const exp = teacherForm.yearsOfExperience || 0;
+                      const res = await api.post('/api/v1/ai/completions', {
+                        requesterId: user?.id ?? 'system',
+                        systemPrompt: 'You are a professional bio writer for educators. Write a concise, warm, first-person professional bio in 2-3 sentences. Return only the bio text, no quotes or labels.',
+                        userMessage: `Write a professional teacher bio for ${name} who specializes in ${specs} with ${exp} year${exp !== 1 ? 's' : ''} of experience.`,
+                        maxTokens: 150,
+                        temperature: 0.7,
+                      });
+                      const generated: string = res.data?.content ?? '';
+                      if (generated.trim()) {
+                        setTeacherForm(f => ({ ...f, bio: generated.trim() }));
+                        toast.success('Bio generated! Review and save.');
+                      } else {
+                        toast.error('AI returned an empty response. Try again.');
+                      }
+                    } catch {
+                      toast.error('Failed to generate bio. Check AI service.');
+                    } finally {
+                      setGeneratingBio(false);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-500/15 border border-brand-500/30 text-brand-400 hover:bg-brand-500/25 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {generatingBio
+                    ? <><Loader2 className="w-3 h-3 animate-spin" /> Generating…</>
+                    : <><Sparkles className="w-3 h-3" /> AI Generate</>}
+                </button>
+              </div>
               <textarea
                 value={teacherForm.bio}
                 onChange={(e) => setTeacherForm((p) => ({ ...p, bio: e.target.value }))}
-                placeholder="Tell students about yourself..."
+                placeholder="Tell students about yourself... or click AI Generate above"
                 rows={3}
                 className="input w-full resize-none"
               />
