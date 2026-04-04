@@ -2,6 +2,8 @@
 package com.edutech.assess.domain.model;
 
 public enum ExamMode {
-    STANDARD,
-    CAT
+    ONLINE,
+    OFFLINE,
+    STANDARD,  // legacy — migrated to ONLINE
+    CAT        // legacy — migrated to OFFLINE
 }

@@ -27,7 +27,7 @@ interface BatchResponse {
   status: string;
 }
 
-type ExamMode   = 'STANDARD' | 'CAT';
+type ExamMode   = 'ONLINE' | 'OFFLINE';
 type ExamStatus = 'DRAFT' | 'PUBLISHED' | 'COMPLETED' | 'CANCELLED';
 
 interface ExamResponse {
@@ -112,8 +112,8 @@ const examStatusIcons: Record<ExamStatus, React.ElementType> = {
 };
 
 const examModeColors: Record<ExamMode, string> = {
-  STANDARD: 'bg-cyan-500/15 text-cyan-400',
-  CAT:      'bg-violet-500/15 text-violet-400',
+  ONLINE:  'bg-cyan-500/15 text-cyan-400',
+  OFFLINE: 'bg-violet-500/15 text-violet-400',
 };
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
@@ -154,7 +154,7 @@ const DIFFICULTY_STYLES: Record<Difficulty, string> = {
 function blankDraft(): CreateExamRequest {
   return {
     title: '', description: '', batchId: '', centerId: '',
-    mode: 'STANDARD', durationMinutes: 60, maxAttempts: 1,
+    mode: 'ONLINE', durationMinutes: 60, maxAttempts: 1,
     startAt: '', endAt: '', totalMarks: 100, passingMarks: 40,
   };
 }
@@ -280,7 +280,7 @@ function Step1({
         <div>
           <label className="block text-sm text-white/60 mb-1.5">Exam Mode</label>
           <div className="flex gap-2">
-            {(['STANDARD', 'CAT'] as const).map(m => (
+            {(['ONLINE', 'OFFLINE'] as const).map(m => (
               <button
                 key={m}
                 type="button"
@@ -292,17 +292,10 @@ function Step1({
                     : 'glass border-white/10 text-white/50 hover:border-white/20'
                 )}
               >
-                {m === 'CAT' ? (
-                  <span className="flex items-center justify-center gap-1.5"><Zap className="w-3.5 h-3.5" /> CAT</span>
-                ) : m}
+                {m}
               </button>
             ))}
           </div>
-          {form.mode === 'CAT' && (
-            <p className="text-xs text-brand-400/70 mt-1.5 flex items-center gap-1">
-              <Zap className="w-3 h-3" /> Computer Adaptive Testing — IRT parameters drive item selection
-            </p>
-          )}
         </div>
 
         {/* Duration */}
@@ -765,7 +758,7 @@ interface CreateExamFormState {
 }
 
 const emptyExamForm: CreateExamFormState = {
-  title: '', description: '', batchId: '', mode: 'STANDARD',
+  title: '', description: '', batchId: '', mode: 'ONLINE',
   durationMinutes: '', maxAttempts: '1', totalMarks: '', passingMarks: '', startAt: '', endAt: '',
 };
 
@@ -860,8 +853,8 @@ function CreateExamForm({ centerId, batches, onSubmit, onCancel, isSubmitting }:
               onChange={(e) => setField('mode', e.target.value as ExamMode)}
               className="input w-full"
             >
-              <option value="STANDARD">Standard</option>
-              <option value="CAT">CAT (Adaptive)</option>
+              <option value="ONLINE">Online</option>
+              <option value="OFFLINE">Offline</option>
             </select>
           </div>
         </div>
