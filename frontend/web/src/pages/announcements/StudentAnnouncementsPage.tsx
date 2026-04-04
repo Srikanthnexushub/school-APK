@@ -26,7 +26,32 @@ interface CenterAnnouncement {
 export default function StudentAnnouncementsPage() {
   const { user } = useAuthStore();
   const qc = useQueryClient();
-  const centerId = user?.centerId;
+  const isParent = user?.role === 'PARENT';
+  const jwtCenterId = user?.centerId;
+
+  // PARENT role has centerId=null in JWT — derive it from linked students' enrollment.
+  const { data: parentProfile } = useQuery({
+    queryKey: ['parent-profile'],
+    queryFn: () => api.get('/api/v1/parents/me').then(r => r.data),
+    enabled: isParent && !jwtCenterId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: linkedStudents = [] } = useQuery<{ studentId: string; centerId?: string }[]>({
+    queryKey: ['parent-linked-students-announcements', parentProfile?.id],
+    queryFn: () =>
+      api.get(`/api/v1/parents/${parentProfile!.id}/students?size=50`).then(r =>
+        Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
+    enabled: isParent && !!parentProfile?.id && !jwtCenterId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Pick the first linked student's centerId (excluding nil UUIDs)
+  const parentDerivedCenterId = linkedStudents.find(
+    s => s.centerId && s.centerId !== '00000000-0000-0000-0000-000000000000'
+  )?.centerId;
+
+  const centerId = jwtCenterId || (isParent ? parentDerivedCenterId : undefined);
 
   // In-app notifications (for read/unread state)
   // Notifications are user-scoped (by userId from JWT), not center-scoped.
