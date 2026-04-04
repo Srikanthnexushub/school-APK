@@ -390,29 +390,46 @@ function BillingWizard({ students, centerId, totalFeePerStu, fees, onClose, onSu
                     autoFocus
                     className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-brand-500/40" />
                 </div>
-                <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
+                <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
                   {filtered.length === 0 ? (
-                    <p className="text-center text-white/30 text-sm py-8">No students found</p>
+                    <p className="text-center text-white/50 text-sm py-8">No students found</p>
                   ) : filtered.map(s => {
                     const bal = Math.max(0, totalFeePerStu - s.totalPaid);
                     const cfg = STATUS_CFG[s.paymentStatus];
+                    const StatusIcon = cfg.icon;
                     return (
                       <button key={s.studentId}
                         onClick={() => { setStudent(s); if (bal > 0) setAmount(String(bal)); setStep(2); }}
-                        className={cn('w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all hover:bg-white/5',
-                          student?.studentId === s.studentId && 'bg-brand-500/10 border border-brand-500/20')}>
-                        <div className="w-8 h-8 rounded-full bg-surface-100 flex items-center justify-center text-xs font-bold text-white/60 flex-shrink-0">
+                        className={cn(
+                          'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all border',
+                          student?.studentId === s.studentId
+                            ? 'bg-brand-500/15 border-brand-500/30'
+                            : 'bg-white/[0.06] border-white/8 hover:bg-white/[0.10] hover:border-white/15'
+                        )}>
+                        {/* Avatar */}
+                        <div className="w-9 h-9 rounded-full bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-sm font-bold text-brand-300 flex-shrink-0">
                           {s.studentName.charAt(0).toUpperCase()}
                         </div>
+                        {/* Name + sub */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white truncate">{s.studentName}</p>
-                          <p className="text-xs text-white/40">
-                            Paid: ₹{s.totalPaid.toLocaleString('en-IN')}
-                            {bal > 0 && <span className="text-red-400 ml-2">Balance: ₹{bal.toLocaleString('en-IN')}</span>}
-                          </p>
+                          <p className="text-sm font-semibold text-white leading-tight">{s.studentName}</p>
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            {s.totalPaid > 0 && (
+                              <span className="text-xs text-emerald-400">Paid ₹{s.totalPaid.toLocaleString('en-IN')}</span>
+                            )}
+                            {bal > 0 && (
+                              <span className="text-xs text-red-400 font-medium">Balance ₹{bal.toLocaleString('en-IN')}</span>
+                            )}
+                            {bal === 0 && s.totalPaid > 0 && (
+                              <span className="text-xs text-emerald-400">Cleared</span>
+                            )}
+                          </div>
                         </div>
-                        <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0', cfg.color)}>{cfg.label}</span>
-                        <ChevronRight className="w-3.5 h-3.5 text-white/20 flex-shrink-0" />
+                        {/* Status badge */}
+                        <span className={cn('inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full font-semibold flex-shrink-0 border', cfg.color)}>
+                          <StatusIcon className="w-2.5 h-2.5" />{cfg.label}
+                        </span>
+                        <ChevronRight className="w-3.5 h-3.5 text-white/30 flex-shrink-0" />
                       </button>
                     );
                   })}
