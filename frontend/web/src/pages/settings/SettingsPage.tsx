@@ -320,12 +320,18 @@ function ProfileTab() {
     throwOnError: false,
   });
 
-  const { data: mentorProfile } = useQuery<MentorProfileMin>({
+  const { data: mentorProfile = null } = useQuery<MentorProfileMin | null>({
     queryKey: ['mentor-profile-me'],
-    queryFn: () => api.get('/api/v1/mentors/me').then((r) => r.data),
+    queryFn: async () => {
+      try {
+        const r = await api.get('/api/v1/mentors/me');
+        return r.data ?? null;
+      } catch {
+        return null;  // 404 = no profile yet → show create form
+      }
+    },
     enabled: !!user && user.role === 'TEACHER',
     retry: false,
-    throwOnError: false,
   });
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ProfileForm>({
@@ -836,8 +842,8 @@ function ProfileTab() {
         </div>
       )}
 
-      {/* Edit Info — teachers only */}
-      {user?.role === 'TEACHER' && mentorProfile && (
+      {/* Edit Info — teachers only (show form even when creating new profile) */}
+      {user?.role === 'TEACHER' && (
         <div className="card">
           <h3 className="text-base font-semibold text-white mb-4">Edit Profile</h3>
           <form
