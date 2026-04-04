@@ -5,4 +5,8 @@ public class PsychAccessDeniedException extends PsychException {
     public PsychAccessDeniedException() {
         super("Access denied to psych resource");
     }
+
+    public PsychAccessDeniedException(String message) {
+        super(message);
+    }
 }

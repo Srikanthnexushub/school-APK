@@ -71,13 +71,15 @@ public class CopilotService {
      * @param initialMessage the first message from the parent
      * @return the saved conversation with both user and assistant messages
      */
-    public ConversationResponse startConversation(String parentId, String studentId, String initialMessage) {
+    public ConversationResponse startConversation(String parentId, String studentId,
+                                                   String initialMessage, String authorizationHeader) {
         String title = buildTitle(initialMessage);
         CopilotConversation conversation = new CopilotConversation(parentId, studentId, title);
         conversation.addMessage("user", initialMessage);
 
         String studentName = resolveStudentName(parentId, studentId);
-        String psychContext = studentId != null ? fetchStudentPsychContext(studentId) : null;
+        String psychContext = studentId != null
+                ? fetchStudentPsychContext(studentId, authorizationHeader) : null;
         String aiReply = callAiGateway(initialMessage, List.of(), psychContext, studentName);
         conversation.addMessage("assistant", aiReply);
 
@@ -94,7 +96,8 @@ public class CopilotService {
      * @param userMessage    the new message from the parent
      * @return the updated conversation
      */
-    public ConversationResponse continueConversation(Long conversationId, String parentId, String userMessage) {
+    public ConversationResponse continueConversation(Long conversationId, String parentId,
+                                                      String userMessage, String authorizationHeader) {
         CopilotConversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new ConversationNotFoundException(conversationId));
         validateOwnership(conversation, parentId);
@@ -108,7 +111,7 @@ public class CopilotService {
         conversation.addMessage("user", userMessage);
         String studentName = resolveStudentName(parentId, conversation.getStudentId());
         String psychContext = conversation.getStudentId() != null
-                ? fetchStudentPsychContext(conversation.getStudentId()) : null;
+                ? fetchStudentPsychContext(conversation.getStudentId(), authorizationHeader) : null;
         String aiReply = callAiGateway(userMessage, history, psychContext, studentName);
         conversation.addMessage("assistant", aiReply);
 
@@ -223,13 +226,18 @@ public class CopilotService {
     }
 
     /**
-     * Calls psych-svc via X-Service-Key to fetch the student's psychometric profile
-     * and formats it as a plain-English context block for the AI system prompt.
+     * Calls psych-svc with both X-Service-Key and the user's JWT (Authorization header)
+     * to fetch the student's psychometric profile for the AI system prompt.
+     * Passing the JWT ensures psych-svc can enforce its own parent-link validation.
      */
-    private String fetchStudentPsychContext(String studentId) {
+    private String fetchStudentPsychContext(String studentId, String authorizationHeader) {
         try {
-            List<Map<String, Object>> profiles = psychSvcWebClient.get()
-                    .uri("/api/v1/psych/profiles?studentId=" + studentId)
+            WebClient.RequestHeadersSpec<?> requestSpec = psychSvcWebClient.get()
+                    .uri("/api/v1/psych/profiles?studentId=" + studentId);
+            if (authorizationHeader != null && !authorizationHeader.isBlank()) {
+                requestSpec = requestSpec.header("Authorization", authorizationHeader);
+            }
+            List<Map<String, Object>> profiles = requestSpec
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<List<Map<String, Object>>>() {})
                     .onErrorReturn(List.of())

@@ -8,6 +8,7 @@ import com.edutech.psych.application.exception.PsychProfileNotFoundException;
 import com.edutech.psych.domain.event.PsychProfileCreatedEvent;
 import com.edutech.psych.domain.model.PsychProfile;
 import com.edutech.psych.domain.port.in.CreatePsychProfileUseCase;
+import com.edutech.psych.domain.port.out.ParentStudentLinkValidationPort;
 import com.edutech.psych.domain.port.out.PsychEventPublisher;
 import com.edutech.psych.domain.port.out.PsychProfileRepository;
 import org.slf4j.Logger;
@@ -27,11 +28,14 @@ public class PsychProfileService implements CreatePsychProfileUseCase {
 
     private final PsychProfileRepository profileRepository;
     private final PsychEventPublisher eventPublisher;
+    private final ParentStudentLinkValidationPort parentLinkValidator;
 
     public PsychProfileService(PsychProfileRepository profileRepository,
-                               PsychEventPublisher eventPublisher) {
+                               PsychEventPublisher eventPublisher,
+                               ParentStudentLinkValidationPort parentLinkValidator) {
         this.profileRepository = profileRepository;
         this.eventPublisher = eventPublisher;
+        this.parentLinkValidator = parentLinkValidator;
     }
 
     @Override
@@ -74,11 +78,20 @@ public class PsychProfileService implements CreatePsychProfileUseCase {
 
     @Transactional(readOnly = true)
     public List<PsychProfileResponse> listByStudentId(UUID studentId, AuthPrincipal principal) {
-        // Allow: own profile, SUPER_ADMIN, INSTITUTION_ADMIN, TEACHER, PARENT
+        // Allow: own profile, SUPER_ADMIN, INSTITUTION_ADMIN, TEACHER
         boolean isOwn = principal.userId().equals(studentId);
         if (!isOwn && !principal.isSuperAdmin() && !principal.isInstitutionAdmin()
                 && !principal.isTeacher() && !principal.isParent()) {
             throw new PsychAccessDeniedException();
+        }
+        // PARENT: validate that an ACTIVE link exists in parent-svc (fail-closed)
+        if (principal.isParent() && !isOwn) {
+            boolean linked = parentLinkValidator.isParentLinkedToStudent(principal.userId(), studentId);
+            if (!linked) {
+                log.warn("PARENT access denied to psych profile: parentUserId={} studentId={} — no active link",
+                        principal.userId(), studentId);
+                throw new PsychAccessDeniedException("Parent is not linked to this student");
+            }
         }
         return profileRepository.findByStudentId(studentId).stream()
                 .map(this::toResponse)

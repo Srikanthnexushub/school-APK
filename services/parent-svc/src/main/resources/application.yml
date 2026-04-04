@@ -38,6 +38,11 @@ spring:
       ssl:
         enabled: ${REDIS_SSL_ENABLED}
 
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 55MB
+
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
     producer:

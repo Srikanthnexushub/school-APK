@@ -50,9 +50,23 @@ public class GradeService {
     public List<GradeResponse> listGradesByExam(UUID examId, AuthPrincipal principal) {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ExamNotFoundException(examId));
-        if (!principal.isSuperAdmin() && !principal.isTeacher() && !principal.belongsToCenter(exam.getCenterId())) {
+
+        if (principal.isSuperAdmin() || principal.isInstitutionAdmin()) {
+            // Platform-level admins can access any exam grades
+        } else if (principal.isTeacher()) {
+            // TEACHER must belong to the exam's center.
+            // centerId in JWT may be null until re-login after approval — fail closed in that case.
+            // TODO(Fix #303): once assess-svc has a teacher-batch assignment table, validate via DB instead.
+            UUID teacherCenter = principal.centerId();
+            if (teacherCenter == null || !teacherCenter.equals(exam.getCenterId())) {
+                log.warn("TEACHER access denied to exam grades: teacherUserId={} teacherCenterId={} examCenterId={}",
+                        principal.userId(), teacherCenter, exam.getCenterId());
+                throw new AssessAccessDeniedException();
+            }
+        } else if (!principal.belongsToCenter(exam.getCenterId())) {
             throw new AssessAccessDeniedException();
         }
+
         return gradeRepository.findByExamId(examId).stream()
                 .map(this::toResponse)
                 .toList();

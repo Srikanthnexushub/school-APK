@@ -22,6 +22,18 @@ spring:
             redis-rate-limiter.burst-capacity: ${STUDENT_GW_RATE_LIMIT_BURST_CAPACITY}
             redis-rate-limiter.requested-tokens: ${STUDENT_GW_RATE_LIMIT_REQUESTED_TOKENS}
       routes:
+        - id: parent-svc-billing
+          uri: ${PARENT_SVC_URI}
+          predicates:
+            - Path=/api/v1/parents/billing/**
+        - id: parent-svc-payments
+          uri: ${PARENT_SVC_URI}
+          predicates:
+            - Path=/api/v1/parents/{profileId}/payments/**
+        - id: parent-svc-copilot
+          uri: ${PARENT_SVC_URI}
+          predicates:
+            - Path=/api/v1/copilot/**
         - id: parent-svc-by-student
           uri: ${PARENT_SVC_URI}
           predicates:
@@ -86,6 +98,22 @@ spring:
           uri: ${NEXUS_CHAT_SVC_URI:http://localhost:8097}
           predicates:
             - Path=/api/v1/chat/**
+        - id: center-svc-student-attendance
+          uri: ${CENTER_SVC_URI}
+          predicates:
+            - Path=/api/v1/centers/{centerId}/batches/{batchId}/attendance/**
+        - id: center-svc-announcements
+          uri: ${CENTER_SVC_URI}
+          predicates:
+            - Path=/api/v1/centers/{centerId}/announcements/**
+        - id: center-svc-fees-read
+          uri: ${CENTER_SVC_URI}
+          predicates:
+            - Path=/api/v1/centers/{centerId}/fees/**
+        - id: notification-svc
+          uri: ${NOTIFICATION_SVC_URI}
+          predicates:
+            - Path=/api/v1/notifications/**
         - id: curricular-svc
           uri: ${CURRICULAR_SVC_URI:http://localhost:8098}
           predicates:

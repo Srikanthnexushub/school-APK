@@ -76,6 +76,10 @@ jwt:
 service:
   api-key: ${SERVICE_API_KEY}
 
+# Parent-svc (used to validate parent–student links before exposing psych profiles)
+parent-svc:
+  base-url: ${PARENT_SVC_URI}
+
 # Python AI sidecar (career prediction, trait embedding)
 psych-ai-svc:
   base-url: ${PSYCH_AI_SVC_BASE_URL}

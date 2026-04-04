@@ -20,12 +20,12 @@ import java.util.UUID;
 @RequestMapping("/api/v1/chat")
 @RequiredArgsConstructor
 @Slf4j
+@PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'CENTER_ADMIN', 'INSTITUTION_ADMIN', 'PARENT')")
 public class ChatController {
 
     private final ChatSessionService chatSessionService;
 
     @PostMapping("/sessions")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<StartSessionResponse> startSession(
             @RequestBody @Valid StartSessionRequest request,
             @AuthenticationPrincipal AuthPrincipal principal,
@@ -47,7 +47,6 @@ public class ChatController {
 
     @PostMapping(value = "/sessions/{sessionId}/stream",
                  produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @PreAuthorize("isAuthenticated()")
     public ResponseBodyEmitter streamMessage(
             @PathVariable UUID sessionId,
             @RequestBody @Valid StreamMessageRequest request,
@@ -61,7 +60,6 @@ public class ChatController {
     }
 
     @PostMapping("/sessions/{sessionId}/messages")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<SendMessageResponse> sendMessage(
             @PathVariable UUID sessionId,
             @RequestBody @Valid SendMessageRequest request,
@@ -75,22 +73,22 @@ public class ChatController {
     }
 
     @GetMapping("/sessions")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ChatSessionSummaryDto>> getSessions(
             @AuthenticationPrincipal AuthPrincipal principal) {
         return ResponseEntity.ok(chatSessionService.getSessionSummaries(principal.userId()));
     }
 
     @GetMapping("/sessions/{sessionId}/messages")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ChatMessageDto>> getMessages(
             @PathVariable UUID sessionId,
             @AuthenticationPrincipal AuthPrincipal principal) {
+        // Ownership is enforced inside the service (filters by userId).
+        // The userId from the JWT principal is always the caller's own ID,
+        // so no cross-user access is possible.
         return ResponseEntity.ok(chatSessionService.getMessages(sessionId, principal.userId()));
     }
 
     @DeleteMapping("/sessions/{sessionId}")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> deleteSession(
             @PathVariable UUID sessionId,
             @AuthenticationPrincipal AuthPrincipal principal) {
@@ -99,14 +97,12 @@ public class ChatController {
     }
 
     @GetMapping("/nudges/pending")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ProactiveNudgeDto>> getPendingNudges(
             @AuthenticationPrincipal AuthPrincipal principal) {
         return ResponseEntity.ok(chatSessionService.getPendingNudges(principal.userId()));
     }
 
     @PutMapping("/nudges/{nudgeId}/open")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> openNudge(
             @PathVariable UUID nudgeId,
             @AuthenticationPrincipal AuthPrincipal principal) {

@@ -8,6 +8,7 @@ import com.edutech.parent.application.service.CopilotService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -41,11 +42,14 @@ public class CopilotController {
     @Operation(summary = "Start a new Copilot conversation")
     public ConversationResponse startConversation(
             @Valid @RequestBody StartConversationRequest request,
-            @AuthenticationPrincipal AuthPrincipal principal) {
+            @AuthenticationPrincipal AuthPrincipal principal,
+            HttpServletRequest httpRequest) {
+        String authHeader = httpRequest.getHeader("Authorization");
         return copilotService.startConversation(
                 principal.userId().toString(),
                 request.studentId(),
-                request.message());
+                request.message(),
+                authHeader);
     }
 
     @PostMapping("/{conversationId}/messages")
@@ -53,11 +57,14 @@ public class CopilotController {
     public ConversationResponse continueConversation(
             @PathVariable Long conversationId,
             @Valid @RequestBody ContinueConversationRequest request,
-            @AuthenticationPrincipal AuthPrincipal principal) {
+            @AuthenticationPrincipal AuthPrincipal principal,
+            HttpServletRequest httpRequest) {
+        String authHeader = httpRequest.getHeader("Authorization");
         return copilotService.continueConversation(
                 conversationId,
                 principal.userId().toString(),
-                request.message());
+                request.message(),
+                authHeader);
     }
 
     @GetMapping("/{conversationId}")
