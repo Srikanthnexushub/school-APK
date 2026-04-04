@@ -87,6 +87,7 @@ export const mentorNav: NavItem[] = [
   { icon: ClipboardList,   label: 'Exams',         to: '/mentor-portal/exams' },
   { icon: Library,         label: 'Library',       to: '/mentor-portal/library' },
   { icon: Award,           label: 'My Performance',to: '/mentor-portal/performance' },
+  { icon: Brain,           label: 'Psychometric',  to: '/psychometric' },
   { icon: BookOpen,        label: 'Question Bank', to: '/mentor-portal/question-bank' },
   { icon: Calendar,        label: 'Sessions',      to: '/mentor-portal/sessions' },
 ];

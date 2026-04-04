@@ -40,15 +40,30 @@ interface Batch {
 
 export default function AdminPsychometricTab({ centerId: centerIdProp }: { centerId?: string }) {
   const storeCenterId = useAuthStore(s => s.user?.centerId);
-  const centerId = centerIdProp || storeCenterId;
-  const token = useAuthStore(s => s.token);
+  const jwtCenterId = centerIdProp || storeCenterId;
   const qc = useQueryClient();
+
+  // INSTITUTION_ADMIN has no centerId in JWT — they must pick a center
+  const isInstitutionAdmin = !jwtCenterId;
+  const [selectedCenterId, setSelectedCenterId] = useState('');
+  const centerId = jwtCenterId || selectedCenterId;
 
   const [email, setEmail] = useState('');
   const [foundStudent, setFoundStudent] = useState<(StudentLookup & { userId: string }) | null>(null);
   const [lookupError, setLookupError] = useState('');
   const [isLooking, setIsLooking] = useState(false);
   const [selectedBatchId, setSelectedBatchId] = useState('');
+  const [studentNames, setStudentNames] = useState<Record<string, string>>({});
+
+  // Centers list — only fetched for INSTITUTION_ADMIN
+  const { data: centers = [] } = useQuery<{ id: string; name: string; code: string }[]>({
+    queryKey: ['centers-list'],
+    queryFn: () => api.get('/api/v1/centers').then(r => {
+      const d = r.data;
+      return Array.isArray(d) ? d : (d.content ?? []);
+    }),
+    enabled: isInstitutionAdmin,
+  });
 
   // Existing profiles for this center
   const { data: profiles = [], isLoading: loadingProfiles } = useQuery<PsychProfile[]>({
@@ -96,10 +111,11 @@ export default function AdminPsychometricTab({ centerId: centerIdProp }: { cente
       api.post('/api/v1/psych/profiles', {
         studentId: foundStudent!.userId,
         centerId,
-        batchId: selectedBatchId,
+        batchId: selectedBatchId || undefined,
       }),
     onSuccess: () => {
       toast.success(`Profile activated for ${foundStudent!.firstName} ${foundStudent!.lastName}`);
+      setStudentNames(prev => ({ ...prev, [foundStudent!.userId]: `${foundStudent!.firstName} ${foundStudent!.lastName}` }));
       setEmail('');
       setFoundStudent(null);
       setSelectedBatchId('');
@@ -129,6 +145,23 @@ export default function AdminPsychometricTab({ centerId: centerIdProp }: { cente
           Activate psychometric assessments for students in your centre.
         </p>
       </div>
+
+      {/* Center picker — INSTITUTION_ADMIN only */}
+      {isInstitutionAdmin && (
+        <div className="bg-surface-100/40 border border-white/8 rounded-2xl p-4">
+          <label className="text-xs text-white/50 mb-1.5 block">Select Centre to manage</label>
+          <select
+            value={selectedCenterId}
+            onChange={e => { setSelectedCenterId(e.target.value); setFoundStudent(null); setLookupError(''); }}
+            className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-brand-500/50"
+          >
+            <option value="">— choose a centre —</option>
+            {centers.map(c => (
+              <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
@@ -204,13 +237,15 @@ export default function AdminPsychometricTab({ centerId: centerIdProp }: { cente
               <>
                 {/* Batch select */}
                 <div>
-                  <label className="text-xs text-white/50 mb-1.5 block">Select Batch</label>
+                  <label className="text-xs text-white/50 mb-1.5 block">
+                    Select Batch <span className="text-white/30">(optional)</span>
+                  </label>
                   <select
                     value={selectedBatchId}
                     onChange={e => setSelectedBatchId(e.target.value)}
                     className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-brand-500/50"
                   >
-                    <option value="">— choose a batch —</option>
+                    <option value="">— no batch —</option>
                     {batches.map(b => (
                       <option key={b.id} value={b.id}>{b.name} ({b.code})</option>
                     ))}
@@ -219,7 +254,7 @@ export default function AdminPsychometricTab({ centerId: centerIdProp }: { cente
 
                 <button
                   onClick={() => activateMutation.mutate()}
-                  disabled={!selectedBatchId || activateMutation.isPending}
+                  disabled={activateMutation.isPending}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 transition-colors"
                 >
                   {activateMutation.isPending
@@ -244,7 +279,9 @@ export default function AdminPsychometricTab({ centerId: centerIdProp }: { cente
               <div key={p.id} className="px-5 py-3 flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-white/50 font-mono truncate">{p.studentId}</p>
+                  <p className="text-xs text-white/70 font-medium truncate">
+                    {studentNames[p.studentId] ?? `Student ${p.studentId.slice(0, 8)}…`}
+                  </p>
                   <p className="text-xs text-white/30 mt-0.5">
                     {p.riasecCode ? `RIASEC: ${p.riasecCode}` : 'Not yet assessed'}
                     {' · '}Activated {new Date(p.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
