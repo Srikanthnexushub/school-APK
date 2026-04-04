@@ -7,6 +7,7 @@ import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
 
 interface Batch { id: string; name: string; code: string; }
+interface Center { id: string; }
 interface Announcement {
   id: string; centerId: string; title: string; body: string;
   targetType: string; targetId?: string; sentAt?: string; createdAt: string;
@@ -17,7 +18,14 @@ type TargetType = 'BATCH' | 'CENTER' | 'ALL';
 export default function MentorPortalAnnouncementsPage() {
   const { user } = useAuthStore();
   const qc = useQueryClient();
-  const centerId = user?.centerId;
+
+  const { data: centers = [] } = useQuery<Center[]>({
+    queryKey: ['teacher-centers-announcements'],
+    queryFn: () => api.get('/api/v1/centers').then(r => Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
+    enabled: !!user,
+    staleTime: 10 * 60_000,
+  });
+  const centerId = centers[0]?.id;
   const [showCompose, setShowCompose] = useState(false);
   const [form, setForm] = useState({ title: '', body: '', targetType: 'BATCH' as TargetType, targetId: '' });
 

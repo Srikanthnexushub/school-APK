@@ -14,6 +14,7 @@ import { cn } from '../../lib/utils';
 interface CoverageLogResponse  { id: string; topicId: string; topicTitle: string; taughtOn: string; deliveryMethod: string; durationMins: number; }
 interface ActivityResponse     { id: string; name: string; description: string; category: string; maxParticipants: number; scheduleDescription: string; active: boolean; }
 interface ActivitySessionResponse { id: string; activityId: string; sessionDate: string; venue: string; durationMins: number; notes: string; }
+interface Center { id: string; }
 
 const DELIVERY_METHODS = ['LECTURE', 'LAB', 'ONLINE', 'FIELD_TRIP', 'WORKSHOP', 'SEMINAR'];
 const ACHIEVEMENT_TYPES = ['PARTICIPATION', 'MERIT', 'EXCELLENCE', 'GOLD', 'SILVER', 'BRONZE', 'SPECIAL'];
@@ -308,7 +309,14 @@ export default function MentorPortalCurricularPage() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>('activities');
   const [showLogModal, setShowLogModal] = useState(false);
-  const centerId = user?.centerId ?? '';
+
+  const { data: centers = [] } = useQuery<Center[]>({
+    queryKey: ['teacher-centers-curricular'],
+    queryFn: () => api.get('/api/v1/centers').then(r => Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
+    enabled: !!user,
+    staleTime: 10 * 60_000,
+  });
+  const centerId = centers[0]?.id ?? '';
 
   const { data: coverage = [], isLoading: coverageLoading } = useQuery<CoverageLogResponse[]>({
     queryKey: ['curricular-coverage', user?.id],
