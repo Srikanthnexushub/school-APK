@@ -1,15 +1,19 @@
 // src/main/java/com/edutech/parent/application/service/BillingReportService.java
 package com.edutech.parent.application.service;
 
+import com.edutech.parent.application.dto.AdminRecordPaymentRequest;
 import com.edutech.parent.application.dto.AuthPrincipal;
+import com.edutech.parent.application.dto.FeePaymentResponse;
 import com.edutech.parent.application.dto.StudentFeeReportItem;
 import com.edutech.parent.application.exception.ParentAccessDeniedException;
+import com.edutech.parent.domain.event.FeePaymentRecordedEvent;
 import com.edutech.parent.domain.model.FeePayment;
 import com.edutech.parent.domain.model.PaymentStatus;
 import com.edutech.parent.domain.model.Role;
 import com.edutech.parent.domain.model.StudentLink;
 import com.edutech.parent.domain.port.out.FeePaymentRepository;
 import com.edutech.parent.domain.port.out.NotificationPublisher;
+import com.edutech.parent.domain.port.out.ParentEventPublisher;
 import com.edutech.parent.domain.port.out.ParentProfileRepository;
 import com.edutech.parent.domain.port.out.StudentLinkRepository;
 import org.slf4j.Logger;
@@ -35,15 +39,18 @@ public class BillingReportService {
     private final FeePaymentRepository feePaymentRepository;
     private final ParentProfileRepository parentProfileRepository;
     private final NotificationPublisher notificationPublisher;
+    private final ParentEventPublisher eventPublisher;
 
     public BillingReportService(StudentLinkRepository studentLinkRepository,
                                  FeePaymentRepository feePaymentRepository,
                                  ParentProfileRepository parentProfileRepository,
-                                 NotificationPublisher notificationPublisher) {
+                                 NotificationPublisher notificationPublisher,
+                                 ParentEventPublisher eventPublisher) {
         this.studentLinkRepository = studentLinkRepository;
         this.feePaymentRepository = feePaymentRepository;
         this.parentProfileRepository = parentProfileRepository;
         this.notificationPublisher = notificationPublisher;
+        this.eventPublisher = eventPublisher;
     }
 
     public List<StudentFeeReportItem> getBillingReport(UUID centerId, AuthPrincipal principal) {
@@ -100,6 +107,59 @@ public class BillingReportService {
                 log.info("Fee reminder queued: parentUserId={} studentId={}", profile.getUserId(), studentId);
             });
         }
+    }
+
+    /**
+     * Admin-initiated payment recording.
+     * Looks up the parent profile from StudentLink, creates a CONFIRMED FeePayment,
+     * and publishes the FeePaymentRecordedEvent (so parents receive in-app notification).
+     *
+     * <p>CENTER_ADMIN can only record for their own center.
+     * INSTITUTION_ADMIN and SUPER_ADMIN can record for any center.</p>
+     */
+    @Transactional
+    public FeePaymentResponse recordPaymentForAdmin(AdminRecordPaymentRequest request, AuthPrincipal principal) {
+        Objects.requireNonNull(request,   "request must not be null");
+        Objects.requireNonNull(principal, "principal must not be null");
+        requireAdminAccess(request.centerId(), principal);
+
+        // Resolve parent profile from the student link
+        StudentLink link = studentLinkRepository.findActiveByStudentId(request.studentId()).stream()
+                .filter(l -> request.centerId().equals(l.getCenterId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Student " + request.studentId() + " is not actively enrolled in center " + request.centerId()));
+
+        UUID parentProfileId = link.getParentId();
+        String currency      = "INR";
+        String method        = request.paymentMethod() != null && !request.paymentMethod().isBlank()
+                               ? request.paymentMethod() : "CASH";
+        String feeType       = request.feeType() != null && !request.feeType().isBlank()
+                               ? request.feeType() : "TUITION";
+
+        FeePayment payment = FeePayment.create(
+                parentProfileId, request.studentId(), request.centerId(), null,
+                request.amountPaid(), currency, request.paymentDate(),
+                request.referenceNumber(), request.remarks(), feeType, method);
+
+        // Admin-recorded payments are immediately CONFIRMED
+        payment.confirm();
+        FeePayment saved = feePaymentRepository.save(payment);
+
+        eventPublisher.publish(new FeePaymentRecordedEvent(
+                saved.getId(), parentProfileId, request.studentId(),
+                request.centerId(), null, saved.getAmountPaid(), currency));
+
+        log.info("Admin recorded fee payment: studentId={} centerId={} amount={}",
+                request.studentId(), request.centerId(), request.amountPaid());
+        return toResponse(saved);
+    }
+
+    private FeePaymentResponse toResponse(FeePayment p) {
+        return new FeePaymentResponse(p.getId(), p.getParentId(), p.getStudentId(), p.getCenterId(),
+                p.getBatchId(), p.getAmountPaid(), p.getCurrency(), p.getPaymentDate(),
+                p.getReferenceNumber(), p.getRemarks(), p.getFeeType(), p.getPaymentMethod(),
+                p.getStatus(), p.getCreatedAt());
     }
 
     private void requireAdminAccess(UUID centerId, AuthPrincipal principal) {
