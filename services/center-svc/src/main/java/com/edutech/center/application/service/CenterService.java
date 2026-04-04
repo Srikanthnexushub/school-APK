@@ -167,7 +167,9 @@ public class CenterService implements CreateCenterUseCase, UpdateCenterUseCase {
     public CenterResponse getCenter(UUID centerId, AuthPrincipal principal) {
         CoachingCenter center = centerRepository.findById(centerId)
             .orElseThrow(() -> new CenterNotFoundException(centerId));
-        if (!principal.belongsToCenter(centerId, center.getAdminUserId())) {
+        boolean allowed = principal.belongsToCenter(centerId, center.getAdminUserId())
+                || (principal.isTeacher() && teacherRepository.existsByUserIdAndCenterId(principal.userId(), centerId));
+        if (!allowed) {
             throw new CenterAccessDeniedException();
         }
         return toResponse(center);

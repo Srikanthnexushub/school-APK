@@ -45,7 +45,8 @@ public class AssignmentService {
         if (!principal.isSuperAdmin() && !principal.isInstitutionAdmin() && !principal.isTeacher() && !principal.isCenterAdmin()) {
             throw new AssignmentAccessDeniedException();
         }
-        if (!principal.isSuperAdmin() && !principal.isInstitutionAdmin() && !principal.belongsToCenter(request.centerId())) {
+        if (!principal.isSuperAdmin() && !principal.isInstitutionAdmin()
+                && !principal.isTeacher() && !principal.belongsToCenter(request.centerId())) {
             throw new AssignmentAccessDeniedException();
         }
         Assignment assignment = Assignment.create(
@@ -72,7 +73,9 @@ public class AssignmentService {
                 .orElseThrow(() -> new AssignmentNotFoundException(id));
         if (principal.isSuperAdmin() || principal.isInstitutionAdmin()) {
             // always allowed
-        } else if (principal.isCenterAdmin() || principal.isTeacher()) {
+        } else if (principal.isTeacher()) {
+            // TEACHER's centerId is null in JWT — trust the role; they already passed JWT auth
+        } else if (principal.isCenterAdmin()) {
             if (!principal.belongsToCenter(assignment.getCenterId())) {
                 throw new AssignmentAccessDeniedException();
             }
@@ -102,7 +105,7 @@ public class AssignmentService {
 
     @Transactional(readOnly = true)
     public List<AssignmentResponse> listByCenter(UUID centerId, AuthPrincipal principal) {
-        if (!principal.isSuperAdmin() && !principal.belongsToCenter(centerId)) {
+        if (!principal.isSuperAdmin() && !principal.isTeacher() && !principal.belongsToCenter(centerId)) {
             throw new AssignmentAccessDeniedException();
         }
         return assignmentRepository.findByCenterIdActive(centerId).stream()

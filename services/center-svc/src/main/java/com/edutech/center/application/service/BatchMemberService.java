@@ -11,6 +11,7 @@ import com.edutech.center.domain.model.BatchMember;
 import com.edutech.center.domain.port.in.ListBatchMembersUseCase;
 import com.edutech.center.domain.port.out.BatchMemberRepository;
 import com.edutech.center.domain.port.out.BatchRepository;
+import com.edutech.center.domain.port.out.TeacherRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -27,11 +28,14 @@ public class BatchMemberService implements ListBatchMembersUseCase {
 
     private final BatchMemberRepository memberRepository;
     private final BatchRepository batchRepository;
+    private final TeacherRepository teacherRepository;
 
     public BatchMemberService(BatchMemberRepository memberRepository,
-                              BatchRepository batchRepository) {
+                              BatchRepository batchRepository,
+                              TeacherRepository teacherRepository) {
         this.memberRepository = memberRepository;
         this.batchRepository = batchRepository;
+        this.teacherRepository = teacherRepository;
     }
 
     @Override
@@ -39,7 +43,10 @@ public class BatchMemberService implements ListBatchMembersUseCase {
     public List<BatchMemberResponse> listMembers(UUID batchId, AuthPrincipal principal) {
         Batch batch = batchRepository.findById(batchId)
                 .orElseThrow(() -> new BatchNotFoundException(batchId));
-        if (!principal.belongsToCenter(batch.getCenterId()) && !principal.isSuperAdmin() && !principal.isInstitutionAdmin()) {
+        boolean canView = principal.belongsToCenter(batch.getCenterId())
+                || principal.isSuperAdmin() || principal.isInstitutionAdmin()
+                || (principal.isTeacher() && teacherRepository.existsByUserIdAndCenterId(principal.userId(), batch.getCenterId()));
+        if (!canView) {
             throw new CenterAccessDeniedException();
         }
         return memberRepository.findActiveByBatchId(batchId).stream()
