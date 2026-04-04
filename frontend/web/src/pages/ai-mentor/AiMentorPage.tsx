@@ -28,12 +28,25 @@ interface DoubtTicket {
 
 // ─── Gap Analysis Types ──────────────────────────────────────────────────────
 
-interface ERSComponents {
-  syllabusCoverage: number;
-  mockTestTrend: number;
-  masteryAverage: number;
-  timeManagement: number;
-  accuracy: number;
+interface ErsComponent {
+  score: number;
+  weight: number;
+  gap: number;
+}
+
+interface ErsBreakdown {
+  total: number;
+  syllabusCoverage: ErsComponent;
+  mockTestTrend: ErsComponent;
+  masteryAverage: ErsComponent;
+  timeManagement: ErsComponent;
+  accuracy: ErsComponent;
+}
+
+interface DropoutRisk {
+  level: 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN';
+  score: number;
+  topFactor: string;
 }
 
 interface SubjectGap {
@@ -42,26 +55,37 @@ interface SubjectGap {
   gapPoints: number;
   priority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'ON_TRACK';
   trend: 'IMPROVING' | 'DECLINING' | 'FLAT';
-  weakTopics: string[];
+  topWeakTopics: string[];
 }
 
 interface GapAnalysisData {
-  ersScore: number;
-  ersComponents: ERSComponents;
-  dropoutRisk: 'HIGH' | 'MEDIUM' | 'LOW';
+  ersBreakdown: ErsBreakdown;
   subjectGaps: SubjectGap[];
+  dropoutRisk: DropoutRisk;
 }
 
-interface VelocityEnrollment {
-  examName: string;
-  examCode: string;
-  daysRemaining: number;
+interface SyllabusVelocity {
+  totalModules: number;
+  completedModules: number;
   completionPercent: number;
   onTrack: boolean;
   behindByDays: number;
-  mockTestCount: number;
+}
+
+interface MockTestStats {
+  count: number;
   latestScorePercent: number;
-  mockTrend: 'IMPROVING' | 'DECLINING' | 'FLAT';
+  trend: 'IMPROVING' | 'DECLINING' | 'FLAT';
+}
+
+interface VelocityEnrollment {
+  enrollmentId: string;
+  examName: string;
+  examCode: string;
+  daysRemaining: number;
+  syllabus: SyllabusVelocity;
+  mockTests: MockTestStats;
+  studyHoursThisWeek: number;
 }
 
 interface VelocityData {
@@ -343,7 +367,13 @@ function DoubtResolverTab() {
 
 // ─── Gap Analysis Dashboard ──────────────────────────────────────────────────
 
-const ERS_COMPONENT_LABELS: Record<keyof ERSComponents, string> = {
+type ErsComponentKey = 'syllabusCoverage' | 'mockTestTrend' | 'masteryAverage' | 'timeManagement' | 'accuracy';
+
+const ERS_COMPONENT_KEYS: ErsComponentKey[] = [
+  'syllabusCoverage', 'mockTestTrend', 'masteryAverage', 'timeManagement', 'accuracy',
+];
+
+const ERS_COMPONENT_LABELS: Record<ErsComponentKey, string> = {
   syllabusCoverage: 'Syllabus Coverage',
   mockTestTrend: 'Mock Test Trend',
   masteryAverage: 'Mastery Average',
@@ -421,13 +451,13 @@ function GapAnalysisDashboard() {
             <Skeleton className="h-8 w-16" />
           ) : gap ? (
             <div className="flex items-center gap-3">
-              <span className="text-3xl font-bold text-brand-400">{gap.ersScore}</span>
+              <span className="text-3xl font-bold text-brand-400">{gap.ersBreakdown.total.toFixed(1)}</span>
               <Badge
                 variant={
-                  gap.dropoutRisk === 'HIGH' ? 'default' : gap.dropoutRisk === 'MEDIUM' ? 'warning' : 'success'
+                  gap.dropoutRisk?.level === 'HIGH' ? 'default' : gap.dropoutRisk?.level === 'MEDIUM' ? 'warning' : 'success'
                 }
               >
-                {gap.dropoutRisk} RISK
+                {gap.dropoutRisk?.level ?? 'UNKNOWN'} RISK
               </Badge>
             </div>
           ) : null}
@@ -444,25 +474,27 @@ function GapAnalysisDashboard() {
           </div>
         ) : (
           <div className="space-y-3">
-            {(Object.keys(gap.ersComponents) as (keyof ERSComponents)[]).map((key) => {
-              const score = gap.ersComponents[key];
-              const gap100 = Math.max(0, 100 - score);
+            {ERS_COMPONENT_KEYS.map((key) => {
+              const comp = gap.ersBreakdown[key];
+              if (!comp) return null;
+              const score = Math.round(comp.score);
+              const gapVal = Math.round(comp.gap);
               return (
                 <div key={key} className="flex items-center gap-3">
                   <span className="text-white/60 text-sm w-40 shrink-0">{ERS_COMPONENT_LABELS[key]}</span>
                   <div className="flex-1 h-2 rounded-full bg-white/10 overflow-hidden">
                     <div
-                      className={cn('h-full rounded-full transition-all', gapBarColor(gap100))}
+                      className={cn('h-full rounded-full transition-all', gapBarColor(gapVal))}
                       style={{ width: `${score}%` }}
                     />
                   </div>
                   <span className="text-white/80 text-sm w-10 text-right shrink-0">{score}%</span>
-                  {gap100 > 0 && (
-                    <span className={cn('text-xs font-medium w-16 text-right shrink-0', gapColor(gap100))}>
-                      -{gap100}% gap
+                  {gapVal > 0 && (
+                    <span className={cn('text-xs font-medium w-16 text-right shrink-0', gapColor(gapVal))}>
+                      -{gapVal}% gap
                     </span>
                   )}
-                  {gap100 === 0 && (
+                  {gapVal === 0 && (
                     <span className="text-xs font-medium w-16 text-right shrink-0 text-emerald-400">
                       On track
                     </span>
@@ -511,9 +543,9 @@ function GapAnalysisDashboard() {
                       style={{ width: `${sg.masteryPercent}%` }}
                     />
                   </div>
-                  {sg.weakTopics.length > 0 && (
+                  {sg.topWeakTopics.length > 0 && (
                     <div className="flex flex-wrap gap-1 pt-0.5">
-                      {sg.weakTopics.map((t) => (
+                      {sg.topWeakTopics.map((t) => (
                         <span
                           key={t}
                           className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-white/40"
@@ -557,8 +589,8 @@ function GapAnalysisDashboard() {
                       <p className="text-white/40 text-xs">{en.examCode}</p>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <Badge variant={en.onTrack ? 'success' : 'warning'}>
-                        {en.onTrack ? 'On Track' : 'Behind'}
+                      <Badge variant={en.syllabus?.onTrack ? 'success' : 'warning'}>
+                        {en.syllabus?.onTrack ? 'On Track' : 'Behind'}
                       </Badge>
                       <span className="text-white/40 text-xs">{en.daysRemaining}d left</span>
                     </div>
@@ -566,25 +598,25 @@ function GapAnalysisDashboard() {
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs text-white/40">
                       <span>Syllabus</span>
-                      <span>{en.completionPercent}%</span>
+                      <span>{en.syllabus?.completionPercent?.toFixed(0) ?? 0}%</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
                       <div
                         className="h-full rounded-full bg-brand-500 transition-all"
-                        style={{ width: `${en.completionPercent}%` }}
+                        style={{ width: `${en.syllabus?.completionPercent ?? 0}%` }}
                       />
                     </div>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-white/50">
-                    <span>{en.mockTestCount} mocks</span>
-                    {en.latestScorePercent > 0 && (
+                    <span>{en.mockTests?.count ?? 0} mocks</span>
+                    {(en.mockTests?.latestScorePercent ?? 0) > 0 && (
                       <span className="flex items-center gap-1">
-                        Latest: {en.latestScorePercent}%
-                        <TrendArrow trend={en.mockTrend} />
+                        Latest: {en.mockTests.latestScorePercent.toFixed(0)}%
+                        <TrendArrow trend={en.mockTests.trend} />
                       </span>
                     )}
-                    {!en.onTrack && en.behindByDays > 0 && (
-                      <span className="text-amber-400 ml-auto">Behind by {en.behindByDays} days</span>
+                    {!en.syllabus?.onTrack && (en.syllabus?.behindByDays ?? 0) > 0 && (
+                      <span className="text-amber-400 ml-auto">Behind by {en.syllabus.behindByDays} days</span>
                     )}
                   </div>
                 </div>
