@@ -85,6 +85,10 @@ ai-gateway:
   base-url: ${AI_GATEWAY_BASE_URL}
   timeout-seconds: 30
 
+# Parent-svc (internal service call for PARENT link validation)
+parent-svc:
+  base-url: ${PARENT_SVC_URI}
+
 service:
   api-key: ${SERVICE_API_KEY}
 

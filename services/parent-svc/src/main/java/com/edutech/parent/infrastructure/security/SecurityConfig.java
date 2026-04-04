@@ -19,9 +19,12 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
 public class SecurityConfig {
 
     private final JwtTokenValidator jwtTokenValidator;
+    private final ServiceKeyAuthFilter serviceKeyAuthFilter;
 
-    public SecurityConfig(JwtTokenValidator jwtTokenValidator) {
+    public SecurityConfig(JwtTokenValidator jwtTokenValidator,
+                          ServiceKeyAuthFilter serviceKeyAuthFilter) {
         this.jwtTokenValidator = jwtTokenValidator;
+        this.serviceKeyAuthFilter = serviceKeyAuthFilter;
     }
 
     @Bean
@@ -50,6 +53,7 @@ public class SecurityConfig {
                     "/swagger-ui/**",
                     "/swagger-ui.html").permitAll()
                 .anyRequest().authenticated())
+            .addFilterBefore(serviceKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
             .build();
     }

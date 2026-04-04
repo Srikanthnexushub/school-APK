@@ -11,6 +11,7 @@ import com.edutech.center.domain.model.BatchFeeAssignment;
 import com.edutech.center.domain.port.out.BatchFeeAssignmentRepository;
 import com.edutech.center.domain.port.out.BatchMemberRepository;
 import com.edutech.center.domain.port.out.BatchRepository;
+import com.edutech.center.domain.port.out.ParentLinkValidationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -27,13 +28,16 @@ public class BatchFeeService {
     private final BatchFeeAssignmentRepository assignmentRepository;
     private final BatchRepository batchRepository;
     private final BatchMemberRepository batchMemberRepository;
+    private final ParentLinkValidationPort parentLinkValidation;
 
     public BatchFeeService(BatchFeeAssignmentRepository assignmentRepository,
                            BatchRepository batchRepository,
-                           BatchMemberRepository batchMemberRepository) {
+                           BatchMemberRepository batchMemberRepository,
+                           ParentLinkValidationPort parentLinkValidation) {
         this.assignmentRepository = assignmentRepository;
         this.batchRepository = batchRepository;
         this.batchMemberRepository = batchMemberRepository;
+        this.parentLinkValidation = parentLinkValidation;
     }
 
     @Transactional
@@ -60,9 +64,11 @@ public class BatchFeeService {
                 // Student must be enrolled in an active batch at this center to view fees
                 boolean enrolled = batchMemberRepository.existsByStudentIdAndCenterId(principal.userId(), batch.getCenterId());
                 if (!enrolled) throw new CenterAccessDeniedException();
+            } else if (principal.isParent()) {
+                // Validate via parent-svc: parent must have an active student link at this center
+                boolean linked = parentLinkValidation.isParentLinkedToCenter(principal.userId(), batch.getCenterId());
+                if (!linked) throw new CenterAccessDeniedException();
             } else {
-                // Parents: no direct link validation available in center-svc — deny
-                // TODO: Add parent→student link validation once repository is available
                 throw new CenterAccessDeniedException();
             }
         }

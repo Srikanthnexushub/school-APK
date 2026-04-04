@@ -18,4 +18,15 @@ public class RestClientConfig {
                 .defaultHeader("Content-Type", "application/json")
                 .build();
     }
+
+    @Bean
+    public RestClient parentSvcRestClient(
+            @Value("${parent-svc.base-url}") String baseUrl,
+            @Value("${service.api-key}") String serviceApiKey) {
+        return RestClient.builder()
+                .baseUrl(baseUrl)
+                .defaultHeader("X-Service-Key", serviceApiKey)
+                .defaultHeader("Content-Type", "application/json")
+                .build();
+    }
 }

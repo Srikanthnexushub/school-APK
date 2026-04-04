@@ -20,6 +20,7 @@ import com.edutech.center.domain.port.out.ContentRepository;
 import com.edutech.center.domain.model.TaggingResult;
 import com.edutech.center.domain.port.out.AiTaggingPort;
 import com.edutech.center.domain.port.out.DocumentStoragePort;
+import com.edutech.center.domain.port.out.ParentLinkValidationPort;
 import com.edutech.center.domain.port.out.TeacherRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +61,7 @@ public class ContentService implements UploadContentUseCase {
     private final BatchMemberRepository batchMemberRepository;
     private final DocumentStoragePort storagePort;
     private final AiTaggingPort aiTaggingPort;
+    private final ParentLinkValidationPort parentLinkValidation;
     private final int uploadExpiryMinutes;
     private final int downloadExpiryMinutes;
 
@@ -70,6 +72,7 @@ public class ContentService implements UploadContentUseCase {
                           BatchMemberRepository batchMemberRepository,
                           DocumentStoragePort storagePort,
                           AiTaggingPort aiTaggingPort,
+                          ParentLinkValidationPort parentLinkValidation,
                           @Value("${minio.presigned-upload-expiry-minutes}") int uploadExpiryMinutes,
                           @Value("${minio.presigned-download-expiry-minutes}") int downloadExpiryMinutes) {
         this.contentRepository = contentRepository;
@@ -79,6 +82,7 @@ public class ContentService implements UploadContentUseCase {
         this.batchMemberRepository = batchMemberRepository;
         this.storagePort = storagePort;
         this.aiTaggingPort = aiTaggingPort;
+        this.parentLinkValidation = parentLinkValidation;
         this.uploadExpiryMinutes = uploadExpiryMinutes;
         this.downloadExpiryMinutes = downloadExpiryMinutes;
     }
@@ -92,9 +96,8 @@ public class ContentService implements UploadContentUseCase {
             return batchMemberRepository.existsByStudentIdAndCenterId(principal.userId(), centerId);
         }
         if (principal.isParent()) {
-            // Parents: no direct student-link table in center-svc — deny until link validation is available
-            // TODO: Add StudentLink validation once a parent→student repository is available in center-svc
-            return false;
+            // Validate via parent-svc: parent must have an active student link at this center
+            return parentLinkValidation.isParentLinkedToCenter(principal.userId(), centerId);
         }
         return centerRepository.findById(centerId)
                 .map(c -> principal.belongsToCenter(centerId, c.getAdminUserId()))
