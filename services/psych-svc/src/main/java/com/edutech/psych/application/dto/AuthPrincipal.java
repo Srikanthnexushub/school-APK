@@ -19,6 +19,10 @@ public record AuthPrincipal(
         return role == Role.INSTITUTION_ADMIN;
     }
 
+    public boolean isTeacher() {
+        return role == Role.TEACHER;
+    }
+
     public boolean isStudent() {
         return role == Role.STUDENT;
     }
@@ -28,6 +32,7 @@ public record AuthPrincipal(
     }
 
     public boolean belongsToCenter(UUID cId) {
-        return isSuperAdmin() || isInstitutionAdmin() || (centerId != null && centerId.equals(cId));
+        // TEACHER centerId is null in JWT until re-login — trust the role
+        return isSuperAdmin() || isInstitutionAdmin() || isTeacher() || (centerId != null && centerId.equals(cId));
     }
 }
