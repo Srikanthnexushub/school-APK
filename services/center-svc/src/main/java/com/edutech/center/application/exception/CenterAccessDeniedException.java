@@ -5,4 +5,8 @@ public class CenterAccessDeniedException extends CenterException {
     public CenterAccessDeniedException() {
         super("You do not have permission to access this center's resources");
     }
+
+    public CenterAccessDeniedException(String message) {
+        super(message);
+    }
 }

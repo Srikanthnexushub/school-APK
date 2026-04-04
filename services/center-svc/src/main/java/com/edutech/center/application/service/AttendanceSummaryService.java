@@ -12,6 +12,7 @@ import com.edutech.center.domain.model.BatchMember;
 import com.edutech.center.domain.port.out.AttendanceRepository;
 import com.edutech.center.domain.port.out.BatchMemberRepository;
 import com.edutech.center.domain.port.out.BatchRepository;
+import com.edutech.center.domain.port.out.TeacherRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,21 +34,36 @@ public class AttendanceSummaryService {
     private final AttendanceRepository attendanceRepository;
     private final BatchMemberRepository batchMemberRepository;
     private final BatchRepository batchRepository;
+    private final TeacherRepository teacherRepository;
 
     public AttendanceSummaryService(AttendanceRepository attendanceRepository,
                                     BatchMemberRepository batchMemberRepository,
-                                    BatchRepository batchRepository) {
+                                    BatchRepository batchRepository,
+                                    TeacherRepository teacherRepository) {
         this.attendanceRepository = attendanceRepository;
         this.batchMemberRepository = batchMemberRepository;
         this.batchRepository = batchRepository;
+        this.teacherRepository = teacherRepository;
     }
 
     @Transactional(readOnly = true)
     public List<AttendanceSummaryResponse> getSummary(UUID batchId, AuthPrincipal principal) {
         Batch batch = batchRepository.findById(batchId)
                 .orElseThrow(() -> new BatchNotFoundException(batchId));
-        if (!principal.belongsToCenter(batch.getCenterId()) && !principal.isSuperAdmin() && !principal.isInstitutionAdmin() && !principal.isParent() && !principal.isTeacher()) {
-            throw new CenterAccessDeniedException();
+        if (!principal.belongsToCenter(batch.getCenterId()) && !principal.isSuperAdmin() && !principal.isInstitutionAdmin()) {
+            // TEACHER: JWT centerId is null post-approval; verify via DB lookup
+            if (principal.isTeacher()) {
+                boolean belongs = teacherRepository.findByUserId(principal.userId())
+                        .stream().anyMatch(t -> t.getCenterId().equals(batch.getCenterId()));
+                if (!belongs) throw new CenterAccessDeniedException();
+            } else if (principal.isParent()) {
+                // Parents should only see attendance for their linked students at this center
+                // No parent→student link table exists in center-svc — deny until implemented
+                // TODO: Add StudentLink validation once a parent→student repository is available in center-svc
+                throw new CenterAccessDeniedException("Parent access requires student link validation");
+            } else {
+                throw new CenterAccessDeniedException();
+            }
         }
         List<BatchMember> members = batchMemberRepository.findActiveByBatchId(batchId);
         return members.stream().map(m -> computeSummary(batchId, m)).toList();

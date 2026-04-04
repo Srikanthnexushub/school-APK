@@ -20,4 +20,5 @@ public class BatchMemberPersistenceAdapter implements BatchMemberRepository {
     @Override public Optional<BatchMember> findByBatchIdAndStudentId(UUID batchId, UUID studentId) { return jpa.findByBatchIdAndStudentId(batchId, studentId); }
     @Override public List<BatchMember> findActiveByBatchId(UUID batchId) { return jpa.findActiveByBatchId(batchId); }
     @Override public List<BatchMember> findByStudentId(UUID studentId) { return jpa.findByStudentId(studentId); }
+    @Override public boolean existsByStudentIdAndCenterId(UUID studentId, UUID centerId) { return jpa.existsByStudentIdAndCenterId(studentId, centerId); }
 }

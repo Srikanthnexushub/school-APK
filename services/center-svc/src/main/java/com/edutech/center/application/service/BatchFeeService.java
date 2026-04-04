@@ -9,6 +9,7 @@ import com.edutech.center.application.exception.CenterAccessDeniedException;
 import com.edutech.center.domain.model.Batch;
 import com.edutech.center.domain.model.BatchFeeAssignment;
 import com.edutech.center.domain.port.out.BatchFeeAssignmentRepository;
+import com.edutech.center.domain.port.out.BatchMemberRepository;
 import com.edutech.center.domain.port.out.BatchRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,11 +26,14 @@ public class BatchFeeService {
 
     private final BatchFeeAssignmentRepository assignmentRepository;
     private final BatchRepository batchRepository;
+    private final BatchMemberRepository batchMemberRepository;
 
     public BatchFeeService(BatchFeeAssignmentRepository assignmentRepository,
-                           BatchRepository batchRepository) {
+                           BatchRepository batchRepository,
+                           BatchMemberRepository batchMemberRepository) {
         this.assignmentRepository = assignmentRepository;
         this.batchRepository = batchRepository;
+        this.batchMemberRepository = batchMemberRepository;
     }
 
     @Transactional
@@ -51,9 +55,16 @@ public class BatchFeeService {
     public List<BatchFeeAssignmentResponse> listByBatch(UUID batchId, AuthPrincipal principal) {
         Batch batch = batchRepository.findById(batchId)
                 .orElseThrow(() -> new BatchNotFoundException(batchId));
-        boolean isReadOnlyViewer = principal.isStudent() || principal.role() == com.edutech.center.domain.model.Role.PARENT;
-        if (!isReadOnlyViewer && !principal.belongsToCenter(batch.getCenterId()) && !principal.isSuperAdmin() && !principal.isInstitutionAdmin()) {
-            throw new CenterAccessDeniedException();
+        if (!principal.belongsToCenter(batch.getCenterId()) && !principal.isSuperAdmin() && !principal.isInstitutionAdmin()) {
+            if (principal.isStudent()) {
+                // Student must be enrolled in an active batch at this center to view fees
+                boolean enrolled = batchMemberRepository.existsByStudentIdAndCenterId(principal.userId(), batch.getCenterId());
+                if (!enrolled) throw new CenterAccessDeniedException();
+            } else {
+                // Parents: no direct link validation available in center-svc — deny
+                // TODO: Add parent→student link validation once repository is available
+                throw new CenterAccessDeniedException();
+            }
         }
         return assignmentRepository.findByBatchId(batchId).stream()
                 .map(this::toResponse).toList();

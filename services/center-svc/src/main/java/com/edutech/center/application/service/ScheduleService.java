@@ -14,6 +14,7 @@ import com.edutech.center.domain.port.in.CreateScheduleUseCase;
 import com.edutech.center.domain.port.out.BatchRepository;
 import com.edutech.center.domain.port.out.CenterEventPublisher;
 import com.edutech.center.domain.port.out.ScheduleRepository;
+import com.edutech.center.domain.port.out.TeacherRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -30,13 +31,16 @@ public class ScheduleService implements CreateScheduleUseCase {
     private final ScheduleRepository scheduleRepository;
     private final BatchRepository batchRepository;
     private final CenterEventPublisher eventPublisher;
+    private final TeacherRepository teacherRepository;
 
     public ScheduleService(ScheduleRepository scheduleRepository,
                            BatchRepository batchRepository,
-                           CenterEventPublisher eventPublisher) {
+                           CenterEventPublisher eventPublisher,
+                           TeacherRepository teacherRepository) {
         this.scheduleRepository = scheduleRepository;
         this.batchRepository = batchRepository;
         this.eventPublisher = eventPublisher;
+        this.teacherRepository = teacherRepository;
     }
 
     @Override
@@ -45,8 +49,15 @@ public class ScheduleService implements CreateScheduleUseCase {
         Batch batch = batchRepository.findById(batchId)
             .orElseThrow(() -> new BatchNotFoundException(batchId));
 
-        if (!principal.belongsToCenter(batch.getCenterId()) && !principal.isTeacher()) {
-            throw new CenterAccessDeniedException();
+        if (!principal.belongsToCenter(batch.getCenterId())) {
+            // TEACHER: JWT centerId is null post-approval; verify via DB lookup
+            if (principal.isTeacher()) {
+                boolean belongs = teacherRepository.findByUserId(principal.userId())
+                        .stream().anyMatch(t -> t.getCenterId().equals(batch.getCenterId()));
+                if (!belongs) throw new CenterAccessDeniedException("Teacher not authorized for this center");
+            } else {
+                throw new CenterAccessDeniedException();
+            }
         }
 
         Schedule candidate = Schedule.create(batchId, batch.getCenterId(),
@@ -75,8 +86,16 @@ public class ScheduleService implements CreateScheduleUseCase {
     public List<ScheduleResponse> listSchedules(UUID batchId, AuthPrincipal principal) {
         Batch batch = batchRepository.findById(batchId)
             .orElseThrow(() -> new BatchNotFoundException(batchId));
-        if (!principal.belongsToCenter(batch.getCenterId()) && !principal.isTeacher() && !principal.isParent()) {
-            throw new CenterAccessDeniedException();
+        if (!principal.belongsToCenter(batch.getCenterId())) {
+            // TEACHER: JWT centerId is null post-approval; verify via DB lookup
+            if (principal.isTeacher()) {
+                boolean belongs = teacherRepository.findByUserId(principal.userId())
+                        .stream().anyMatch(t -> t.getCenterId().equals(batch.getCenterId()));
+                if (!belongs) throw new CenterAccessDeniedException("Teacher not authorized for this center");
+            } else if (!principal.isParent()) {
+                // Parents may view schedules for transparency; all other roles require center membership
+                throw new CenterAccessDeniedException();
+            }
         }
         return scheduleRepository.findByBatchId(batchId).stream().map(this::toResponse).toList();
     }

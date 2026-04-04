@@ -12,4 +12,5 @@ public interface BatchMemberRepository {
     Optional<BatchMember> findByBatchIdAndStudentId(UUID batchId, UUID studentId);
     List<BatchMember> findActiveByBatchId(UUID batchId);
     List<BatchMember> findByStudentId(UUID studentId);
+    boolean existsByStudentIdAndCenterId(UUID studentId, UUID centerId);
 }
