@@ -60,6 +60,7 @@ import StudentCurricularPage from './pages/curricular/StudentCurricularPage';
 import MentorPortalCurricularPage from './pages/mentor-portal/MentorPortalCurricularPage';
 import ParentCurricularPage from './pages/parent/ParentCurricularPage';
 import AdminCurricularPage from './pages/admin/AdminCurricularPage';
+import TeacherApprovalGate from './components/teacher/TeacherApprovalGate';
 
 export const router = createBrowserRouter([
   {
@@ -171,7 +172,9 @@ export const router = createBrowserRouter([
     path: '/mentor-portal',
     element: (
       <ProtectedRoute allowedRoles={['TEACHER']}>
-        <AppLayout />
+        <TeacherApprovalGate>
+          <AppLayout />
+        </TeacherApprovalGate>
       </ProtectedRoute>
     ),
     children: [

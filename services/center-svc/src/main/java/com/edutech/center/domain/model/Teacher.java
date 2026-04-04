@@ -180,6 +180,27 @@ public class Teacher {
         return t;
     }
 
+    /**
+     * Admin-created staff — placed in PENDING_APPROVAL so the admin can review
+     * and explicitly approve before the staff member gains portal access.
+     * userId may be null if the auth account does not exist yet.
+     */
+    public static Teacher createStaffPending(UUID centerId, UUID userId, String firstName,
+                                              String lastName, String email, String phoneNumber,
+                                              String subjects, String district, String employeeId,
+                                              StaffRoleType roleType, String qualification,
+                                              Integer yearsOfExperience, String designation, String bio) {
+        Teacher t = new Teacher(UUID.randomUUID(), centerId, userId,
+                firstName, lastName, email, phoneNumber, subjects, district, employeeId,
+                TeacherStatus.PENDING_APPROVAL);
+        t.roleType = roleType;
+        t.qualification = qualification;
+        t.yearsOfExperience = yearsOfExperience;
+        t.designation = designation;
+        t.bio = bio;
+        return t;
+    }
+
     /** Self-registration — teacher registered independently, needs coordinator approval. */
     public static Teacher createPending(UUID centerId, UUID userId, String firstName,
                                         String lastName, String email, String phoneNumber,

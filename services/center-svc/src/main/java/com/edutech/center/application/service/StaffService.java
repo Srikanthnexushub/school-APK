@@ -81,37 +81,17 @@ public class StaffService {
             throw new TeacherAlreadyAssignedException(req.email(), centerId);
         }
 
-        Teacher staff;
-        if (req.userId() != null) {
-            // Auth account already created by admin — activate immediately, no email needed.
-            staff = Teacher.createStaffDirect(
-                    centerId, req.userId(),
-                    req.firstName(), req.lastName(), req.email(), req.phoneNumber(),
-                    req.subjects(), req.district(), req.employeeId(),
-                    req.roleType(), req.qualification(), req.yearsOfExperience(),
-                    req.designation(), req.bio());
-            Teacher saved = teacherRepository.save(staff);
-            log.info("Staff member created as ACTIVE (direct): staffId={} centerId={} roleType={}",
-                    saved.getId(), centerId, req.roleType());
-            return toResponse(saved);
-        }
-
-        // Invitation flow — generate token and send email.
-        String token = UUID.randomUUID().toString();
-        Instant tokenExpiry = Instant.now().plus(7, ChronoUnit.DAYS);
-
-        staff = Teacher.createStaffInvitation(
-                centerId,
+        // All admin-created staff start as PENDING_APPROVAL — admin must explicitly
+        // approve from the Staff tab before the member gains portal access.
+        Teacher staff = Teacher.createStaffPending(
+                centerId, req.userId(),
                 req.firstName(), req.lastName(), req.email(), req.phoneNumber(),
                 req.subjects(), req.district(), req.employeeId(),
                 req.roleType(), req.qualification(), req.yearsOfExperience(),
-                req.designation(), req.bio(),
-                token, tokenExpiry);
+                req.designation(), req.bio());
 
         Teacher saved = teacherRepository.save(staff);
-        publishInvitationEmail(saved, center.getName(), token);
-
-        log.info("Staff member created with invitation: staffId={} centerId={} roleType={}",
+        log.info("Staff member created as PENDING_APPROVAL: staffId={} centerId={} roleType={}",
                 saved.getId(), centerId, req.roleType());
         return toResponse(saved);
     }
