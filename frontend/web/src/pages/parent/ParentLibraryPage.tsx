@@ -7,7 +7,7 @@ import { LibraryView } from '../../components/library/LibraryView';
 import api from '../../lib/api';
 
 interface ParentProfileResponse { id: string; name: string; }
-interface StudentLinkResponse { id: string; studentId: string; studentName: string; status: string; }
+interface StudentLinkResponse { id: string; studentId: string; studentName: string; status: string; centerId?: string; }
 interface GradeResponse { centerId: string; batchId: string; }
 
 function resolveCenterId(grades: GradeResponse[]): string {
@@ -47,7 +47,7 @@ export default function ParentLibraryPage() {
     retry: false,
   });
 
-  const centerId = resolveCenterId(grades);
+  const centerId = resolveCenterId(grades) || linkedStudents.find(s => s.studentId === resolvedStudentId)?.centerId || '';
   const isResolvingCenter = studentsLoading || gradesLoading;
 
   return (
