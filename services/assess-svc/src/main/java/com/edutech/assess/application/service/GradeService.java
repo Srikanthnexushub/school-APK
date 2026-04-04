@@ -10,6 +10,7 @@ import com.edutech.assess.domain.model.Grade;
 import com.edutech.assess.domain.port.out.ExamRepository;
 import com.edutech.assess.domain.port.out.GradeRepository;
 import com.edutech.assess.domain.port.out.SubmissionRepository;
+import com.edutech.assess.domain.port.out.TeacherCenterValidationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -27,13 +28,16 @@ public class GradeService {
     private final GradeRepository gradeRepository;
     private final SubmissionRepository submissionRepository;
     private final ExamRepository examRepository;
+    private final TeacherCenterValidationPort teacherCenterValidation;
 
     public GradeService(GradeRepository gradeRepository,
                         SubmissionRepository submissionRepository,
-                        ExamRepository examRepository) {
+                        ExamRepository examRepository,
+                        TeacherCenterValidationPort teacherCenterValidation) {
         this.gradeRepository = gradeRepository;
         this.submissionRepository = submissionRepository;
         this.examRepository = examRepository;
+        this.teacherCenterValidation = teacherCenterValidation;
     }
 
     public GradeResponse getGradeBySubmission(UUID submissionId, AuthPrincipal principal) {
@@ -54,13 +58,12 @@ public class GradeService {
         if (principal.isSuperAdmin() || principal.isInstitutionAdmin()) {
             // Platform-level admins can access any exam grades
         } else if (principal.isTeacher()) {
-            // TEACHER must belong to the exam's center.
-            // centerId in JWT may be null until re-login after approval — fail closed in that case.
-            // TODO(Fix #303): once assess-svc has a teacher-batch assignment table, validate via DB instead.
-            UUID teacherCenter = principal.centerId();
-            if (teacherCenter == null || !teacherCenter.equals(exam.getCenterId())) {
-                log.warn("TEACHER access denied to exam grades: teacherUserId={} teacherCenterId={} examCenterId={}",
-                        principal.userId(), teacherCenter, exam.getCenterId());
+            // centerId in JWT may be null until re-login after approval — validate via DB (center-svc).
+            boolean authorized = teacherCenterValidation.isTeacherAtCenter(
+                    principal.userId(), exam.getCenterId());
+            if (!authorized) {
+                log.warn("TEACHER access denied to exam grades: teacherUserId={} examCenterId={}",
+                        principal.userId(), exam.getCenterId());
                 throw new AssessAccessDeniedException();
             }
         } else if (!principal.belongsToCenter(exam.getCenterId())) {

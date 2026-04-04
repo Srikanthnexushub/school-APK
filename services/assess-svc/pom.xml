@@ -28,6 +28,12 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- WebClient for inter-service calls (e.g. center-svc teacher validation) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+
         <!-- Tomcat provided by external server (WAR deployment) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

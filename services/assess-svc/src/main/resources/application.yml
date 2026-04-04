@@ -97,6 +97,13 @@ pgvector:
 ai-gateway:
   base-url: ${AI_GATEWAY_BASE_URL}
 
+# Inter-service clients
+center-svc:
+  base-url: ${CENTER_SVC_URI}
+
+service:
+  api-key: ${SERVICE_API_KEY}
+
 # CAT (Computer Adaptive Testing) engine configuration
 cat:
   min-questions: ${CAT_MIN_QUESTIONS}
