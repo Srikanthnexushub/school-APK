@@ -14,7 +14,7 @@ interface Notification {
 }
 
 interface ParentProfile { id: string; }
-interface StudentLink { centerId: string; status: string; }
+interface StudentLink { centerId?: string; status: string; }
 interface CenterAnnouncement {
   id: string;
   title: string;
@@ -42,7 +42,8 @@ export default function ParentAnnouncementsPage() {
     staleTime: 5 * 60_000,
   });
 
-  const centerId = studentLinks.find(l => l.status !== 'REVOKED')?.centerId;
+  const rawCenterId = studentLinks.find(l => l.status !== 'REVOKED')?.centerId;
+  const centerId = rawCenterId && rawCenterId !== '00000000-0000-0000-0000-000000000000' ? rawCenterId : undefined;
 
   const { data: centerAnnouncements = [], isLoading } = useQuery<CenterAnnouncement[]>({
     queryKey: ['center-announcements-parent', centerId],
