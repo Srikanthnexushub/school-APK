@@ -5,6 +5,7 @@ import com.edutech.center.domain.model.Attendance;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -15,6 +16,11 @@ interface SpringDataAttendanceRepository extends JpaRepository<Attendance, UUID>
     List<Attendance> findByBatchIdAndDate(UUID batchId, LocalDate date);
 
     List<Attendance> findByStudentIdAndBatchId(UUID studentId, UUID batchId);
+
+    @Query("SELECT a FROM Attendance a WHERE a.batchId = :batchId AND a.date >= :from AND a.date <= :to ORDER BY a.date ASC")
+    List<Attendance> findByBatchIdAndDateRange(@Param("batchId") UUID batchId,
+                                               @Param("from") LocalDate from,
+                                               @Param("to") LocalDate to);
 
     @Modifying
     @Query("DELETE FROM Attendance a WHERE a.batchId = :batchId AND a.date = :date")

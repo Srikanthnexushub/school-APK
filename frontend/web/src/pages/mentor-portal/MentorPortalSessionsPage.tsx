@@ -172,7 +172,7 @@ export default function MentorPortalSessionsPage() {
       transition={{ duration: 0.4 }}
     >
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">
             My <span className="gradient-text">Sessions</span>
@@ -181,7 +181,7 @@ export default function MentorPortalSessionsPage() {
             Manage upcoming bookings and review your session history
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-shrink-0">
           <ExportMenu
             csvData={filtered.map(s => ({
               Student: s.studentName,
@@ -200,7 +200,7 @@ export default function MentorPortalSessionsPage() {
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-1 p-1 glass rounded-xl w-fit">
+      <div className="flex flex-wrap gap-1 p-1 glass rounded-xl w-fit max-w-full">
         {TABS.map((tab) => (
           <button
             key={tab.id}
@@ -242,7 +242,7 @@ export default function MentorPortalSessionsPage() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
-                className="glass rounded-2xl p-5 flex items-center gap-4"
+                className="glass rounded-2xl p-5 flex items-center gap-4 flex-wrap sm:flex-nowrap"
               >
                 <Avatar name={session.studentName} size="md" />
 

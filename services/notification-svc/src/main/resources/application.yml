@@ -20,6 +20,11 @@ spring:
     consumer:
       group-id: ${NOTIFICATION_SVC_KAFKA_CONSUMER_GROUP}
       auto-offset-reset: earliest
+      # Deserializer config is handled entirely by KafkaConsumerConfig.java (ErrorHandlingDeserializer)
+      # These properties are here as documentation / fallback for any auto-configured listeners
+      properties:
+        spring.json.trusted.packages: "com.edutech.*"
+        spring.json.add.type.headers: false
   data:
     redis:
       host: ${REDIS_HOST}

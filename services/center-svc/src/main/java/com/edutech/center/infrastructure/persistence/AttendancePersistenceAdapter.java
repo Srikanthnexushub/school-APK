@@ -19,6 +19,7 @@ public class AttendancePersistenceAdapter implements AttendanceRepository {
     @Override public Attendance save(Attendance a) { return jpa.save(a); }
     @Override public List<Attendance> saveAll(List<Attendance> records) { return jpa.saveAll(records); }
     @Override public List<Attendance> findByBatchIdAndDate(UUID batchId, LocalDate date) { return jpa.findByBatchIdAndDate(batchId, date); }
+    @Override public List<Attendance> findByBatchIdAndDateRange(UUID batchId, LocalDate from, LocalDate to) { return jpa.findByBatchIdAndDateRange(batchId, from, to); }
     @Override public List<Attendance> findByStudentIdAndBatchId(UUID studentId, UUID batchId) { return jpa.findByStudentIdAndBatchId(studentId, batchId); }
     @Override public void deleteByBatchIdAndDate(UUID batchId, LocalDate date) { jpa.deleteByBatchIdAndDate(batchId, date); }
 }

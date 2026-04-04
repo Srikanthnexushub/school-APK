@@ -42,6 +42,11 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        acks: "1"
+        retries: 3
+        delivery.timeout.ms: 30000
+        request.timeout.ms: 15000
 
 jwt:
   public-key-path: ${JWT_PUBLIC_KEY_PATH}

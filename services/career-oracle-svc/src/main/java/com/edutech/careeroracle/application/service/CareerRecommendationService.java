@@ -55,7 +55,18 @@ public class CareerRecommendationService implements GenerateCareerRecommendation
                                                                        Map<String, BigDecimal> subjectStrengths) {
         CareerProfile profile = careerProfileRepository.findByStudentId(studentId)
                 .filter(p -> !p.isDeleted())
-                .orElseThrow(() -> new CareerProfileNotFoundException("studentId", studentId));
+                .orElseGet(() -> {
+                    log.info("No career profile found for studentId={}. Auto-creating default profile.", studentId);
+                    CareerProfile defaultProfile = CareerProfile.create(
+                            studentId,
+                            UUID.randomUUID(),
+                            "SCIENCE",
+                            11,
+                            java.math.BigDecimal.valueOf(50),
+                            null
+                    );
+                    return careerProfileRepository.save(defaultProfile);
+                });
 
         Map<CareerStream, BigDecimal> fitScores = careerScoreCalculator.calculate(
                 profile.getErsScore(),

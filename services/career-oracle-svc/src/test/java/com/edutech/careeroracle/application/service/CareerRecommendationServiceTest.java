@@ -1,7 +1,6 @@
 package com.edutech.careeroracle.application.service;
 
 import com.edutech.careeroracle.application.dto.CareerRecommendationResponse;
-import com.edutech.careeroracle.application.exception.CareerProfileNotFoundException;
 import com.edutech.careeroracle.domain.model.CareerProfile;
 import com.edutech.careeroracle.domain.model.CareerRecommendation;
 import com.edutech.careeroracle.domain.model.CareerStream;
@@ -27,7 +26,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
@@ -135,13 +133,32 @@ class CareerRecommendationServiceTest {
     }
 
     @Test
-    void generateRecommendations_profileNotFound() {
-        UUID unknownStudentId = UUID.randomUUID();
-        when(careerProfileRepository.findByStudentId(unknownStudentId)).thenReturn(Optional.empty());
+    void generateRecommendations_autoCreatesDefaultProfileWhenNotFound() {
+        UUID unknownId = UUID.randomUUID();
+        CareerProfile autoProfile = CareerProfile.create(
+                unknownId, UUID.randomUUID(), "SCIENCE", 11,
+                java.math.BigDecimal.valueOf(50), null);
 
-        assertThatThrownBy(() -> service.generateRecommendations(unknownStudentId, Map.of()))
-                .isInstanceOf(CareerProfileNotFoundException.class)
-                .hasMessageContaining(unknownStudentId.toString());
+        when(careerProfileRepository.findByStudentId(unknownId)).thenReturn(Optional.empty());
+        when(careerProfileRepository.save(any(CareerProfile.class))).thenReturn(autoProfile);
+        when(careerRecommendationRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        List<CareerRecommendationResponse> result = service.generateRecommendations(unknownId, Map.of());
+
+        assertThat(result).isNotEmpty().hasSize(CareerStream.values().length);
+        verify(careerProfileRepository).save(any(CareerProfile.class));
+        verify(careerRecommendationRepository).saveAll(anyList());
+    }
+
+    @Test
+    void generateRecommendations_usesExistingProfileWhenFound() {
+        when(careerProfileRepository.findByStudentId(studentId)).thenReturn(Optional.of(testProfile));
+        when(careerRecommendationRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.generateRecommendations(studentId, Map.of());
+
+        // save() must NOT be called — existing profile was found
+        verify(careerProfileRepository, org.mockito.Mockito.never()).save(any(CareerProfile.class));
     }
 
     @Test

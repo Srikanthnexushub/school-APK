@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ClipboardCheck, Check, X, Clock, BookOpen, AlertCircle } from 'lucide-react';
+import { ClipboardCheck, Check, X, Clock, BookOpen, AlertCircle, BarChart3, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
 import { ExportMenu } from '../../components/ui/ExportMenu';
+import AttendanceReportPanel from '../../components/attendance/AttendanceReportPanel';
 
 interface Batch {
   id: string;
@@ -32,6 +33,7 @@ const STATUS_OPTIONS: { value: AttendanceStatus; label: string; icon: React.Elem
 export default function MentorPortalAttendancePage() {
   const { user } = useAuthStore();
   const qc = useQueryClient();
+  const [activeTab, setActiveTab] = useState<'mark' | 'reports'>('mark');
   const [selectedBatchId, setSelectedBatchId] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
@@ -112,7 +114,7 @@ export default function MentorPortalAttendancePage() {
             <p className="text-sm text-white/50">Select a batch and date to record attendance</p>
           </div>
         </div>
-        {members.length > 0 && (
+        {activeTab === 'mark' && members.length > 0 && (
           <ExportMenu
             csvData={members.map(m => ({
               Student: m.studentName,
@@ -124,6 +126,64 @@ export default function MentorPortalAttendancePage() {
         )}
       </div>
 
+      {/* Tab switcher */}
+      <div className="flex gap-1 p-1 bg-white/5 rounded-xl w-fit">
+        <button
+          onClick={() => setActiveTab('mark')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            activeTab === 'mark'
+              ? 'bg-brand-500/20 text-brand-400'
+              : 'text-white/40 hover:text-white'
+          }`}
+        >
+          Mark Attendance
+        </button>
+        <button
+          onClick={() => setActiveTab('reports')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            activeTab === 'reports'
+              ? 'bg-cyan-500/20 text-cyan-400'
+              : 'text-white/40 hover:text-white'
+          }`}
+        >
+          📊 Reports
+        </button>
+      </div>
+
+      {/* Reports tab */}
+      {activeTab === 'reports' && (
+        <div className="space-y-4">
+          <div className="relative max-w-sm">
+            <select
+              value={selectedBatchId}
+              onChange={e => setSelectedBatchId(e.target.value)}
+              className="w-full appearance-none bg-surface-100 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 pr-10"
+            >
+              <option value="">Select a batch…</option>
+              {batches.map(b => (
+                <option key={b.id} value={b.id}>{b.name} ({b.code})</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
+          </div>
+          {!selectedBatchId ? (
+            <div className="flex flex-col items-center gap-3 py-16 text-white/30">
+              <BarChart3 className="w-10 h-10" />
+              <p>Select a batch to view reports</p>
+            </div>
+          ) : (
+            <AttendanceReportPanel
+              centerId={centerId}
+              batchId={selectedBatchId}
+              batchName={batches.find(b => b.id === selectedBatchId)?.name}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Mark Attendance tab */}
+      {activeTab === 'mark' && (
+      <>
       {/* Selectors */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
@@ -230,6 +290,8 @@ export default function MentorPortalAttendancePage() {
             </div>
           )}
         </>
+      )}
+      </>
       )}
     </div>
   );

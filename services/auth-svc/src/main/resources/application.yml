@@ -46,11 +46,19 @@ spring:
       properties:
         spring.json.add.type.headers: false
         max.block.ms: 2000
+        acks: "1"
+        retries: 3
+        delivery.timeout.ms: 30000
+        request.timeout.ms: 15000
     consumer:
       group-id: ${AUTH_SVC_KAFKA_CONSUMER_GROUP}
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: "com.edutech.*"
+        spring.json.add.type.headers: false
 
   mail:
     host: ${MAIL_HOST}

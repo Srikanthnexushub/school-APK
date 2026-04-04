@@ -2,6 +2,8 @@
 package com.edutech.parent.infrastructure.messaging;
 
 import com.edutech.events.center.AnnouncementCreatedEvent;
+import com.edutech.events.center.AttendanceMarkedEvent;
+import com.edutech.events.center.AttendanceReportNotifyEvent;
 import com.edutech.parent.domain.model.StudentLink;
 import com.edutech.parent.domain.port.out.NotificationPublisher;
 import com.edutech.parent.domain.port.out.ParentProfileRepository;
@@ -12,15 +14,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Consumes domain events from center-svc.
- * Handles AnnouncementCreatedEvent to fan out in-app notifications to affected parents.
+ * <ul>
+ *   <li>AnnouncementCreatedEvent → fan out in-app notifications to affected parents
+ *   <li>AttendanceMarkedEvent   → notify parents of absent/late students
+ * </ul>
  */
 @Component
 public class CenterEventConsumer {
@@ -51,30 +52,36 @@ public class CenterEventConsumer {
     )
     public void handleCenterEvent(String eventJson) {
         try {
-            // Detect event type by checking for announcementId field
             if (eventJson.contains("\"announcementId\"")) {
                 AnnouncementCreatedEvent event = objectMapper.readValue(eventJson, AnnouncementCreatedEvent.class);
                 handleAnnouncementCreated(event);
+            } else if (eventJson.contains("\"markedByUserId\"")) {
+                AttendanceMarkedEvent event = objectMapper.readValue(eventJson, AttendanceMarkedEvent.class);
+                handleAttendanceMarked(event);
+            } else if (eventJson.contains("\"batchAveragePercent\"")) {
+                AttendanceReportNotifyEvent event = objectMapper.readValue(eventJson, AttendanceReportNotifyEvent.class);
+                handleAttendanceReportNotify(event);
             } else {
                 log.debug("Received unhandled center-svc event: {}", eventJson);
             }
         } catch (Exception e) {
-            log.warn("Failed to process center-svc event: {} — error: {}", eventJson, e.getMessage());
+            log.warn("Failed to process center-svc event: {} \u2014 error: {}", eventJson, e.getMessage());
         }
     }
+
+    // ─── Announcement fan-out ─────────────────────────────────────────────────
 
     private void handleAnnouncementCreated(AnnouncementCreatedEvent event) {
         String targetType = event.targetType();
         String targetRole = event.targetRole();
 
-        // Determine if parents should receive this announcement
         boolean includeParents = "CENTER".equals(targetType) || "ALL".equals(targetType)
                 || "PARENT".equals(targetRole) || "ALL".equals(targetRole)
                 || ("BATCH".equals(targetType) && event.targetBatchId() != null)
                 || (targetRole == null && targetType != null);
 
         if (!includeParents) {
-            log.debug("Announcement {} targetType={} targetRole={} — skipping parent fanout",
+            log.debug("Announcement {} targetType={} targetRole={} \u2014 skipping parent fanout",
                     event.announcementId(), targetType, targetRole);
             return;
         }
@@ -82,16 +89,10 @@ public class CenterEventConsumer {
         Set<UUID> parentUserIds = new LinkedHashSet<>();
 
         if ("BATCH".equals(targetType) && event.batchStudentIds() != null && !event.batchStudentIds().isEmpty()) {
-            // BATCH target: find parents of students in that specific batch
             for (UUID studentId : event.batchStudentIds()) {
-                studentLinkRepository.findActiveByStudentId(studentId).stream()
-                        .map(StudentLink::getParentId)
-                        .forEach(parentProfileId ->
-                            parentProfileRepository.findById(parentProfileId)
-                                .ifPresent(profile -> parentUserIds.add(profile.getUserId())));
+                resolveParentUserIds(studentId, parentUserIds);
             }
         } else {
-            // CENTER / ROLE / ALL: find all parents linked to this center
             studentLinkRepository.findActiveByCenterId(event.centerId()).stream()
                     .map(StudentLink::getParentId)
                     .forEach(parentProfileId ->
@@ -102,7 +103,9 @@ public class CenterEventConsumer {
         Map<String, String> metadata = Map.of(
                 "announcementId", event.announcementId().toString(),
                 "centerId", event.centerId().toString(),
-                "targetType", targetType != null ? targetType : "UNKNOWN"
+                "targetType", targetType != null ? targetType : "UNKNOWN",
+                "notificationType", "ANNOUNCEMENT",
+                "actionUrl", "/parent/announcements"
         );
 
         for (UUID parentUserId : parentUserIds) {
@@ -111,5 +114,98 @@ public class CenterEventConsumer {
 
         log.info("Announcement {} parent fanout: centerId={} parentCount={}",
                 event.announcementId(), event.centerId(), parentUserIds.size());
+    }
+
+    // ─── Attendance parent notification ───────────────────────────────────────
+
+    /**
+     * For each absent or late student in the batch, resolves their parent(s) and sends
+     * an IN_APP notification with the student name, batch name, date, and status.
+     */
+    private void handleAttendanceMarked(AttendanceMarkedEvent event) {
+        int notified = 0;
+        for (AttendanceMarkedEvent.StudentAttendanceRecord record : event.records()) {
+            // Only notify parents for ABSENT or LATE — skip PRESENT/EXCUSED to avoid noise
+            if (!"ABSENT".equals(record.status()) && !"LATE".equals(record.status())) continue;
+
+            Set<UUID> parentUserIds = new LinkedHashSet<>();
+            resolveParentUserIds(record.studentId(), parentUserIds);
+
+            if (parentUserIds.isEmpty()) continue;
+
+            String statusLabel = "ABSENT".equals(record.status()) ? "Absent" : "Late";
+            String studentDisplay = record.studentName() == null || record.studentName().isBlank()
+                    ? "Your child" : record.studentName();
+            String subject = "Attendance Alert \u2014 " + event.batchName();
+            String body = studentDisplay + " was marked " + statusLabel
+                    + " for " + event.batchName() + " on " + event.date() + ".";
+
+            Map<String, String> metadata = Map.of(
+                    "batchId", event.batchId().toString(),
+                    "centerId", event.centerId().toString(),
+                    "studentId", record.studentId().toString(),
+                    "date", event.date().toString(),
+                    "status", record.status(),
+                    "notificationType", "ATTENDANCE_MARKED",
+                    "actionUrl", "/parent/attendance"
+            );
+
+            for (UUID parentUserId : parentUserIds) {
+                notificationPublisher.sendInApp(parentUserId, subject, body, metadata);
+                notified++;
+            }
+        }
+
+        log.info("Attendance parent notifications sent: batchId={} date={} parentNotifications={}",
+                event.batchId(), event.date(), notified);
+    }
+
+    // ─── Attendance report parent fanout ──────────────────────────────────────
+
+    private void handleAttendanceReportNotify(AttendanceReportNotifyEvent event) {
+        Set<UUID> parentUserIds = new LinkedHashSet<>();
+
+        for (UUID studentId : event.batchStudentIds()) {
+            resolveParentUserIds(studentId, parentUserIds);
+        }
+
+        if (parentUserIds.isEmpty()) {
+            log.debug("AttendanceReportNotify: no parents found for batchId={}", event.batchId());
+            return;
+        }
+
+        String subject = "Attendance Report \u2014 " + event.batchName();
+        String body = String.format(
+                "The attendance report for %s (%s to %s) is ready. " +
+                "Batch average: %.1f%%. %d student(s) are below the 75%% threshold.",
+                event.batchName(), event.from(), event.to(),
+                event.batchAveragePercent(), event.atRiskCount()
+        );
+
+        Map<String, String> metadata = Map.of(
+                "batchId", event.batchId().toString(),
+                "centerId", event.centerId().toString(),
+                "from", event.from().toString(),
+                "to", event.to().toString(),
+                "notificationType", "ATTENDANCE_REPORT",
+                "actionUrl", "/parent/attendance"
+        );
+
+        for (UUID parentUserId : parentUserIds) {
+            notificationPublisher.sendInApp(parentUserId, subject, body, metadata);
+        }
+
+        log.info("AttendanceReportNotify parent fanout: batchId={} parentCount={} atRisk={}",
+                event.batchId(), parentUserIds.size(), event.atRiskCount());
+    }
+
+    // ─── Shared helper ────────────────────────────────────────────────────────
+
+    private void resolveParentUserIds(UUID studentId, Set<UUID> parentUserIds) {
+        studentLinkRepository.findActiveByStudentId(studentId).stream()
+                .map(StudentLink::getParentId)
+                .forEach(parentProfileId ->
+                    parentProfileRepository.findById(parentProfileId)
+                        .ifPresent(profile -> parentUserIds.add(profile.getUserId())));
     }
 }

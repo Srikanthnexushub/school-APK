@@ -11,6 +11,7 @@ public interface AttendanceRepository {
     Attendance save(Attendance attendance);
     List<Attendance> saveAll(List<Attendance> records);
     List<Attendance> findByBatchIdAndDate(UUID batchId, LocalDate date);
+    List<Attendance> findByBatchIdAndDateRange(UUID batchId, LocalDate from, LocalDate to);
     List<Attendance> findByStudentIdAndBatchId(UUID studentId, UUID batchId);
     void deleteByBatchIdAndDate(UUID batchId, LocalDate date);
 }

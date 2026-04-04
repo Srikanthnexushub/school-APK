@@ -246,7 +246,9 @@ export default function ParentCopilotPage() {
   const [activeConvId, setActiveConvId] = useState<string>(() => conversations[0].id);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 1024 : false
+  );
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -428,16 +430,31 @@ export default function ParentCopilotPage() {
   );
 
   return (
-    <div className="flex h-[calc(100vh-56px)] bg-surface overflow-hidden">
+    <div className="relative flex h-[calc(100vh-56px)] bg-surface overflow-hidden">
+      {/* Mobile backdrop — closes sidebar on tap outside */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            key="backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="absolute inset-0 z-40 bg-black/60 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Left sidebar — conversation history */}
       <AnimatePresence initial={false}>
         {sidebarOpen && (
           <motion.div
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 260, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
+            initial={{ x: -260, opacity: 0 }}
+            animate={{ x: 0, opacity: 1, width: 260 }}
+            exit={{ x: -260, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="flex-shrink-0 border-r border-white/5 bg-surface-50/40 flex flex-col overflow-hidden"
+            className="absolute inset-y-0 left-0 z-50 lg:relative lg:z-auto lg:flex-shrink-0 border-r border-white/5 bg-surface-50/40 flex flex-col overflow-hidden"
           >
             <div className="p-3 border-b border-white/5 flex items-center justify-between">
               <span className="text-sm font-semibold text-white">History</span>

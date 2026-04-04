@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bell, X, CheckCircle2, AlertTriangle, Info, Calendar,
   BarChart3, Map, Megaphone, ChevronDown, ChevronUp, CheckCheck,
+  CalendarCheck, FileBarChart,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
@@ -15,6 +16,8 @@ const typeConfig: Record<string, { Icon: React.ElementType; color: string; bg: s
   RESULT_PUBLISHED:{ Icon: BarChart3,    color: 'text-emerald-400', bg: 'bg-emerald-500/10', label: 'Result' },
   STUDY_ROUTE:     { Icon: Map,          color: 'text-violet-400',  bg: 'bg-violet-500/10',  label: 'Study Route' },
   ANNOUNCEMENT:    { Icon: Megaphone,    color: 'text-amber-400',   bg: 'bg-amber-500/10',   label: 'Announcement' },
+  ATTENDANCE_MARKED:  { Icon: CalendarCheck, color: 'text-teal-400',   bg: 'bg-teal-500/10',   label: 'Attendance' },
+  ATTENDANCE_REPORT:  { Icon: FileBarChart,  color: 'text-violet-400', bg: 'bg-violet-500/10', label: 'Report' },
   info:            { Icon: Info,         color: 'text-blue-400',    bg: 'bg-blue-500/10',    label: 'Info' },
   success:         { Icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10', label: 'Success' },
   warning:         { Icon: AlertTriangle,color: 'text-amber-400',   bg: 'bg-amber-500/10',   label: 'Warning' },

@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
 import { ExportMenu } from '../../components/ui/ExportMenu';
+import AttendanceReportPanel from '../../components/attendance/AttendanceReportPanel';
 
 interface Batch { id: string; name: string; code: string; }
 interface AttendanceSummary {
@@ -26,7 +27,7 @@ const STATUS_OPTIONS: { value: AttendanceStatus; label: string; color: string }[
 export default function AdminAttendancePage() {
   const { user } = useAuthStore();
   const qc = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'summary' | 'mark'>('summary');
+  const [activeTab, setActiveTab] = useState<'summary' | 'mark' | 'reports'>('summary');
   const [selectedBatchId, setSelectedBatchId] = useState<string>('');
   const [lowOnly, setLowOnly] = useState(false);
   const [markBatchId, setMarkBatchId] = useState('');
@@ -146,6 +147,16 @@ export default function AdminAttendancePage() {
         >
           Mark Attendance
         </button>
+        <button
+          onClick={() => setActiveTab('reports')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            activeTab === 'reports'
+              ? 'bg-cyan-500/20 text-cyan-400'
+              : 'text-white/40 hover:text-white'
+          }`}
+        >
+          📊 Reports
+        </button>
       </div>
 
       {/* Summary tab */}
@@ -261,6 +272,38 @@ export default function AdminAttendancePage() {
             </>
           )}
         </>
+      )}
+
+      {/* Reports tab */}
+      {activeTab === 'reports' && (
+        <div className="space-y-4">
+          {/* Batch selector for reports */}
+          <div className="relative max-w-sm">
+            <select
+              value={selectedBatchId}
+              onChange={e => setSelectedBatchId(e.target.value)}
+              className="w-full appearance-none bg-surface-100 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 pr-10"
+            >
+              <option value="">Select a batch…</option>
+              {batches.map(b => (
+                <option key={b.id} value={b.id}>{b.name} ({b.code})</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
+          </div>
+          {!selectedBatchId ? (
+            <div className="flex flex-col items-center gap-3 py-16 text-white/30">
+              <BarChart3 className="w-10 h-10" />
+              <p>Select a batch to view reports</p>
+            </div>
+          ) : (
+            <AttendanceReportPanel
+              centerId={centerId}
+              batchId={selectedBatchId}
+              batchName={batches.find(b => b.id === selectedBatchId)?.name}
+            />
+          )}
+        </div>
       )}
 
       {/* Mark Attendance tab */}
