@@ -33,7 +33,8 @@ interface ContentItem {
   aiSummary?: string;
   fileSizeBytes?: number;
   pageCount?: number;
-  externalUrl?: string;
+  fileUrl?: string;       // backend field name (used as external URL for LINK/VIDEO types)
+  externalUrl?: string;   // alias kept for compatibility
   isPlatformResource?: boolean;
   createdAt: string;
 }
@@ -110,6 +111,10 @@ function ContentCard({ item }: { item: ContentItem }) {
         `/api/v1/centers/${item.centerId}/content/${item.id}/download`,
       );
       const url = res.data?.downloadUrl ?? res.data;
+      if (!url || typeof url !== 'string') {
+        toast.error('No file available for download.');
+        return;
+      }
       window.open(url, '_blank', 'noopener');
     } catch {
       toast.error('Download failed. Please try again.');
@@ -123,8 +128,10 @@ function ContentCard({ item }: { item: ContentItem }) {
     return m ? m[1] : null;
   }
 
-  const isLink = item.type === 'LINK' || (item.type === 'VIDEO' && !!item.externalUrl);
-  const ytId   = item.externalUrl ? extractYouTubeId(item.externalUrl) : null;
+  const linkUrl     = item.fileUrl || item.externalUrl;
+  const isLink      = item.type === 'LINK' || (item.type === 'VIDEO' && !!linkUrl);
+  const hasValidUrl = isLink && !!linkUrl?.trim();
+  const ytId        = linkUrl ? extractYouTubeId(linkUrl) : null;
 
   return (
     <motion.div
@@ -234,15 +241,22 @@ function ContentCard({ item }: { item: ContentItem }) {
 
       {/* Action button */}
       {isLink ? (
-        <a
-          href={item.externalUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-1.5 text-xs font-medium text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/15 border border-blue-500/20 rounded-lg py-2 transition-colors"
-        >
-          <ExternalLink className="w-3.5 h-3.5" />
-          Open
-        </a>
+        hasValidUrl ? (
+          <a
+            href={linkUrl!}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-1.5 text-xs font-medium text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/15 border border-blue-500/20 rounded-lg py-2 transition-colors"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            Open
+          </a>
+        ) : (
+          <span className="flex items-center justify-center gap-1.5 text-xs font-medium text-white/20 bg-white/5 border border-white/10 rounded-lg py-2 cursor-not-allowed">
+            <ExternalLink className="w-3.5 h-3.5" />
+            URL not set
+          </span>
+        )
       ) : (
         <button
           onClick={handleDownload}
@@ -342,7 +356,9 @@ export function LibraryView({
       if (difficulty)            p.set('difficulty',   difficulty);
       if (yearOfPaper)           p.set('yearOfPaper',  yearOfPaper);
       if (centerId)              p.set('centerId',     centerId);
-      if (stream)                p.set('stream',       stream);
+      // Only filter by stream for platform-wide discovery. Center content is shown unfiltered
+      // so items without a stream tag are visible (most center-uploaded content has no stream set).
+      if (stream && (globalMode || showPlatformResources)) p.set('stream', stream);
       if (showPlatformResources) p.set('platformOnly', 'true');
       p.set('page', String(page));
       p.set('size', String(PAGE_SIZE));
