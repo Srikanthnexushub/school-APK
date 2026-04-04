@@ -10,7 +10,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Upload, Library, Plus, X, Loader2, FileText, Trash2,
   CheckCircle, AlertCircle, ChevronRight, ChevronLeft,
-  Search, Filter, BookOpen, Building2, Link, Globe,
+  Search, Filter, BookOpen, Building2, Link, Globe, RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
@@ -782,6 +782,12 @@ function ContentRow({ item, centerId, onArchived, canModify }: {
     onError:   () => toast.error('Failed to archive document.'),
   });
 
+  const retagMutation = useMutation({
+    mutationFn: () => api.post(`/api/v1/centers/${centerId}/content/${item.id}/ai-tag`),
+    onSuccess: () => { toast.success('Document processed — now Available.'); onArchived(); /* refresh list */ },
+    onError:   () => toast.error('Re-processing failed. Please try again.'),
+  });
+
   return (
     <div className="flex items-center gap-3 px-4 py-3 hover:bg-white/2 transition-colors border-b border-white/5 last:border-0">
       <FileText className="w-4 h-4 text-white/25 flex-shrink-0" />
@@ -809,6 +815,20 @@ function ContentRow({ item, centerId, onArchived, canModify }: {
       <span className="text-xs text-white/25 flex-shrink-0 hidden sm:block">
         {item.downloadCount} dl
       </span>
+
+      {canModify && item.status === 'PROCESSING' && (
+        <button
+          onClick={() => retagMutation.mutate()}
+          disabled={retagMutation.isPending}
+          className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-amber-400 hover:text-white hover:bg-amber-500/15 border border-amber-500/20 transition-colors flex-shrink-0 disabled:opacity-40"
+          title="Manually re-process to make Available"
+        >
+          {retagMutation.isPending
+            ? <Loader2 className="w-3 h-3 animate-spin" />
+            : <RefreshCw className="w-3 h-3" />}
+          Re-process
+        </button>
+      )}
 
       {canModify && (
         !confirming ? (

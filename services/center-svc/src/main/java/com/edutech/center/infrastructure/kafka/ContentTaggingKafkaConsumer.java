@@ -44,22 +44,25 @@ public class ContentTaggingKafkaConsumer {
             return; // ignore other center events
         }
         log.debug("Auto-tagging content: id={} title='{}'", event.contentId(), event.title());
+        Optional<ContentItem> opt = contentRepository.findByIdActive(event.contentId());
+        if (opt.isEmpty()) {
+            log.warn("Content not found for auto-tagging: id={}", event.contentId());
+            return;
+        }
+        ContentItem item = opt.get();
         try {
-            Optional<ContentItem> opt = contentRepository.findByIdActive(event.contentId());
-            if (opt.isEmpty()) {
-                log.warn("Content not found for auto-tagging: id={}", event.contentId());
-                return;
-            }
-            ContentItem item = opt.get();
             TaggingResult result = aiTaggingPort.suggestTags(event.title(), null);
             item.applyAiTags(result.aiSummary(), result.subject(), result.board(),
                     result.examType(), result.difficulty(), result.suggestedTags());
-            contentRepository.save(item);
             log.info("Auto-tagging complete: id={} subject={} examType={}",
                     event.contentId(), result.subject(), result.examType());
         } catch (Exception e) {
-            log.error("Auto-tagging failed for contentId={} — item stays PROCESSING",
+            // AI tagging failed — mark AVAILABLE anyway so the document is accessible.
+            // Admin can trigger re-tagging manually via POST /content/{id}/ai-tag.
+            log.warn("AI tagging failed for contentId={} — marking AVAILABLE without tags",
                     event.contentId(), e);
+            item.markAvailable();
         }
+        contentRepository.save(item);
     }
 }
