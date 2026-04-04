@@ -140,8 +140,8 @@ function DailyHeatmapCalendar({ buckets }: { buckets: AttendanceBucket[] }) {
 
   function cellColor(date: Date): string {
     const iso = date.toISOString().slice(0, 10);
-    if (iso < buckets[0].from || iso > buckets[buckets.length - 1].from) return 'bg-white/5';
-    if (!dateMap.has(iso)) return 'bg-white/5';
+    if (iso < buckets[0].from || iso > buckets[buckets.length - 1].from) return 'bg-black/5 dark:bg-white/5';
+    if (!dateMap.has(iso)) return 'bg-black/5 dark:bg-white/5';
     const pct = dateMap.get(iso)!;
     if (pct === 0)  return 'bg-red-500/80';
     if (pct < 75)   return 'bg-amber-500/60';
@@ -157,7 +157,7 @@ function DailyHeatmapCalendar({ buckets }: { buckets: AttendanceBucket[] }) {
       {/* Legend */}
       <div className="flex items-center gap-3 text-[10px] text-white/30 flex-wrap">
         <span>Less</span>
-        {(['bg-white/5', 'bg-red-500/80', 'bg-amber-500/60', 'bg-emerald-400/60', 'bg-emerald-500'] as const).map((c, i) => (
+        {(['bg-black/5 dark:bg-white/5', 'bg-red-500/80', 'bg-amber-500/60', 'bg-emerald-400/60', 'bg-emerald-500'] as const).map((c, i) => (
           <span key={i} className={`w-3 h-3 rounded-sm ${c} inline-block`} />
         ))}
         <span>More</span>

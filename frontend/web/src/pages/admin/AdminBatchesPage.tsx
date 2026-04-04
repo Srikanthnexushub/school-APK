@@ -935,7 +935,7 @@ export default function AdminBatchesPage() {
                       key={batch.id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="hover:bg-white/3 transition-colors"
+                      className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                     >
                       <td className="py-3 pr-4">
                         <div className="font-medium text-white">{batch.name}</div>

@@ -79,7 +79,7 @@ const DIFFICULTIES = ['EASY', 'MEDIUM', 'HARD'];
 const STATUS_COLOR: Record<string, string> = {
   AVAILABLE:  'bg-emerald-500/15 text-emerald-400',
   PROCESSING: 'bg-amber-500/15 text-amber-400',
-  ARCHIVED:   'bg-white/10 text-white/30',
+  ARCHIVED:   'bg-black/[.08] dark:bg-white/10 text-white/30',
 };
 
 // ─── Add Link Wizard Modal ────────────────────────────────────────────────────
@@ -801,13 +801,13 @@ function ContentRow({ item, centerId, onArchived, canModify }: {
         </div>
       </div>
 
-      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 bg-white/5 text-white/40">
+      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 bg-black/5 dark:bg-white/5 text-white/40">
         {item.type}
       </span>
 
       <span className={cn(
         'text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0',
-        STATUS_COLOR[item.status] ?? 'bg-white/5 text-white/30',
+        STATUS_COLOR[item.status] ?? 'bg-black/5 dark:bg-white/5 text-white/30',
       )}>
         {item.status}
       </span>

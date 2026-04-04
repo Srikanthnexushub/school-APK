@@ -582,7 +582,7 @@ export default function AdminStaffPage() {
               'flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors',
               subTab === tab
                 ? 'bg-white/8 text-white'
-                : 'text-white/40 hover:text-white/70 hover:bg-white/3'
+                : 'text-white/40 hover:text-white/70 hover:bg-black/5 dark:hover:bg-white/5'
             )}
           >
             {tab === 'directory' ? <Users className="w-3.5 h-3.5" /> : <Upload className="w-3.5 h-3.5" />}
@@ -640,7 +640,7 @@ export default function AdminStaffPage() {
                     'flex flex-col items-center gap-1 p-2 rounded-xl border text-center transition-all text-xs',
                     filterRole === role.value
                       ? `${role.bg} border-opacity-60`
-                      : 'border-white/8 hover:border-white/15 hover:bg-white/3'
+                      : 'border-white/8 hover:border-white/15 hover:bg-black/5 dark:hover:bg-white/5'
                   )}
                 >
                   <span className={cn('text-base font-bold', role.color)}>
@@ -676,7 +676,7 @@ export default function AdminStaffPage() {
                     'flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border text-sm transition-colors',
                     hasActiveFilters
                       ? 'border-brand-500/40 bg-brand-500/10 text-brand-400'
-                      : 'border-white/10 text-white/40 hover:text-white/70 hover:bg-white/3'
+                      : 'border-white/10 text-white/40 hover:text-white/70 hover:bg-black/5 dark:hover:bg-white/5'
                   )}
                 >
                   <Filter className="w-3.5 h-3.5" />
@@ -684,7 +684,7 @@ export default function AdminStaffPage() {
                 </button>
                 <button
                   onClick={() => refetch()}
-                  className="p-2.5 rounded-xl border border-white/10 text-white/40 hover:text-white/70 hover:bg-white/3 transition-colors"
+                  className="p-2.5 rounded-xl border border-white/10 text-white/40 hover:text-white/70 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                 >
                   <RefreshCw className="w-4 h-4" />
                 </button>

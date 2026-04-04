@@ -117,7 +117,7 @@ function QuestionItem({ result, index }: { result: QuestionResult; index: number
     <div className="glass rounded-xl overflow-hidden">
       <button
         onClick={() => setOpen((p) => !p)}
-        className="w-full flex items-center gap-3 p-4 text-left hover:bg-white/3 transition-colors"
+        className="w-full flex items-center gap-3 p-4 text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
       >
         <div
           className={cn(

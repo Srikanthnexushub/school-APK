@@ -15,6 +15,7 @@ import { Avatar } from '../../components/ui/Avatar';
 import { Modal } from '../../components/ui/Modal';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
+import { useThemeStore } from '../../stores/themeStore';
 import { getAdaptiveQuestions, computeTraits } from '../../utils/psychometricUtils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -129,6 +130,8 @@ function transformProfile(raw: any): PsychProfile {
 // ─── Big Five Radar ────────────────────────────────────────────────────────────
 
 function BigFiveRadar({ bigFive }: { bigFive: BigFiveTrait[] }) {
+  const { theme } = useThemeStore();
+  const isDark = theme === 'dark';
   const data = bigFive.map((t) => ({ subject: t.name.slice(0, 5), score: t.score, fullMark: 100 }));
   if (data.length === 0) return null;
   return (
@@ -136,9 +139,9 @@ function BigFiveRadar({ bigFive }: { bigFive: BigFiveTrait[] }) {
       <h3 className="font-semibold text-white text-sm mb-4">Big Five Personality Traits</h3>
       <ResponsiveContainer width="100%" height={260}>
         <RadarChart data={data} margin={{ top: 8, right: 24, bottom: 8, left: 24 }}>
-          <PolarGrid stroke="rgba(255,255,255,0.06)" />
-          <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
-          <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: 'rgba(255,255,255,0.2)', fontSize: 9 }} />
+          <PolarGrid stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(8,10,28,0.08)'} />
+          <PolarAngleAxis dataKey="subject" tick={{ fill: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(8,10,28,0.55)', fontSize: 11 }} />
+          <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(8,10,28,0.3)', fontSize: 9 }} />
           <Radar
             name="Score"
             dataKey="score"
@@ -148,8 +151,8 @@ function BigFiveRadar({ bigFive }: { bigFive: BigFiveTrait[] }) {
             dot={{ fill: '#6366f1', r: 4 }}
           />
           <Tooltip
-            contentStyle={{ background: '#252836', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, fontSize: 12 }}
-            labelStyle={{ color: 'rgba(255,255,255,0.5)' }}
+            contentStyle={{ background: isDark ? '#252836' : '#ffffff', border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(8,10,28,0.12)', borderRadius: 12, fontSize: 12 }}
+            labelStyle={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(8,10,28,0.55)' }}
             itemStyle={{ color: '#818cf8' }}
           />
         </RadarChart>
@@ -161,6 +164,8 @@ function BigFiveRadar({ bigFive }: { bigFive: BigFiveTrait[] }) {
 // ─── RIASEC Chart ─────────────────────────────────────────────────────────────
 
 function RiasecChart({ riasecCode, riasecScores }: { riasecCode: string; riasecScores: Record<string, number> }) {
+  const { theme } = useThemeStore();
+  const isDark = theme === 'dark';
   const data = Object.keys(RIASEC_META).map((code) => ({
     name: RIASEC_META[code].label,
     code,
@@ -186,12 +191,12 @@ function RiasecChart({ riasecCode, riasecScores }: { riasecCode: string; riasecS
       </div>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-          <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} />
-          <YAxis domain={[0, 100]} tick={{ fill: 'rgba(255,255,255,0.2)', fontSize: 9 }} axisLine={false} tickLine={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? 'rgba(255,255,255,0.04)' : 'rgba(8,10,28,0.06)'} vertical={false} />
+          <XAxis dataKey="name" tick={{ fill: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(8,10,28,0.5)', fontSize: 10 }} axisLine={false} tickLine={false} />
+          <YAxis domain={[0, 100]} tick={{ fill: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(8,10,28,0.3)', fontSize: 9 }} axisLine={false} tickLine={false} />
           <Tooltip
-            contentStyle={{ background: '#252836', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, fontSize: 12 }}
-            labelStyle={{ color: 'rgba(255,255,255,0.5)' }}
+            contentStyle={{ background: isDark ? '#252836' : '#ffffff', border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(8,10,28,0.12)', borderRadius: 12, fontSize: 12 }}
+            labelStyle={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(8,10,28,0.55)' }}
           />
           <Bar dataKey="score" radius={[4, 4, 0, 0]}>
             {data.map((entry) => (

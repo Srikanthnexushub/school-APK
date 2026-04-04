@@ -170,7 +170,7 @@ export default function AdminBulkImportTeachersPage({ centerId: centerIdProp }: 
             'border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all block',
             file
               ? 'border-brand-500/40 bg-brand-500/5'
-              : 'border-white/10 hover:border-white/20 hover:bg-white/3'
+              : 'border-white/10 hover:border-white/20 hover:bg-black/5 dark:hover:bg-white/5'
           )}
         >
           <input

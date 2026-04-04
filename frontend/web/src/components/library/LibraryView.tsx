@@ -100,7 +100,7 @@ function formatBytes(b?: number): string {
 function ContentCard({ item }: { item: ContentItem }) {
   const [downloading, setDownloading] = useState(false);
   const Icon       = TYPE_ICON[item.type] ?? File;
-  const typeColor  = TYPE_COLOR[item.type] ?? 'bg-white/5 text-white/50 border-white/10';
+  const typeColor  = TYPE_COLOR[item.type] ?? 'bg-black/5 dark:bg-white/5 text-white/50 border-black/10 dark:border-white/10';
   const typeLabel  = TYPE_LABEL[item.type] ?? item.type;
 
   async function handleDownload() {
@@ -155,7 +155,7 @@ function ContentCard({ item }: { item: ContentItem }) {
           {item.difficulty && (
             <span className={cn(
               'text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border flex-shrink-0',
-              DIFF_COLOR[item.difficulty] ?? 'bg-white/5 text-white/30 border-white/10',
+              DIFF_COLOR[item.difficulty] ?? 'bg-black/5 dark:bg-white/5 text-white/30 border-black/10 dark:border-white/10',
             )}>
               {item.difficulty}
             </span>
@@ -202,12 +202,12 @@ function ContentCard({ item }: { item: ContentItem }) {
           </span>
         )}
         {item.board && (
-          <span className="text-[10px] px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-white/50">
+          <span className="text-[10px] px-1.5 py-0.5 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded text-white/50">
             {item.board}
           </span>
         )}
         {item.yearOfPaper && (
-          <span className="text-[10px] px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-white/50 flex items-center gap-0.5">
+          <span className="text-[10px] px-1.5 py-0.5 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded text-white/50 flex items-center gap-0.5">
             <Calendar className="w-2.5 h-2.5" />
             {item.yearOfPaper}
           </span>
@@ -252,7 +252,7 @@ function ContentCard({ item }: { item: ContentItem }) {
             Open
           </a>
         ) : (
-          <span className="flex items-center justify-center gap-1.5 text-xs font-medium text-white/20 bg-white/5 border border-white/10 rounded-lg py-2 cursor-not-allowed">
+          <span className="flex items-center justify-center gap-1.5 text-xs font-medium text-white/20 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg py-2 cursor-not-allowed">
             <ExternalLink className="w-3.5 h-3.5" />
             URL not set
           </span>
@@ -428,7 +428,7 @@ export function LibraryView({
             'flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-medium transition-colors',
             showFilters || hasFilters
               ? 'bg-brand-500/15 border-brand-500/30 text-brand-300'
-              : 'bg-white/5 border-white/10 text-white/40 hover:text-white',
+              : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-white/40 hover:text-white',
           )}
         >
           <Filter className="w-3.5 h-3.5" />
@@ -583,7 +583,7 @@ export function LibraryView({
           <button
             onClick={() => setPage(p => Math.max(0, p - 1))}
             disabled={page === 0 || isFetching}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-white/10 text-sm text-white/50 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-black/10 dark:border-white/10 text-sm text-white/50 hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="w-4 h-4" /> Previous
           </button>
@@ -591,7 +591,7 @@ export function LibraryView({
           <button
             onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
             disabled={page >= totalPages - 1 || isFetching}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-white/10 text-sm text-white/50 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-black/10 dark:border-white/10 text-sm text-white/50 hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
             Next <ChevronRight className="w-4 h-4" />
           </button>

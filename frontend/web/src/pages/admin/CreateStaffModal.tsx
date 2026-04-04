@@ -323,7 +323,7 @@ export default function CreateStaffModal({ centerId, onClose, onCreated }: Creat
                             'flex items-start gap-2 p-2.5 rounded-xl border text-left transition-all',
                             form.roleType === role.value
                               ? `${role.bg} border-opacity-60`
-                              : 'border-white/8 hover:border-white/15 hover:bg-white/3'
+                              : 'border-white/8 hover:border-white/15 hover:bg-black/5 dark:hover:bg-white/5'
                           )}
                         >
                           <div className={cn('mt-0.5 text-xs font-semibold', role.color)}>{role.label}</div>

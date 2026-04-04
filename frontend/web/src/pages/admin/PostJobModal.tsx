@@ -285,7 +285,7 @@ export default function PostJobModal({ centerId, editing, onClose, onSaved }: Po
                       'flex items-start gap-2 p-2.5 rounded-xl border text-left transition-all',
                       form.roleType === role.value
                         ? `${role.bg} border-opacity-60`
-                        : 'border-white/8 hover:border-white/15 hover:bg-white/3'
+                        : 'border-white/8 hover:border-white/15 hover:bg-black/5 dark:hover:bg-white/5'
                     )}
                   >
                     <div className="flex-1 min-w-0">
@@ -315,7 +315,7 @@ export default function PostJobModal({ centerId, editing, onClose, onSaved }: Po
                       'flex-1 py-2 px-3 rounded-xl border text-xs font-medium transition-all',
                       form.jobType === jt.value
                         ? 'bg-brand-500/20 border-brand-500/40 text-brand-300'
-                        : 'border-white/8 text-white/50 hover:border-white/20 hover:text-white/80 hover:bg-white/3'
+                        : 'border-white/8 text-white/50 hover:border-white/20 hover:text-white/80 hover:bg-black/5 dark:hover:bg-white/5'
                     )}
                   >
                     {jt.label}
@@ -341,7 +341,7 @@ export default function PostJobModal({ centerId, editing, onClose, onSaved }: Po
                         'flex-1 py-2 px-3 rounded-xl border text-xs font-medium transition-all',
                         form.status === s.value
                           ? `${s.bg} ${s.color}`
-                          : 'border-white/8 text-white/50 hover:border-white/20 hover:text-white/80 hover:bg-white/3'
+                          : 'border-white/8 text-white/50 hover:border-white/20 hover:text-white/80 hover:bg-black/5 dark:hover:bg-white/5'
                       )}
                     >
                       {s.value === 'DRAFT' ? 'Save as Draft' : 'Post Now (Open)'}

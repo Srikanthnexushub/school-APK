@@ -180,7 +180,7 @@ export default function AdminBillingPage({ embedded = false }: { embedded?: bool
                 const StatusIcon = cfg.icon;
                 const isSending = sending === item.studentId;
                 return (
-                  <tr key={item.studentId} className="hover:bg-white/3 transition-colors">
+                  <tr key={item.studentId} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                     <td className="py-3 pr-4">
                       <span className="font-medium text-white text-sm">{item.studentName}</span>
                     </td>

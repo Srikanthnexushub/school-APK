@@ -472,7 +472,7 @@ export default function AdminBannersPage() {
             </thead>
             <tbody className="divide-y divide-white/5">
               {banners.map((banner) => (
-                <tr key={banner.id} className="hover:bg-white/3 transition-colors group">
+                <tr key={banner.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors group">
                   <td className="py-3 pr-4">
                     <div className="flex items-center gap-2">
                       {banner.bgColor && (
@@ -508,14 +508,14 @@ export default function AdminBannersPage() {
                           'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
                           banner.isActive
                             ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25'
-                            : 'bg-white/5 text-white/30 hover:bg-white/10'
+                            : 'bg-black/5 dark:bg-white/5 text-white/30 hover:bg-black/[.08] dark:hover:bg-white/10'
                         )}
                       >
                         {banner.isActive ? <ToggleRight className="w-3.5 h-3.5" /> : <ToggleLeft className="w-3.5 h-3.5" />}
                         {banner.isActive ? 'Active' : 'Off'}
                       </button>
                     ) : (
-                      <span className={cn('badge text-xs', banner.isActive ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/5 text-white/30')}>
+                      <span className={cn('badge text-xs', banner.isActive ? 'bg-emerald-500/15 text-emerald-400' : 'bg-black/5 dark:bg-white/5 text-white/30')}>
                         {banner.isActive ? 'Active' : 'Off'}
                       </span>
                     )}

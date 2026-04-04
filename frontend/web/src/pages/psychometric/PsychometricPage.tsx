@@ -10,6 +10,7 @@ import {
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
+import { useThemeStore } from '../../stores/themeStore';
 import { cn } from '../../lib/utils';
 import { Modal } from '../../components/ui/Modal';
 import { getEducationLevel, getAdaptiveQuestions as getQuestions, computeTraits } from '../../utils/psychometricUtils';
@@ -118,6 +119,8 @@ function TraitCard({ trait, index }: { trait: BigFiveTrait; index: number }) {
 
 export default function PsychometricPage() {
   const user = useAuthStore((s) => s.user);
+  const { theme } = useThemeStore();
+  const isDark = theme === 'dark';
   const [activeTab, setActiveTab] = useState('visual');
   const [showAssessModal, setShowAssessModal] = useState(false);
   const [assessStep, setAssessStep] = useState<'info' | 'quiz' | 'submitting'>('info');
@@ -422,14 +425,14 @@ export default function PsychometricPage() {
             <p className="text-white/40 text-sm mb-4">vs. ideal exam candidate benchmark</p>
             <ResponsiveContainer width="100%" height={280}>
               <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
-                <PolarGrid stroke="rgba(255,255,255,0.06)" />
-                <PolarAngleAxis dataKey="trait" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
-                <Radar name="Benchmark" dataKey="benchmark" stroke="rgba(255,255,255,0.3)" fill="rgba(255,255,255,0.06)" strokeWidth={1.5} />
+                <PolarGrid stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(8,10,28,0.08)'} />
+                <PolarAngleAxis dataKey="trait" tick={{ fill: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(8,10,28,0.55)', fontSize: 11 }} />
+                <Radar name="Benchmark" dataKey="benchmark" stroke={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(8,10,28,0.25)'} fill={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(8,10,28,0.06)'} strokeWidth={1.5} />
                 <Radar name="Your Profile" dataKey="student" stroke="#6366f1" fill="#6366f1" fillOpacity={0.3} strokeWidth={2} />
                 <Legend
                   iconType="circle"
                   iconSize={8}
-                  formatter={(value) => <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{value}</span>}
+                  formatter={(value) => <span style={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(8,10,28,0.55)', fontSize: 11 }}>{value}</span>}
                 />
               </RadarChart>
             </ResponsiveContainer>

@@ -21,6 +21,7 @@ import FooterBanner from '../../components/ui/FooterBanner';
 import TickerBanner from '../../components/ui/TickerBanner';
 import VideoBanner from '../../components/ui/VideoBanner';
 import { useAuthStore } from '../../stores/authStore';
+import { useThemeStore } from '../../stores/themeStore';
 
 // ─── API Types ─────────────────────────────────────────────────────────────
 
@@ -433,6 +434,8 @@ function Skeleton({ className }: { className?: string }) {
 
 export default function AdminDashboardPage() {
   const user = useAuthStore(s => s.user);
+  const { theme } = useThemeStore();
+  const isDark = theme === 'dark';
   const qc = useQueryClient();
   const [showAddModal, setShowAddModal]   = useState(false);
   const [editingCenter, setEditingCenter] = useState<(CenterRow & { email?: string; state?: string; pincode?: string }) | null>(null);
@@ -672,13 +675,13 @@ export default function AdminDashboardPage() {
           ) : (
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={enrollmentByBatch} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                <XAxis dataKey="batch" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? 'rgba(255,255,255,0.04)' : 'rgba(8,10,28,0.06)'} vertical={false} />
+                <XAxis dataKey="batch" tick={{ fill: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(8,10,28,0.45)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(8,10,28,0.45)', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <Tooltip
-                  contentStyle={{ background: '#252836', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, fontSize: 12 }}
-                  cursor={{ fill: 'rgba(255,255,255,0.04)' }}
-                  labelStyle={{ color: 'rgba(255,255,255,0.5)' }}
+                  contentStyle={{ background: isDark ? '#252836' : '#ffffff', border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(8,10,28,0.12)', borderRadius: 12, fontSize: 12 }}
+                  cursor={{ fill: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(8,10,28,0.04)' }}
+                  labelStyle={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(8,10,28,0.55)' }}
                   itemStyle={{ color: '#818cf8' }}
                 />
                 <Bar dataKey="students" fill="#6366f1" radius={[4, 4, 0, 0]} maxBarSize={40} />
@@ -712,13 +715,13 @@ export default function AdminDashboardPage() {
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{ background: '#252836', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, fontSize: 12 }}
-                  itemStyle={{ color: 'rgba(255,255,255,0.7)' }}
+                  contentStyle={{ background: isDark ? '#252836' : '#ffffff', border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(8,10,28,0.12)', borderRadius: 12, fontSize: 12 }}
+                  itemStyle={{ color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(8,10,28,0.7)' }}
                 />
                 <Legend
                   iconType="circle"
                   iconSize={8}
-                  formatter={(value) => <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{value}</span>}
+                  formatter={(value) => <span style={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(8,10,28,0.55)', fontSize: 11 }}>{value}</span>}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -757,7 +760,7 @@ export default function AdminDashboardPage() {
                   {centers.map((center) => {
                     const StatusIcon = statusIcons[center.status];
                     return (
-                      <tr key={center.id} className="hover:bg-white/3 transition-colors group">
+                      <tr key={center.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors group">
                         <td className="py-3 pr-4">
                           <div className="font-medium text-white text-sm">{center.name}</div>
                           <div className="text-xs text-white/40 mt-0.5 flex items-center gap-1">

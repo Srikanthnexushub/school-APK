@@ -75,7 +75,7 @@ function AssignmentRow({ assignment, centerId }: { assignment: AssignmentRespons
   const dueDate = new Date(assignment.dueDate);
 
   return (
-    <tr className="hover:bg-white/3 transition-colors group">
+    <tr className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors group">
       <td className="py-3 pr-4">
         <div className="font-medium text-white text-sm">{assignment.title}</div>
         {assignment.description && (

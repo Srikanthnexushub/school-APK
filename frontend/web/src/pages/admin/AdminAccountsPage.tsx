@@ -1341,7 +1341,7 @@ Then provide one overall recommendation for the admin to act on TODAY. Format cl
                     const Icon = cfg.icon;
                     const bal = getBalance(item);
                     return (
-                      <tr key={item.studentId} className="hover:bg-white/3 transition-colors">
+                      <tr key={item.studentId} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                         <td className="px-5 py-3 text-white/30 text-xs">{i + 1}</td>
                         <td className="px-5 py-3">
                           <div className="flex items-center gap-2.5">

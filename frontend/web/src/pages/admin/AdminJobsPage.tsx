@@ -484,7 +484,7 @@ function MyPostingsTab({ centerId, centerType = 'COACHING_CENTER' }: { centerId:
           </div>
           <button
             onClick={() => refetch()}
-            className="p-2.5 rounded-xl border border-white/10 text-white/40 hover:text-white/70 hover:bg-white/3 transition-colors"
+            className="p-2.5 rounded-xl border border-white/10 text-white/40 hover:text-white/70 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
             title="Refresh"
           >
             <RefreshCw className="w-4 h-4" />
@@ -929,7 +929,7 @@ export default function AdminJobsPage() {
                 'flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors',
                 subTab === tab.id
                   ? 'bg-white/8 text-white'
-                  : 'text-white/40 hover:text-white/70 hover:bg-white/3'
+                  : 'text-white/40 hover:text-white/70 hover:bg-black/5 dark:hover:bg-white/5'
               )}
             >
               <Icon className="w-3.5 h-3.5" />

@@ -45,6 +45,7 @@ public class BatchMemberService implements ListBatchMembersUseCase {
                 .orElseThrow(() -> new BatchNotFoundException(batchId));
         boolean canView = principal.belongsToCenter(batch.getCenterId())
                 || principal.isSuperAdmin() || principal.isInstitutionAdmin()
+                || principal.isParent()
                 || (principal.isTeacher() && teacherRepository.existsByUserIdAndCenterId(principal.userId(), batch.getCenterId()));
         if (!canView) {
             throw new CenterAccessDeniedException();

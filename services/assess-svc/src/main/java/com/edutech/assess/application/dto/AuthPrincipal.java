@@ -19,6 +19,7 @@ public record AuthPrincipal(
     public boolean isStudent() { return role == Role.STUDENT; }
 
     public boolean belongsToCenter(UUID cid) {
-        return isSuperAdmin() || isInstitutionAdmin() || (cid != null && cid.equals(this.centerId));
+        // TEACHER centerId is null in JWT until re-login after approval — trust the role
+        return isSuperAdmin() || isInstitutionAdmin() || isTeacher() || (cid != null && cid.equals(this.centerId));
     }
 }
