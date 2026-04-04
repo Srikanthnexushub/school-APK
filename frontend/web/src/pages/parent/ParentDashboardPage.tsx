@@ -235,7 +235,7 @@ export default function ParentDashboardPage() {
     queryKey: ['linked-students', profile?.id],
     queryFn: () => api.get(`/api/v1/parents/${profile!.id}/students`).then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }),
     enabled: !!profile?.id,
-    select: (data) => data.filter((s) => s.status === 'ACTIVE' || s.status === 'active' || true),
+    select: (data) => data.filter((s) => s.status === 'ACTIVE' || s.status === 'active'),
   });
 
   // Resolve selected student ID — default to first

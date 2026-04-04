@@ -45,7 +45,7 @@ public class ScheduleService implements CreateScheduleUseCase {
         Batch batch = batchRepository.findById(batchId)
             .orElseThrow(() -> new BatchNotFoundException(batchId));
 
-        if (!principal.belongsToCenter(batch.getCenterId())) {
+        if (!principal.belongsToCenter(batch.getCenterId()) && !principal.isTeacher()) {
             throw new CenterAccessDeniedException();
         }
 
@@ -75,7 +75,7 @@ public class ScheduleService implements CreateScheduleUseCase {
     public List<ScheduleResponse> listSchedules(UUID batchId, AuthPrincipal principal) {
         Batch batch = batchRepository.findById(batchId)
             .orElseThrow(() -> new BatchNotFoundException(batchId));
-        if (!principal.belongsToCenter(batch.getCenterId())) {
+        if (!principal.belongsToCenter(batch.getCenterId()) && !principal.isTeacher()) {
             throw new CenterAccessDeniedException();
         }
         return scheduleRepository.findByBatchId(batchId).stream().map(this::toResponse).toList();
