@@ -13,6 +13,7 @@ import com.edutech.center.domain.model.ContentItem;
 import com.edutech.center.domain.model.ContentStatus;
 import com.edutech.center.domain.model.ContentType;
 import com.edutech.center.domain.port.in.UploadContentUseCase;
+import com.edutech.center.domain.port.out.BatchMemberRepository;
 import com.edutech.center.domain.port.out.CenterEventPublisher;
 import com.edutech.center.domain.port.out.CenterRepository;
 import com.edutech.center.domain.port.out.ContentRepository;
@@ -41,10 +42,22 @@ public class ContentService implements UploadContentUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(ContentService.class);
 
+    private static final long MAX_FILE_SIZE_BYTES = 50L * 1024 * 1024; // 50 MB
+    private static final List<String> ALLOWED_MIME_TYPES = List.of(
+            "application/pdf",
+            "image/jpeg",
+            "image/png",
+            "video/mp4",
+            "application/vnd.ms-excel",
+            "text/csv",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+
     private final ContentRepository contentRepository;
     private final CenterRepository centerRepository;
     private final CenterEventPublisher eventPublisher;
     private final TeacherRepository teacherRepository;
+    private final BatchMemberRepository batchMemberRepository;
     private final DocumentStoragePort storagePort;
     private final AiTaggingPort aiTaggingPort;
     private final int uploadExpiryMinutes;
@@ -54,6 +67,7 @@ public class ContentService implements UploadContentUseCase {
                           CenterRepository centerRepository,
                           CenterEventPublisher eventPublisher,
                           TeacherRepository teacherRepository,
+                          BatchMemberRepository batchMemberRepository,
                           DocumentStoragePort storagePort,
                           AiTaggingPort aiTaggingPort,
                           @Value("${minio.presigned-upload-expiry-minutes}") int uploadExpiryMinutes,
@@ -62,6 +76,7 @@ public class ContentService implements UploadContentUseCase {
         this.centerRepository = centerRepository;
         this.eventPublisher = eventPublisher;
         this.teacherRepository = teacherRepository;
+        this.batchMemberRepository = batchMemberRepository;
         this.storagePort = storagePort;
         this.aiTaggingPort = aiTaggingPort;
         this.uploadExpiryMinutes = uploadExpiryMinutes;
@@ -72,8 +87,15 @@ public class ContentService implements UploadContentUseCase {
     private boolean hasAccess(AuthPrincipal principal, UUID centerId) {
         if (principal.belongsToCenter(centerId)) return true;
         if (teacherRepository.existsByUserIdAndCenterId(principal.userId(), centerId)) return true;
-        if (principal.isStudent()) return true;
-        if (principal.isParent()) return true;
+        if (principal.isStudent()) {
+            // Student must be enrolled in at least one active batch at this center
+            return batchMemberRepository.existsByStudentIdAndCenterId(principal.userId(), centerId);
+        }
+        if (principal.isParent()) {
+            // Parents: no direct student-link table in center-svc — deny until link validation is available
+            // TODO: Add StudentLink validation once a parent→student repository is available in center-svc
+            return false;
+        }
         return centerRepository.findById(centerId)
                 .map(c -> principal.belongsToCenter(centerId, c.getAdminUserId()))
                 .orElse(false);
@@ -114,8 +136,17 @@ public class ContentService implements UploadContentUseCase {
     public PresignedUploadResponse uploadDirect(UUID centerId, MultipartFile file, AuthPrincipal principal) {
         centerRepository.findById(centerId).orElseThrow(() -> new CenterNotFoundException(centerId));
         if (!canUpload(principal, centerId)) throw new CenterAccessDeniedException();
+        // Validate file size (max 50 MB)
+        if (file.getSize() > MAX_FILE_SIZE_BYTES) {
+            throw new IllegalArgumentException("File size exceeds 50MB limit");
+        }
+        // Validate file type
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_MIME_TYPES.contains(contentType)) {
+            throw new IllegalArgumentException("Invalid file type: " + contentType);
+        }
         String filename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "upload";
-        String mimeType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
+        String mimeType = contentType;
         String objectKey = storagePort.buildObjectKey(centerId, "documents", filename);
         try {
             storagePort.putObject(objectKey, file.getInputStream(), file.getSize(), mimeType);

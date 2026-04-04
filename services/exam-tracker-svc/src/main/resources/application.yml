@@ -16,6 +16,11 @@ spring:
       connection-timeout: ${EXAM_TRACKER_SVC_DB_CONNECTION_TIMEOUT_MS:30000}
       idle-timeout: ${EXAM_TRACKER_SVC_DB_IDLE_TIMEOUT_MS:600000}
 
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 55MB
+
   jpa:
     open-in-view: false
     hibernate:

@@ -357,22 +357,26 @@ function PaperDisplay({ paper, onAssign }: { paper: GeneratedPaper; onAssign: ()
 
   function handlePrint() {
     if (printRef.current) {
-      const originalBody = document.body.innerHTML;
       const content = printRef.current.innerHTML;
-      document.body.innerHTML = `
-        <style>
-          body { font-family: Arial, sans-serif; color: #111; margin: 24px; }
-          .qcard { margin-bottom: 20px; page-break-inside: avoid; border: 1px solid #ddd; padding: 12px; border-radius: 6px; }
-          .opt { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; margin: 4px 0; font-size: 12px; }
-          .correct { background: #f0fdf4; border-color: #16a34a; }
-          .exp { background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px; border-radius: 4px; margin-top: 8px; font-size: 11px; }
-          .no-print { display: none !important; }
-        </style>
-        ${content}
-      `;
-      window.print();
-      document.body.innerHTML = originalBody;
-      window.location.reload();
+      // Sanitize: strip any script tags before writing to print window
+      const sanitized = content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write('<!DOCTYPE html><html><head><title>Print</title><style>');
+        printWindow.document.write('body { font-family: Arial, sans-serif; color: #111; margin: 24px; }');
+        printWindow.document.write('.qcard { margin-bottom: 20px; page-break-inside: avoid; border: 1px solid #ddd; padding: 12px; border-radius: 6px; }');
+        printWindow.document.write('.opt { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; margin: 4px 0; font-size: 12px; }');
+        printWindow.document.write('.correct { background: #f0fdf4; border-color: #16a34a; }');
+        printWindow.document.write('.exp { background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px; border-radius: 4px; margin-top: 8px; font-size: 11px; }');
+        printWindow.document.write('.no-print { display: none !important; }');
+        printWindow.document.write('</style></head><body>');
+        printWindow.document.write(sanitized);
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+        printWindow.onload = () => printWindow.print();
+      } else {
+        toast.error('Pop-ups blocked — please allow pop-ups to print.');
+      }
     }
   }
 

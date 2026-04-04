@@ -53,7 +53,7 @@ export default function StudentFeesPage() {
     queryFn: async () => {
       const results = await Promise.all(
         uniqueCenterIds.map(cId =>
-          api.get(`/api/v1/centers/${cId}/fees?size=100`)
+          api.get(`/api/v1/centers/${cId}/fees?size=500`)
             .then(r => Array.isArray(r.data) ? r.data : (r.data.content ?? []))
             .catch(() => [])
         )

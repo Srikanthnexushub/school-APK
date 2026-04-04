@@ -28,7 +28,7 @@ export default function ParentLibraryPage() {
   const { data: linkedStudents = [], isLoading: studentsLoading } = useQuery<StudentLinkResponse[]>({
     queryKey: ['linked-students', profile?.id],
     queryFn: () =>
-      api.get(`/api/v1/parents/${profile!.id}/students?size=50`).then(r => {
+      api.get(`/api/v1/parents/${profile!.id}/students?size=500`).then(r => {
         const d = r.data;
         return Array.isArray(d) ? d : (d.content ?? []);
       }),

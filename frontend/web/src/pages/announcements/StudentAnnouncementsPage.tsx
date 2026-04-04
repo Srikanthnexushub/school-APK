@@ -29,10 +29,11 @@ export default function StudentAnnouncementsPage() {
   const centerId = user?.centerId;
 
   // In-app notifications (for read/unread state)
-  const { data: notifications = [] } = useQuery<Notification[]>({
+  // Notifications are user-scoped (by userId from JWT), not center-scoped.
+  const { data: notifications = [], isError } = useQuery<Notification[]>({
     queryKey: ['notifications-inapp'],
     queryFn: () =>
-      api.get('/api/v1/notifications/inapp?size=100').then(r =>
+      api.get('/api/v1/notifications/inapp?size=500').then(r =>
         Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
     enabled: !!user,
     refetchInterval: 30_000,
@@ -96,7 +97,12 @@ export default function StudentAnnouncementsPage() {
         )}
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <div className="flex flex-col items-center gap-3 py-16 text-red-400/60">
+          <Bell className="w-10 h-10" />
+          <p>Failed to load notifications. Please try again.</p>
+        </div>
+      ) : isLoading ? (
         <div className="text-center py-16 text-white/40">Loading...</div>
       ) : sorted.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16 text-white/40">

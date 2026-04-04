@@ -8,6 +8,11 @@ spring:
     url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${CAREER_ORACLE_DB_NAME}
     username: ${CAREER_ORACLE_DB_USER}
     password: ${CAREER_ORACLE_DB_PASSWORD}
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 55MB
+
   jpa:
     hibernate:
       ddl-auto: validate

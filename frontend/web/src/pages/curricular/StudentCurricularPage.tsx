@@ -96,7 +96,16 @@ export default function StudentCurricularPage() {
     enabled:  !!studentId,
     staleTime: 5 * 60_000,
   });
-  const centerId = resolveCenterId(grades) || user?.centerId || '';
+
+  // For TEACHER role, centerId is null in JWT — fetch from centers API as fallback
+  const gradesCenterId = resolveCenterId(grades);
+  const { data: teacherCenters = [] } = useQuery<{ id: string }[]>({
+    queryKey: ['teacher-centers'],
+    queryFn: () => api.get('/api/v1/centers').then(r => Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
+    enabled: user?.role === 'TEACHER' && !gradesCenterId,
+    staleTime: 10 * 60_000,
+  });
+  const centerId = gradesCenterId || (user?.role === 'TEACHER' ? (teacherCenters[0]?.id ?? '') : (user?.centerId ?? ''));
 
   // ── Curriculum framework ─────────────────────────────────────────────────
   const { data: boards = [] }   = useQuery<BoardResponse[]>({

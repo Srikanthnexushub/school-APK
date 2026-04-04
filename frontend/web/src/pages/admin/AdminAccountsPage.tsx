@@ -617,7 +617,7 @@ export default function AdminAccountsPage() {
 
   const { data: fees = [] } = useQuery<FeeStructure[]>({
     queryKey: ['fee-structures', centerId],
-    queryFn: () => api.get(`/api/v1/centers/${centerId}/fees?size=100`).then(r =>
+    queryFn: () => api.get(`/api/v1/centers/${centerId}/fees?size=1000`).then(r =>
       Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
     enabled: !!centerId,
   });

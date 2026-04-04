@@ -60,6 +60,11 @@ spring:
         spring.json.trusted.packages: "com.edutech.*"
         spring.json.add.type.headers: false
 
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 55MB
+
   mail:
     host: ${MAIL_HOST}
     port: ${MAIL_PORT}

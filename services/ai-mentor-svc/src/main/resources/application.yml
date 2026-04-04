@@ -8,6 +8,11 @@ spring:
     url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${AI_MENTOR_DB_NAME}
     username: ${AI_MENTOR_DB_USER}
     password: ${AI_MENTOR_DB_PASSWORD}
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 55MB
+
   jpa:
     hibernate:
       ddl-auto: validate

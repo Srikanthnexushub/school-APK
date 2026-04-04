@@ -220,13 +220,33 @@ function AssignmentCard({
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
+interface EnrollmentResponse {
+  id: string;
+  centerId: string;
+  batchId: string;
+  studentId: string;
+}
+
 export default function StudentAssignmentsPage() {
   const userId = useAuthStore((s) => s.user?.id);
-  const centerId = useAuthStore((s) => s.user?.centerId);
+  const userCenterId = useAuthStore((s) => s.user?.centerId);
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [submitting, setSubmitting] = useState<AssignmentResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // For PARENT role, centerId is null in JWT — resolve from student enrollments instead
+  const { data: enrollments = [] } = useQuery<EnrollmentResponse[]>({
+    queryKey: ['student-enrollments-assignments', userId],
+    queryFn: () =>
+      api.get(`/api/v1/students/${userId}/enrollments`).then((r) => {
+        const d = r.data;
+        return Array.isArray(d) ? d : (d.content ?? []);
+      }),
+    enabled: !!userId && !userCenterId,
+  });
+
+  const centerId = userCenterId || enrollments[0]?.centerId || '';
 
   // Fetch assignments for this center
   const { data: assignments = [], isLoading, isError } = useQuery<AssignmentResponse[]>({

@@ -487,7 +487,7 @@ function AddChildModal({
   const { data: centers = [], isLoading: centersLoading } = useQuery<CenterOption[]>({
     queryKey: ['centers-list'],
     queryFn: () =>
-      api.get('/api/v1/centers?size=100').then((r) => {
+      api.get('/api/v1/centers?size=1000').then((r) => {
         const d = r.data;
         const list = Array.isArray(d) ? d : (d.content ?? []);
         return list.map((c: { id: string; name: string; city?: string; code?: string }) => ({
@@ -545,7 +545,7 @@ function AddChildModal({
     if (academic.institutionId) {
       setLoadingSubjects(true);
       try {
-        const { data } = await api.get(`/api/v1/centers/${academic.institutionId}/batches?size=100`);
+        const { data } = await api.get(`/api/v1/centers/${academic.institutionId}/batches?size=1000`);
         const batches = Array.isArray(data) ? data : (data.content ?? []);
         const found = [...new Set(batches.map((b: { subject?: string }) => b.subject as string).filter(Boolean))].sort() as string[];
         setSubjects(found);

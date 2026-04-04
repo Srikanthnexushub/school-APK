@@ -5,6 +5,11 @@ spring:
     virtual:
       enabled: true
 
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 55MB
+
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${CENTER_SVC_DB_NAME}
     username: ${CENTER_SVC_DB_USERNAME}

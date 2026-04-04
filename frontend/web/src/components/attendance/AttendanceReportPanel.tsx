@@ -56,11 +56,14 @@ interface AiAttendanceInsight {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getFirstDayOfMonth(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  // Use UTC to avoid timezone boundary issues when sending date filters to backend
+  const iso = new Date().toISOString(); // e.g. "2026-04-05T..."
+  const [year, month] = iso.split('T')[0].split('-');
+  return `${year}-${month}-01`;
 }
 
 function getToday(): string {
+  // UTC date string — consistent with backend expectations
   return new Date().toISOString().slice(0, 10);
 }
 

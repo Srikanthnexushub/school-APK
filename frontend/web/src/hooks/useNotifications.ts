@@ -33,7 +33,7 @@ export function useNotifications(): UseNotificationsReturn {
   const fetchNotifications = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await api.get<{ content: AppNotification[] }>('/api/v1/notifications/inapp?size=50&sort=createdAt,desc');
+      const res = await api.get<{ content: AppNotification[] }>('/api/v1/notifications/inapp?size=200&sort=createdAt,desc');
       const items: AppNotification[] = Array.isArray(res.data)
         ? res.data
         : (res.data.content ?? []);
