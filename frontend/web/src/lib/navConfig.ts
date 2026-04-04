@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Bot, ClipboardList, BarChart3, Target, Brain,
   Users, Calendar, BookOpen, Library, Award,
   CreditCard, Beaker, UserCog, BookCheck, Building2, Upload, UserCheck,
-  Megaphone, CalendarCheck, GraduationCap, Wallet, ShieldCheck, Layers, Bell,
+  Megaphone, CalendarCheck, GraduationCap, Wallet, ShieldCheck, Layers, Bell, Sparkles,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -79,7 +79,7 @@ export const parentNav: NavItem[] = [
 export const mentorNav: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard',     to: '/mentor-portal' },
   { icon: GraduationCap,   label: 'Academic Plan', to: '/academic-plan' },
-  { icon: Brain,           label: 'AI Insights',   to: '/mentor-portal/insights' },
+  { icon: Sparkles,        label: 'AI Insights',   to: '/mentor-portal/insights' },
   { icon: Megaphone,       label: 'Announcements', to: '/mentor-portal/announcements' },
   { icon: BookCheck,       label: 'Assignments',   to: '/mentor-portal/assignments' },
   { icon: CalendarCheck,   label: 'Attendance',    to: '/mentor-portal/attendance' },

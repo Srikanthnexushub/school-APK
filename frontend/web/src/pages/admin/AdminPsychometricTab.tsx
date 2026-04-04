@@ -73,6 +73,21 @@ export default function AdminPsychometricTab({ centerId: centerIdProp }: { cente
     enabled: !!centerId,
   });
 
+  // Batch-fetch real names for all profile studentIds (fixes UUID display for pre-existing profiles)
+  const profileStudentIds = profiles.map(p => p.studentId);
+  const { data: batchUsers = [] } = useQuery<{ userId: string; firstName: string; lastName: string; email: string }[]>({
+    queryKey: ['psych-student-names', profileStudentIds.join(',')],
+    queryFn: () =>
+      api.post('/api/v1/auth/admin/users/batch', profileStudentIds).then(r => Array.isArray(r.data) ? r.data : []),
+    enabled: profileStudentIds.length > 0,
+    staleTime: 5 * 60_000,
+  });
+  // Merge: batchUsers provides base names; studentNames state overlays freshly-activated entries
+  const resolvedNames: Record<string, string> = {
+    ...Object.fromEntries(batchUsers.map(u => [u.userId, `${u.firstName} ${u.lastName}`.trim() || u.email])),
+    ...studentNames,
+  };
+
   // Batches for this center
   const { data: batches = [] } = useQuery<Batch[]>({
     queryKey: ['batches', centerId],
@@ -280,7 +295,7 @@ export default function AdminPsychometricTab({ centerId: centerIdProp }: { cente
                 <div className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-white/70 font-medium truncate">
-                    {studentNames[p.studentId] ?? `Student ${p.studentId.slice(0, 8)}…`}
+                    {resolvedNames[p.studentId] ?? `Student ${p.studentId.slice(0, 8)}…`}
                   </p>
                   <p className="text-xs text-white/30 mt-0.5">
                     {p.riasecCode ? `RIASEC: ${p.riasecCode}` : 'Not yet assessed'}

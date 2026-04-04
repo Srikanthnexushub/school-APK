@@ -10,6 +10,7 @@ import com.edutech.center.application.exception.CenterAccessDeniedException;
 import com.edutech.center.application.exception.CenterNotFoundException;
 import com.edutech.center.domain.event.ContentUploadedEvent;
 import com.edutech.center.domain.model.ContentItem;
+import com.edutech.center.domain.model.ContentStatus;
 import com.edutech.center.domain.model.ContentType;
 import com.edutech.center.domain.port.in.UploadContentUseCase;
 import com.edutech.center.domain.port.out.CenterEventPublisher;
@@ -193,6 +194,10 @@ public class ContentService implements UploadContentUseCase {
         ContentItem item = contentRepository.findByIdActive(contentId)
                 .orElseThrow(() -> new NoSuchElementException("Content not found: " + contentId));
         if (!item.getCenterId().equals(centerId)) throw new CenterAccessDeniedException();
+        // Guard: never re-tag an archived item — applyAiTags() sets status=AVAILABLE which would un-archive it
+        if (ContentStatus.ARCHIVED.equals(item.getStatus())) {
+            throw new IllegalStateException("Cannot re-tag an archived document: " + contentId);
+        }
         TaggingResult result = aiTaggingPort.suggestTags(item.getTitle(), item.getDescription());
         item.applyAiTags(result.aiSummary(), result.subject(), result.board(),
                 result.examType(), result.difficulty(), result.suggestedTags());

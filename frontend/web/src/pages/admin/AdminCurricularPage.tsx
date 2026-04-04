@@ -284,7 +284,7 @@ export default function AdminCurricularPage() {
   const [selectedGradeId, setSelectedGradeId] = useState('');
 
   // ── Fetch centers to get centerId (same pattern as AdminBatchesPage Fix #176) ─
-  const { data: centers = [] } = useQuery<{ id: string }[]>({
+  const { data: centers = [] } = useQuery<{ id: string; name: string; code: string }[]>({
     queryKey: ['centers'],
     queryFn: () =>
       api.get('/api/v1/centers').then((r) => {
@@ -361,6 +361,8 @@ export default function AdminCurricularPage() {
   const [calEndDate, setCalEndDate] = useState('');
   const [calBoardId, setCalBoardId] = useState('');
   const [calGradeId, setCalGradeId] = useState('');
+  // INSTITUTION_ADMIN can pick which centre to create a calendar for
+  const [calCentreId, setCalCentreId] = useState('');
 
   const { data: calGrades = [] } = useQuery<GradeLevelResponse[]>({
     queryKey: ['curricular-grades-cal', calBoardId],
@@ -369,20 +371,31 @@ export default function AdminCurricularPage() {
   });
 
   const createCalendarMutation = useMutation({
-    mutationFn: () => api.post(`/api/v1/curricular/center/${centerId}/calendar`, {
-      yearLabel: calYearLabel,
-      startDate: calStartDate,
-      endDate: calEndDate,
-      boardId: calBoardId || undefined,
-      gradeId: calGradeId || undefined,
-    }),
+    mutationFn: () => {
+      const targetCentreId = role === 'INSTITUTION_ADMIN' ? calCentreId : centerId;
+      return api.post(`/api/v1/curricular/center/${targetCentreId}/calendar`, {
+        yearLabel: calYearLabel,
+        startDate: calStartDate,
+        endDate: calEndDate,
+        boardId: calBoardId || undefined,
+        gradeId: calGradeId || undefined,
+      });
+    },
     onSuccess: () => {
       toast.success('Academic year created!');
       setShowCreateCalendarModal(false);
-      setCalYearLabel(''); setCalStartDate(''); setCalEndDate(''); setCalBoardId(''); setCalGradeId('');
-      qc.invalidateQueries({ queryKey: ['admin-curricular-calendar', centerId] });
+      setCalYearLabel(''); setCalStartDate(''); setCalEndDate(''); setCalBoardId(''); setCalGradeId(''); setCalCentreId('');
+      qc.invalidateQueries({ queryKey: ['admin-curricular-calendar'] });
     },
-    onError: () => toast.error('Failed to create academic year.'),
+    onError: (err: unknown) => {
+      const e = err as { response?: { data?: { message?: string } } };
+      const msg = e.response?.data?.message ?? '';
+      if (msg.includes('year_label') || msg.includes('duplicate')) {
+        toast.error(`Academic year "${calYearLabel}" already exists for this centre.`);
+      } else {
+        toast.error('Failed to create academic year.');
+      }
+    },
   });
 
   const handleBoardChange = (boardId: string) => {
@@ -669,6 +682,18 @@ export default function AdminCurricularPage() {
                   <button onClick={() => setShowCreateCalendarModal(false)} className="text-white/40 hover:text-white"><X className="w-5 h-5" /></button>
                 </div>
                 <div className="space-y-3">
+                  {/* Centre picker — INSTITUTION_ADMIN only */}
+                  {role === 'INSTITUTION_ADMIN' && (
+                    <div>
+                      <label className="text-xs text-white/50 mb-1 block">Centre <span className="text-red-400">*</span></label>
+                      <select value={calCentreId} onChange={e => setCalCentreId(e.target.value)}
+                        className="w-full bg-surface-100/40 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500"
+                      >
+                        <option value="">— choose a centre —</option>
+                        {centers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label className="text-xs text-white/50 mb-1 block">Year Label <span className="text-white/30">(e.g. 2025-26)</span></label>
                     <input value={calYearLabel} onChange={e => setCalYearLabel(e.target.value)} placeholder="2025-26"
@@ -718,7 +743,12 @@ export default function AdminCurricularPage() {
                     Cancel
                   </button>
                   <button onClick={() => createCalendarMutation.mutate()}
-                    disabled={!calYearLabel || !calStartDate || !calEndDate || createCalendarMutation.isPending}
+                    disabled={
+                      !calYearLabel || !calStartDate || !calEndDate ||
+                      (!!calStartDate && !!calEndDate && calStartDate >= calEndDate) ||
+                      (role === 'INSTITUTION_ADMIN' && !calCentreId) ||
+                      createCalendarMutation.isPending
+                    }
                     className="flex-1 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm transition-colors disabled:opacity-40"
                   >
                     {createCalendarMutation.isPending ? 'Creating…' : 'Create'}
