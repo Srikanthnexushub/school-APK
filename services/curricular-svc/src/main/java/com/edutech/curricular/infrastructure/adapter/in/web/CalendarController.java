@@ -36,7 +36,8 @@ public class CalendarController {
             @PathVariable UUID centerId,
             @RequestBody AcademicYearRequest request,
             @AuthenticationPrincipal AuthPrincipal principal) {
-        if (!"CENTER_ADMIN".equals(principal.role())) {
+        String r = principal.role();
+        if (!"CENTER_ADMIN".equals(r) && !"INSTITUTION_ADMIN".equals(r) && !"SUPER_ADMIN".equals(r)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         AcademicYear ay = calendarUseCase.createAcademicYear(centerId, request);

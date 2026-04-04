@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../../lib/api';
 import { cn } from '../../lib/utils';
+import { useAuthStore } from '../../stores/authStore';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -34,6 +35,10 @@ interface CenterCoverageReport {
 interface BoardResponse    { id: string; boardCode: string; boardName: string; }
 interface SubjectResponse  { id: string; subjectCode: string; subjectName: string; }
 interface GradeLevelResponse { id: string; gradeCode: string; displayName: string; sortOrder: number; }
+interface InstitutionSummaryResponse {
+  centerReports: CenterCoverageReport[];
+  platformAvgCoverage: number;
+}
 
 const ACTIVITY_CATEGORIES = [
   'SPORTS','ARTS','MUSIC','DANCE','DRAMA','CODING_CLUB',
@@ -271,6 +276,7 @@ function CreateActivityModal({ centerId, onClose, onCreated }: { centerId: strin
 
 export default function AdminCurricularPage() {
   const qc = useQueryClient();
+  const role = useAuthStore(s => s.user?.role);
   const [tab, setTab] = useState<Tab>('activities');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedBoardId, setSelectedBoardId] = useState('');
@@ -307,7 +313,7 @@ export default function AdminCurricularPage() {
   const { data: boards = [] } = useQuery<BoardResponse[]>({
     queryKey: ['curricular-boards'],
     queryFn: () => api.get('/api/v1/curricular/frameworks').then(r => Array.isArray(r.data) ? r.data : []),
-    enabled: tab === 'coverage',
+    enabled: tab === 'coverage' || tab === 'calendar',
     staleTime: 10 * 60_000,
   });
 
@@ -332,12 +338,51 @@ export default function AdminCurricularPage() {
     retry: false,
   });
 
+  // ── Institution summary (INSTITUTION_ADMIN coverage view) ─────────────────
+  const { data: institutionSummary, isLoading: summaryLoading } = useQuery<InstitutionSummaryResponse>({
+    queryKey: ['curricular-institution-summary'],
+    queryFn: () => api.get('/api/v1/curricular/institution/summary').then(r => r.data),
+    enabled: tab === 'coverage' && role === 'INSTITUTION_ADMIN',
+    retry: false,
+  });
+
   // ── Calendar ──────────────────────────────────────────────────────────────
   const { data: calendar = [], isLoading: calendarLoading } = useQuery<AcademicYearResponse[]>({
     queryKey: ['admin-curricular-calendar', centerId],
     queryFn: () => api.get(`/api/v1/curricular/center/${centerId}/calendar`).then(r => Array.isArray(r.data) ? r.data : []),
     enabled: tab === 'calendar' && !!centerId,
     retry: false,
+  });
+
+  // ── Calendar create modal state ───────────────────────────────────────────
+  const [showCreateCalendarModal, setShowCreateCalendarModal] = useState(false);
+  const [calYearLabel, setCalYearLabel] = useState('');
+  const [calStartDate, setCalStartDate] = useState('');
+  const [calEndDate, setCalEndDate] = useState('');
+  const [calBoardId, setCalBoardId] = useState('');
+  const [calGradeId, setCalGradeId] = useState('');
+
+  const { data: calGrades = [] } = useQuery<GradeLevelResponse[]>({
+    queryKey: ['curricular-grades-cal', calBoardId],
+    queryFn: () => api.get(`/api/v1/curricular/frameworks/${calBoardId}/grades`).then(r => Array.isArray(r.data) ? r.data : []),
+    enabled: !!calBoardId && tab === 'calendar',
+  });
+
+  const createCalendarMutation = useMutation({
+    mutationFn: () => api.post(`/api/v1/curricular/center/${centerId}/calendar`, {
+      yearLabel: calYearLabel,
+      startDate: calStartDate,
+      endDate: calEndDate,
+      boardId: calBoardId || undefined,
+      gradeId: calGradeId || undefined,
+    }),
+    onSuccess: () => {
+      toast.success('Academic year created!');
+      setShowCreateCalendarModal(false);
+      setCalYearLabel(''); setCalStartDate(''); setCalEndDate(''); setCalBoardId(''); setCalGradeId('');
+      qc.invalidateQueries({ queryKey: ['admin-curricular-calendar', centerId] });
+    },
+    onError: () => toast.error('Failed to create academic year.'),
   });
 
   const handleBoardChange = (boardId: string) => {
@@ -437,131 +482,286 @@ export default function AdminCurricularPage() {
       {/* ── Coverage Tab ── */}
       {tab === 'coverage' && (
         <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="text-xs text-white/50 mb-1 block">Board</label>
-              <select value={selectedBoardId} onChange={e => handleBoardChange(e.target.value)}
-                className="w-full bg-surface-100/40 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500"
-              >
-                <option value="">Select board…</option>
-                {boards.map(b => <option key={b.id} value={b.id}>{b.boardName}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-white/50 mb-1 block">Subject</label>
-              <select value={selectedSubjectId} onChange={e => setSelectedSubjectId(e.target.value)} disabled={!selectedBoardId}
-                className="w-full bg-surface-100/40 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500 disabled:opacity-40"
-              >
-                <option value="">Select subject…</option>
-                {subjects.map(s => <option key={s.id} value={s.id}>{s.subjectName}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-white/50 mb-1 block">Grade</label>
-              <select value={selectedGradeId} onChange={e => setSelectedGradeId(e.target.value)} disabled={!selectedBoardId}
-                className="w-full bg-surface-100/40 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500 disabled:opacity-40"
-              >
-                <option value="">Select grade…</option>
-                {[...grades].sort((a, b) => a.sortOrder - b.sortOrder).map(g => (
-                  <option key={g.id} value={g.id}>{g.displayName}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {!reportEnabled && (
-            <div className="flex flex-col items-center py-12 text-white/30">
-              <BarChart3 className="w-12 h-12 mb-3" />
-              <p className="text-sm">Select board, subject, and grade to view coverage report</p>
-            </div>
-          )}
-
-          {reportEnabled && reportLoading && (
-            <div className="text-white/40 text-sm py-8 text-center">Loading report…</div>
-          )}
-
-          {reportEnabled && report && (
-            <div className="space-y-4">
-              {/* Coverage circle */}
-              <div className="p-6 bg-surface-100/40 border border-white/5 rounded-xl">
-                <div className="flex items-center gap-6">
-                  <div className="relative w-24 h-24 shrink-0">
-                    <svg className="w-24 h-24 -rotate-90" viewBox="0 0 36 36">
-                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3" />
-                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        fill="none"
-                        stroke={report.coveragePercent >= 70 ? '#22c55e' : report.coveragePercent >= 40 ? '#eab308' : '#ef4444'}
-                        strokeWidth="3"
-                        strokeDasharray={`${report.coveragePercent}, 100`}
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-lg font-bold text-white">{Math.round(report.coveragePercent)}%</span>
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-white font-semibold text-lg">Coverage Report</p>
-                    <div className="mt-2 space-y-1">
-                      <div className="flex items-center gap-2 text-sm">
-                        <CheckCircle2 className="w-4 h-4 text-green-400" />
-                        <span className="text-white/70">{report.coveredTopics} of {report.totalTopics} topics covered</span>
+          {role === 'INSTITUTION_ADMIN' ? (
+            /* Institution-wide aggregate view */
+            <>
+              {summaryLoading && <div className="text-white/40 text-sm py-8 text-center">Loading summary…</div>}
+              {!summaryLoading && institutionSummary && (
+                <div className="space-y-4">
+                  <div className="p-5 bg-surface-100/40 border border-white/5 rounded-xl flex items-center gap-4">
+                    <div className="relative w-20 h-20 shrink-0">
+                      <svg className="w-20 h-20 -rotate-90" viewBox="0 0 36 36">
+                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3" />
+                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          fill="none"
+                          stroke={institutionSummary.platformAvgCoverage >= 70 ? '#22c55e' : institutionSummary.platformAvgCoverage >= 40 ? '#eab308' : '#ef4444'}
+                          strokeWidth="3"
+                          strokeDasharray={`${institutionSummary.platformAvgCoverage}, 100`}
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-base font-bold text-white">{Math.round(institutionSummary.platformAvgCoverage)}%</span>
                       </div>
-                      {report.uncoveredTopicCodes.length > 0 && (
-                        <div className="flex items-start gap-2 text-sm">
-                          <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
-                          <span className="text-white/50">{report.totalTopics - report.coveredTopics} topics pending</span>
-                        </div>
-                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs text-white/40 uppercase tracking-wide">Platform Average Coverage</p>
+                      <p className="text-2xl font-bold text-white mt-0.5">{Math.round(institutionSummary.platformAvgCoverage)}%</p>
+                      <p className="text-xs text-white/30 mt-1">{institutionSummary.centerReports.length} centre{institutionSummary.centerReports.length !== 1 ? 's' : ''} reporting</p>
                     </div>
                   </div>
+                  {institutionSummary.centerReports.length === 0 ? (
+                    <div className="flex flex-col items-center py-12 text-white/30">
+                      <BarChart3 className="w-12 h-12 mb-3" />
+                      <p className="text-sm">No coverage data yet.</p>
+                      <p className="text-xs mt-1 text-white/20">Teachers must log topic coverage from the Teacher portal to populate this view.</p>
+                    </div>
+                  ) : (
+                    institutionSummary.centerReports.map((r, i) => (
+                      <div key={i} className="p-4 bg-surface-100/40 border border-white/5 rounded-xl flex items-center gap-4">
+                        <div className="relative w-14 h-14 shrink-0">
+                          <svg className="w-14 h-14 -rotate-90" viewBox="0 0 36 36">
+                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                              fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3" />
+                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                              fill="none"
+                              stroke={r.coveragePercent >= 70 ? '#22c55e' : r.coveragePercent >= 40 ? '#eab308' : '#ef4444'}
+                              strokeWidth="3"
+                              strokeDasharray={`${r.coveragePercent}, 100`}
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-xs font-bold text-white">{Math.round(r.coveragePercent)}%</span>
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 text-sm">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                            <span className="text-white/70">{r.coveredTopics} / {r.totalTopics} topics covered</span>
+                          </div>
+                          {r.uncoveredTopicCodes.length > 0 && (
+                            <div className="flex items-center gap-2 text-sm mt-1">
+                              <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                              <span className="text-white/40">{r.totalTopics - r.coveredTopics} topics pending</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+              {!summaryLoading && !institutionSummary && (
+                <div className="flex flex-col items-center py-12 text-white/30">
+                  <BarChart3 className="w-12 h-12 mb-3" />
+                  <p className="text-sm">No coverage data available.</p>
+                </div>
+              )}
+            </>
+          ) : (
+            /* CENTER_ADMIN / SUPER_ADMIN: board + subject + grade filter */
+            <>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs text-white/50 mb-1 block">Board</label>
+                  <select value={selectedBoardId} onChange={e => handleBoardChange(e.target.value)}
+                    className="w-full bg-surface-100/40 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500"
+                  >
+                    <option value="">Select board…</option>
+                    {boards.map(b => <option key={b.id} value={b.id}>{b.boardName}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-white/50 mb-1 block">Subject</label>
+                  <select value={selectedSubjectId} onChange={e => setSelectedSubjectId(e.target.value)} disabled={!selectedBoardId}
+                    className="w-full bg-surface-100/40 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500 disabled:opacity-40"
+                  >
+                    <option value="">Select subject…</option>
+                    {subjects.map(s => <option key={s.id} value={s.id}>{s.subjectName}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-white/50 mb-1 block">Grade</label>
+                  <select value={selectedGradeId} onChange={e => setSelectedGradeId(e.target.value)} disabled={!selectedBoardId}
+                    className="w-full bg-surface-100/40 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500 disabled:opacity-40"
+                  >
+                    <option value="">Select grade…</option>
+                    {[...grades].sort((a, b) => a.sortOrder - b.sortOrder).map(g => (
+                      <option key={g.id} value={g.id}>{g.displayName}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
-              {/* Uncovered topics */}
-              {report.uncoveredTopicCodes.length > 0 && (
-                <div className="p-4 bg-red-500/5 border border-red-500/10 rounded-xl">
-                  <p className="text-xs font-semibold text-red-400 mb-2">Uncovered Topics</p>
-                  <div className="flex flex-wrap gap-2">
-                    {report.uncoveredTopicCodes.map(code => (
-                      <span key={code} className="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-300">{code}</span>
-                    ))}
-                  </div>
+              {!reportEnabled && (
+                <div className="flex flex-col items-center py-12 text-white/30">
+                  <BarChart3 className="w-12 h-12 mb-3" />
+                  <p className="text-sm">Select board, subject, and grade to view coverage report</p>
                 </div>
               )}
-            </div>
+
+              {reportEnabled && reportLoading && (
+                <div className="text-white/40 text-sm py-8 text-center">Loading report…</div>
+              )}
+
+              {reportEnabled && report && (
+                <div className="space-y-4">
+                  <div className="p-6 bg-surface-100/40 border border-white/5 rounded-xl">
+                    <div className="flex items-center gap-6">
+                      <div className="relative w-24 h-24 shrink-0">
+                        <svg className="w-24 h-24 -rotate-90" viewBox="0 0 36 36">
+                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                            fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3" />
+                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                            fill="none"
+                            stroke={report.coveragePercent >= 70 ? '#22c55e' : report.coveragePercent >= 40 ? '#eab308' : '#ef4444'}
+                            strokeWidth="3"
+                            strokeDasharray={`${report.coveragePercent}, 100`}
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-lg font-bold text-white">{Math.round(report.coveragePercent)}%</span>
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-white font-semibold text-lg">Coverage Report</p>
+                        <div className="mt-2 space-y-1">
+                          <div className="flex items-center gap-2 text-sm">
+                            <CheckCircle2 className="w-4 h-4 text-green-400" />
+                            <span className="text-white/70">{report.coveredTopics} of {report.totalTopics} topics covered</span>
+                          </div>
+                          {report.uncoveredTopicCodes.length > 0 && (
+                            <div className="flex items-start gap-2 text-sm">
+                              <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+                              <span className="text-white/50">{report.totalTopics - report.coveredTopics} topics pending</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {report.uncoveredTopicCodes.length > 0 && (
+                    <div className="p-4 bg-red-500/5 border border-red-500/10 rounded-xl">
+                      <p className="text-xs font-semibold text-red-400 mb-2">Uncovered Topics</p>
+                      <div className="flex flex-wrap gap-2">
+                        {report.uncoveredTopicCodes.map(code => (
+                          <span key={code} className="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-300">{code}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
 
       {/* ── Calendar Tab ── */}
       {tab === 'calendar' && (
-        <div className="space-y-3">
-          {calendarLoading && <div className="text-white/40 text-sm py-8 text-center">Loading…</div>}
-          {!calendarLoading && calendar.length === 0 && (
-            <div className="flex flex-col items-center py-16 text-white/30">
-              <Calendar className="w-12 h-12 mb-3" />
-              <p className="text-sm">No academic years configured yet.</p>
-              <p className="text-xs mt-1 text-white/20">Use the API to create: POST /api/v1/curricular/center/{'{centerId}'}/calendar</p>
-            </div>
-          )}
-          {calendar.map(y => (
-            <div key={y.id} className={cn('p-4 border rounded-xl', y.active ? 'bg-green-500/5 border-green-500/20' : 'bg-surface-100/40 border-white/5')}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-white">{y.yearLabel}</p>
-                    {y.active && <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-300">Active</span>}
-                  </div>
-                  <p className="text-xs text-white/40 mt-1">
-                    {new Date(y.startDate).toLocaleDateString()} — {new Date(y.endDate).toLocaleDateString()}
-                  </p>
+        <>
+          {/* Create Academic Year Modal */}
+          {showCreateCalendarModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+              <div className="glass rounded-2xl p-6 w-full max-w-md border border-white/10 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-white font-semibold">New Academic Year</h2>
+                  <button onClick={() => setShowCreateCalendarModal(false)} className="text-white/40 hover:text-white"><X className="w-5 h-5" /></button>
                 </div>
-                <Calendar className="w-5 h-5 text-white/20" />
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-white/50 mb-1 block">Year Label <span className="text-white/30">(e.g. 2025-26)</span></label>
+                    <input value={calYearLabel} onChange={e => setCalYearLabel(e.target.value)} placeholder="2025-26"
+                      className="w-full bg-surface-100/40 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-white/50 mb-1 block">Start Date</label>
+                      <input type="date" value={calStartDate} onChange={e => setCalStartDate(e.target.value)}
+                        className="w-full bg-surface-100/40 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-white/50 mb-1 block">End Date</label>
+                      <input type="date" value={calEndDate} onChange={e => setCalEndDate(e.target.value)}
+                        className="w-full bg-surface-100/40 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-white/50 mb-1 block">Board <span className="text-white/30">(optional)</span></label>
+                    <select value={calBoardId} onChange={e => { setCalBoardId(e.target.value); setCalGradeId(''); }}
+                      className="w-full bg-surface-100/40 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500"
+                    >
+                      <option value="">— all boards —</option>
+                      {boards.map(b => <option key={b.id} value={b.id}>{b.boardName}</option>)}
+                    </select>
+                  </div>
+                  {calBoardId && (
+                    <div>
+                      <label className="text-xs text-white/50 mb-1 block">Grade <span className="text-white/30">(optional)</span></label>
+                      <select value={calGradeId} onChange={e => setCalGradeId(e.target.value)}
+                        className="w-full bg-surface-100/40 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500"
+                      >
+                        <option value="">— all grades —</option>
+                        {[...calGrades].sort((a, b) => a.sortOrder - b.sortOrder).map(g => (
+                          <option key={g.id} value={g.id}>{g.displayName}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => setShowCreateCalendarModal(false)}
+                    className="flex-1 py-2 rounded-xl border border-white/10 text-white/50 hover:text-white hover:bg-white/5 text-sm transition-colors">
+                    Cancel
+                  </button>
+                  <button onClick={() => createCalendarMutation.mutate()}
+                    disabled={!calYearLabel || !calStartDate || !calEndDate || createCalendarMutation.isPending}
+                    className="flex-1 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm transition-colors disabled:opacity-40"
+                  >
+                    {createCalendarMutation.isPending ? 'Creating…' : 'Create'}
+                  </button>
+                </div>
               </div>
             </div>
-          ))}
-        </div>
+          )}
+
+          <div className="space-y-3">
+            <div className="flex justify-end">
+              <button onClick={() => setShowCreateCalendarModal(true)} disabled={!centerId}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-sm transition-colors disabled:opacity-40"
+              >
+                <Plus className="w-4 h-4" /> New Academic Year
+              </button>
+            </div>
+            {calendarLoading && <div className="text-white/40 text-sm py-8 text-center">Loading…</div>}
+            {!calendarLoading && calendar.length === 0 && (
+              <div className="flex flex-col items-center py-16 text-white/30">
+                <Calendar className="w-12 h-12 mb-3" />
+                <p className="text-sm">No academic years configured yet.</p>
+                <p className="text-xs mt-1 text-white/20">Click "New Academic Year" to create one.</p>
+              </div>
+            )}
+            {calendar.map(y => (
+              <div key={y.id} className={cn('p-4 border rounded-xl', y.active ? 'bg-green-500/5 border-green-500/20' : 'bg-surface-100/40 border-white/5')}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-white">{y.yearLabel}</p>
+                      {y.active && <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-300">Active</span>}
+                    </div>
+                    <p className="text-xs text-white/40 mt-1">
+                      {new Date(y.startDate).toLocaleDateString()} — {new Date(y.endDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <Calendar className="w-5 h-5 text-white/20" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
