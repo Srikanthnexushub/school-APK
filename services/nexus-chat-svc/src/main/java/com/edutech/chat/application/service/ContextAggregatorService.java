@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple5;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -25,6 +24,9 @@ public class ContextAggregatorService {
     private final CenterWebClientAdapter centerClient;
     private final TeacherProfileWebClientAdapter teacherProfileClient;
     private final ParentProfileWebClientAdapter parentProfileClient;
+    private final ExamTrackerWebClientAdapter examTrackerClient;
+    private final GapAnalysisWebClientAdapter gapAnalysisClient;
+    private final MentorGapCoverageWebClientAdapter mentorGapClient;
 
     @Value("${context.total-timeout-ms:800}")
     private long totalTimeoutMs;
@@ -44,12 +46,12 @@ public class ContextAggregatorService {
     }
 
     // ─────────────────────────────────────────────
-    // STUDENT — 5-service parallel aggregation
+    // STUDENT — 8-service parallel aggregation
     // ─────────────────────────────────────────────
     private StudentContext aggregateStudent(UUID userId, String pageContext, String jwt) {
         try {
-            Tuple5<StudentProfileDto, PerformanceDto, MentorContextDto, AssessContextDto, CenterContextDto> tuple =
-                Mono.zip(
+            Object[] results = Mono.zip(
+                List.of(
                     profileClient.fetchProfile(userId, jwt)
                         .onErrorReturn(StudentProfileDto.empty(userId)),
                     performanceClient.fetchPerformance(userId, jwt)
@@ -59,15 +61,22 @@ public class ContextAggregatorService {
                     assessClient.fetchAssessContext(userId, jwt)
                         .onErrorReturn(AssessContextDto.empty()),
                     centerClient.fetchCenterContext(userId, jwt)
-                        .onErrorReturn(CenterContextDto.empty())
-                )
-                .block(Duration.ofMillis(totalTimeoutMs));
+                        .onErrorReturn(CenterContextDto.empty()),
+                    examTrackerClient.fetchVelocity(userId, jwt)
+                        .onErrorReturn(ExamVelocityDto.empty()),
+                    gapAnalysisClient.fetchGapAnalysis(userId, jwt)
+                        .onErrorReturn(GapAnalysisDto.empty()),
+                    mentorGapClient.fetchGapCoverage(userId, jwt)
+                        .onErrorReturn(MentorGapCoverageDto.empty())
+                ),
+                arr -> arr
+            ).block(Duration.ofMillis(totalTimeoutMs));
 
-            if (tuple == null) {
+            if (results == null) {
                 log.warn("Student context aggregation timed out for userId={}", userId);
                 return StudentContext.empty(userId, pageContext);
             }
-            return mapToStudentContext(tuple, userId, pageContext);
+            return mapToStudentContext(results, userId, pageContext);
 
         } catch (Exception e) {
             log.error("Student context aggregation failed for userId={}: {}", userId, e.getMessage());
@@ -132,17 +141,18 @@ public class ContextAggregatorService {
     }
 
     // ─────────────────────────────────────────────
-    // Student context mapping (unchanged logic)
+    // Student context mapping
     // ─────────────────────────────────────────────
-    private StudentContext mapToStudentContext(
-            Tuple5<StudentProfileDto, PerformanceDto, MentorContextDto, AssessContextDto, CenterContextDto> t,
-            UUID userId, String pageContext) {
+    private StudentContext mapToStudentContext(Object[] arr, UUID userId, String pageContext) {
 
-        StudentProfileDto profile = t.getT1();
-        PerformanceDto perf = t.getT2();
-        MentorContextDto mentor = t.getT3();
-        AssessContextDto assess = t.getT4();
-        CenterContextDto center = t.getT5();
+        StudentProfileDto profile   = (StudentProfileDto) arr[0];
+        PerformanceDto perf         = (PerformanceDto) arr[1];
+        MentorContextDto mentor     = (MentorContextDto) arr[2];
+        AssessContextDto assess     = (AssessContextDto) arr[3];
+        CenterContextDto center     = (CenterContextDto) arr[4];
+        ExamVelocityDto velocity    = (ExamVelocityDto) arr[5];
+        GapAnalysisDto gap          = (GapAnalysisDto) arr[6];
+        MentorGapCoverageDto mentorGap = (MentorGapCoverageDto) arr[7];
 
         List<WeakAreaSummary> weakAreas = perf.weakAreas().stream()
             .limit(3)
@@ -187,8 +197,51 @@ public class ContextAggregatorService {
             assess.examsThisMonth(),
             Optional.ofNullable(center.batchName()),
             Optional.ofNullable(center.centerName()),
+            buildExamTimeline(velocity),
+            buildGapSummary(gap),
+            buildMentorCoverage(mentorGap),
             pageContext
         );
+    }
+
+    private Optional<String> buildExamTimeline(ExamVelocityDto velocity) {
+        if (velocity.enrollments().isEmpty()) return Optional.empty();
+        String timeline = velocity.enrollments().stream()
+            .map(e -> {
+                String status = e.onTrack()
+                    ? "[ON_TRACK]"
+                    : "[BEHIND " + e.behindByDays() + "d]";
+                return String.format("%s: %dd left, %.0f%% syllabus %s",
+                    e.examCode() != null ? e.examCode() : e.examName(),
+                    e.daysRemaining(),
+                    e.completionPercent(),
+                    status);
+            })
+            .collect(java.util.stream.Collectors.joining("; "));
+        return Optional.of(timeline);
+    }
+
+    private Optional<String> buildGapSummary(GapAnalysisDto gap) {
+        if (gap.dropoutRisk() == null) return Optional.empty();
+        String risk = String.format("Risk: %s (ERS %.1f)", gap.dropoutRisk().level(), gap.dropoutRisk().score());
+        String bottleneck = gap.dropoutRisk().topFactor() != null
+            ? " | Bottleneck: " + gap.dropoutRisk().topFactor()
+            : "";
+        String topGaps = gap.subjectGaps().stream()
+            .filter(sg -> !sg.topWeakTopics().isEmpty())
+            .limit(2)
+            .map(sg -> sg.subject() + "\u2192" + sg.topWeakTopics().get(0))
+            .collect(java.util.stream.Collectors.joining(", "));
+        String gapStr = topGaps.isBlank() ? "" : " | Top gaps: " + topGaps;
+        return Optional.of(risk + bottleneck + gapStr);
+    }
+
+    private Optional<String> buildMentorCoverage(MentorGapCoverageDto mentorGap) {
+        if (mentorGap.totalCompletedSessions() == 0) return Optional.empty();
+        return Optional.of(String.format("%d sessions, %d min total, last: %d days ago",
+            mentorGap.totalCompletedSessions(),
+            mentorGap.totalStudyMinutes(),
+            mentorGap.daysSinceLastSession()));
     }
 
     private String resolveRisk(Double ers) {

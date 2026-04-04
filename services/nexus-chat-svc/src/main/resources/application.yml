@@ -78,6 +78,9 @@ downstream:
   mentor:
     uri: ${MENTOR_SVC_URI}
     timeout-ms: ${CTX_MENTOR_PROFILE_TIMEOUT_MS:500}
+  exam-tracker:
+    uri: ${EXAM_TRACKER_SVC_URI}
+    timeout-ms: ${CTX_EXAM_TRACKER_TIMEOUT_MS:500}
   parent:
     uri: ${PARENT_SVC_URI}
     timeout-ms: ${CTX_PARENT_TIMEOUT_MS:500}

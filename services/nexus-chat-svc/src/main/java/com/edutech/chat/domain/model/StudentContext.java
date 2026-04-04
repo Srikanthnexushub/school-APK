@@ -23,6 +23,9 @@ public record StudentContext(
     int examsThisMonth,
     Optional<String> batchName,
     Optional<String> centerName,
+    Optional<String> examTimeline,
+    Optional<String> gapSummary,
+    Optional<String> mentorCoverage,
     String currentPage
 ) implements RoleContext {
 
@@ -33,6 +36,7 @@ public record StudentContext(
         return new StudentContext(userId, "Student", "Unknown", "CBSE", null,
             List.of(), 2026, BigDecimal.ZERO, "UNKNOWN", List.of(), List.of(),
             Optional.empty(), 0, Optional.empty(), 0,
-            Optional.empty(), Optional.empty(), currentPage);
+            Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+            currentPage);
     }
 }

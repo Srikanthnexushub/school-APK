@@ -12,6 +12,7 @@ import com.edutech.center.domain.model.Batch;
 import com.edutech.center.domain.port.in.MarkAttendanceUseCase;
 import com.edutech.center.domain.port.out.AttendanceRepository;
 import com.edutech.center.domain.port.out.BatchRepository;
+import com.edutech.center.domain.port.out.TeacherRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -28,11 +29,14 @@ public class AttendanceService implements MarkAttendanceUseCase {
 
     private final AttendanceRepository attendanceRepository;
     private final BatchRepository batchRepository;
+    private final TeacherRepository teacherRepository;
 
     public AttendanceService(AttendanceRepository attendanceRepository,
-                             BatchRepository batchRepository) {
+                             BatchRepository batchRepository,
+                             TeacherRepository teacherRepository) {
         this.attendanceRepository = attendanceRepository;
         this.batchRepository = batchRepository;
+        this.teacherRepository = teacherRepository;
     }
 
     @Override
@@ -43,7 +47,14 @@ public class AttendanceService implements MarkAttendanceUseCase {
             .orElseThrow(() -> new BatchNotFoundException(batchId));
 
         if (!principal.belongsToCenter(batch.getCenterId())) {
-            throw new CenterAccessDeniedException();
+            // TEACHER: JWT centerId is null post-approval; verify via DB lookup
+            if (principal.isTeacher()) {
+                boolean belongs = teacherRepository.findByUserId(principal.userId())
+                        .stream().anyMatch(t -> t.getCenterId().equals(batch.getCenterId()));
+                if (!belongs) throw new CenterAccessDeniedException();
+            } else {
+                throw new CenterAccessDeniedException();
+            }
         }
 
         // Re-marking replaces existing records for the date
@@ -67,7 +78,14 @@ public class AttendanceService implements MarkAttendanceUseCase {
         Batch batch = batchRepository.findById(batchId)
             .orElseThrow(() -> new BatchNotFoundException(batchId));
         if (!principal.belongsToCenter(batch.getCenterId())) {
-            throw new CenterAccessDeniedException();
+            // TEACHER: JWT centerId is null post-approval; verify via DB lookup
+            if (principal.isTeacher()) {
+                boolean belongs = teacherRepository.findByUserId(principal.userId())
+                        .stream().anyMatch(t -> t.getCenterId().equals(batch.getCenterId()));
+                if (!belongs) throw new CenterAccessDeniedException();
+            } else {
+                throw new CenterAccessDeniedException();
+            }
         }
         return attendanceRepository.findByBatchIdAndDate(batchId, date)
                 .stream().map(this::toResponse).toList();

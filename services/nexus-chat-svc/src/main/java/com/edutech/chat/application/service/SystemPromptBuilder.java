@@ -46,6 +46,15 @@ public class SystemPromptBuilder {
             ## ENROLLMENT
             %s
 
+            ## EXAM TIMELINE
+            %s
+
+            ## GAP ANALYSIS
+            %s
+
+            ## MENTOR COVERAGE
+            %s
+
             ## PAGE CONTEXT
             Student is currently on the "%s" page. Tailor your response to this context.
 
@@ -58,6 +67,10 @@ public class SystemPromptBuilder {
             {"action": "SCHEDULE_REMINDER", "params": {"message": "Review Newton's Laws", "dueInHours": 24}}
             {"action": "NAVIGATE", "params": {"path": "/performance", "label": "Performance page"}}
             {"action": "SHOW_WEAK_AREAS", "params": {}}
+            {"action": "SHOW_GAP_ANALYSIS", "params": {}}
+            {"action": "SHOW_EXAM_TIMELINE", "params": {}}
+            {"action": "SUGGEST_STUDY_FOCUS", "params": {"subject": "Physics", "reason": "highest gap"}}
+            {"action": "REQUEST_MENTOR_SESSION", "params": {"subject": "Mathematics"}}
             Only include the action JSON when it truly helps the student. Never fabricate data.
 
             ## RESPONSE STYLE
@@ -80,6 +93,9 @@ public class SystemPromptBuilder {
                 ctx.pendingDoubtCount(),
                 ctx.examsThisMonth(),
                 formatEnrollment(ctx),
+                formatExamTimeline(ctx),
+                formatGapSummary(ctx),
+                formatMentorCoverage(ctx),
                 ctx.currentPage(),
                 ctx.fullName().split(" ")[0],
                 LocalDate.now()
@@ -247,5 +263,17 @@ public class SystemPromptBuilder {
         String batch = ctx.batchName().orElse("Not enrolled in a batch");
         String center = ctx.centerName().orElse("No center linked");
         return "Batch: " + batch + " | Center: " + center;
+    }
+
+    private String formatExamTimeline(StudentContext ctx) {
+        return ctx.examTimeline().orElse("No exam enrollment data yet");
+    }
+
+    private String formatGapSummary(StudentContext ctx) {
+        return ctx.gapSummary().orElse("No gap analysis data yet");
+    }
+
+    private String formatMentorCoverage(StudentContext ctx) {
+        return ctx.mentorCoverage().orElse("No mentor sessions yet");
     }
 }

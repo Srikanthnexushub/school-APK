@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  MessageSquare, Lightbulb, RefreshCw, Bot,
-  Clock, ChevronRight, Search, Send,
+  MessageSquare, BarChart2, Bot,
+  Clock, Search, Send,
+  TrendingUp, TrendingDown, Minus, BookOpen,
 } from 'lucide-react';
 import { ExportMenu } from '../../components/ui/ExportMenu';
 import { toast } from 'sonner';
@@ -11,6 +12,7 @@ import api from '../../lib/api';
 import { cn } from '../../lib/utils';
 import { Badge } from '../../components/ui/Badge';
 import { Skeleton } from '../../components/ui/LoadingSkeleton';
+import { useAuthStore } from '../../stores/authStore';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -24,13 +26,53 @@ interface DoubtTicket {
   createdAt?: string;
 }
 
-interface Recommendation {
-  id: string;
-  subject?: string;
-  title?: string;
-  contentPreview?: string;
-  type: 'VIDEO' | 'ARTICLE' | 'PRACTICE' | 'MOCK_TEST';
-  url?: string;
+// ─── Gap Analysis Types ──────────────────────────────────────────────────────
+
+interface ERSComponents {
+  syllabusCoverage: number;
+  mockTestTrend: number;
+  masteryAverage: number;
+  timeManagement: number;
+  accuracy: number;
+}
+
+interface SubjectGap {
+  subject: string;
+  masteryPercent: number;
+  gapPoints: number;
+  priority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'ON_TRACK';
+  trend: 'IMPROVING' | 'DECLINING' | 'FLAT';
+  weakTopics: string[];
+}
+
+interface GapAnalysisData {
+  ersScore: number;
+  ersComponents: ERSComponents;
+  dropoutRisk: 'HIGH' | 'MEDIUM' | 'LOW';
+  subjectGaps: SubjectGap[];
+}
+
+interface VelocityEnrollment {
+  examName: string;
+  examCode: string;
+  daysRemaining: number;
+  completionPercent: number;
+  onTrack: boolean;
+  behindByDays: number;
+  mockTestCount: number;
+  latestScorePercent: number;
+  mockTrend: 'IMPROVING' | 'DECLINING' | 'FLAT';
+}
+
+interface VelocityData {
+  enrollments: VelocityEnrollment[];
+}
+
+interface MentorCoverageData {
+  totalCompletedSessions: number;
+  totalStudyMinutes: number;
+  daysSinceLastSession: number;
+  coveredTopics: string[];
 }
 
 // ─── Response Mappers ────────────────────────────────────────────────────────
@@ -44,19 +86,6 @@ function mapDoubt(raw: Record<string, unknown>): DoubtTicket {
     answer: (raw.aiAnswer as string) ?? undefined,
     resolvedAt: (raw.resolvedAt as string) ?? undefined,
     createdAt: raw.createdAt as string | undefined,
-  };
-}
-
-function mapRec(raw: Record<string, unknown>): Recommendation {
-  const priority = raw.priorityLevel as string;
-  const type: Recommendation['type'] =
-    priority === 'HIGH' ? 'PRACTICE' : priority === 'MEDIUM' ? 'ARTICLE' : 'VIDEO';
-  return {
-    id: raw.id as string,
-    subject: raw.subjectArea as string,
-    title: raw.topic as string,
-    contentPreview: raw.recommendationText as string,
-    type,
   };
 }
 
@@ -74,13 +103,6 @@ const SUBJECT_AREA_MAP: Record<string, string> = {
   'History': 'HISTORY',
   'Geography': 'GEOGRAPHY',
   'Computer Science': 'COMPUTER_SCIENCE',
-};
-
-const TYPE_VARIANTS: Record<string, 'info' | 'success' | 'warning' | 'default'> = {
-  VIDEO: 'info',
-  ARTICLE: 'default',
-  PRACTICE: 'success',
-  MOCK_TEST: 'warning',
 };
 
 // ─── Doubt Resolver Tab ──────────────────────────────────────────────────────
@@ -319,111 +341,331 @@ function DoubtResolverTab() {
   );
 }
 
-// ─── Recommendations Tab ─────────────────────────────────────────────────────
+// ─── Gap Analysis Dashboard ──────────────────────────────────────────────────
 
-function RecommendationsTab() {
-  const recsQuery = useQuery<Recommendation[]>({
-    queryKey: ['recommendations'],
-    queryFn: () =>
-      api.get('/api/v1/recommendations').then((r) => { const d = r.data; const arr: Record<string, unknown>[] = Array.isArray(d) ? d : (d.content ?? []); return arr.map(mapRec); }),
+const ERS_COMPONENT_LABELS: Record<keyof ERSComponents, string> = {
+  syllabusCoverage: 'Syllabus Coverage',
+  mockTestTrend: 'Mock Test Trend',
+  masteryAverage: 'Mastery Average',
+  timeManagement: 'Time Management',
+  accuracy: 'Accuracy',
+};
+
+function gapColor(gap: number): string {
+  if (gap === 0) return 'text-emerald-400';
+  if (gap < 20) return 'text-amber-400';
+  return 'text-red-400';
+}
+
+function gapBarColor(gap: number): string {
+  if (gap === 0) return 'bg-emerald-500';
+  if (gap < 20) return 'bg-amber-500';
+  return 'bg-red-500';
+}
+
+function priorityVariant(priority: SubjectGap['priority']): 'default' | 'info' | 'success' | 'warning' {
+  if (priority === 'CRITICAL') return 'default';
+  if (priority === 'HIGH') return 'warning';
+  if (priority === 'MEDIUM') return 'info';
+  return 'success';
+}
+
+function TrendArrow({ trend }: { trend: 'IMPROVING' | 'DECLINING' | 'FLAT' }) {
+  if (trend === 'IMPROVING') return <TrendingUp className="w-4 h-4 text-emerald-400" />;
+  if (trend === 'DECLINING') return <TrendingDown className="w-4 h-4 text-red-400" />;
+  return <Minus className="w-4 h-4 text-white/40" />;
+}
+
+function GapAnalysisDashboard() {
+  const user = useAuthStore((s) => s.user);
+  const studentId = user?.id;
+
+  const gapQuery = useQuery<GapAnalysisData>({
+    queryKey: ['gap-analysis', studentId],
+    queryFn: () => api.get(`/api/v1/performance/gap-analysis/${studentId}`).then((r) => r.data),
+    enabled: !!studentId,
     staleTime: 5 * 60 * 1000,
   });
 
-  const recs = recsQuery.data ?? [];
+  const velocityQuery = useQuery<VelocityData>({
+    queryKey: ['exam-velocity', studentId],
+    queryFn: () => api.get(`/api/v1/exam-tracker/students/${studentId}/velocity`).then((r) => r.data),
+    enabled: !!studentId,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  function typeIcon(type: string) {
-    if (type === 'VIDEO') return '🎬';
-    if (type === 'ARTICLE') return '📄';
-    if (type === 'PRACTICE') return '✏️';
-    if (type === 'MOCK_TEST') return '📝';
-    return '📚';
-  }
+  const mentorQuery = useQuery<MentorCoverageData>({
+    queryKey: ['mentor-coverage', studentId],
+    queryFn: () => api.get(`/api/v1/mentor-sessions/gap-coverage?studentId=${studentId}`).then((r) => r.data),
+    enabled: !!studentId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const gap = gapQuery.data;
+  const velocity = velocityQuery.data;
+  const mentor = mentorQuery.data;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">AI Recommendations</h2>
-        <button
-          onClick={() => recsQuery.refetch()}
-          disabled={recsQuery.isFetching}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 text-white/60 hover:text-white hover:bg-white/5 transition-all text-sm"
+    <div className="space-y-6">
+
+      {/* Panel 1: ERS Breakdown — full width */}
+      <motion.div
+        className="glass rounded-2xl p-5"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-white font-semibold">Exam Readiness Score (ERS)</h3>
+          {gapQuery.isLoading ? (
+            <Skeleton className="h-8 w-16" />
+          ) : gap ? (
+            <div className="flex items-center gap-3">
+              <span className="text-3xl font-bold text-brand-400">{gap.ersScore}</span>
+              <Badge
+                variant={
+                  gap.dropoutRisk === 'HIGH' ? 'default' : gap.dropoutRisk === 'MEDIUM' ? 'warning' : 'success'
+                }
+              >
+                {gap.dropoutRisk} RISK
+              </Badge>
+            </div>
+          ) : null}
+        </div>
+
+        {gapQuery.isLoading ? (
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+          </div>
+        ) : !gap ? (
+          <div className="flex flex-col items-center py-8 text-white/30 gap-2">
+            <BarChart2 className="w-10 h-10 opacity-30" />
+            <p className="text-sm">No ERS data available yet</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {(Object.keys(gap.ersComponents) as (keyof ERSComponents)[]).map((key) => {
+              const score = gap.ersComponents[key];
+              const gap100 = Math.max(0, 100 - score);
+              return (
+                <div key={key} className="flex items-center gap-3">
+                  <span className="text-white/60 text-sm w-40 shrink-0">{ERS_COMPONENT_LABELS[key]}</span>
+                  <div className="flex-1 h-2 rounded-full bg-white/10 overflow-hidden">
+                    <div
+                      className={cn('h-full rounded-full transition-all', gapBarColor(gap100))}
+                      style={{ width: `${score}%` }}
+                    />
+                  </div>
+                  <span className="text-white/80 text-sm w-10 text-right shrink-0">{score}%</span>
+                  {gap100 > 0 && (
+                    <span className={cn('text-xs font-medium w-16 text-right shrink-0', gapColor(gap100))}>
+                      -{gap100}% gap
+                    </span>
+                  )}
+                  {gap100 === 0 && (
+                    <span className="text-xs font-medium w-16 text-right shrink-0 text-emerald-400">
+                      On track
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </motion.div>
+
+      {/* Panels 2 & 3: Subject Gaps + Exam Velocity — side by side on lg */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Panel 2: Subject Gaps */}
+        <motion.div
+          className="glass rounded-2xl p-5"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.05 }}
         >
-          <RefreshCw
-            className={cn('w-4 h-4', recsQuery.isFetching && 'animate-spin')}
-          />
-          Refresh
-        </button>
+          <h3 className="text-white font-semibold mb-4">Subject Gaps</h3>
+
+          {gapQuery.isLoading ? (
+            <div className="space-y-4">
+              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+            </div>
+          ) : !gap || gap.subjectGaps.length === 0 ? (
+            <div className="flex flex-col items-center py-8 text-white/30 gap-2">
+              <BookOpen className="w-10 h-10 opacity-30" />
+              <p className="text-sm">No subject gaps to display</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {gap.subjectGaps.map((sg) => (
+                <div key={sg.subject} className="space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-white/80 text-sm font-medium">{sg.subject}</span>
+                    <Badge variant={priorityVariant(sg.priority)}>{sg.priority}</Badge>
+                    <TrendArrow trend={sg.trend} />
+                    <span className="ml-auto text-white/50 text-xs">{sg.masteryPercent}% mastery</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                    <div
+                      className={cn('h-full rounded-full', gapBarColor(sg.gapPoints))}
+                      style={{ width: `${sg.masteryPercent}%` }}
+                    />
+                  </div>
+                  {sg.weakTopics.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-0.5">
+                      {sg.weakTopics.map((t) => (
+                        <span
+                          key={t}
+                          className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-white/40"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+
+        {/* Panel 3: Exam Velocity */}
+        <motion.div
+          className="glass rounded-2xl p-5"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
+          <h3 className="text-white font-semibold mb-4">Exam Velocity</h3>
+
+          {velocityQuery.isLoading ? (
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
+            </div>
+          ) : !velocity || velocity.enrollments.length === 0 ? (
+            <div className="flex flex-col items-center py-8 text-white/30 gap-2">
+              <Clock className="w-10 h-10 opacity-30" />
+              <p className="text-sm">No active exam enrollments</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {velocity.enrollments.map((en) => (
+                <div key={en.examCode} className="space-y-2 pb-4 border-b border-white/5 last:border-0 last:pb-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-white/80 text-sm font-medium">{en.examName}</p>
+                      <p className="text-white/40 text-xs">{en.examCode}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge variant={en.onTrack ? 'success' : 'warning'}>
+                        {en.onTrack ? 'On Track' : 'Behind'}
+                      </Badge>
+                      <span className="text-white/40 text-xs">{en.daysRemaining}d left</span>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-white/40">
+                      <span>Syllabus</span>
+                      <span>{en.completionPercent}%</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-brand-500 transition-all"
+                        style={{ width: `${en.completionPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-white/50">
+                    <span>{en.mockTestCount} mocks</span>
+                    {en.latestScorePercent > 0 && (
+                      <span className="flex items-center gap-1">
+                        Latest: {en.latestScorePercent}%
+                        <TrendArrow trend={en.mockTrend} />
+                      </span>
+                    )}
+                    {!en.onTrack && en.behindByDays > 0 && (
+                      <span className="text-amber-400 ml-auto">Behind by {en.behindByDays} days</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.div>
       </div>
 
-      {recsQuery.isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="glass rounded-2xl p-5 space-y-3">
-              <Skeleton className="h-6 w-16" />
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
+      {/* Panel 4: Mentor Coverage — full width */}
+      <motion.div
+        className="glass rounded-2xl p-5"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.15 }}
+      >
+        <h3 className="text-white font-semibold mb-4">Mentor Coverage</h3>
+
+        {mentorQuery.isLoading ? (
+          <div className="space-y-3">
+            <div className="flex gap-6">
+              <Skeleton className="h-12 w-28" />
+              <Skeleton className="h-12 w-28" />
+              <Skeleton className="h-12 w-28" />
             </div>
-          ))}
-        </div>
-      ) : recs.length === 0 ? (
-        <div className="glass rounded-2xl p-12 flex flex-col items-center gap-4 text-white/40">
-          <Lightbulb className="w-14 h-14 opacity-30" />
-          <p className="text-base">No recommendations available yet</p>
-          <p className="text-sm text-center max-w-xs">
-            Complete some study sessions and submit doubts to get personalised
-            recommendations.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {recs.map((rec) => (
-            <motion.div
-              key={rec.id}
-              className="glass rounded-2xl p-5 flex flex-col gap-3"
-              whileHover={{ scale: 1.02 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            >
-              <div className="flex items-start justify-between">
-                <span className="text-2xl">{typeIcon(rec.type)}</span>
-                <Badge variant={TYPE_VARIANTS[rec.type] ?? 'default'}>
-                  {rec.type}
-                </Badge>
+            <Skeleton className="h-8 w-full" />
+          </div>
+        ) : !mentor ? (
+          <div className="flex flex-col items-center py-8 text-white/30 gap-2">
+            <Bot className="w-10 h-10 opacity-30" />
+            <p className="text-sm">Mentor coverage data unavailable</p>
+          </div>
+        ) : mentor.totalCompletedSessions === 0 ? (
+          <div className="flex flex-col items-center py-8 text-white/30 gap-2">
+            <Bot className="w-10 h-10 opacity-30" />
+            <p className="text-sm">No mentor sessions yet — consider booking one</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-6">
+              <div>
+                <p className="text-white/40 text-xs mb-1">Sessions Completed</p>
+                <p className="text-2xl font-bold text-brand-400">{mentor.totalCompletedSessions}</p>
               </div>
-              {rec.subject && (
-                <span className="text-xs text-brand-400 font-medium">
-                  {rec.subject}
-                </span>
-              )}
-              <p className="text-white/80 text-sm font-medium line-clamp-2">
-                {rec.title ?? 'Recommended Resource'}
-              </p>
-              {rec.contentPreview && (
-                <p className="text-white/40 text-xs line-clamp-3">
-                  {rec.contentPreview}
+              <div>
+                <p className="text-white/40 text-xs mb-1">Study Minutes</p>
+                <p className="text-2xl font-bold text-white/80">{mentor.totalStudyMinutes}</p>
+              </div>
+              <div>
+                <p className="text-white/40 text-xs mb-1">Days Since Last Session</p>
+                <p className={cn('text-2xl font-bold', mentor.daysSinceLastSession > 7 ? 'text-amber-400' : 'text-emerald-400')}>
+                  {mentor.daysSinceLastSession}
                 </p>
-              )}
-              {rec.url && (
-                <a
-                  href={rec.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-auto flex items-center gap-1 text-sm text-brand-400 hover:text-brand-300 transition-colors"
-                >
-                  Open Resource <ChevronRight className="w-3 h-3" />
-                </a>
-              )}
-            </motion.div>
-          ))}
-        </div>
-      )}
+              </div>
+            </div>
+
+            {mentor.coveredTopics.length > 0 && (
+              <div>
+                <p className="text-white/40 text-xs mb-2">Covered Topics</p>
+                <div className="flex flex-wrap gap-2">
+                  {mentor.coveredTopics.map((topic) => (
+                    <span
+                      key={topic}
+                      className="text-xs px-2.5 py-1 rounded-full bg-brand-500/15 text-brand-400 border border-brand-500/20"
+                    >
+                      {topic}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </motion.div>
     </div>
   );
 }
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
-type Tab = 'doubts' | 'recommendations';
+type Tab = 'doubts' | 'gap-analysis';
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   {
@@ -432,9 +674,9 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
     icon: <MessageSquare className="w-4 h-4" />,
   },
   {
-    id: 'recommendations',
-    label: 'Recommendations',
-    icon: <Lightbulb className="w-4 h-4" />,
+    id: 'gap-analysis',
+    label: 'Gap Analysis',
+    icon: <BarChart2 className="w-4 h-4" />,
   },
 ];
 
@@ -487,7 +729,7 @@ export default function AiMentorPage() {
           transition={{ duration: 0.2 }}
         >
           {activeTab === 'doubts' && <DoubtResolverTab />}
-          {activeTab === 'recommendations' && <RecommendationsTab />}
+          {activeTab === 'gap-analysis' && <GapAnalysisDashboard />}
         </motion.div>
       </AnimatePresence>
     </motion.div>

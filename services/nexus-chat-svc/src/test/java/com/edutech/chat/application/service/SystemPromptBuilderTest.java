@@ -34,7 +34,8 @@ class SystemPromptBuilderTest {
             List.of(new WeakAreaSummary("Physics", "Thermodynamics", 45.0, "HIGH")),
             List.of(new MasterySummary("Chemistry", 80.0, "PROFICIENT")),
             Optional.empty(), 3, Optional.empty(), 2,
-            Optional.of("Batch A"), Optional.of("NexusEd Center"), "dashboard"
+            Optional.of("Batch A"), Optional.of("NexusEd Center"),
+            Optional.empty(), Optional.empty(), Optional.empty(), "dashboard"
         );
 
         String prompt = builder.build(ctx);
