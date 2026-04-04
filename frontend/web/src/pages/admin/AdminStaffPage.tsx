@@ -182,6 +182,8 @@ function StaffCard({ member, centerId, onRefresh }: {
   const [deactivating, setDeactivating] = useState(false);
   const [reactivating, setReactivating] = useState(false);
   const [resending, setResending] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
 
   const fullName    = `${member.firstName} ${member.lastName}`;
   const subjectList = member.subjects?.split(',').map(s => s.trim()) ?? [];
@@ -223,6 +225,33 @@ function StaffCard({ member, centerId, onRefresh }: {
       toast.error('Failed to send invitation');
     } finally {
       setResending(false);
+    }
+  }
+
+  async function handleApprove() {
+    setApproving(true);
+    try {
+      await api.post(`/api/v1/centers/${centerId}/teachers/${member.id}/approve`);
+      toast.success(`${fullName} approved — they can now access the platform`);
+      onRefresh();
+    } catch {
+      toast.error('Failed to approve teacher');
+    } finally {
+      setApproving(false);
+    }
+  }
+
+  async function handleReject() {
+    if (!confirm(`Reject ${fullName}'s registration? This cannot be undone.`)) return;
+    setRejecting(true);
+    try {
+      await api.post(`/api/v1/centers/${centerId}/teachers/${member.id}/reject`, { reason: 'Rejected by coordinator' });
+      toast.success(`${fullName}'s registration rejected`);
+      onRefresh();
+    } catch {
+      toast.error('Failed to reject teacher');
+    } finally {
+      setRejecting(false);
     }
   }
 
@@ -364,9 +393,29 @@ function StaffCard({ member, centerId, onRefresh }: {
           </>
         )}
         {member.status === 'PENDING_APPROVAL' && (
-          <span className="flex items-center gap-1 text-xs text-orange-400/60">
-            <AlertCircle className="w-3 h-3" /> Pending approval
-          </span>
+          <>
+            <span className="flex items-center gap-1 text-xs text-orange-400/60">
+              <AlertCircle className="w-3 h-3" /> Awaiting approval
+            </span>
+            <div className="flex items-center gap-2 ml-auto">
+              <button
+                onClick={handleReject}
+                disabled={rejecting || approving}
+                className="flex items-center gap-1 text-xs text-red-400/70 hover:text-red-400 border border-red-500/20 bg-red-500/8 hover:bg-red-500/15 px-2 py-1 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {rejecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserX className="w-3 h-3" />}
+                Reject
+              </button>
+              <button
+                onClick={handleApprove}
+                disabled={approving || rejecting}
+                className="flex items-center gap-1 text-xs text-emerald-400/70 hover:text-emerald-400 border border-emerald-500/20 bg-emerald-500/8 hover:bg-emerald-500/15 px-2 py-1 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {approving ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+                Approve
+              </button>
+            </div>
+          </>
         )}
       </div>
     </motion.div>

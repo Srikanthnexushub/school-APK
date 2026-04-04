@@ -73,10 +73,13 @@ export default function AdvertisementBanner({ audience }: AdvertisementBannerPro
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl mb-6"
+      className="relative overflow-hidden rounded-2xl mb-6 border border-cyan-500/20"
+      style={{ boxShadow: '0 0 24px rgba(34,211,238,0.08), 0 0 1px rgba(34,211,238,0.3)' }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
+      {/* Neon top stripe */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 z-30" />
       <AnimatePresence mode="wait">
         <motion.div
           key={banner.id}
@@ -89,7 +92,10 @@ export default function AdvertisementBanner({ audience }: AdvertisementBannerPro
         >
           {/* Content */}
           <div className={cn('flex-1 px-6 py-6 z-10', banner.imageUrl ? 'pr-4' : '')}>
-            <p className="text-xs font-semibold text-white/50 uppercase tracking-widest mb-1">
+            <p
+              className="text-xs font-bold uppercase tracking-widest mb-1"
+              style={{ color: '#22d3ee', textShadow: '0 0 8px rgba(34,211,238,0.7)' }}
+            >
               Announcement
             </p>
             <h2 className="text-xl font-bold text-white leading-snug mb-1">
@@ -128,18 +134,19 @@ export default function AdvertisementBanner({ audience }: AdvertisementBannerPro
         </motion.div>
       </AnimatePresence>
 
-      {/* Dots */}
+      {/* Dots — neon footer */}
       {banners.length > 1 && (
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20">
           {banners.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrent(i)}
+              style={i === current ? { boxShadow: '0 0 6px rgba(34,211,238,0.9)' } : {}}
               className={cn(
                 'rounded-full transition-all',
                 i === current
-                  ? 'w-5 h-1.5 bg-white'
-                  : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/70'
+                  ? 'w-5 h-1.5 bg-cyan-400'
+                  : 'w-1.5 h-1.5 bg-cyan-400/30 hover:bg-cyan-400/60'
               )}
               aria-label={`Go to banner ${i + 1}`}
             />

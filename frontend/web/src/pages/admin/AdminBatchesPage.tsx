@@ -307,11 +307,14 @@ function AddBatchForm({ centers, teachers, onSubmit, onCancel, isSubmitting }: A
               className="input w-full"
             >
               <option value="">— Select teacher —</option>
-              {teachers.filter((t) => !!t.userId).map((t) => (
+              {teachers.filter((t) => !!t.userId && t.status === 'ACTIVE').map((t) => (
                 <option key={t.id} value={t.userId!}>
                   {t.firstName} {t.lastName}{t.subjects ? ` (${t.subjects})` : ''}
                 </option>
               ))}
+              {teachers.some((t) => t.status === 'PENDING_APPROVAL') && (
+                <option disabled value="">— {teachers.filter(t => t.status === 'PENDING_APPROVAL').length} pending approval (approve in Staff tab first) —</option>
+              )}
             </select>
             {errors.teacherId && <p className="text-xs text-red-400 mt-1">{errors.teacherId}</p>}
           </div>

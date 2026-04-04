@@ -67,11 +67,11 @@ export default function MentorPortalAnnouncementsPage() {
     <div className="p-6 space-y-6 max-w-3xl mx-auto">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-brand-500/10 border border-brand-500/20">
-            <Megaphone className="w-5 h-5 text-brand-400" />
+          <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30" style={{ boxShadow: '0 0 10px rgba(34,211,238,0.15)' }}>
+            <Megaphone className="w-5 h-5 text-cyan-400" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">Announcements</h1>
+            <h1 className="text-xl font-bold" style={{ background: 'linear-gradient(90deg,#22d3ee,#a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Announcements</h1>
             <p className="text-sm text-white/50">Send messages to your batch students</p>
           </div>
         </div>
@@ -184,7 +184,7 @@ export default function MentorPortalAnnouncementsPage() {
                   <div className="text-xs text-white/50 mt-1 line-clamp-2">{a.body}</div>
                 </div>
               </div>
-              <div className="flex items-center gap-3 text-xs text-white/30">
+              <div className="flex items-center gap-3 text-xs" style={{ color: 'rgba(34,211,238,0.6)' }}>
                 <span className="flex items-center gap-1">
                   <Users className="w-3 h-3" /> {a.targetType}
                 </span>

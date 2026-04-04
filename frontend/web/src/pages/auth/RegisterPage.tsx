@@ -591,7 +591,14 @@ export default function RegisterPage() {
               { headers: { Authorization: `Bearer ${token}` } }
             );
             toast.success('Registration submitted! Awaiting approval from your institution coordinator.');
-          } catch { /* non-fatal */ }
+          } catch (err: unknown) {
+            const status = (err as { response?: { status?: number } })?.response?.status;
+            if (status === 409) {
+              toast.info('You are already registered with this institution. Please sign in.');
+            } else {
+              toast.warning('Account created, but could not link to the selected institution. Please contact your coordinator or try again after signing in.');
+            }
+          }
         } else {
           toast.success('Account created! You can now sign in.');
         }
