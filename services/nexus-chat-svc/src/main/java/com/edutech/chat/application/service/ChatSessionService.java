@@ -71,7 +71,8 @@ public class ChatSessionService {
     public ResponseBodyEmitter streamMessage(UUID sessionId, UUID userId, UUID centerId,
                                               String userMessage, String pageContext,
                                               String jwtToken) {
-        ResponseBodyEmitter emitter = new ResponseBodyEmitter(30_000L);
+        // 60s — enough for 70B-class model TTFT (~5–25s) plus full response generation (Fix #288)
+        ResponseBodyEmitter emitter = new ResponseBodyEmitter(60_000L);
 
         streamExecutor.execute(() -> {
             try {

@@ -118,6 +118,9 @@ public class OpenRouterWebClientAdapter implements LlmClient {
                 // Strip "data: " prefix — Spring's SSE encoder will re-add it
                 .map(line -> line.startsWith("data: ") ? line.substring(6).trim() : line.trim())
                 .filter(content -> !content.isEmpty())
+                // Per-element idle timeout (Fix #288): if no token arrives within 28s (TTFT or between
+                // tokens), fall back to [DONE] — prevents indefinite hang on slow/stalled LLM responses.
+                .timeout(Duration.ofSeconds(28), Flux.just("[DONE]"))
                 .takeUntil("[DONE]"::equals)
                 .concatWith(Flux.just("[DONE]"));
     }
@@ -344,8 +347,13 @@ public class OpenRouterWebClientAdapter implements LlmClient {
                                                 clientResponse.statusCode().value() + "]: " + errorBody)))
                 )
                 .bodyToMono(OpenRouterResponse.class)
-                .retryWhen(Retry.backoff(2, Duration.ofSeconds(1))
-                        .filter(ex -> !(ex instanceof AiProviderException)))
+                // Cap each attempt at 25s — without this, Netty's 60s ReadTimeout is the only guard
+                // and with 2 retries worst-case latency was 60s×3 = 180s (Fix #288)
+                .timeout(Duration.ofSeconds(25))
+                // 1 retry, 300ms base backoff; never retry on timeout (would double the wait)
+                .retryWhen(Retry.backoff(1, Duration.ofMillis(300))
+                        .filter(ex -> !(ex instanceof AiProviderException)
+                                   && !(ex instanceof java.util.concurrent.TimeoutException)))
                 .map(response -> {
                     long latencyMs = System.currentTimeMillis() - startMs;
                     String content = (response.choices() != null && !response.choices().isEmpty())

@@ -91,7 +91,8 @@ public class AiGatewayStreamWebClientAdapter implements AiGatewayStreamPort {
                 ))
                 .retrieve()
                 .bodyToMono(Map.class)
-                .block();
+                // Fix #288: bound the fallback block so it can't hang beyond 30s
+                .block(java.time.Duration.ofSeconds(30));
 
             if (response != null && response.get("content") != null) {
                 String content = response.get("content").toString();
