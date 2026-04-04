@@ -28,6 +28,8 @@ public class MentorGapCoverageWebClientAdapter {
         return webClient.get()
             .uri("/api/v1/mentor-sessions/gap-coverage?studentId={studentId}", studentId)
             .header("Authorization", "Bearer " + jwt)
+            .header("X-User-Id", studentId.toString())
+            .header("X-User-Role", "STUDENT")
             .retrieve()
             .bodyToMono(MentorGapCoverageDto.class)
             .timeout(Duration.ofMillis(timeoutMs))

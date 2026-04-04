@@ -47,7 +47,7 @@ export default function ParentLibraryPage() {
     retry: false,
   });
 
-  const centerId = resolveCenterId(grades) || linkedStudents.find(s => s.studentId === resolvedStudentId)?.centerId || '';
+  const centerId = linkedStudents.find(s => s.studentId === resolvedStudentId)?.centerId || resolveCenterId(grades) || '';
   const isResolvingCenter = studentsLoading || gradesLoading;
 
   return (

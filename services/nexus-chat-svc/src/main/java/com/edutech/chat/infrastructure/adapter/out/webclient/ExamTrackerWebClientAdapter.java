@@ -28,6 +28,8 @@ public class ExamTrackerWebClientAdapter {
         return webClient.get()
             .uri("/api/v1/exam-tracker/students/{studentId}/velocity", studentId)
             .header("Authorization", "Bearer " + jwt)
+            .header("X-User-Id", studentId.toString())
+            .header("X-User-Role", "STUDENT")
             .retrieve()
             .bodyToMono(ExamVelocityDto.class)
             .timeout(Duration.ofMillis(timeoutMs))

@@ -28,6 +28,8 @@ public class PerformanceWebClientAdapter {
         return webClient.get()
             .uri("/api/v1/performance/{userId}/chat-context", userId)
             .header("Authorization", "Bearer " + jwt)
+            .header("X-User-Id", userId.toString())
+            .header("X-User-Role", "STUDENT")
             .retrieve()
             .bodyToMono(PerformanceDto.class)
             .timeout(Duration.ofMillis(timeoutMs))

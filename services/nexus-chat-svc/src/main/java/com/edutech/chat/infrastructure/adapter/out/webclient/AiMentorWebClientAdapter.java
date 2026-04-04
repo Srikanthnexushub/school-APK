@@ -28,6 +28,8 @@ public class AiMentorWebClientAdapter {
         return webClient.get()
             .uri("/api/v1/mentor/students/{userId}/chat-context", userId)
             .header("Authorization", "Bearer " + jwt)
+            .header("X-User-Id", userId.toString())
+            .header("X-User-Role", "STUDENT")
             .retrieve()
             .bodyToMono(MentorContextDto.class)
             .timeout(Duration.ofMillis(timeoutMs))

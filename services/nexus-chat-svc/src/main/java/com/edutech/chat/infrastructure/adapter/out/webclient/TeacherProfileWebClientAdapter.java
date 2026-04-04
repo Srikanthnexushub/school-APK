@@ -33,6 +33,7 @@ public class TeacherProfileWebClientAdapter {
             .uri("/api/v1/mentors/me")
             .header("Authorization", "Bearer " + jwt)
             .header("X-User-Id", userId.toString())
+            .header("X-User-Role", "TEACHER")
             .retrieve()
             .bodyToMono(TeacherProfileDto.class)
             .timeout(Duration.ofMillis(timeoutMs))

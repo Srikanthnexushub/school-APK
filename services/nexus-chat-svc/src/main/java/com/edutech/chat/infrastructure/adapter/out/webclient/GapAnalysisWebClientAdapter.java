@@ -28,6 +28,8 @@ public class GapAnalysisWebClientAdapter {
         return webClient.get()
             .uri("/api/v1/performance/gap-analysis/{studentId}", studentId)
             .header("Authorization", "Bearer " + jwt)
+            .header("X-User-Id", studentId.toString())
+            .header("X-User-Role", "STUDENT")
             .retrieve()
             .bodyToMono(GapAnalysisDto.class)
             .timeout(Duration.ofMillis(timeoutMs))
