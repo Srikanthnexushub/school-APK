@@ -6,15 +6,8 @@ import { useAuthStore } from '../../stores/authStore';
 import { LibraryView } from '../../components/library/LibraryView';
 import { cn } from '../../lib/utils';
 
-interface GradeResponse { centerId: string; batchId: string; }
+interface Enrollment { centerId: string; batchId: string; }
 interface StudentProfile { board?: string; stream?: string; currentClass?: string; }
-
-function resolveCenterId(grades: GradeResponse[]): string {
-  if (grades.length === 0) return '';
-  const freq: Record<string, number> = {};
-  grades.forEach(g => { if (g.centerId) freq[g.centerId] = (freq[g.centerId] ?? 0) + 1; });
-  return Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
-}
 
 type Tab = 'center' | 'platform';
 
@@ -23,13 +16,15 @@ export default function StudentLibraryPage() {
   const studentId = user?.id ?? '';
   const [tab, setTab] = useState<Tab>('center');
 
-  const { data: grades = [], isLoading: gradesLoading } = useQuery<GradeResponse[]>({
-    queryKey: ['student-grades-lib', studentId],
-    queryFn: async () => {
-      const res = await api.get(`/api/v1/grades/student/${studentId}`);
-      return Array.isArray(res.data) ? res.data : [];
-    },
+  // Use enrollment endpoint (same as student fees page) — returns centerId reliably
+  const { data: enrollments = [], isLoading: enrollmentsLoading } = useQuery<Enrollment[]>({
+    queryKey: ['student-enrollment-lib'],
+    queryFn: () =>
+      api.get('/api/v1/centers/student-enrollment/me/all')
+        .then(r => Array.isArray(r.data) ? r.data : [])
+        .catch(() => []),
     enabled: !!studentId,
+    staleTime: 5 * 60_000,
     retry: false,
   });
 
@@ -44,7 +39,7 @@ export default function StudentLibraryPage() {
     staleTime: 5 * 60_000,
   });
 
-  const centerId = resolveCenterId(grades) || user?.centerId || '';
+  const centerId = enrollments[0]?.centerId || user?.centerId || '';
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -80,7 +75,7 @@ export default function StudentLibraryPage() {
       {tab === 'center' ? (
         <LibraryView
           centerId={centerId}
-          isResolvingCenter={gradesLoading}
+          isResolvingCenter={enrollmentsLoading}
           stream={profile?.stream}
         />
       ) : (
