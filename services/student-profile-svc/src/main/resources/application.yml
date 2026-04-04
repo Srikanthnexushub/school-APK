@@ -1,6 +1,10 @@
 spring:
   application:
     name: ${STUDENT_PROFILE_SVC_NAME}
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 55MB
   threads:
     virtual:
       enabled: true

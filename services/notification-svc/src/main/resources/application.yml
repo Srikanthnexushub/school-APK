@@ -1,6 +1,10 @@
 spring:
   application:
     name: ${NOTIFICATION_SVC_NAME}
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 55MB
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${NOTIFICATION_SVC_DB_NAME}
     username: ${NOTIFICATION_SVC_DB_USERNAME}
