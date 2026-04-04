@@ -4,6 +4,7 @@ package com.edutech.assess.application.service;
 import com.edutech.assess.application.dto.AuthPrincipal;
 import com.edutech.assess.application.dto.CreateExamRequest;
 import com.edutech.assess.application.dto.ExamResponse;
+import com.edutech.assess.application.dto.RescheduleExamRequest;
 import com.edutech.assess.application.dto.StudentExamResponse;
 import com.edutech.assess.application.exception.AssessAccessDeniedException;
 import com.edutech.assess.application.exception.ExamNotFoundException;
@@ -104,6 +105,29 @@ public class ExamService implements CreateExamUseCase, PublishExamUseCase, ListP
         for (ExamEnrollment enrollment : enrollments) {
             publishExamAnnouncedNotification(saved, enrollment.getStudentId());
         }
+        return toResponse(saved);
+    }
+
+    public void cancelExam(UUID examId, AuthPrincipal principal) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new ExamNotFoundException(examId));
+        if (!principal.belongsToCenter(exam.getCenterId())) {
+            throw new AssessAccessDeniedException();
+        }
+        exam.cancel();
+        examRepository.save(exam);
+        log.info("Exam cancelled: id={}", examId);
+    }
+
+    public ExamResponse rescheduleExam(UUID examId, RescheduleExamRequest request, AuthPrincipal principal) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new ExamNotFoundException(examId));
+        if (!principal.belongsToCenter(exam.getCenterId())) {
+            throw new AssessAccessDeniedException();
+        }
+        exam.reschedule(request.startAt(), request.endAt());
+        Exam saved = examRepository.save(exam);
+        log.info("Exam rescheduled: id={} startAt={} endAt={}", examId, request.startAt(), request.endAt());
         return toResponse(saved);
     }
 

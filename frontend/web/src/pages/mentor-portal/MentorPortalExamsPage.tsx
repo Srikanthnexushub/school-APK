@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ClipboardList, ChevronRight, Plus, Trash2, CheckCircle2,
   BookOpen, Clock, BarChart3, FlaskConical, AlertCircle,
-  Eye, Zap, ChevronDown, ChevronUp,
+  Eye, ChevronDown, ChevronUp, Sparkles, Calendar, Loader2, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
@@ -32,8 +32,18 @@ interface ExamResponse {
   mode: string;
   durationMinutes: number;
   totalQuestions: number;
-  status: 'DRAFT' | 'PUBLISHED' | 'AVAILABLE' | 'CLOSED';
+  status: 'DRAFT' | 'PUBLISHED' | 'AVAILABLE' | 'CLOSED' | 'CANCELLED';
   createdAt?: string;
+  startAt?: string;
+  endAt?: string;
+}
+
+interface AIGeneratedQuestion {
+  questionText: string;
+  options: [string, string, string, string];
+  correctAnswer: number;
+  explanation: string;
+  difficulty: Difficulty;
 }
 
 type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';
@@ -84,6 +94,7 @@ const STATUS_STYLES: Record<string, string> = {
   PUBLISHED: 'bg-emerald-500/15 text-emerald-400',
   AVAILABLE: 'bg-brand-500/15 text-brand-400',
   CLOSED:    'bg-red-500/15 text-red-400',
+  CANCELLED: 'bg-red-500/10 text-red-400/60',
 };
 
 // ─── Step Indicator ───────────────────────────────────────────────────────────
@@ -143,8 +154,33 @@ function Step1({
   batchesLoading: boolean;
   onNext: () => void;
 }) {
+  const [genDescLoading, setGenDescLoading] = useState(false);
+
   function set<K extends keyof CreateExamRequest>(key: K, val: CreateExamRequest[K]) {
     setForm({ ...form, [key]: val });
+  }
+
+  async function generateDescription() {
+    if (!form.title.trim()) {
+      toast.error('Enter an exam title first');
+      return;
+    }
+    setGenDescLoading(true);
+    try {
+      const res = await api.post('/api/v1/ai/completions', {
+        systemPrompt: 'You are an expert educator. Write a clear, concise 2–3 sentence exam description suitable for students. Be specific about the topics covered and what skills will be tested.',
+        userMessage: `Write a description for an exam titled "${form.title}" (mode: ${form.mode}, duration: ${form.durationMinutes} minutes). Describe topics covered and student preparation needed.`,
+        maxTokens: 150,
+        temperature: 0.7,
+      });
+      const text: string = res.data?.content ?? res.data?.choices?.[0]?.message?.content ?? '';
+      if (text) set('description', text.trim());
+      else toast.error('No description generated');
+    } catch {
+      toast.error('AI description generation failed');
+    } finally {
+      setGenDescLoading(false);
+    }
   }
 
   const valid = form.title.trim() && form.batchId && form.centerId && form.durationMinutes > 0;
@@ -165,11 +201,23 @@ function Step1({
 
         {/* Description */}
         <div className="md:col-span-2">
-          <label className="block text-sm text-white/60 mb-1.5">Description</label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-sm text-white/60">Description</label>
+            <button
+              type="button"
+              onClick={generateDescription}
+              disabled={genDescLoading || !form.title.trim()}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-400 border border-purple-500/25 hover:bg-purple-500/25 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-xs font-medium"
+            >
+              {genDescLoading
+                ? <><Loader2 className="w-3 h-3 animate-spin" /> Generating…</>
+                : <><Sparkles className="w-3 h-3" /> AI Generate</>}
+            </button>
+          </div>
           <textarea
             className="input w-full resize-none"
             rows={3}
-            placeholder="Brief description of what this exam covers…"
+            placeholder="Brief description of what this exam covers… or click AI Generate"
             value={form.description}
             onChange={e => set('description', e.target.value)}
           />
@@ -501,14 +549,99 @@ function QuestionCard({
 // ─── Step 2: Add Questions ────────────────────────────────────────────────────
 
 function Step2({
-  questions, setQuestions, onBack, onNext, isSaving,
+  examTitle, questions, setQuestions, onBack, onNext, isSaving,
 }: {
+  examTitle: string;
   questions: QuestionDraft[];
   setQuestions: (q: QuestionDraft[]) => void;
   onBack: () => void;
   onNext: () => void;
   isSaving: boolean;
 }) {
+  const [aiTopic, setAiTopic] = useState('');
+  const [aiCount, setAiCount] = useState(5);
+  const [aiDifficulty, setAiDifficulty] = useState<Difficulty | 'MIX'>('MIX');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedPreview, setGeneratedPreview] = useState<AIGeneratedQuestion[]>([]);
+  const [showAiPanel, setShowAiPanel] = useState(false);
+
+  async function generateQuestions() {
+    const topic = aiTopic.trim() || examTitle;
+    setIsGenerating(true);
+    try {
+      const res = await api.post('/api/v1/ai/generate-questions', {
+        topic,
+        difficulty: aiDifficulty === 'MIX' ? 'MEDIUM' : aiDifficulty,
+        count: aiCount,
+      });
+      const raw: Array<{
+        questionText: string;
+        options: string[];
+        correctAnswer: string | number;
+        explanation?: string;
+        difficulty?: string;
+      }> = Array.isArray(res.data) ? res.data : (res.data?.questions ?? []);
+
+      const parsed: AIGeneratedQuestion[] = raw.map(q => {
+        // correctAnswer may be index (0-3) or option text — normalise to index
+        let correctIdx = 0;
+        if (typeof q.correctAnswer === 'number') {
+          correctIdx = q.correctAnswer;
+        } else {
+          const idx = q.options.findIndex(o => o === q.correctAnswer);
+          correctIdx = idx >= 0 ? idx : 0;
+        }
+        const opts = (q.options ?? ['', '', '', '']).slice(0, 4) as [string, string, string, string];
+        while (opts.length < 4) opts.push('');
+        const diff = (['EASY', 'MEDIUM', 'HARD'].includes(q.difficulty ?? '') ? q.difficulty : 'MEDIUM') as Difficulty;
+        return { questionText: q.questionText, options: opts, correctAnswer: correctIdx, explanation: q.explanation ?? '', difficulty: diff };
+      });
+
+      setGeneratedPreview(parsed);
+      toast.success(`${parsed.length} questions generated — review and add`);
+    } catch {
+      toast.error('AI question generation failed');
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  function addGeneratedQuestion(q: AIGeneratedQuestion) {
+    const preset = IRT_PRESETS[q.difficulty];
+    const draft: QuestionDraft = {
+      questionText: q.questionText,
+      options: q.options,
+      correctAnswer: q.correctAnswer,
+      explanation: q.explanation,
+      marks: q.difficulty === 'HARD' ? 3 : q.difficulty === 'EASY' ? 1 : 2,
+      difficulty: q.difficulty,
+      ...preset,
+      showAdvanced: false,
+    };
+    setQuestions([...questions, draft]);
+    setGeneratedPreview(prev => prev.filter(p => p !== q));
+    toast.success('Question added');
+  }
+
+  function addAllGenerated() {
+    const newDrafts: QuestionDraft[] = generatedPreview.map(q => {
+      const preset = IRT_PRESETS[q.difficulty];
+      return {
+        questionText: q.questionText,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation,
+        marks: q.difficulty === 'HARD' ? 3 : q.difficulty === 'EASY' ? 1 : 2,
+        difficulty: q.difficulty,
+        ...preset,
+        showAdvanced: false,
+      };
+    });
+    setQuestions([...questions, ...newDrafts]);
+    setGeneratedPreview([]);
+    toast.success(`${newDrafts.length} questions added`);
+  }
+
   function addQuestion() {
     setQuestions([...questions, blankQuestion()]);
   }
@@ -529,14 +662,132 @@ function Step2({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between mb-2">
+      {/* AI Generator Panel */}
+      <div className="glass rounded-2xl border border-purple-500/20 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowAiPanel(!showAiPanel)}
+          className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-white/2 transition-colors"
+        >
+          <div className="flex items-center gap-2 text-purple-400">
+            <Sparkles className="w-4 h-4" />
+            <span className="text-sm font-semibold">AI Question Generator</span>
+            <span className="text-xs text-purple-400/60">— auto-generate questions from topic</span>
+          </div>
+          {showAiPanel ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
+        </button>
+
+        <AnimatePresence>
+          {showAiPanel && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="px-5 pb-5 space-y-4 border-t border-purple-500/10">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4">
+                  <div className="sm:col-span-3">
+                    <label className="block text-xs text-white/40 mb-1">Topic / Subject</label>
+                    <input
+                      className="input w-full text-sm"
+                      placeholder={`e.g. ${examTitle || 'Newton\'s Laws of Motion'}`}
+                      value={aiTopic}
+                      onChange={e => setAiTopic(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-white/40 mb-1">No. of Questions</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={20}
+                      className="input w-full text-sm"
+                      value={aiCount}
+                      onChange={e => setAiCount(Math.max(1, Math.min(20, Number(e.target.value))))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-white/40 mb-1">Difficulty</label>
+                    <select
+                      className="input w-full text-sm"
+                      value={aiDifficulty}
+                      onChange={e => setAiDifficulty(e.target.value as Difficulty | 'MIX')}
+                    >
+                      <option value="MIX">Mixed (E/M/H)</option>
+                      <option value="EASY">Easy</option>
+                      <option value="MEDIUM">Medium</option>
+                      <option value="HARD">Hard</option>
+                    </select>
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      onClick={generateQuestions}
+                      disabled={isGenerating}
+                      className="w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isGenerating
+                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
+                        : <><Sparkles className="w-4 h-4" /> Generate</>}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Preview of generated questions */}
+                <AnimatePresence>
+                  {generatedPreview.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-white/50">{generatedPreview.length} questions ready — review and add</p>
+                        <button
+                          type="button"
+                          onClick={addAllGenerated}
+                          className="text-xs px-3 py-1 rounded-lg bg-purple-500/15 text-purple-400 border border-purple-500/25 hover:bg-purple-500/25 transition-all font-medium"
+                        >
+                          Add All
+                        </button>
+                      </div>
+                      {generatedPreview.map((q, i) => (
+                        <div key={i} className="glass rounded-xl p-3 border border-white/5 flex items-start gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white/80 text-sm font-medium line-clamp-2">{q.questionText}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className={cn('badge text-xs border', DIFFICULTY_STYLES[q.difficulty])}>{q.difficulty}</span>
+                              <span className="text-white/30 text-xs">{q.options.filter(Boolean).length} options</span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => addGeneratedQuestion(q)}
+                            className="flex-shrink-0 p-1.5 rounded-lg bg-brand-500/15 text-brand-400 border border-brand-500/20 hover:bg-brand-500/25 transition-colors"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="flex items-center justify-between">
         <p className="text-white/50 text-sm">{questions.length} question{questions.length !== 1 ? 's' : ''} added</p>
         <button
           type="button"
           onClick={addQuestion}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-500/15 text-brand-400 border border-brand-500/25 hover:bg-brand-500/25 transition-all text-sm font-medium"
         >
-          <Plus className="w-4 h-4" /> Add Question
+          <Plus className="w-4 h-4" /> Add Manually
         </button>
       </div>
 
@@ -688,8 +939,110 @@ interface QuestionResponse {
   marks: number;
 }
 
+// ─── Reschedule Modal ─────────────────────────────────────────────────────────
+
+function RescheduleModal({
+  exam, onClose, onSaved,
+}: {
+  exam: ExamResponse;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const toLocalDT = (iso?: string) => {
+    if (!iso) return '';
+    // Format ISO → datetime-local value (YYYY-MM-DDTHH:mm)
+    return iso.slice(0, 16);
+  };
+
+  const [startAt, setStartAt] = useState(toLocalDT(exam.startAt));
+  const [endAt,   setEndAt]   = useState(toLocalDT(exam.endAt));
+  const [saving, setSaving]   = useState(false);
+
+  async function save() {
+    if (!startAt || !endAt) { toast.error('Both dates are required'); return; }
+    setSaving(true);
+    try {
+      await api.patch(`/api/v1/exams/${exam.id}/reschedule`, {
+        startAt: new Date(startAt).toISOString(),
+        endAt:   new Date(endAt).toISOString(),
+      });
+      toast.success('Exam rescheduled');
+      onSaved();
+    } catch {
+      toast.error('Failed to reschedule exam');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="glass rounded-2xl p-6 w-full max-w-md border border-white/10 space-y-5"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-white">
+            <Calendar className="w-5 h-5 text-brand-400" />
+            <h3 className="font-semibold">Reschedule Exam</h3>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <p className="text-white/50 text-sm line-clamp-1">{exam.title}</p>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm text-white/60 mb-1.5">New Start Date/Time</label>
+            <input
+              type="datetime-local"
+              className="input w-full"
+              value={startAt}
+              onChange={e => setStartAt(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-white/60 mb-1.5">New End Date/Time</label>
+            <input
+              type="datetime-local"
+              className="input w-full"
+              value={endAt}
+              onChange={e => setEndAt(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 pt-1">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 rounded-xl border border-white/10 text-white/50 hover:text-white hover:bg-white/5 transition-all text-sm"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={save}
+            disabled={saving || !startAt || !endAt}
+            className="flex-1 btn-primary flex items-center justify-center gap-2 disabled:opacity-40"
+          >
+            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : 'Save Schedule'}
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── My Exams Table ───────────────────────────────────────────────────────────
+
 function MyExamsTable() {
+  const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [rescheduleExam, setRescheduleExam] = useState<ExamResponse | null>(null);
 
   const { data: centers = [] } = useQuery<CenterResponse[]>({
     queryKey: ['teacher-centers'],
@@ -729,6 +1082,16 @@ function MyExamsTable() {
     retry: false,
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/api/v1/exams/${id}`),
+    onSuccess: () => {
+      toast.success('Exam cancelled');
+      queryClient.invalidateQueries({ queryKey: ['teacher-exams'] });
+      setConfirmDeleteId(null);
+    },
+    onError: () => toast.error('Failed to cancel exam'),
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-2">
@@ -751,89 +1114,147 @@ function MyExamsTable() {
   const OPTION_LABELS = ['A', 'B', 'C', 'D'];
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-white/40 text-xs uppercase tracking-wider border-b border-white/5">
-            <th className="text-left py-3 pr-4">Title</th>
-            <th className="text-left py-3 pr-4">Mode</th>
-            <th className="text-left py-3 pr-4">Duration</th>
-            <th className="text-left py-3 pr-4">Questions</th>
-            <th className="text-left py-3 pr-4">Status</th>
-            <th className="py-3 w-8" />
-          </tr>
-        </thead>
-        <tbody>
-          {exams.map((exam) => (
-            <>
-              <tr
-                key={exam.id}
-                onClick={() => setExpandedId(expandedId === exam.id ? null : exam.id)}
-                className="border-b border-white/5 hover:bg-white/2 transition-colors cursor-pointer"
-              >
-                <td className="py-3 pr-4 text-white font-medium">{exam.title}</td>
-                <td className="py-3 pr-4 text-white/60">{exam.mode}</td>
-                <td className="py-3 pr-4 text-white/60">
-                  <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{exam.durationMinutes} min</span>
-                </td>
-                <td className="py-3 pr-4 text-white/60">{exam.totalQuestions ?? '—'}</td>
-                <td className="py-3 pr-4">
-                  <span className={cn('badge', STATUS_STYLES[exam.status] ?? 'bg-white/10 text-white/50')}>
-                    {exam.status}
-                  </span>
-                </td>
-                <td className="py-3 text-white/30">
-                  {expandedId === exam.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </td>
-              </tr>
-              {expandedId === exam.id && (
-                <tr key={`${exam.id}-questions`}>
-                  <td colSpan={6} className="pb-4 pt-2 px-2">
-                    {questionsLoading ? (
-                      <div className="space-y-2">
-                        {[...Array(3)].map((_, i) => <div key={i} className="h-10 glass rounded-lg animate-pulse" />)}
-                      </div>
-                    ) : questions.length === 0 ? (
-                      <p className="text-white/30 text-xs py-3 text-center">No questions added yet.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {questions.map((q, i) => (
-                          <div key={q.id} className="glass rounded-xl p-4 border border-white/5 space-y-2">
-                            <p className="text-white/80 text-sm font-medium">
-                              <span className="text-brand-400 mr-2">Q{i + 1}.</span>{q.questionText}
-                            </p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                              {q.options.map((opt, oi) => (
-                                <div
-                                  key={oi}
-                                  className={cn(
-                                    'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs',
-                                    oi === q.correctAnswer
-                                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                                      : 'bg-white/3 text-white/50 border border-white/5'
-                                  )}
-                                >
-                                  <span className="font-bold flex-shrink-0">{OPTION_LABELS[oi]}.</span>
-                                  {opt}
-                                  {oi === q.correctAnswer && <CheckCircle2 className="w-3 h-3 ml-auto flex-shrink-0" />}
-                                </div>
-                              ))}
-                            </div>
-                            <div className="flex items-center gap-3 text-xs text-white/30">
-                              <span>{q.marks} mark{q.marks !== 1 ? 's' : ''}</span>
-                            </div>
+    <>
+      {/* Reschedule modal */}
+      <AnimatePresence>
+        {rescheduleExam && (
+          <RescheduleModal
+            exam={rescheduleExam}
+            onClose={() => setRescheduleExam(null)}
+            onSaved={() => {
+              setRescheduleExam(null);
+              queryClient.invalidateQueries({ queryKey: ['teacher-exams'] });
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-white/40 text-xs uppercase tracking-wider border-b border-white/5">
+              <th className="text-left py-3 pr-4">Title</th>
+              <th className="text-left py-3 pr-4">Mode</th>
+              <th className="text-left py-3 pr-4">Duration</th>
+              <th className="text-left py-3 pr-4">Questions</th>
+              <th className="text-left py-3 pr-4">Status</th>
+              <th className="py-3 pr-2 text-right">Actions</th>
+              <th className="py-3 w-8" />
+            </tr>
+          </thead>
+          <tbody>
+            {exams.map((exam) => (
+              <>
+                <tr
+                  key={exam.id}
+                  onClick={() => setExpandedId(expandedId === exam.id ? null : exam.id)}
+                  className="border-b border-white/5 hover:bg-white/2 transition-colors cursor-pointer"
+                >
+                  <td className="py-3 pr-4 text-white font-medium">{exam.title}</td>
+                  <td className="py-3 pr-4 text-white/60">{exam.mode}</td>
+                  <td className="py-3 pr-4 text-white/60">
+                    <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{exam.durationMinutes} min</span>
+                  </td>
+                  <td className="py-3 pr-4 text-white/60">{exam.totalQuestions ?? '—'}</td>
+                  <td className="py-3 pr-4">
+                    <span className={cn('badge', STATUS_STYLES[exam.status] ?? 'bg-white/10 text-white/50')}>
+                      {exam.status}
+                    </span>
+                  </td>
+                  <td className="py-3 pr-2 text-right" onClick={e => e.stopPropagation()}>
+                    {exam.status !== 'CANCELLED' && exam.status !== 'CLOSED' && (
+                      <div className="flex items-center justify-end gap-1.5">
+                        {/* Reschedule */}
+                        <button
+                          title="Reschedule"
+                          onClick={() => setRescheduleExam(exam)}
+                          className="p-1.5 rounded-lg text-brand-400/60 hover:text-brand-400 hover:bg-brand-500/10 transition-colors"
+                        >
+                          <Calendar className="w-3.5 h-3.5" />
+                        </button>
+                        {/* Cancel / Delete */}
+                        {confirmDeleteId === exam.id ? (
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-red-400">Sure?</span>
+                            <button
+                              onClick={() => deleteMutation.mutate(exam.id)}
+                              disabled={deleteMutation.isPending}
+                              className="px-2 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs hover:bg-red-500/30 transition-colors"
+                            >
+                              {deleteMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Yes'}
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="px-2 py-1 rounded-lg glass text-white/40 text-xs hover:text-white/60 transition-colors"
+                            >
+                              No
+                            </button>
                           </div>
-                        ))}
+                        ) : (
+                          <button
+                            title="Cancel exam"
+                            onClick={() => setConfirmDeleteId(exam.id)}
+                            className="p-1.5 rounded-lg text-red-400/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     )}
                   </td>
+                  <td className="py-3 text-white/30">
+                    {expandedId === exam.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </td>
                 </tr>
-              )}
-            </>
-          ))}
-        </tbody>
-      </table>
-    </div>
+                {expandedId === exam.id && (
+                  <tr key={`${exam.id}-questions`}>
+                    <td colSpan={7} className="pb-4 pt-2 px-2">
+                      {questionsLoading ? (
+                        <div className="space-y-2">
+                          {[...Array(3)].map((_, i) => <div key={i} className="h-10 glass rounded-lg animate-pulse" />)}
+                        </div>
+                      ) : questions.length === 0 ? (
+                        <p className="text-white/30 text-xs py-3 text-center">No questions added yet.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {questions.map((q, i) => (
+                            <div key={q.id} className="glass rounded-xl p-4 border border-white/5 space-y-2">
+                              <p className="text-white/80 text-sm font-medium">
+                                <span className="text-brand-400 mr-2">Q{i + 1}.</span>{q.questionText}
+                              </p>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                                {q.options.map((opt, oi) => (
+                                  <div
+                                    key={oi}
+                                    className={cn(
+                                      'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs',
+                                      oi === q.correctAnswer
+                                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                        : 'bg-white/3 text-white/50 border border-white/5'
+                                    )}
+                                  >
+                                    <span className="font-bold flex-shrink-0">{OPTION_LABELS[oi]}.</span>
+                                    {opt}
+                                    {oi === q.correctAnswer && <CheckCircle2 className="w-3 h-3 ml-auto flex-shrink-0" />}
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="flex items-center gap-3 text-xs text-white/30">
+                                <span>{q.marks} mark{q.marks !== 1 ? 's' : ''}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )}
+              </>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
@@ -999,6 +1420,7 @@ export default function MentorPortalExamsPage() {
             )}
             {step === 1 && (
               <Step2
+                examTitle={form.title}
                 questions={questions}
                 setQuestions={setQuestions}
                 onBack={() => setStep(0)}

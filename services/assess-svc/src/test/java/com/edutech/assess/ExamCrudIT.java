@@ -6,6 +6,7 @@ import com.edutech.assess.application.dto.CreateExamRequest;
 import com.edutech.assess.application.dto.ExamResponse;
 import com.edutech.assess.application.dto.AddQuestionRequest;
 import com.edutech.assess.application.dto.QuestionResponse;
+import com.edutech.assess.application.dto.RescheduleExamRequest;
 import com.edutech.assess.application.dto.SubmissionResponse;
 import com.edutech.assess.application.service.ExamService;
 import com.edutech.assess.application.service.QuestionService;
@@ -166,7 +167,7 @@ class ExamCrudIT {
                 "Full-stack persistence test",
                 BATCH_ID,
                 CENTER_ID,
-                ExamMode.STANDARD,
+                ExamMode.ONLINE,
                 90,   // durationMinutes
                 2,    // maxAttempts
                 Instant.now().plusSeconds(3600),
@@ -209,7 +210,7 @@ class ExamCrudIT {
                 null,
                 BATCH_ID,
                 CENTER_ID,
-                ExamMode.STANDARD,
+                ExamMode.ONLINE,
                 60, 1,
                 null, null,
                 50.0, 20.0
@@ -263,7 +264,7 @@ class ExamCrudIT {
                 "Test publish transition",
                 BATCH_ID,
                 CENTER_ID,
-                ExamMode.CAT,
+                ExamMode.ONLINE,
                 45, 1,
                 Instant.now().plusSeconds(1800),
                 Instant.now().plusSeconds(5400),
@@ -297,7 +298,7 @@ class ExamCrudIT {
                 null,
                 BATCH_ID,
                 CENTER_ID,
-                ExamMode.STANDARD,
+                ExamMode.ONLINE,
                 30, 3,
                 null, null,
                 20.0, 8.0
@@ -340,7 +341,7 @@ class ExamCrudIT {
                 null,
                 BATCH_ID,
                 CENTER_ID,
-                ExamMode.STANDARD,
+                ExamMode.ONLINE,
                 60, 1,
                 null, null,
                 10.0, 4.0
@@ -395,17 +396,17 @@ class ExamCrudIT {
 
         examService.createExam(new CreateExamRequest(
                 "Batch A Exam 1", null, BATCH_ID, CENTER_ID,
-                ExamMode.STANDARD, 30, 1, null, null, 10.0, 4.0
+                ExamMode.ONLINE, 30, 1, null, null, 10.0, 4.0
         ), adminPrincipal);
 
         examService.createExam(new CreateExamRequest(
                 "Batch A Exam 2", null, BATCH_ID, CENTER_ID,
-                ExamMode.STANDARD, 45, 1, null, null, 20.0, 8.0
+                ExamMode.ONLINE, 45, 1, null, null, 20.0, 8.0
         ), adminPrincipal);
 
         examService.createExam(new CreateExamRequest(
                 "Batch B Exam", null, otherBatchId, CENTER_ID,
-                ExamMode.STANDARD, 60, 1, null, null, 30.0, 12.0
+                ExamMode.ONLINE, 60, 1, null, null, 30.0, 12.0
         ), adminPrincipal);
 
         List<ExamResponse> batchExams =
@@ -419,5 +420,71 @@ class ExamCrudIT {
         assertThat(batchExams)
                 .extracting(ExamResponse::batchId)
                 .doesNotContain(otherBatchId);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Test 7: cancelExam_draftBecomesCANCELLED
+    // ---------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("cancelExam — DRAFT exam transitions to CANCELLED and persists")
+    void cancelExam_draftBecomesCANCELLED() {
+        ExamResponse draft = examService.createExam(new CreateExamRequest(
+                "Cancel Me Exam",
+                "Will be cancelled",
+                BATCH_ID,
+                CENTER_ID,
+                ExamMode.ONLINE,
+                60, 1,
+                Instant.now().plusSeconds(3600),
+                Instant.now().plusSeconds(7200),
+                50.0, 20.0
+        ), adminPrincipal);
+
+        assertThat(draft.status()).isEqualTo(ExamStatus.DRAFT);
+
+        examService.cancelExam(draft.id(), adminPrincipal);
+
+        Optional<com.edutech.assess.domain.model.Exam> fromDb =
+                examRepository.findById(draft.id());
+        assertThat(fromDb).isPresent();
+        assertThat(fromDb.get().getStatus()).isEqualTo(ExamStatus.CANCELLED);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Test 8: rescheduleExam_updatesStartAndEnd
+    // ---------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("rescheduleExam — updates startAt and endAt, persists new schedule")
+    void rescheduleExam_updatesStartAndEnd() {
+        ExamResponse draft = examService.createExam(new CreateExamRequest(
+                "Reschedule Me Exam",
+                "Will be rescheduled",
+                BATCH_ID,
+                CENTER_ID,
+                ExamMode.OFFLINE,
+                90, 1,
+                Instant.now().plusSeconds(3600),
+                Instant.now().plusSeconds(7200),
+                100.0, 40.0
+        ), adminPrincipal);
+
+        Instant newStart = Instant.now().plusSeconds(86400);   // +1 day
+        Instant newEnd   = Instant.now().plusSeconds(86400 + 5400); // +1 day 90 min
+
+        ExamResponse rescheduled = examService.rescheduleExam(
+                draft.id(),
+                new RescheduleExamRequest(newStart, newEnd),
+                adminPrincipal);
+
+        assertThat(rescheduled.startAt()).isEqualTo(newStart);
+        assertThat(rescheduled.endAt()).isEqualTo(newEnd);
+
+        Optional<com.edutech.assess.domain.model.Exam> fromDb =
+                examRepository.findById(draft.id());
+        assertThat(fromDb).isPresent();
+        assertThat(fromDb.get().getStartAt()).isEqualTo(newStart);
+        assertThat(fromDb.get().getEndAt()).isEqualTo(newEnd);
     }
 }

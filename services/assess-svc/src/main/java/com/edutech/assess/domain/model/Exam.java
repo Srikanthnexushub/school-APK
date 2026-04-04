@@ -113,10 +113,19 @@ public class Exam {
     }
 
     public void cancel() {
-        if (this.status == ExamStatus.CLOSED) {
-            throw new IllegalStateException("CLOSED exams cannot be cancelled");
+        if (this.status == ExamStatus.CLOSED || this.status == ExamStatus.CANCELLED) {
+            throw new IllegalStateException("CLOSED or CANCELLED exams cannot be cancelled");
         }
         this.status = ExamStatus.CANCELLED;
+        this.updatedAt = Instant.now();
+    }
+
+    public void reschedule(Instant newStartAt, Instant newEndAt) {
+        if (this.status == ExamStatus.CLOSED || this.status == ExamStatus.CANCELLED) {
+            throw new IllegalStateException("Cannot reschedule a CLOSED or CANCELLED exam");
+        }
+        this.startAt = newStartAt;
+        this.endAt = newEndAt;
         this.updatedAt = Instant.now();
     }
 

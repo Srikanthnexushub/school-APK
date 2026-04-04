@@ -4,6 +4,7 @@ package com.edutech.assess.api;
 import com.edutech.assess.application.dto.AuthPrincipal;
 import com.edutech.assess.application.dto.CreateExamRequest;
 import com.edutech.assess.application.dto.ExamResponse;
+import com.edutech.assess.application.dto.RescheduleExamRequest;
 import com.edutech.assess.application.dto.StudentExamResponse;
 import com.edutech.assess.domain.port.in.ListPublishedExamsUseCase;
 import com.edutech.assess.application.service.ExamService;
@@ -16,7 +17,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -82,5 +85,21 @@ public class ExamController {
             @PathVariable UUID examId,
             @AuthenticationPrincipal AuthPrincipal principal) {
         return examService.publishExam(examId, principal);
+    }
+
+    @DeleteMapping("/{examId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancelExam(
+            @PathVariable UUID examId,
+            @AuthenticationPrincipal AuthPrincipal principal) {
+        examService.cancelExam(examId, principal);
+    }
+
+    @PatchMapping("/{examId}/reschedule")
+    public ExamResponse rescheduleExam(
+            @PathVariable UUID examId,
+            @Valid @RequestBody RescheduleExamRequest request,
+            @AuthenticationPrincipal AuthPrincipal principal) {
+        return examService.rescheduleExam(examId, request, principal);
     }
 }
