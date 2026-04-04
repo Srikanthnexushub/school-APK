@@ -72,6 +72,7 @@ public class ContentService implements UploadContentUseCase {
         if (principal.belongsToCenter(centerId)) return true;
         if (teacherRepository.existsByUserIdAndCenterId(principal.userId(), centerId)) return true;
         if (principal.isStudent()) return true;
+        if (principal.isParent()) return true;
         return centerRepository.findById(centerId)
                 .map(c -> principal.belongsToCenter(centerId, c.getAdminUserId()))
                 .orElse(false);

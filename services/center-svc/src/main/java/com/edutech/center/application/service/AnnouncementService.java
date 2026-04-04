@@ -86,7 +86,7 @@ public class AnnouncementService implements SendAnnouncementUseCase {
     @Override
     @Transactional(readOnly = true)
     public List<AnnouncementResponse> listByCenterId(UUID centerId, AuthPrincipal principal) {
-        if (!principal.belongsToCenter(centerId) && !principal.isSuperAdmin() && !principal.isInstitutionAdmin()) {
+        if (!principal.belongsToCenter(centerId) && !principal.isSuperAdmin() && !principal.isInstitutionAdmin() && !principal.isParent()) {
             throw new CenterAccessDeniedException();
         }
         return announcementRepository.findActiveByCenterId(centerId).stream()

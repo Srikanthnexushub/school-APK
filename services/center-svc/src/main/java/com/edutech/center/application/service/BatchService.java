@@ -50,6 +50,7 @@ public class BatchService implements CreateBatchUseCase, UpdateBatchUseCase {
     }
 
     private boolean hasAccess(AuthPrincipal principal, UUID centerId) {
+        if (principal.isParent()) return true;
         if (principal.belongsToCenter(centerId)) return true;
         if (teacherRepository.existsByUserIdAndCenterId(principal.userId(), centerId)) return true;
         // Cover CENTER_ADMINs whose JWT still has centerId=null because the Kafka sync from

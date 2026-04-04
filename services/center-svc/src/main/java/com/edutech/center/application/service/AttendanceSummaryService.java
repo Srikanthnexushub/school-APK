@@ -46,7 +46,7 @@ public class AttendanceSummaryService {
     public List<AttendanceSummaryResponse> getSummary(UUID batchId, AuthPrincipal principal) {
         Batch batch = batchRepository.findById(batchId)
                 .orElseThrow(() -> new BatchNotFoundException(batchId));
-        if (!principal.belongsToCenter(batch.getCenterId()) && !principal.isSuperAdmin() && !principal.isInstitutionAdmin()) {
+        if (!principal.belongsToCenter(batch.getCenterId()) && !principal.isSuperAdmin() && !principal.isInstitutionAdmin() && !principal.isParent()) {
             throw new CenterAccessDeniedException();
         }
         List<BatchMember> members = batchMemberRepository.findActiveByBatchId(batchId);
