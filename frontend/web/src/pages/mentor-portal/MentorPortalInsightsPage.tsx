@@ -127,8 +127,8 @@ function BatchHealthSection({ userId }: { userId: string | undefined }) {
     retry: false,
   });
 
-  // Find centers owned by this user
-  const myCenters = centers?.filter((c) => c.ownerId === userId) ?? [];
+  // Use all centers the teacher is associated with (TEACHER is never the center owner)
+  const myCenters = centers ?? [];
 
   // Fetch batches for each center
   const { data: allBatches, isLoading: batchesLoading } = useQuery<BatchResponse[]>({

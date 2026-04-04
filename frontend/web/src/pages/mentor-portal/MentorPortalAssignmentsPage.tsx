@@ -494,13 +494,12 @@ function AssignmentCard({
   onGrade: (a: AssignmentResponse) => void;
 }) {
   const qc = useQueryClient();
-  const centerId = useAuthStore((s) => s.user?.centerId);
 
   const publishMutation = useMutation({
     mutationFn: () => api.patch(`/api/v1/assignments/${assignment.id}/publish`),
     onSuccess: () => {
       toast.success('Assignment published!');
-      qc.invalidateQueries({ queryKey: ['assignments', centerId] });
+      qc.invalidateQueries({ queryKey: ['assignments'] });
     },
     onError: () => toast.error('Failed to publish.'),
   });
@@ -576,9 +575,18 @@ function AssignmentCard({
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function MentorPortalAssignmentsPage() {
-  const centerId = useAuthStore((s) => s.user?.centerId);
+  const user = useAuthStore((s) => s.user);
   const [showCreate, setShowCreate] = useState(false);
   const [gradingAssignment, setGradingAssignment] = useState<AssignmentResponse | null>(null);
+
+  const { data: centers = [] } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ['centers'],
+    queryFn: () => api.get('/api/v1/centers').then(r => Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+  const centerId = centers[0]?.id ?? '';
 
   const { data: centerInfo } = useQuery({
     queryKey: ['center-info-mentor', centerId],

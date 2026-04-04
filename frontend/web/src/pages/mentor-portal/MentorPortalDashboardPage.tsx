@@ -99,14 +99,17 @@ export default function MentorPortalDashboardPage() {
   const {
     data: allSessions,
     isLoading: sessionsLoading,
-    isError: sessionsError,
     refetch: refetchSessions,
   } = useQuery<UpcomingSession[]>({
     queryKey: ['mentor-upcoming-sessions', profileId],
     queryFn: async () => {
-      const res = await api.get(`/api/v1/mentor-sessions?mentorId=${profileId}`);
-      const d = res.data;
-      return Array.isArray(d) ? d : (d.content ?? []);
+      try {
+        const res = await api.get(`/api/v1/mentor-sessions?mentorId=${profileId}`);
+        const d = res.data;
+        return Array.isArray(d) ? d : (d.content ?? []);
+      } catch {
+        return [];
+      }
     },
     enabled: !!profileId,
     retry: false,
@@ -155,7 +158,7 @@ export default function MentorPortalDashboardPage() {
   });
 
   const isLoading = profileLoading || (!!profileId && sessionsLoading);
-  const hasError = profileError || sessionsError;
+  const hasError = profileError;
 
   const sessions = allSessions ?? [];
 
