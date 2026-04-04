@@ -12,6 +12,7 @@ interface StudentLink {
   batchId?: string;
   centerId?: string;
 }
+interface GradeResponse { centerId: string; batchId: string; }
 
 interface AttendanceSummary {
   studentId: string;
@@ -31,16 +32,41 @@ function getPctColor(pct: number) {
 }
 
 function AttendanceCard({ link }: { link: StudentLink }) {
-  const { data: summary, isLoading } = useQuery<AttendanceSummary | undefined>({
-    queryKey: ['attendance-summary', link.centerId, link.batchId, link.studentId],
-    queryFn: () =>
-      api.get(`/api/v1/centers/${link.centerId}/batches/${link.batchId}/attendance/summary`)
-        .then(r => {
-          const list: AttendanceSummary[] = Array.isArray(r.data) ? r.data : (r.data.content ?? []);
-          return list.find(s => s.studentId === link.studentId);
-        }),
-    enabled: !!link.centerId && !!link.batchId,
+  const centerId = link.centerId && link.centerId !== '00000000-0000-0000-0000-000000000000' ? link.centerId : undefined;
+  const batchId  = link.batchId;
+
+  // Fetch all batches for the center when no batchId in link
+  const { data: batches = [], isLoading: batchesLoading } = useQuery<{ id: string }[]>({
+    queryKey: ['center-batches-for-attendance', centerId],
+    queryFn: () => api.get(`/api/v1/centers/${centerId}/batches`).then(r =>
+      Array.isArray(r.data) ? r.data : (r.data.content ?? [])),
+    enabled: !!centerId && !batchId,
+    staleTime: 5 * 60_000,
+    retry: false,
   });
+
+  // If batchId provided, search only that; otherwise search ALL batches for the one with actual data
+  const batchIds = batchId ? [batchId] : batches.map(b => b.id);
+
+  const { data: summary, isLoading: summaryLoading } = useQuery<AttendanceSummary | undefined>({
+    queryKey: ['attendance-summary', centerId, link.studentId, batchIds.join(',')],
+    queryFn: async () => {
+      let fallback: AttendanceSummary | undefined;
+      for (const bid of batchIds) {
+        const r = await api.get(`/api/v1/centers/${centerId}/batches/${bid}/attendance/summary`);
+        const list: AttendanceSummary[] = Array.isArray(r.data) ? r.data : (r.data.content ?? []);
+        const found = list.find(s => s.studentId === link.studentId);
+        if (found) {
+          if (found.totalDays > 0) return found;  // has real data — use this batch
+          if (!fallback) fallback = found;          // keep as fallback (enrolled but 0 days)
+        }
+      }
+      return fallback;
+    },
+    enabled: !!centerId && batchIds.length > 0,
+  });
+
+  const isLoading = batchesLoading || summaryLoading;
 
   if (isLoading) return <div className="bg-surface-50/40 border border-white/5 rounded-2xl p-6 text-white/40 text-sm">Loading...</div>;
   if (!summary) return (
