@@ -83,8 +83,8 @@ const NexusChatWidget: React.FC = () => {
         <motion.button
           className="w-14 h-14 rounded-full text-white shadow-xl flex items-center justify-center cursor-grab active:cursor-grabbing"
           style={{
-            background: 'linear-gradient(135deg, #00f5ff 0%, #bf5af2 50%, #ff375f 100%)',
-            boxShadow: '0 0 16px rgba(0,245,255,0.5), 0 0 32px rgba(191,90,242,0.35)',
+            background: 'linear-gradient(135deg, rgba(0,245,255,0.55) 0%, rgba(191,90,242,0.55) 50%, rgba(255,55,95,0.55) 100%)',
+            boxShadow: '0 0 12px rgba(0,245,255,0.3), 0 0 24px rgba(191,90,242,0.2)',
           }}
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.95 }}

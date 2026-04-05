@@ -1,6 +1,6 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Mic, MicOff, Loader2, Volume2, AlertCircle, Radio } from 'lucide-react';
+import { Mic, Loader2, Volume2, AlertCircle, Radio, Send } from 'lucide-react';
 import type { VoiceState, UseVoiceAgentReturn } from './useVoiceAgent';
 import type { VoicePersonaConfig } from './voicePersonas';
 import { VoiceWaveform } from './VoiceWaveform';
@@ -25,9 +25,17 @@ interface VoiceOrbProps {
  */
 export function VoiceOrb({ agent, size = 96 }: VoiceOrbProps) {
   const { state, persona, transcript, messages, error, inputLevel,
-          startListening, stopListening, connect, disconnect } = agent;
+          startListening, stopListening, connect, disconnect, sendText } = agent;
+  const [textInput, setTextInput] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+
+  const handleSendText = useCallback(() => {
+    if (!textInput.trim()) return;
+    sendText(textInput.trim());
+    setTextInput('');
+  }, [textInput, sendText]);
 
   const handleOrbClick = useCallback(() => {
     if (state === 'idle')      { connect(); return; }
@@ -112,21 +120,6 @@ export function VoiceOrb({ agent, size = 96 }: VoiceOrbProps) {
         </motion.button>
       </div>
 
-      {/* ── Persona name ──────────────────────────────────────────────────── */}
-      {persona && state !== 'idle' && (
-        <div className="text-center">
-          <span
-            className="text-base font-bold tracking-widest uppercase"
-            style={{ color: persona.accentHex }}
-          >
-            {persona.name}
-          </span>
-          <p className="text-xs text-gray-500 mt-0.5 max-w-[220px] leading-tight">
-            {persona.tagline}
-          </p>
-        </div>
-      )}
-
       {state === 'idle' && (
         <p className="text-xs text-gray-500">Tap to start voice agent</p>
       )}
@@ -149,31 +142,41 @@ export function VoiceOrb({ agent, size = 96 }: VoiceOrbProps) {
         )}
       </AnimatePresence>
 
-      {/* ── Status line ───────────────────────────────────────────────────── */}
+      {/* ── Status + text feedback ────────────────────────────────────────── */}
       <AnimatePresence>
+        {state === 'ready' && !lastAssistant && (
+          <motion.p key="welcome" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="text-xs text-gray-300 max-w-[220px] text-center leading-relaxed">
+            Hi! I'm SRI. Tap the mic and ask me anything.
+          </motion.p>
+        )}
         {state === 'listening' && (
-          <motion.p
-            key="listening-hint"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="text-xs font-medium"
-            style={{ color: persona?.accentHex ?? '#818cf8' }}
-          >
-            Listening… tap to send
+          <motion.p key="listening-hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="text-xs font-semibold"
+            style={{ color: persona?.accentHex ?? '#818cf8' }}>
+            Listening… speak now
           </motion.p>
         )}
         {state === 'thinking' && (
           <motion.p key="thinking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="text-xs text-gray-400">Processing…</motion.p>
+            className="text-xs text-gray-400">Thinking…</motion.p>
         )}
-        {transcript && state === 'thinking' && (
+        {transcript && (state === 'thinking' || state === 'speaking' || state === 'ready') && (
           <motion.p key="transcript" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="text-xs text-gray-300 italic max-w-[260px] text-center">
-            "{transcript}"
+            className="text-xs text-gray-400 italic max-w-[220px] text-center leading-snug">
+            You: "{transcript}"
           </motion.p>
         )}
-        {lastAssistant && state === 'speaking' && (
+        {state === 'speaking' && (
+          <motion.p key="speaking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="text-xs font-semibold"
+            style={{ color: persona?.accentHex ?? '#818cf8' }}>
+            Speaking
+          </motion.p>
+        )}
+        {lastAssistant && (state === 'speaking' || state === 'ready') && (
           <motion.p key="response" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="text-xs text-gray-300 max-w-[280px] text-center leading-relaxed">
+            className="text-xs text-gray-200 max-w-[220px] text-center leading-snug">
             {lastAssistant.text}
           </motion.p>
         )}
@@ -184,6 +187,33 @@ export function VoiceOrb({ agent, size = 96 }: VoiceOrbProps) {
           </motion.p>
         )}
       </AnimatePresence>
+
+      {/* ── Text input ───────────────────────────────────────────────────── */}
+      {(state === 'ready' || state === 'listening' || state === 'speaking') && (
+        <div className="flex items-center gap-1 w-full px-2 mt-1">
+          <input
+            ref={inputRef}
+            type="text"
+            value={textInput}
+            onChange={e => setTextInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); handleSendText(); } }}
+            onPointerDown={e => e.stopPropagation()}
+            placeholder="Type a message…"
+            className="flex-1 text-xs bg-white/5 border rounded-lg px-2 py-1.5 text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-1"
+            style={{ borderColor: `${persona?.accentHex ?? '#818cf8'}30`,
+                     ['--tw-ring-color' as string]: persona?.accentHex ?? '#818cf8' }}
+          />
+          <button
+            onClick={e => { e.stopPropagation(); handleSendText(); }}
+            onPointerDown={e => e.stopPropagation()}
+            disabled={!textInput.trim()}
+            className="p-1.5 rounded-lg disabled:opacity-30 transition-colors"
+            style={{ color: persona?.accentHex ?? '#818cf8' }}
+          >
+            <Send size={12} />
+          </button>
+        </div>
+      )}
 
       {/* ── Disconnect ────────────────────────────────────────────────────── */}
       {state !== 'idle' && (
@@ -206,7 +236,7 @@ function OrbIcon({ state, size }: { state: VoiceState; size: number }) {
     case 'idle':        return <Radio size={s} className="text-gray-400" />;
     case 'connecting':  return <Loader2 size={s} className="text-gray-300 animate-spin" />;
     case 'ready':       return <Mic size={s} className="text-white" />;
-    case 'listening':   return <MicOff size={s} className="text-white" />;
+    case 'listening':   return <Mic size={s} className="text-white animate-pulse" />;
     case 'thinking':    return <Loader2 size={s} className="text-white animate-spin" />;
     case 'speaking':    return <Volume2 size={s} className="text-white" />;
     case 'error':       return <AlertCircle size={s} className="text-red-300" />;

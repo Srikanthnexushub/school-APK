@@ -56,7 +56,7 @@ export default function VoiceFloatingWidget() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.92, y: 8 }}
               transition={{ duration: 0.22, ease: 'easeOut' }}
-              className="w-[260px] rounded-2xl border shadow-2xl overflow-hidden"
+              className="w-[300px] rounded-2xl border shadow-2xl overflow-hidden"
               style={{
                 background: 'linear-gradient(135deg, #0a0d1a 0%, #0f1629 100%)',
                 borderColor: `${persona.accentHex}30`,
@@ -92,7 +92,7 @@ export default function VoiceFloatingWidget() {
               </div>
 
               {/* Orb content */}
-              <div className="flex items-center justify-center py-6">
+              <div className="flex items-center justify-center py-4 px-3 overflow-y-auto max-h-[420px]">
                 <VoiceOrb agent={agent} size={80} />
               </div>
             </motion.div>

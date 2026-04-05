@@ -26,7 +26,7 @@ public class DeepgramSTTClient {
     private static final Logger log = LoggerFactory.getLogger(DeepgramSTTClient.class);
     private static final String DEEPGRAM_BASE = "https://api.deepgram.com";
     private static final String LISTEN_PATH   =
-            "/v1/listen?model=nova-2&smart_format=true&language=en-IN&punctuate=true";
+            "/v1/listen?model=nova-2&smart_format=true&language=en&punctuate=true&detect_language=false";
 
     private final WebClient webClient;
     private final VoiceGatewayProperties props;
@@ -49,7 +49,9 @@ public class DeepgramSTTClient {
             log.warn("Deepgram key not configured — returning echo transcript for dev");
             return Mono.just("[dev-mode: audio received, " + audioBytes.length + " bytes]");
         }
-        if (audioBytes.length < 100) {
+        log.info("Deepgram STT: sending {} bytes", audioBytes.length);
+        if (audioBytes.length < 200) {
+            log.warn("Deepgram STT: audio too small ({} bytes), skipping", audioBytes.length);
             return Mono.just("");
         }
         return webClient.post()

@@ -1,15 +1,14 @@
 /**
- * useVoiceAgent — enterprise WebSocket voice agent hook.
+ * useVoiceAgent — zero third-party voice API pipeline.
  *
- * Pipeline:
- *   MediaRecorder (webm/opus) → WebSocket (binary frames)
- *   → Backend STT (Deepgram) → LLM → TTS (ElevenLabs)
- *   → WebSocket (binary MP3) → AudioContext playback
+ * STT:  Browser Web Speech API (SpeechRecognition) — free, built-in Chrome/Edge/Android
+ * LLM:  Backend WebSocket → OpenRouter (existing)
+ * TTS:  Browser Web Speech API (SpeechSynthesis)   — free, fully on-device
  *
- * VAD (Voice Activity Detection) is done via AnalyserNode RMS:
- *   if energy < VAD_THRESHOLD for VAD_SILENCE_MS → auto-send audio_end
+ * No Deepgram. No ElevenLabs. No audio upload to backend.
+ * Backend only handles LLM routing via text_input WebSocket messages.
  *
- * Barge-in: calling stopListening() mid-TTS cancels playback immediately.
+ * Barge-in: tap orb while speaking → cancels TTS and starts listening again.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { personaForRole, type UserRole, type VoicePersonaConfig } from './voicePersonas';
@@ -20,9 +19,9 @@ export type VoiceState =
   | 'idle'       // not connected
   | 'connecting' // WS handshake in progress
   | 'ready'      // connected, waiting for user to start
-  | 'listening'  // microphone active, capturing audio
-  | 'thinking'   // STT+LLM in progress
-  | 'speaking'   // TTS audio playing
+  | 'listening'  // SpeechRecognition active
+  | 'thinking'   // LLM in progress
+  | 'speaking'   // SpeechSynthesis playing
   | 'error';     // fatal error
 
 export interface VoiceAgentMessage {
@@ -41,37 +40,81 @@ export interface UseVoiceAgentReturn {
   stopListening: () => void;
   connect: () => void;
   disconnect: () => void;
-  /** Volume level 0–1 for waveform visualizer */
+  sendText: (text: string) => void;
   inputLevel: number;
 }
 
-// ── Constants ────────────────────────────────────────────────────────────────
+// ── Browser SpeechRecognition type declarations ───────────────────────────────
+// Not in lib.dom.d.ts — declared manually for Chrome/Edge/Android support.
 
-const VAD_THRESHOLD   = 0.012;  // RMS below this = silence
-const VAD_SILENCE_MS  = 1400;   // ms of silence before auto-sending
-// Use dynamic origin so http:// → ws:// and https:// → wss:// automatically
-const WS_GATEWAY_URL  = (import.meta.env.VITE_API_BASE_URL || `${window.location.protocol}//${window.location.host}`)
+interface SpeechRecognitionResultItem {
+  readonly transcript: string;
+  readonly confidence: number;
+}
+interface SpeechRecognitionResult {
+  readonly isFinal: boolean;
+  readonly length: number;
+  item(index: number): SpeechRecognitionResultItem;
+  [index: number]: SpeechRecognitionResultItem;
+}
+interface SpeechRecognitionResultList {
+  readonly length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+interface SpeechRecognitionEvent extends Event {
+  readonly resultIndex: number;
+  readonly results: SpeechRecognitionResultList;
+}
+interface SpeechRecognitionErrorEvent extends Event {
+  readonly error: string;
+  readonly message: string;
+}
+interface ISpeechRecognition extends EventTarget {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onstart: ((ev: Event) => void) | null;
+  onresult: ((ev: SpeechRecognitionEvent) => void) | null;
+  onerror: ((ev: SpeechRecognitionErrorEvent) => void) | null;
+  onend: ((ev: Event) => void) | null;
+  start(): void;
+  stop(): void;
+  abort(): void;
+}
+type SpeechRecognitionCtor = new () => ISpeechRecognition;
+
+const SpeechRecognitionAPI: SpeechRecognitionCtor | undefined =
+  (window as unknown as { SpeechRecognition?: SpeechRecognitionCtor; webkitSpeechRecognition?: SpeechRecognitionCtor })
+    .SpeechRecognition ??
+  (window as unknown as { webkitSpeechRecognition?: SpeechRecognitionCtor })
+    .webkitSpeechRecognition;
+
+// ── WebSocket URL ─────────────────────────────────────────────────────────────
+
+const WS_GATEWAY_URL = (import.meta.env.VITE_API_BASE_URL || `${window.location.protocol}//${window.location.host}`)
   .replace(/^http/, 'ws') + '/api/v1/ai/voice/ws';
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
 export function useVoiceAgent(role: UserRole, jwtToken: string): UseVoiceAgentReturn {
-  const [state, setState] = useState<VoiceState>('idle');
+  const [state, setState]         = useState<VoiceState>('idle');
   const [transcript, setTranscript] = useState('');
-  const [messages, setMessages] = useState<VoiceAgentMessage[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [persona, setPersona] = useState<VoicePersonaConfig | null>(null);
+  const [messages, setMessages]   = useState<VoiceAgentMessage[]>([]);
+  const [error, setError]         = useState<string | null>(null);
+  const [persona, setPersona]     = useState<VoicePersonaConfig | null>(null);
   const [inputLevel, setInputLevel] = useState(0);
 
-  const wsRef        = useRef<WebSocket | null>(null);
-  const recorderRef  = useRef<MediaRecorder | null>(null);
-  const audioCtxRef  = useRef<AudioContext | null>(null);
-  const analyserRef  = useRef<AnalyserNode | null>(null);
-  const streamRef    = useRef<MediaStream | null>(null);
-  const vadTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const rafRef       = useRef<number | null>(null);
-  const mp3BufRef    = useRef<Uint8Array[]>([]);
-  const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
+  const wsRef          = useRef<WebSocket | null>(null);
+  const messagesRef    = useRef<VoiceAgentMessage[]>([]);
+  const recognitionRef = useRef<ISpeechRecognition | null>(null);
+  const levelTimerRef  = useRef<ReturnType<typeof setInterval> | null>(null);
+  const stateRef       = useRef<VoiceState>('idle');
+
+  // Keep stateRef in sync — lets async callbacks read current state
+  useEffect(() => { stateRef.current = state; }, [state]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   // ── Connect ───────────────────────────────────────────────────────────────
 
@@ -82,20 +125,13 @@ export function useVoiceAgent(role: UserRole, jwtToken: string): UseVoiceAgentRe
 
     const url = `${WS_GATEWAY_URL}?token=${encodeURIComponent(jwtToken)}`;
     const ws = new WebSocket(url);
-    ws.binaryType = 'arraybuffer';
     wsRef.current = ws;
 
-    ws.onopen = () => {
-      // wait for "connected" message from server
-    };
+    ws.onopen = () => { /* wait for server "connected" message */ };
 
-    ws.onmessage = async (evt) => {
-      if (typeof evt.data === 'string') {
-        handleTextMessage(evt.data);
-      } else {
-        // Binary: MP3 chunk from ElevenLabs TTS
-        mp3BufRef.current.push(new Uint8Array(evt.data as ArrayBuffer));
-      }
+    ws.onmessage = (evt) => {
+      if (typeof evt.data === 'string') handleServerMessage(evt.data);
+      // Binary frames (ElevenLabs MP3) ignored — we use SpeechSynthesis instead
     };
 
     ws.onerror = () => {
@@ -104,11 +140,11 @@ export function useVoiceAgent(role: UserRole, jwtToken: string): UseVoiceAgentRe
     };
 
     ws.onclose = () => {
-      if (state !== 'error') setState('idle');
+      if (stateRef.current !== 'error') setState('idle');
     };
   }, [jwtToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleTextMessage = (raw: string) => {
+  const handleServerMessage = (raw: string) => {
     let msg: Record<string, string>;
     try { msg = JSON.parse(raw); } catch { return; }
 
@@ -119,6 +155,7 @@ export function useVoiceAgent(role: UserRole, jwtToken: string): UseVoiceAgentRe
         break;
 
       case 'transcript':
+        // Echo back the transcript that was sent as text_input
         if (msg.text) {
           setTranscript(msg.text);
           setMessages(prev => [...prev, { role: 'user', text: msg.text, timestamp: Date.now() }]);
@@ -131,11 +168,11 @@ export function useVoiceAgent(role: UserRole, jwtToken: string): UseVoiceAgentRe
           setMessages(prev => [...prev, { role: 'assistant', text: msg.text, timestamp: Date.now() }]);
         }
         setState('speaking');
-        mp3BufRef.current = []; // reset buffer for this response
         break;
 
       case 'tts_done':
-        playAccumulatedMp3();
+        // Backend finished — speak the response via browser SpeechSynthesis
+        speakLastResponse();
         break;
 
       case 'pong':
@@ -144,198 +181,149 @@ export function useVoiceAgent(role: UserRole, jwtToken: string): UseVoiceAgentRe
       case 'error':
         setError(msg.message || 'Unknown error');
         setState('error');
-        setTimeout(() => setState('ready'), 3000);
+        setTimeout(() => { if (stateRef.current === 'error') setState('ready'); }, 3000);
         break;
     }
   };
 
-  // ── Audio playback ────────────────────────────────────────────────────────
+  // ── TTS — browser SpeechSynthesis ────────────────────────────────────────
 
-  const playAccumulatedMp3 = async () => {
-    const chunks = mp3BufRef.current;
-    mp3BufRef.current = [];
-    if (chunks.length === 0) { setState('ready'); return; }
-
-    const totalLen = chunks.reduce((acc, c) => acc + c.length, 0);
-    const merged = new Uint8Array(totalLen);
-    let offset = 0;
-    for (const c of chunks) { merged.set(c, offset); offset += c.length; }
-
-    try {
-      const ctx = getAudioContext();
-      const decoded = await ctx.decodeAudioData(merged.buffer);
-      const source = ctx.createBufferSource();
-      source.buffer = decoded;
-      source.connect(ctx.destination);
-      sourceNodeRef.current = source;
-      source.start(0);
-      source.onended = () => {
-        sourceNodeRef.current = null;
-        setState('ready');
-      };
-    } catch {
+  const speakLastResponse = useCallback(() => {
+    const lastMsg = [...messagesRef.current].reverse().find(m => m.role === 'assistant');
+    if (!lastMsg?.text || !window.speechSynthesis) {
       setState('ready');
+      return;
     }
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(lastMsg.text);
+    utt.lang  = 'en-IN';
+    utt.rate  = 1.0;
+    utt.pitch = 1.0;
+    // Pick a good voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v =>
+      v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha'))
+    ) ?? voices.find(v => v.lang.startsWith('en'));
+    if (preferred) utt.voice = preferred;
+    utt.onend    = () => { if (stateRef.current === 'speaking') setState('ready'); };
+    utt.onerror  = () => setState('ready');
+    window.speechSynthesis.speak(utt);
+  }, []);
+
+  const stopSpeaking = () => {
+    if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel();
   };
 
-  const stopTtsPlayback = () => {
-    try { sourceNodeRef.current?.stop(); } catch { /* ignore */ }
-    sourceNodeRef.current = null;
-    mp3BufRef.current = [];
-  };
+  // ── STT — browser SpeechRecognition ──────────────────────────────────────
 
-  // ── Microphone ────────────────────────────────────────────────────────────
+  const startListening = useCallback(() => {
+    if (stateRef.current !== 'ready' && stateRef.current !== 'speaking') return;
+    stopSpeaking(); // barge-in
 
-  const startListening = useCallback(async () => {
-    if (state !== 'ready' && state !== 'listening') return;
-    stopTtsPlayback(); // barge-in: stop TTS if speaking
-
-    // getUserMedia requires a secure context (HTTPS or localhost)
-    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-      setError('Microphone requires HTTPS. Please open the app at https://');
+    if (!SpeechRecognitionAPI) {
+      setError('Speech recognition not supported. Use Chrome or Edge, or type below.');
       setState('error');
+      setTimeout(() => setState('ready'), 3000);
       return;
     }
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000 },
-      });
-      streamRef.current = stream;
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang            = 'en-IN';
+    recognition.continuous      = false;
+    recognition.interimResults  = true;
+    recognition.maxAlternatives = 1;
+    recognitionRef.current = recognition;
 
-      // Analyser for VAD + waveform level
-      const ctx = getAudioContext();
-      const source = ctx.createMediaStreamSource(stream);
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 512;
-      source.connect(analyser);
-      analyserRef.current = analyser;
+    // Fake level animation while listening
+    let level = 0;
+    levelTimerRef.current = setInterval(() => {
+      level = Math.random() * 0.6 + 0.2;
+      setInputLevel(level);
+    }, 120);
 
-      // MediaRecorder — webm/opus (Deepgram nova-2 accepts this natively)
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/webm';
-      const recorder = new MediaRecorder(stream, { mimeType });
-      recorderRef.current = recorder;
+    recognition.onstart = () => setState('listening');
 
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
-          wsRef.current.send(e.data);
-        }
-      };
-      recorder.start(200); // chunk every 200ms
-
-      setState('listening');
-      startVad();
-      startLevelMonitor();
-    } catch (e: unknown) {
-      if (e instanceof DOMException) {
-        if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
-          setError('Microphone permission denied. Allow it in browser/OS settings.');
-        } else if (e.name === 'NotFoundError') {
-          setError('No microphone found on this device.');
-        } else {
-          setError(`Microphone error: ${e.name}`);
-        }
-      } else {
-        setError('Microphone access failed. Check browser/OS permissions.');
+    recognition.onresult = (event) => {
+      let interim = '';
+      let final   = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) final += t;
+        else interim += t;
       }
-      setState('error');
-    }
-  }, [state]);
+      // Show interim transcript in UI
+      if (interim) setTranscript(interim);
+      // On final result — send to backend LLM
+      if (final.trim()) {
+        setTranscript(final.trim());
+        sendTextInternal(final.trim());
+      }
+    };
+
+    recognition.onerror = (event) => {
+      clearLevelTimer();
+      setInputLevel(0);
+      if (event.error === 'no-speech') {
+        // Silently go back to ready — user just didn't speak
+        setState('ready');
+      } else if (event.error === 'not-allowed' || event.error === 'audio-capture') {
+        setError('Microphone permission denied. Allow it in browser/OS settings.');
+        setState('error');
+      } else if (event.error === 'network') {
+        setError('Speech recognition needs internet. Try typing instead.');
+        setState('error');
+        setTimeout(() => setState('ready'), 3000);
+      } else {
+        setState('ready');
+      }
+    };
+
+    recognition.onend = () => {
+      clearLevelTimer();
+      setInputLevel(0);
+      // If still in listening state (no result came), go back to ready
+      if (stateRef.current === 'listening') setState('ready');
+    };
+
+    recognition.start();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stopListening = useCallback(() => {
-    clearVad();
-    cancelLevelMonitor();
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    clearLevelTimer();
     setInputLevel(0);
-
-    const recorder = recorderRef.current;
-    if (recorder && recorder.state !== 'inactive') {
-      recorder.stop();
-    }
-    recorderRef.current = null;
-
-    streamRef.current?.getTracks().forEach(t => t.stop());
-    streamRef.current = null;
-
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: 'audio_end' }));
-    }
-    setState('thinking');
+    if (stateRef.current === 'listening') setState('ready');
   }, []);
 
-  // ── VAD ───────────────────────────────────────────────────────────────────
-
-  const startVad = () => {
-    const check = () => {
-      const analyser = analyserRef.current;
-      if (!analyser) return;
-      const buf = new Float32Array(analyser.fftSize);
-      analyser.getFloatTimeDomainData(buf);
-      const rms = Math.sqrt(buf.reduce((s, v) => s + v * v, 0) / buf.length);
-      if (rms < VAD_THRESHOLD) {
-        if (!vadTimerRef.current) {
-          vadTimerRef.current = setTimeout(() => {
-            if (recorderRef.current?.state === 'recording') stopListening();
-          }, VAD_SILENCE_MS);
-        }
-      } else {
-        clearVad();
-      }
-      rafRef.current = requestAnimationFrame(check);
-    };
-    rafRef.current = requestAnimationFrame(check);
+  const clearLevelTimer = () => {
+    if (levelTimerRef.current) { clearInterval(levelTimerRef.current); levelTimerRef.current = null; }
   };
 
-  const clearVad = () => {
-    if (vadTimerRef.current) { clearTimeout(vadTimerRef.current); vadTimerRef.current = null; }
+  // ── Send text to backend ──────────────────────────────────────────────────
+
+  const sendTextInternal = (text: string) => {
+    if (!text.trim() || wsRef.current?.readyState !== WebSocket.OPEN) return;
+    setMessages(prev => [...prev, { role: 'user', text: text.trim(), timestamp: Date.now() }]);
+    wsRef.current.send(JSON.stringify({ type: 'text_input', text: text.trim() }));
+    setState('thinking');
   };
 
-  // ── Input level monitor (for waveform UI) ─────────────────────────────────
-
-  const startLevelMonitor = () => {
-    const measure = () => {
-      const analyser = analyserRef.current;
-      if (!analyser) return;
-      const buf = new Float32Array(analyser.fftSize);
-      analyser.getFloatTimeDomainData(buf);
-      const rms = Math.sqrt(buf.reduce((s, v) => s + v * v, 0) / buf.length);
-      setInputLevel(Math.min(1, rms * 10));
-      rafRef.current = requestAnimationFrame(measure);
-    };
-    rafRef.current = requestAnimationFrame(measure);
-  };
-
-  const cancelLevelMonitor = () => {
-    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
-  };
+  const sendText = useCallback((text: string) => {
+    sendTextInternal(text);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Disconnect ────────────────────────────────────────────────────────────
 
   const disconnect = useCallback(() => {
-    stopTtsPlayback();
-    clearVad();
-    cancelLevelMonitor();
-    recorderRef.current?.stop();
-    streamRef.current?.getTracks().forEach(t => t.stop());
+    stopSpeaking();
+    stopListening();
     wsRef.current?.close();
     wsRef.current = null;
     setState('idle');
-  }, []);
+  }, [stopListening]);
 
   useEffect(() => () => disconnect(), [disconnect]);
-
-  // ── Shared AudioContext ───────────────────────────────────────────────────
-
-  const getAudioContext = (): AudioContext => {
-    if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
-      audioCtxRef.current = new AudioContext();
-    }
-    if (audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume();
-    }
-    return audioCtxRef.current;
-  };
 
   return {
     state,
@@ -347,6 +335,7 @@ export function useVoiceAgent(role: UserRole, jwtToken: string): UseVoiceAgentRe
     stopListening,
     connect,
     disconnect,
+    sendText,
     inputLevel,
   };
 }

@@ -13,7 +13,7 @@
 export type PersonaName = 'NEO' | 'SAGE' | 'ARIA' | 'APEX' | 'NEXUS';
 
 export interface VoicePersonaConfig {
-  name: PersonaName;
+  name: string;
   tagline: string;
   /** Primary neon glow colour (Tailwind arbitrary value) */
   glowColor: string;
@@ -27,8 +27,8 @@ export interface VoicePersonaConfig {
 
 export const PERSONA_CONFIGS: Record<PersonaName, VoicePersonaConfig> = {
   NEO: {
-    name: 'NEO',
-    tagline: 'Your AI study companion. Ready to help you ace every exam.',
+    name: 'SRI',
+    tagline: '',
     glowColor: 'rgba(99,102,241,0.6)',   // indigo
     orbGradient: 'radial-gradient(circle at 35% 35%, #818cf8, #4f46e5, #1e1b4b)',
     accentHex: '#818cf8',

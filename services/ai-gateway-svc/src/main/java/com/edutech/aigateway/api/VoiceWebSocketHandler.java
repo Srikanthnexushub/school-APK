@@ -144,10 +144,16 @@ public class VoiceWebSocketHandler implements WebSocketHandler {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> json = objectMapper.readValue(text, Map.class);
                 return switch ((String) json.getOrDefault("type", "")) {
-                    case "audio_end" -> runPipeline(audioChunks, sink, session, principal, persona, voiceId);
-                    case "cancel"    -> { audioChunks.clear(); yield Mono.empty(); }
-                    case "ping"      -> { emitJson(sink, session, Map.of("type", "pong")); yield Mono.empty(); }
-                    default          -> Mono.empty();
+                    case "audio_end"   -> runPipeline(audioChunks, sink, session, principal, persona, voiceId);
+                    case "text_input"  -> {
+                        String userText = (String) json.getOrDefault("text", "");
+                        log.info("Voice text_input: userId={} text=\"{}\"", principal.userId(), userText);
+                        yield userText.isBlank() ? Mono.empty()
+                            : runTextPipeline(userText, sink, session, principal, persona, voiceId);
+                    }
+                    case "cancel"      -> { audioChunks.clear(); yield Mono.empty(); }
+                    case "ping"        -> { emitJson(sink, session, Map.of("type", "pong")); yield Mono.empty(); }
+                    default            -> Mono.empty();
                 };
             } catch (Exception e) {
                 log.debug("Voice WS: unparseable text frame, ignoring");
@@ -167,12 +173,16 @@ public class VoiceWebSocketHandler implements WebSocketHandler {
         List<byte[]> snapshot = new ArrayList<>(audioChunks);
         audioChunks.clear();
 
-        if (snapshot.isEmpty()) return Mono.empty();
+        if (snapshot.isEmpty()) {
+            log.warn("Voice pipeline: audio_end received but NO audio chunks collected");
+            return Mono.empty();
+        }
 
         byte[] audioBytes = concat(snapshot);
+        log.info("Voice pipeline: audio_end — chunks={} totalBytes={}", snapshot.size(), audioBytes.length);
 
-        // 1. Speech → Text
-        return deepgramClient.transcribe(audioBytes, MediaType.parseMediaType("audio/webm;codecs=opus"))
+        // 1. Speech → Text  (Deepgram accepts "audio/webm"; codec is detected from container)
+        return deepgramClient.transcribe(audioBytes, MediaType.parseMediaType("audio/webm"))
                 .flatMap(transcript -> {
                     if (transcript.isBlank()) {
                         emitJson(sink, session, Map.of("type", "transcript", "text", ""));
@@ -205,6 +215,35 @@ public class VoiceWebSocketHandler implements WebSocketHandler {
                             "type", "error",
                             "message", "Voice processing failed. Please try again."
                     ));
+                    return Mono.empty();
+                });
+    }
+
+    /** Text-input shortcut: skip STT, go directly to LLM → TTS. */
+    private Mono<Void> runTextPipeline(String userText,
+                                       Sinks.Many<WebSocketMessage> sink,
+                                       WebSocketSession session,
+                                       AuthPrincipal principal,
+                                       VoicePersona persona,
+                                       String voiceId) {
+        emitJson(sink, session, Map.of("type", "transcript", "text", userText));
+        CompletionRequest req = new CompletionRequest(
+                principal.userId().toString(),
+                persona.systemPrompt,
+                userText,
+                300,
+                0.7
+        );
+        return completionUseCase.routeCompletion(req, principal)
+                .flatMap(resp -> {
+                    String llmText = resp.content() != null ? resp.content() : "";
+                    if (llmText.isBlank()) return Mono.empty();
+                    emitJson(sink, session, Map.of("type", "llm_response", "text", llmText));
+                    return streamTts(llmText, voiceId, sink, session);
+                })
+                .onErrorResume(e -> {
+                    log.error("Voice text pipeline failed: {}", e.getMessage());
+                    emitJson(sink, session, Map.of("type", "error", "message", "Voice processing failed."));
                     return Mono.empty();
                 });
     }

@@ -8,10 +8,10 @@ package com.edutech.aigateway.domain.model;
 public enum VoicePersona {
 
     NEO(
-        "NEO",
+        "SRI",
         "Your AI study companion. Ready to help you ace every exam.",
         Role.STUDENT,
-        "You are NEO, an AI study companion for students on the EduTech platform. "
+        "You are SRI, an AI study companion for students on the EduTech platform. "
         + "You are encouraging, knowledgeable, and concise. "
         + "Help with academics, exam prep, study strategies, and learning doubts. "
         + "Keep responses under 3 sentences for voice delivery. Be warm and motivating."
