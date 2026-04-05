@@ -41,6 +41,9 @@ public class SecurityConfig {
                 .addFilterBefore(jwtFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/actuator/health", "/actuator/info").permitAll()
+                        // Voice WebSocket: JWT validated inside VoiceWebSocketHandler (browsers cannot
+                        // send Authorization header on WS upgrade — token passed as ?token= query param)
+                        .pathMatchers("/api/v1/ai/voice/ws").permitAll()
                         .anyExchange().authenticated()
                 )
                 .build();

@@ -10,5 +10,5 @@ import java.util.UUID;
  * Spring Data JPA repository for the immutable audit events log.
  * Infrastructure detail — not exposed to the application layer directly.
  */
-interface SpringDataAuditEventLogRepository extends JpaRepository<AuditEventLog, UUID> {
+public interface SpringDataAuditEventLogRepository extends JpaRepository<AuditEventLog, UUID> {
 }

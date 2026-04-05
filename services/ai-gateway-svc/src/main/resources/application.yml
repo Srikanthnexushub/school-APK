@@ -119,6 +119,17 @@ otel:
     otlp:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
 
+# Voice AI — Deepgram STT + ElevenLabs TTS
+voice:
+  deepgram-api-key: ${DEEPGRAM_API_KEY:dg-dev-placeholder}
+  eleven-labs-api-key: ${ELEVENLABS_API_KEY:sk-dev-placeholder}
+  voice-ids:
+    neo: ${ELEVENLABS_VOICE_NEO_ID:21m00Tcm4TlvDq8ikWAM}    # Rachel — STUDENT
+    sage: ${ELEVENLABS_VOICE_SAGE_ID:onwK4e9ZLuTAKqWW03F9}  # Daniel — TEACHER
+    aria: ${ELEVENLABS_VOICE_ARIA_ID:MF3mGyEYCl7XYWbV9V6O}  # Elli   — PARENT
+    apex: ${ELEVENLABS_VOICE_APEX_ID:TxGEqnHWrfWFTfGW9XjX}  # Josh   — CENTER_ADMIN
+    nexus: ${ELEVENLABS_VOICE_NEXUS_ID:JBFqnCBsd6RMkjVDRZzb} # George — INSTITUTION_ADMIN
+
 logging:
   level:
     root: ${LOG_LEVEL_ROOT}
