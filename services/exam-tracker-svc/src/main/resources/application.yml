@@ -49,7 +49,7 @@ spring:
         delivery.timeout.ms: 30000
         request.timeout.ms: 15000
     consumer:
-      group-id: ${EXAM_TRACKER_SVC_KAFKA_CONSUMER_GROUP}
+      group-id: ${EXAM_TRACKER_SVC_KAFKA_CONSUMER_GROUP:exam-tracker-svc-group}
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
