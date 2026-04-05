@@ -189,6 +189,13 @@ export function useVoiceAgent(role: UserRole, jwtToken: string): UseVoiceAgentRe
     if (state !== 'ready' && state !== 'listening') return;
     stopTtsPlayback(); // barge-in: stop TTS if speaking
 
+    // getUserMedia requires a secure context (HTTPS or localhost)
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+      setError('Microphone requires HTTPS. Please open the app at https://');
+      setState('error');
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 16000 },
@@ -221,7 +228,17 @@ export function useVoiceAgent(role: UserRole, jwtToken: string): UseVoiceAgentRe
       startVad();
       startLevelMonitor();
     } catch (e: unknown) {
-      setError('Microphone access denied.');
+      if (e instanceof DOMException) {
+        if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+          setError('Microphone permission denied. Allow it in browser/OS settings.');
+        } else if (e.name === 'NotFoundError') {
+          setError('No microphone found on this device.');
+        } else {
+          setError(`Microphone error: ${e.name}`);
+        }
+      } else {
+        setError('Microphone access failed. Check browser/OS permissions.');
+      }
       setState('error');
     }
   }, [state]);
