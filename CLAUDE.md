@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 227+ frozen fixes as of Fix #227 (2026-04-03 — LoginPage mobile 2-panel layout restored).
+- Read `memory/frozen-fixes.md` before touching any file. 408+ frozen fixes as of Fix #318 (2026-04-05 — assess-svc GradeService TEACHER DB validation via center-svc WebClient).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -140,7 +140,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (225 fixes, latest: Fix #225 — curricular-svc EC2 + navConfig + accent-color + neon theme (2026-04-03)).
+Full list → `memory/frozen-fixes.md` (408 fixes, latest: Fix #318 — assess-svc GradeService TEACHER DB validation via center-svc WebClient (2026-04-05)).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
