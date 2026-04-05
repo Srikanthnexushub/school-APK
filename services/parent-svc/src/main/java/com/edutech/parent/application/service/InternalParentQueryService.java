@@ -33,6 +33,25 @@ public class InternalParentQueryService {
     }
 
     /**
+     * Returns true if an ACTIVE student-link exists between the given parent userId
+     * and the given student userId.
+     *
+     * This is the ONLY correct service-to-service link check.
+     * Called by psych-svc (and any other service) via the internal endpoint
+     * GET /api/v1/internal/parents/{parentUserId}/is-linked-to-student/{studentId}.
+     *
+     * @param parentUserId the parent's auth userId (JWT sub)
+     * @param studentId    the student whose data is being requested
+     * @return true iff an ACTIVE link exists; false if no profile or no active link
+     */
+    @Transactional(readOnly = true)
+    public boolean isParentLinkedToStudent(UUID parentUserId, UUID studentId) {
+        return profileRepository.findByUserId(parentUserId)
+                .map(profile -> linkRepository.findByParentIdAndStudentId(profile.getId(), studentId).isPresent())
+                .orElse(false);
+    }
+
+    /**
      * Returns the distinct set of center IDs where the given parent userId
      * has at least one active student link.
      *

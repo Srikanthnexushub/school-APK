@@ -15,6 +15,7 @@ import com.edutech.center.domain.model.AttendanceStatus;
 import com.edutech.center.domain.model.Role;
 import com.edutech.center.domain.port.out.AiTaggingPort;
 import com.edutech.center.domain.port.out.DocumentStoragePort;
+import com.edutech.center.domain.port.out.ParentLinkValidationPort;
 import com.edutech.center.infrastructure.security.JwtTokenValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -85,6 +86,14 @@ class AttendanceControllerIT {
 
     @MockBean
     AiTaggingPort aiTaggingPort;
+
+    /**
+     * Mocked to allow PARENT regression tests to control link validation.
+     * Also prevents ParentSvcLinkValidationAdapter from attempting real HTTP calls
+     * to parent-svc (which is not running in IT).
+     */
+    @MockBean
+    ParentLinkValidationPort parentLinkValidation;
 
     @Autowired
     TestRestTemplate restTemplate;
@@ -485,5 +494,53 @@ class AttendanceControllerIT {
         // The other student's record must not appear
         List<UUID> ids = r.getBody().stream().map(AttendanceSummaryResponse::studentId).toList();
         assertThat(ids).doesNotContain(otherId);
+    }
+
+    // =========================================================================
+    // Fix #322 regression: PARENT access to attendance/summary
+    //
+    // ROOT CAUSE: AttendanceSummaryService.getSummary() had a TODO placeholder
+    // that threw CenterAccessDeniedException for ALL parents unconditionally.
+    // ParentLinkValidationPort was wired in ContentService + BatchFeeService
+    // (Fix #317) but was never connected to AttendanceSummaryService.
+    //
+    // These tests permanently guard:
+    //   1. Linked parent → 200 (must NOT regress to 403)
+    //   2. Unlinked parent → 403 (must NOT accidentally allow all parents)
+    // =========================================================================
+
+    @Test
+    @DisplayName("GET attendance/summary — PARENT linked to center → 200 (regression Fix #322)")
+    void summary_parentLinkedToCenter_returns200() {
+        UUID parentId = UUID.randomUUID();
+        AuthPrincipal parentPrincipal = new AuthPrincipal(parentId, "p@test.com", Role.PARENT, null, "fp-p");
+
+        // Stub: this parent IS linked to the batch's center
+        when(parentLinkValidation.isParentLinkedToCenter(parentId, centerId)).thenReturn(true);
+
+        mockAuth(parentPrincipal);
+
+        ResponseEntity<List<AttendanceSummaryResponse>> r = restTemplate.exchange(
+                summaryUrl(), HttpMethod.GET, authEntity(),
+                new ParameterizedTypeReference<List<AttendanceSummaryResponse>>() {});
+
+        assertThat(r.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    @DisplayName("GET attendance/summary — PARENT not linked to center → 403 (regression Fix #322)")
+    void summary_parentNotLinkedToCenter_returns403() {
+        UUID parentId = UUID.randomUUID();
+        AuthPrincipal parentPrincipal = new AuthPrincipal(parentId, "p2@test.com", Role.PARENT, null, "fp-p2");
+
+        // Stub: this parent is NOT linked to the batch's center
+        when(parentLinkValidation.isParentLinkedToCenter(parentId, centerId)).thenReturn(false);
+
+        mockAuth(parentPrincipal);
+
+        ResponseEntity<Object> r = restTemplate.exchange(
+                summaryUrl(), HttpMethod.GET, authEntity(), Object.class);
+
+        assertThat(r.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 }

@@ -4,20 +4,24 @@ import com.edutech.psych.domain.port.out.ParentStudentLinkValidationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.Duration;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**
  * Calls parent-svc to validate a parent–student link.
  *
- * Endpoint: GET /api/v1/parents/by-student?studentId={studentId}
- * Returns a list of parent profile objects; each has a "userId" field.
+ * Endpoint: GET /api/v1/internal/parents/{parentUserId}/is-linked-to-student/{studentId}
+ * Returns a boolean directly.
+ *
+ * ⛔ DO NOT call GET /api/v1/parents/by-student for this purpose.
+ * That endpoint is designed for an authenticated STUDENT to discover their own parents.
+ * It ignores query params and reads from the security principal — when called with
+ * X-Service-Key the principal is a synthetic service account (00000000-...) which has
+ * no links, so it always returns an empty list and link validation silently fails closed,
+ * locking every parent out of their child's data.
  *
  * Fail-closed: any exception (timeout, 4xx, 5xx, deserialization) returns false.
  */
@@ -42,25 +46,14 @@ public class ParentSvcWebClientAdapter implements ParentStudentLinkValidationPor
     @Override
     public boolean isParentLinkedToStudent(UUID parentUserId, UUID studentId) {
         try {
-            List<Map<String, Object>> profiles = webClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/api/v1/parents/by-student")
-                            .queryParam("studentId", studentId.toString())
-                            .build())
+            Boolean linked = webClient.get()
+                    .uri("/api/v1/internal/parents/{parentUserId}/is-linked-to-student/{studentId}",
+                            parentUserId, studentId)
                     .retrieve()
-                    .bodyToMono(new ParameterizedTypeReference<List<Map<String, Object>>>() {})
-                    .onErrorReturn(List.of())
+                    .bodyToMono(Boolean.class)
+                    .onErrorReturn(false)
                     .block(TIMEOUT);
-
-            if (profiles == null || profiles.isEmpty()) {
-                return false;
-            }
-
-            return profiles.stream()
-                    .anyMatch(profile -> {
-                        Object userId = profile.get("userId");
-                        return userId != null && parentUserId.toString().equals(userId.toString());
-                    });
+            return Boolean.TRUE.equals(linked);
         } catch (Exception e) {
             log.warn("Parent-student link validation failed for parentUserId={} studentId={}: {}",
                     parentUserId, studentId, e.getMessage());

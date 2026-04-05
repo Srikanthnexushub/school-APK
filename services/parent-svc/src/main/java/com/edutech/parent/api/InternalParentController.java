@@ -39,4 +39,24 @@ public class InternalParentController {
     public List<UUID> getLinkedCenterIds(@PathVariable UUID parentUserId) {
         return internalParentQueryService.getLinkedCenterIds(parentUserId);
     }
+
+    /**
+     * Returns true if an ACTIVE student-link exists for the given parent and student.
+     *
+     * This is the canonical service-to-service link-validation endpoint.
+     * Any service needing to gate parent access to student data MUST call this
+     * endpoint — NEVER reuse the user-facing GET /api/v1/parents/by-student
+     * (which reads the authenticated principal, not a query param, and breaks
+     * when called with X-Service-Key whose synthetic principal is 00000000-...).
+     *
+     * @param parentUserId the parent's auth userId (JWT sub of the requesting parent)
+     * @param studentId    the student whose data the parent wants to access
+     * @return true iff an ACTIVE link exists; false otherwise
+     */
+    @GetMapping("/{parentUserId}/is-linked-to-student/{studentId}")
+    public boolean isParentLinkedToStudent(
+            @PathVariable UUID parentUserId,
+            @PathVariable UUID studentId) {
+        return internalParentQueryService.isParentLinkedToStudent(parentUserId, studentId);
+    }
 }

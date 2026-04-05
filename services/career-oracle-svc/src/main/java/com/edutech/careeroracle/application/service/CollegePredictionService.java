@@ -8,6 +8,9 @@ import com.edutech.careeroracle.domain.model.CollegeTier;
 import com.edutech.careeroracle.domain.port.in.PredictCollegesUseCase;
 import com.edutech.careeroracle.domain.port.out.CareerProfileRepository;
 import com.edutech.careeroracle.domain.port.out.CollegePredictionRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +27,8 @@ import java.util.stream.Collectors;
 @Service
 public class CollegePredictionService implements PredictCollegesUseCase {
 
+    private static final Logger log = LoggerFactory.getLogger(CollegePredictionService.class);
+
     private final CareerProfileRepository careerProfileRepository;
     private final CollegePredictionRepository collegePredictionRepository;
 
@@ -38,7 +43,7 @@ public class CollegePredictionService implements PredictCollegesUseCase {
     public List<CollegePredictionResponse> predictColleges(UUID studentId) {
         CareerProfile profile = careerProfileRepository.findByStudentId(studentId)
                 .filter(p -> !p.isDeleted())
-                .orElseThrow(() -> new CareerProfileNotFoundException("studentId", studentId));
+                .orElseGet(() -> autoCreateProfile(studentId));
 
         BigDecimal ersScore = profile.getErsScore() != null ? profile.getErsScore() : BigDecimal.ZERO;
 
@@ -55,6 +60,32 @@ public class CollegePredictionService implements PredictCollegesUseCase {
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Auto-creates a default career profile for a student who has none.
+     * Handles concurrent race condition: if two requests arrive simultaneously,
+     * the second save() hits a unique-constraint violation; we retry findByStudentId().
+     * Mirrors the same pattern in {@link CareerRecommendationService#autoCreateProfile}.
+     */
+    private CareerProfile autoCreateProfile(UUID studentId) {
+        log.info("No career profile found for studentId={}. Auto-creating default profile.", studentId);
+        CareerProfile defaultProfile = CareerProfile.create(
+                studentId,
+                UUID.randomUUID(),
+                "SCIENCE",
+                11,
+                BigDecimal.valueOf(50),
+                null
+        );
+        try {
+            return careerProfileRepository.save(defaultProfile);
+        } catch (DataIntegrityViolationException ex) {
+            log.warn("Concurrent auto-create conflict for studentId={}, retrying find.", studentId);
+            return careerProfileRepository.findByStudentId(studentId)
+                    .filter(p -> !p.isDeleted())
+                    .orElseThrow(() -> new CareerProfileNotFoundException("studentId", studentId));
+        }
     }
 
     private List<CollegePrediction> generatePredictions(CareerProfile profile, BigDecimal ersScore) {

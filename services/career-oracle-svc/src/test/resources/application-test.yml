@@ -1,0 +1,70 @@
+spring:
+  application:
+    name: career-oracle-svc-test
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${CAREER_ORACLE_DB_NAME}
+    username: ${CAREER_ORACLE_DB_USER}
+    password: ${CAREER_ORACLE_DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 2
+      minimum-idle: 1
+      connection-timeout: 10000
+      idle-timeout: 30000
+
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: careeroracle_schema
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    schemas: careeroracle_schema
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+  threads:
+    virtual:
+      enabled: false
+
+  # Kafka — non-existent address; listeners never start in tests
+  kafka:
+    bootstrap-servers: localhost:9999
+    consumer:
+      group-id: career-oracle-svc-test-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      auto-startup: false
+
+kafka:
+  topics:
+    career-recommended: career-oracle-recommended-test
+    career-profile-created: career-oracle-profile-created-test
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  tracing:
+    sampling:
+      probability: 0.0
+
+otel:
+  exporter:
+    otlp:
+      endpoint: http://localhost:4317
+
+logging:
+  level:
+    root: WARN
+    com.edutech: DEBUG
+    org.flywaydb: DEBUG
+
+springdoc:
+  api-docs:
+    path: /api-docs
