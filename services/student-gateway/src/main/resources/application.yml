@@ -42,6 +42,14 @@ spring:
           uri: ${ASSESS_SVC_URI}
           predicates:
             - Path=/api/v1/students/*/assignments
+        - id: assess-svc-exams
+          uri: ${ASSESS_SVC_URI}
+          predicates:
+            - Path=/api/v1/exams/**
+        - id: assess-svc-questions
+          uri: ${ASSESS_SVC_URI}
+          predicates:
+            - Path=/api/v1/questions/**
         - id: student-profile-svc
           uri: ${STUDENT_PROFILE_SVC_URI}
           predicates:

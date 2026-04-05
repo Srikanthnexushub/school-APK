@@ -1043,6 +1043,7 @@ function MyExamsTable() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [rescheduleExam, setRescheduleExam] = useState<ExamResponse | null>(null);
+  const [publishingId, setPublishingId] = useState<string | null>(null);
 
   const { data: centers = [] } = useQuery<CenterResponse[]>({
     queryKey: ['teacher-centers'],
@@ -1090,6 +1091,19 @@ function MyExamsTable() {
       setConfirmDeleteId(null);
     },
     onError: () => toast.error('Failed to cancel exam'),
+  });
+
+  const publishDraftMutation = useMutation({
+    mutationFn: (id: string) => api.put(`/api/v1/exams/${id}/publish`),
+    onSuccess: () => {
+      toast.success('Exam published — students can now enroll!');
+      queryClient.invalidateQueries({ queryKey: ['teacher-exams'] });
+      setPublishingId(null);
+    },
+    onError: () => {
+      toast.error('Failed to publish exam');
+      setPublishingId(null);
+    },
   });
 
   if (isLoading) {
@@ -1164,6 +1178,20 @@ function MyExamsTable() {
                   <td className="py-3 pr-2 text-right" onClick={e => e.stopPropagation()}>
                     {exam.status !== 'CANCELLED' && exam.status !== 'CLOSED' && (
                       <div className="flex items-center justify-end gap-1.5">
+                        {/* Publish (DRAFT only) */}
+                        {exam.status === 'DRAFT' && (
+                          <button
+                            title="Publish exam — make visible to students"
+                            onClick={() => { setPublishingId(exam.id); publishDraftMutation.mutate(exam.id); }}
+                            disabled={publishingId === exam.id && publishDraftMutation.isPending}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 disabled:opacity-50 transition-all text-xs font-medium"
+                          >
+                            {publishingId === exam.id && publishDraftMutation.isPending
+                              ? <Loader2 className="w-3 h-3 animate-spin" />
+                              : <Eye className="w-3 h-3" />}
+                            Publish
+                          </button>
+                        )}
                         {/* Reschedule */}
                         <button
                           title="Reschedule"
@@ -1209,6 +1237,12 @@ function MyExamsTable() {
                 {expandedId === exam.id && (
                   <tr key={`${exam.id}-questions`}>
                     <td colSpan={7} className="pb-4 pt-2 px-2">
+                      {exam.status === 'DRAFT' && (
+                        <div className="flex items-center gap-2 px-4 py-2.5 mb-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs">
+                          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span>This exam is in <strong>DRAFT</strong> — click <strong>Publish</strong> in the actions column to make it available to students.</span>
+                        </div>
+                      )}
                       {questionsLoading ? (
                         <div className="space-y-2">
                           {[...Array(3)].map((_, i) => <div key={i} className="h-10 glass rounded-lg animate-pulse" />)}
