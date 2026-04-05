@@ -15,40 +15,65 @@ sudo rm -f /etc/nginx/conf.d/default.conf
 
 # Create EduTech nginx config
 sudo tee "$NGINX_CONF" > /dev/null << 'NGINX'
-# EduTech AI Platform — Nginx reverse proxy + SPA
+# EduTech — Fortune 500 grade nginx config
+upstream api_backend {
+    server 127.0.0.1:8180;
+    keepalive 32;
+}
+
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
     server_name _;
 
-    # Frontend SPA
     root /usr/share/nginx/html;
     index index.html;
 
-    # Increase timeouts for long-running AI requests
+    # Compression
+    gzip on;
+    gzip_comp_level 4;
+    gzip_types application/json application/javascript text/css text/plain text/xml application/xml image/svg+xml;
+    gzip_min_length 1024;
+    gzip_proxied any;
+    gzip_vary on;
+
+    # Timeouts
     proxy_read_timeout     120s;
     proxy_connect_timeout  10s;
     proxy_send_timeout     60s;
+    client_max_body_size   50M;
 
-    # Increase body size for file uploads (MinIO/S3 presigned via center-svc)
-    client_max_body_size 50M;
-
-    # SPA routing — serve index.html for all non-asset routes
+    # Static files
     location / {
         try_files $uri $uri/ /index.html;
-        # Cache static assets aggressively
         location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
             expires 30d;
             add_header Cache-Control "public, immutable";
         }
     }
 
-    # API Gateway proxy — all /api/ routes
-    location /api/ {
-        proxy_pass         http://127.0.0.1:8180;
+    # Voice WebSocket — exact match BEFORE /api/ to use Connection: upgrade
+    # /api/ uses Connection: "" for keepalive which strips the upgrade header
+    location = /api/v1/ai/voice/ws {
+        proxy_pass         http://api_backend;
         proxy_http_version 1.1;
         proxy_set_header   Upgrade $http_upgrade;
-        proxy_set_header   Connection 'upgrade';
+        proxy_set_header   Connection "upgrade";
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_buffering    off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    # API — proxied via upstream with keepalive
+    location /api/ {
+        proxy_pass         http://api_backend;
+        proxy_http_version 1.1;
+        proxy_set_header   Connection "";
+        proxy_set_header   Upgrade $http_upgrade;
         proxy_set_header   Host $host;
         proxy_set_header   X-Real-IP $remote_addr;
         proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -64,21 +89,21 @@ server {
         proxy_set_header   Connection "upgrade";
         proxy_set_header   Host $host;
         proxy_set_header   X-Real-IP $remote_addr;
-        proxy_read_timeout 3600s;   # keep WS alive during exam
+        proxy_read_timeout 3600s;
         proxy_send_timeout 3600s;
     }
 
-    # Health check endpoint (for load balancer / monitoring)
+    # Health
     location /health {
         access_log off;
         return 200 "nginx-ok\n";
         add_header Content-Type text/plain;
     }
 
-    # Block common attack vectors
-    location ~ /\.git { return 404; }
-    location ~ /\.env { return 404; }
-    location ~ /actuator { return 404; }   # actuator only via internal ports
+    # Security
+    location ~ /\.git  { return 404; }
+    location ~ /\.env  { return 404; }
+    location ~ /actuator { return 404; }
 }
 NGINX
 
@@ -93,7 +118,8 @@ sudo systemctl status nginx --no-pager | grep -E "Active" && echo "Nginx running
 echo
 echo "=== Nginx setup COMPLETE ==="
 echo "   Frontend served from: ${FRONTEND_DIR}"
-echo "   API proxy:  /api/ → http://127.0.0.1:8180"
-echo "   WebSocket:  /ws/  → http://127.0.0.1:8084"
+echo "   API proxy:  /api/              → http://127.0.0.1:8180 (keepalive)"
+echo "   Voice WS:   /api/v1/ai/voice/ws → http://127.0.0.1:8180 (Connection: upgrade)"
+echo "   WebSocket:  /ws/               → http://127.0.0.1:8084"
 echo
 echo "Next: scp dist/* ec2-user@<ec2-ip>:${FRONTEND_DIR}/"

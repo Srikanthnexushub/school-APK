@@ -37,6 +37,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/api/v1/captcha/",
             "/api/v1/centers/public-list",
             "/api/v1/centers/lookup",
+            "/api/v1/ai/voice/ws",   // WS upgrade cannot carry Authorization header — JWT validated inside VoiceWebSocketHandler via ?token= query param
             "/actuator",
             "/swagger-ui",
             "/v3/api-docs",
