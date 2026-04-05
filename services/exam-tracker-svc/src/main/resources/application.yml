@@ -48,6 +48,15 @@ spring:
         retries: 3
         delivery.timeout.ms: 30000
         request.timeout.ms: 15000
+    consumer:
+      group-id: ${EXAM_TRACKER_SVC_KAFKA_CONSUMER_GROUP}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: "com.edutech.*"
+        spring.json.add.type.headers: false
 
   data:
     redis:
@@ -65,6 +74,7 @@ kafka:
   topics:
     exam-events: ${KAFKA_TOPIC_EXAM_EVENTS}
     audit-immutable: ${KAFKA_TOPIC_AUDIT_IMMUTABLE}
+    assess-events: ${KAFKA_TOPIC_ASSESS_EVENTS}
 
 management:
   endpoints:

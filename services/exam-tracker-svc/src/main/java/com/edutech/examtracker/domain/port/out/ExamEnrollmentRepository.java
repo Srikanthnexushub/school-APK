@@ -16,4 +16,6 @@ public interface ExamEnrollmentRepository {
     List<ExamEnrollment> findByStudentId(UUID studentId);
 
     Optional<ExamEnrollment> findByStudentIdAndExamCode(UUID studentId, ExamCode examCode);
+
+    Optional<ExamEnrollment> findByStudentIdAndAssessExamId(UUID studentId, UUID assessExamId);
 }

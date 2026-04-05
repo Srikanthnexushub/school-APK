@@ -1,5 +1,6 @@
 package com.edutech.careeroracle.api;
 
+import com.edutech.careeroracle.application.exception.CareerAccessDeniedException;
 import com.edutech.careeroracle.application.exception.CareerOracleException;
 import com.edutech.careeroracle.application.exception.CareerProfileNotFoundException;
 import org.slf4j.Logger;
@@ -21,6 +22,16 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(CareerAccessDeniedException.class)
+    public ResponseEntity<ProblemDetail> handleCareerAccessDenied(CareerAccessDeniedException ex) {
+        log.warn("Career access denied: {}", ex.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        problem.setTitle("Access Denied");
+        problem.setType(URI.create("https://api.edutech.com/errors/access-denied"));
+        problem.setProperty("timestamp", OffsetDateTime.now());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
+    }
 
     @ExceptionHandler(CareerProfileNotFoundException.class)
     public ResponseEntity<ProblemDetail> handleCareerProfileNotFound(CareerProfileNotFoundException ex) {

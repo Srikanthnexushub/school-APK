@@ -37,4 +37,9 @@ public class ExamEnrollmentPersistenceAdapter implements ExamEnrollmentRepositor
     public Optional<ExamEnrollment> findByStudentIdAndExamCode(UUID studentId, ExamCode examCode) {
         return jpa.findByStudentIdAndExamCodeActive(studentId, examCode);
     }
+
+    @Override
+    public Optional<ExamEnrollment> findByStudentIdAndAssessExamId(UUID studentId, UUID assessExamId) {
+        return jpa.findByStudentIdAndAssessExamIdActive(studentId, assessExamId);
+    }
 }

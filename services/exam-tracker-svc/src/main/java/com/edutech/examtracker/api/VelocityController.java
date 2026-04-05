@@ -1,5 +1,6 @@
 package com.edutech.examtracker.api;
 
+import com.edutech.examtracker.application.exception.ExamAccessDeniedException;
 import com.edutech.examtracker.domain.model.ExamEnrollment;
 import com.edutech.examtracker.domain.model.ExamStatus;
 import com.edutech.examtracker.domain.model.MockTestAttempt;
@@ -10,6 +11,7 @@ import com.edutech.examtracker.domain.port.out.ExamEnrollmentRepository;
 import com.edutech.examtracker.domain.port.out.MockTestAttemptRepository;
 import com.edutech.examtracker.domain.port.out.StudySessionRepository;
 import com.edutech.examtracker.domain.port.out.SyllabusModuleRepository;
+import com.edutech.examtracker.infrastructure.security.AuthPrincipal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -88,9 +91,15 @@ public class VelocityController {
     public ResponseEntity<VelocityResponse> getVelocity(@PathVariable UUID studentId) {
         log.debug("Computing velocity for student={}", studentId);
 
+        AuthPrincipal principal = AuthPrincipal.current();
+        validateAccess(principal, studentId);
+
         List<ExamEnrollment> enrollments = enrollmentRepository.findByStudentId(studentId);
 
         List<EnrollmentVelocity> result = new ArrayList<>();
+
+        // Use UTC consistently for all date calculations
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
 
         for (ExamEnrollment enrollment : enrollments) {
             // Only active (not deleted, not dropped/completed) enrollments
@@ -114,8 +123,7 @@ public class VelocityController {
                     ? (completedModules * 100.0 / totalModules)
                     : 0.0;
 
-            // Days remaining
-            LocalDate today = LocalDate.now();
+            // Days remaining (all dates in UTC)
             long daysRemaining;
             if (enrollment.getExamDate() != null) {
                 daysRemaining = ChronoUnit.DAYS.between(today, enrollment.getExamDate());
@@ -124,27 +132,14 @@ public class VelocityController {
                 daysRemaining = (long)(targetYear - today.getYear()) * 365 - today.getDayOfYear();
             }
 
-            // daysElapsed = max(1, totalDays - daysRemaining), totalDays = daysElapsed + daysRemaining
-            // We compute daysElapsed directly: since totalDays = daysElapsed + daysRemaining,
-            // and we don't have a fixed start date, derive from a reasonable assumption:
-            // totalDays is the full span; use daysRemaining as provided and assume
-            // daysElapsed = max(1, 365 - daysRemaining) as a proxy... but the spec says:
-            // daysElapsed + daysRemaining = totalDays, and daysElapsed = max(1, totalDays - daysRemaining)
-            // The spec gives totalDays = daysElapsed + daysRemaining, so we need another anchor.
-            // Use: if examDate set → totalDays = ChronoUnit.DAYS(createdAt.toLocalDate, examDate)
-            // The actual formula from the spec: daysElapsed = max(1, totalDays - daysRemaining)
-            // where totalDays = daysElapsed + daysRemaining. This is circular unless we treat
-            // totalDays as known from enrollment creation to exam date.
-            // Use enrollment.getCreatedAt() as the start.
+            // daysElapsed: use enrollment.getCreatedAt() as the start, all in UTC
             long daysElapsed;
             if (enrollment.getExamDate() != null) {
-                LocalDate startDate = enrollment.getCreatedAt().atZone(java.time.ZoneOffset.UTC).toLocalDate();
+                LocalDate startDate = enrollment.getCreatedAt().atZone(ZoneOffset.UTC).toLocalDate();
                 long totalDays = ChronoUnit.DAYS.between(startDate, enrollment.getExamDate());
                 daysElapsed = Math.max(1, totalDays - daysRemaining);
             } else {
-                // No exam date: use day-of-year already elapsed as a rough proxy
-                // totalDays not definitively known; use today's day-of-year since enrollment creation
-                LocalDate startDate = enrollment.getCreatedAt().atZone(java.time.ZoneOffset.UTC).toLocalDate();
+                LocalDate startDate = enrollment.getCreatedAt().atZone(ZoneOffset.UTC).toLocalDate();
                 daysElapsed = Math.max(1, ChronoUnit.DAYS.between(startDate, today));
             }
 
@@ -231,7 +226,7 @@ public class VelocityController {
                     avgAccuracy
             );
 
-            // ── Study hours this week ──────────────────────────────────────
+            // ── Study hours this week (UTC-aligned week start) ─────────────
             List<StudySession> sessions = studySessionRepository
                     .findByStudentIdAndEnrollmentId(studentId, enrollmentId);
             LocalDate weekStart = today.with(DayOfWeek.MONDAY);
@@ -255,6 +250,17 @@ public class VelocityController {
 
         log.debug("Velocity computed for student={}: {} active enrollments", studentId, result.size());
         return ResponseEntity.ok(new VelocityResponse(result));
+    }
+
+    // ─── Access control ────────────────────────────────────────────────────────
+
+    private void validateAccess(AuthPrincipal principal, UUID studentId) {
+        if (principal.isSuperAdmin() || principal.isInstitutionAdmin()) return;
+        if (principal.isCenterAdmin()) return;
+        if (principal.isTeacher()) return;
+        if (principal.isParent()) return;
+        if (principal.isStudent() && principal.userId().equals(studentId)) return;
+        throw new ExamAccessDeniedException("Access denied to velocity data for student: " + studentId);
     }
 
     // ─── Helpers ───────────────────────────────────────────────────────────────

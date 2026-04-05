@@ -1,7 +1,9 @@
 package com.edutech.careeroracle.api;
 
 import com.edutech.careeroracle.application.dto.CareerRecommendationResponse;
+import com.edutech.careeroracle.application.exception.CareerAccessDeniedException;
 import com.edutech.careeroracle.domain.port.in.GenerateCareerRecommendationsUseCase;
+import com.edutech.careeroracle.infrastructure.security.AuthPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Page;
@@ -36,6 +38,8 @@ public class CareerRecommendationController {
     public ResponseEntity<List<CareerRecommendationResponse>> generateRecommendations(
             @PathVariable UUID studentId,
             @RequestBody(required = false) Map<String, BigDecimal> subjectStrengths) {
+        AuthPrincipal principal = AuthPrincipal.current();
+        validateAccess(principal, studentId);
         Map<String, BigDecimal> strengths = subjectStrengths != null ? subjectStrengths : Map.of();
         List<CareerRecommendationResponse> recommendations =
                 generateCareerRecommendationsUseCase.generateRecommendations(studentId, strengths);
@@ -48,6 +52,8 @@ public class CareerRecommendationController {
             @PathVariable UUID studentId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
+        AuthPrincipal principal = AuthPrincipal.current();
+        validateAccess(principal, studentId);
         PageRequest pageRequest = PageRequest.of(page, size);
         List<CareerRecommendationResponse> all = generateCareerRecommendationsUseCase.getActiveRecommendations(studentId);
         int start = (int) pageRequest.getOffset();
@@ -62,11 +68,24 @@ public class CareerRecommendationController {
             @PathVariable UUID studentId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
+        AuthPrincipal principal = AuthPrincipal.current();
+        validateAccess(principal, studentId);
         PageRequest pageRequest = PageRequest.of(page, size);
         List<CareerRecommendationResponse> all = generateCareerRecommendationsUseCase.getActiveRecommendations(studentId);
         int start = (int) pageRequest.getOffset();
         int end = Math.min(start + pageRequest.getPageSize(), all.size());
         return ResponseEntity.ok(new org.springframework.data.domain.PageImpl<>(
                 start < all.size() ? all.subList(start, end) : List.of(), pageRequest, all.size()));
+    }
+
+    // ── Access control ────────────────────────────────────────────────────────
+
+    private void validateAccess(AuthPrincipal principal, UUID studentId) {
+        if (principal.isSuperAdmin() || principal.isInstitutionAdmin()) return;
+        if (principal.isCenterAdmin()) return;
+        if (principal.isTeacher()) return;
+        if (principal.isParent()) return;
+        if (principal.isStudent() && principal.userId().equals(studentId)) return;
+        throw new CareerAccessDeniedException("Access denied to career recommendations for student: " + studentId);
     }
 }

@@ -15,5 +15,7 @@ public enum ExamCode {
     CUET,
     BITSAT,
     MAT,
-    XAT
+    XAT,
+    /** Auto-synced from assess-svc institutional exam submissions. */
+    SCHOOL_EXAM
 }

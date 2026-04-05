@@ -19,4 +19,7 @@ interface SpringDataExamEnrollmentRepository extends JpaRepository<ExamEnrollmen
 
     @Query("SELECT e FROM ExamEnrollment e WHERE e.studentId = :studentId AND e.examCode = :examCode AND e.deletedAt IS NULL")
     Optional<ExamEnrollment> findByStudentIdAndExamCodeActive(UUID studentId, ExamCode examCode);
+
+    @Query("SELECT e FROM ExamEnrollment e WHERE e.studentId = :studentId AND e.assessExamId = :assessExamId AND e.deletedAt IS NULL")
+    Optional<ExamEnrollment> findByStudentIdAndAssessExamIdActive(UUID studentId, UUID assessExamId);
 }

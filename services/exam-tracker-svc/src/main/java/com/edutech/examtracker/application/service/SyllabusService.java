@@ -72,6 +72,14 @@ public class SyllabusService implements UpdateSyllabusModuleUseCase, GetSyllabus
 
     @Override
     @Transactional(readOnly = true)
+    public UUID resolveModuleStudentId(UUID moduleId) {
+        SyllabusModule module = syllabusModuleRepository.findById(moduleId)
+                .orElseThrow(() -> new ModuleNotFoundException(moduleId));
+        return module.getStudentId();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public SyllabusProgressResponse getSyllabusProgress(UUID studentId, UUID enrollmentId) {
         ExamEnrollment enrollment = enrollmentRepository.findById(enrollmentId)
                 .orElseThrow(() -> new EnrollmentNotFoundException(enrollmentId));

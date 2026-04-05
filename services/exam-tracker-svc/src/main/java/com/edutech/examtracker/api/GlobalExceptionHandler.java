@@ -2,6 +2,7 @@ package com.edutech.examtracker.api;
 
 import com.edutech.examtracker.application.exception.DuplicateEnrollmentException;
 import com.edutech.examtracker.application.exception.EnrollmentNotFoundException;
+import com.edutech.examtracker.application.exception.ExamAccessDeniedException;
 import com.edutech.examtracker.application.exception.ExamTrackerException;
 import com.edutech.examtracker.application.exception.ModuleNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -16,6 +17,11 @@ import java.net.URI;
 public class GlobalExceptionHandler {
 
     private static final String BASE_URI = "https://edutech.com/problems/";
+
+    @ExceptionHandler(ExamAccessDeniedException.class)
+    public ProblemDetail handleExamAccessDenied(ExamAccessDeniedException ex) {
+        return problem(HttpStatus.FORBIDDEN, "access-denied", ex.getMessage());
+    }
 
     @ExceptionHandler(EnrollmentNotFoundException.class)
     public ProblemDetail handleEnrollmentNotFound(EnrollmentNotFoundException ex) {

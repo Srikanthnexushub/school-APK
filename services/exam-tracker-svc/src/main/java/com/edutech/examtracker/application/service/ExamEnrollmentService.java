@@ -6,6 +6,7 @@ import com.edutech.examtracker.application.exception.DuplicateEnrollmentExceptio
 import com.edutech.examtracker.application.exception.EnrollmentNotFoundException;
 import com.edutech.examtracker.domain.event.ExamEnrolledEvent;
 import com.edutech.examtracker.domain.model.ExamEnrollment;
+import com.edutech.examtracker.domain.model.ExamStatus;
 import com.edutech.examtracker.domain.model.ModuleStatus;
 import com.edutech.examtracker.domain.model.SyllabusModule;
 import com.edutech.examtracker.domain.port.in.EnrollInExamUseCase;
@@ -104,6 +105,48 @@ public class ExamEnrollmentService implements EnrollInExamUseCase, GetEnrollment
                     return toResponse(e, total, completed, overallPercent);
                 })
                 .toList();
+    }
+
+    /**
+     * Auto-syncs an exam completion event from assess-svc.
+     *
+     * <p>If the student already has an enrollment linked to this assessExamId,
+     * it is marked COMPLETED. Otherwise a new COMPLETED enrollment is created
+     * so that the student's exam history is always consistent across services.
+     *
+     * <p>This method is idempotent: calling it multiple times for the same
+     * (studentId, assessExamId) pair is safe — the second call is a no-op.
+     *
+     * @param studentId   UUID of the student who submitted the exam
+     * @param assessExamId UUID of the exam in assess-svc
+     * @param examName    human-readable exam title (used when auto-creating the record)
+     * @param examYear    calendar year of the exam (derived from submission timestamp)
+     */
+    @Transactional
+    public void syncFromAssessEvent(UUID studentId, UUID assessExamId, String examName, int examYear) {
+        enrollmentRepository.findByStudentIdAndAssessExamId(studentId, assessExamId)
+                .ifPresentOrElse(
+                        existing -> {
+                            if (existing.getStatus() != ExamStatus.COMPLETED) {
+                                existing.complete();
+                                enrollmentRepository.save(existing);
+                                log.info("exam-tracker: marked enrollment COMPLETED via assess-svc event: " +
+                                         "studentId={} assessExamId={} enrollmentId={}",
+                                         studentId, assessExamId, existing.getId());
+                            } else {
+                                log.debug("exam-tracker: enrollment already COMPLETED — skipping: " +
+                                          "studentId={} assessExamId={}", studentId, assessExamId);
+                            }
+                        },
+                        () -> {
+                            ExamEnrollment created = ExamEnrollment.createFromAssessEvent(
+                                    studentId, assessExamId, examName, examYear);
+                            enrollmentRepository.save(created);
+                            log.info("exam-tracker: auto-created COMPLETED enrollment from assess-svc event: " +
+                                     "studentId={} assessExamId={} enrollmentId={}",
+                                     studentId, assessExamId, created.getId());
+                        }
+                );
     }
 
     private BigDecimal calculateOverallPercent(List<SyllabusModule> modules) {
