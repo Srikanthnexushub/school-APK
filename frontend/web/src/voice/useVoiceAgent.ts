@@ -49,7 +49,8 @@ export interface UseVoiceAgentReturn {
 
 const VAD_THRESHOLD   = 0.012;  // RMS below this = silence
 const VAD_SILENCE_MS  = 1400;   // ms of silence before auto-sending
-const WS_GATEWAY_URL  = (import.meta.env.VITE_API_BASE_URL || 'http://13.126.138.9')
+// Use dynamic origin so http:// → ws:// and https:// → wss:// automatically
+const WS_GATEWAY_URL  = (import.meta.env.VITE_API_BASE_URL || `${window.location.protocol}//${window.location.host}`)
   .replace(/^http/, 'ws') + '/api/v1/ai/voice/ws';
 
 // ── Hook ──────────────────────────────────────────────────────────────────────

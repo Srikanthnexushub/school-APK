@@ -8,23 +8,50 @@ set -euo pipefail
 NGINX_CONF="/etc/nginx/conf.d/edutech.conf"
 FRONTEND_DIR="/usr/share/nginx/html"
 
-echo "=== Configuring Nginx ==="
+echo "=== Generating self-signed SSL certificate ==="
+sudo mkdir -p /etc/nginx/ssl
+sudo openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+  -keyout /etc/nginx/ssl/self-signed.key \
+  -out /etc/nginx/ssl/self-signed.crt \
+  -subj "/C=IN/ST=Karnataka/L=Bangalore/O=NexusEd/CN=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)" \
+  -addext "subjectAltName=IP:$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)"
+sudo chmod 600 /etc/nginx/ssl/self-signed.key
+sudo chmod 644 /etc/nginx/ssl/self-signed.crt
+echo "SSL cert generated ✓ (10-year, IP SAN)"
+
+echo "=== Configuring Nginx (HTTPS + HTTP→HTTPS redirect) ==="
 
 # Remove default nginx page
 sudo rm -f /etc/nginx/conf.d/default.conf
 
 # Create EduTech nginx config
 sudo tee "$NGINX_CONF" > /dev/null << 'NGINX'
-# EduTech — Fortune 500 grade nginx config
+# EduTech — Fortune 500 grade nginx config (HTTPS + self-signed SSL)
 upstream api_backend {
     server 127.0.0.1:8180;
     keepalive 32;
 }
 
+# HTTP → HTTPS redirect
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
     server_name _;
+    return 301 https://$host$request_uri;
+}
+
+# HTTPS server
+server {
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    server_name _;
+
+    ssl_certificate     /etc/nginx/ssl/self-signed.crt;
+    ssl_certificate_key /etc/nginx/ssl/self-signed.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 10m;
 
     root /usr/share/nginx/html;
     index index.html;
@@ -118,8 +145,11 @@ sudo systemctl status nginx --no-pager | grep -E "Active" && echo "Nginx running
 echo
 echo "=== Nginx setup COMPLETE ==="
 echo "   Frontend served from: ${FRONTEND_DIR}"
+echo "   HTTPS:      https://<ip>        (self-signed, 10yr, IP SAN)"
+echo "   HTTP→HTTPS: 301 redirect       (port 80 → 443)"
 echo "   API proxy:  /api/              → http://127.0.0.1:8180 (keepalive)"
 echo "   Voice WS:   /api/v1/ai/voice/ws → http://127.0.0.1:8180 (Connection: upgrade)"
 echo "   WebSocket:  /ws/               → http://127.0.0.1:8084"
+echo "   NOTE: Browser will show self-signed warning on first visit — click Advanced → Proceed"
 echo
 echo "Next: scp dist/* ec2-user@<ec2-ip>:${FRONTEND_DIR}/"
