@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
 import NexusChatWidget from '../chat/NexusChatWidget';
+import VoiceFloatingWidget from '../../voice/VoiceFloatingWidget';
 import { useNudgePoller } from '../../hooks/useNudgePoller';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -805,6 +806,9 @@ export default function AppLayout() {
 
       {/* NexusChat floating widget — available on all authenticated pages */}
       <NexusChatWidget />
+
+      {/* Voice AI floating widget — role-based persona, sits above chat */}
+      <VoiceFloatingWidget />
     </div>
   );
 }
