@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 413+ frozen fixes as of Fix #320 (2026-04-05 — voice WebSocket E2E: nginx upgrade headers + api-gateway JWT bypass).
+- Read `memory/frozen-fixes.md` before touching any file. 424+ frozen fixes as of Fix #326 (2026-04-05 — voice browser-native pipeline: SpeechRecognition+SpeechSynthesis replaces Deepgram+ElevenLabs).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -140,7 +140,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (413 fixes, latest: Fix #320 — draggable voice+chat widgets + HTTPS mic error message (2026-04-05)).
+Full list → `memory/frozen-fixes.md` (424 fixes, latest: Fix #326 — voice browser-native pipeline: SpeechRecognition+SpeechSynthesis (2026-04-05)).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
