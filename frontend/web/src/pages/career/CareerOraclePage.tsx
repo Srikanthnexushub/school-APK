@@ -603,11 +603,11 @@ export default function CareerOraclePage() {
             <div className="glass rounded-2xl p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-white/60 text-sm">ERS Score</span>
-                <span className="text-2xl font-bold text-brand-400">{gap.ersBreakdown.total.toFixed(1)}<span className="text-white/30 text-sm font-normal">/10</span></span>
+                <span className="text-2xl font-bold text-brand-400">{(gap.ersBreakdown?.total ?? 0).toFixed(1)}<span className="text-white/30 text-sm font-normal">/10</span></span>
               </div>
               <div className="space-y-2">
                 {ERS_KEYS.map(({ key, label }) => {
-                  const comp = gap.ersBreakdown[key] ?? { score: 0, weight: 0, gap: 0 };
+                  const comp = gap.ersBreakdown?.[key] ?? { score: 0, weight: 0, gap: 0 };
                   const pct = Math.min(100, ((comp.score ?? 0) / 10) * 100);
                   return (
                     <div key={key}>
@@ -627,11 +627,11 @@ export default function CareerOraclePage() {
             {/* Weak subjects */}
             <div className="glass rounded-2xl p-4">
               <p className="text-white/60 text-sm mb-3">Subjects to Strengthen</p>
-              {gap.subjectGaps.length === 0 ? (
+              {(gap.subjectGaps?.length ?? 0) === 0 ? (
                 <p className="text-white/30 text-xs">All subjects on track</p>
               ) : (
                 <ul className="space-y-2">
-                  {gap.subjectGaps.slice(0, 4).map(sg => (
+                  {gap.subjectGaps?.slice(0, 4).map(sg => (
                     <li key={sg.subject} className="flex items-start gap-2">
                       <span className={cn('text-xs font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5', {
                         'bg-red-500/20 text-red-400': sg.priority === 'CRITICAL',
@@ -643,8 +643,8 @@ export default function CareerOraclePage() {
                       </span>
                       <div>
                         <p className="text-white/80 text-sm font-medium">{sg.subject}</p>
-                        {sg.topWeakTopics.length > 0 && (
-                          <p className="text-white/40 text-xs">{sg.topWeakTopics.slice(0, 2).join(', ')}</p>
+                        {(sg.topWeakTopics?.length ?? 0) > 0 && (
+                          <p className="text-white/40 text-xs">{sg.topWeakTopics?.slice(0, 2).join(', ')}</p>
                         )}
                       </div>
                     </li>
@@ -658,12 +658,12 @@ export default function CareerOraclePage() {
               <div>
                 <p className="text-white/60 text-sm mb-2">Dropout Risk</p>
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className={cn('w-5 h-5', RISK_COLORS[gap.riskSummary.level] ?? 'text-white/40')} />
-                  <span className={cn('font-bold text-lg', RISK_COLORS[gap.riskSummary.level] ?? 'text-white/40')}>
-                    {gap.riskSummary.level}
+                  <AlertTriangle className={cn('w-5 h-5', RISK_COLORS[gap.riskSummary?.level ?? ''] ?? 'text-white/40')} />
+                  <span className={cn('font-bold text-lg', RISK_COLORS[gap.riskSummary?.level ?? ''] ?? 'text-white/40')}>
+                    {gap.riskSummary?.level ?? '—'}
                   </span>
                 </div>
-                <p className="text-white/40 text-xs mt-1">{gap.riskSummary.topFactor}</p>
+                <p className="text-white/40 text-xs mt-1">{gap.riskSummary?.topFactor ?? ''}</p>
               </div>
               <div className="border-t border-white/8 pt-3">
                 <p className="text-white/40 text-xs leading-relaxed">
