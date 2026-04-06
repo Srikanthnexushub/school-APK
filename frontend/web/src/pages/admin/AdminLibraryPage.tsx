@@ -937,9 +937,11 @@ export default function AdminLibraryPage() {
     enabled: isInst && !centerId,
   });
 
-  // Auto-select for SCHOOL/COLLEGE — skip picker (coaching centers still see picker)
+  // Auto-select for SCHOOL/COLLEGE, or when there is only one center of any type
   useEffect(() => {
-    if (!centerId && centers.length > 0 && centers.every(c => c.centerType !== 'COACHING_CENTER')) {
+    if (!centerId && centers.length > 0 && (
+      centers.every(c => c.centerType !== 'COACHING_CENTER') || centers.length === 1
+    )) {
       setSelectedCenterId(centers[0].id);
     }
   }, [centers, centerId]); // eslint-disable-line

@@ -831,15 +831,17 @@ function CenterPicker({
     },
   });
 
-  // Auto-select for SCHOOL/COLLEGE — skip picker (coaching centers still see picker)
-  const allSchoolOrCollege = centers.length > 0 && centers.every(c => c.centerType !== 'COACHING_CENTER');
+  // Auto-select for SCHOOL/COLLEGE, or when there is only one center of any type
+  const shouldAutoSelect = centers.length > 0 && (
+    centers.every(c => c.centerType !== 'COACHING_CENTER') || centers.length === 1
+  );
   useEffect(() => {
-    if (allSchoolOrCollege) {
+    if (shouldAutoSelect) {
       onSelect(centers[0].id);
     }
-  }, [allSchoolOrCollege]); // eslint-disable-line
+  }, [shouldAutoSelect]); // eslint-disable-line
 
-  if (isLoading || allSchoolOrCollege) {
+  if (isLoading || shouldAutoSelect) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-6 h-6 text-brand-400 animate-spin" />

@@ -201,13 +201,16 @@ function KpiCard({ label, value, sub, icon: Icon, color, delay }: {
 
 // ─── Add center modal ─────────────────────────────────────────────────────────
 
+type CenterTypeOption = 'COACHING_CENTER' | 'SCHOOL' | 'COLLEGE';
+
 function AddCenterModal({ onClose, onAdd, isSubmitting, myId }: {
   onClose: () => void;
-  onAdd: (data: AddCenterForm & { ownerId?: string }) => void;
+  onAdd: (data: AddCenterForm & { ownerId?: string; centerType: CenterTypeOption }) => void;
   isSubmitting: boolean;
   myId: string;
 }) {
   const [ownerId, setOwnerId] = useState(myId);
+  const [centerType, setCenterType] = useState<CenterTypeOption>('COACHING_CENTER');
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<AddCenterForm>({
     resolver: zodResolver(addCenterSchema),
   });
@@ -229,15 +232,35 @@ function AddCenterModal({ onClose, onAdd, isSubmitting, myId }: {
         <div className="bg-surface-50 border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
             <div>
-              <h3 className="font-semibold text-white">Add New Center</h3>
-              <p className="text-xs text-white/40 mt-0.5">Create a new coaching center</p>
+              <h3 className="font-semibold text-white">Add New Institution</h3>
+              <p className="text-xs text-white/40 mt-0.5">Create a school, college, or coaching center</p>
             </div>
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/5 text-white/30 hover:text-white/70 transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit(data => onAdd({ ...data, ownerId: ownerId || undefined }))} className="p-6 space-y-4">
+          <form onSubmit={handleSubmit(data => onAdd({ ...data, ownerId: ownerId || undefined, centerType }))} className="p-6 space-y-4">
+            {/* Institution type picker */}
+            <div>
+              <label className="block text-xs font-medium text-white/60 mb-2">Institution Type</label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['COACHING_CENTER', 'SCHOOL', 'COLLEGE'] as CenterTypeOption[]).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setCenterType(t)}
+                    className={`py-2 px-3 rounded-xl border text-xs font-medium transition-colors ${
+                      centerType === t
+                        ? 'border-brand-500/60 bg-brand-500/15 text-brand-300'
+                        : 'border-white/10 bg-white/3 text-white/50 hover:border-white/20 hover:text-white/70'
+                    }`}
+                  >
+                    {t === 'COACHING_CENTER' ? 'Coaching Center' : t === 'SCHOOL' ? 'School' : 'College'}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div>
               <label className="block text-xs font-medium text-white/60 mb-1.5">Center Name</label>
               <div className="relative">
@@ -591,17 +614,18 @@ export default function AdminDashboardPage() {
 
   // ── Mutations ──────────────────────────────────────────────────────────────
   const createCenter = useMutation({
-    mutationFn: (data: AddCenterForm & { ownerId?: string }) =>
+    mutationFn: (data: AddCenterForm & { ownerId?: string; centerType?: CenterTypeOption }) =>
       api.post('/api/v1/centers', {
-        name:    data.name,
-        code:    data.code,
-        city:    data.city,
-        state:   data.state,
-        address: data.address,
-        pincode: data.pincode,
-        phone:   data.phone,
-        email:   data.email,
-        ownerId: data.ownerId ?? null,
+        name:       data.name,
+        code:       data.code,
+        city:       data.city,
+        state:      data.state,
+        address:    data.address,
+        pincode:    data.pincode,
+        phone:      data.phone,
+        email:      data.email,
+        ownerId:    data.ownerId ?? null,
+        centerType: data.centerType ?? 'COACHING_CENTER',
       }),
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['centers'] });
