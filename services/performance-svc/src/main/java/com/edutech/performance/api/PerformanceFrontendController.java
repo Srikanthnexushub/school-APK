@@ -9,7 +9,9 @@ import com.edutech.performance.domain.port.out.SubjectMasteryRepository;
 import com.edutech.performance.domain.port.out.WeakAreaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -56,7 +58,9 @@ public class PerformanceFrontendController {
      * Returns 200 with null body when no data exists (new student).
      */
     @GetMapping("/readiness/{studentId}")
-    public ResponseEntity<ReadinessSummary> getLatestReadiness(@PathVariable UUID studentId) {
+    public ResponseEntity<ReadinessSummary> getLatestReadiness(@PathVariable UUID studentId,
+                                                                Authentication authentication) {
+        if (!isAllowed(authentication, studentId)) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         log.debug("Frontend: fetching latest readiness for studentId={}", studentId);
         Optional<ReadinessScore> latest = readinessScoreRepository.findLatestByStudentId(studentId);
         if (latest.isEmpty()) {
@@ -77,7 +81,9 @@ public class PerformanceFrontendController {
      * Returns empty list when no data exists.
      */
     @GetMapping("/mastery/{studentId}")
-    public ResponseEntity<List<MasterySummary>> getSubjectMastery(@PathVariable UUID studentId) {
+    public ResponseEntity<List<MasterySummary>> getSubjectMastery(@PathVariable UUID studentId,
+                                                                   Authentication authentication) {
+        if (!isAllowed(authentication, studentId)) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         log.debug("Frontend: fetching subject mastery for studentId={}", studentId);
         List<SubjectMastery> masteries = subjectMasteryRepository.findByStudentId(studentId);
         List<MasterySummary> result = masteries.stream()
@@ -97,7 +103,9 @@ public class PerformanceFrontendController {
      * Returns empty list when no data exists.
      */
     @GetMapping("/weak-areas/{studentId}")
-    public ResponseEntity<List<WeakAreaSummary>> getWeakAreas(@PathVariable UUID studentId) {
+    public ResponseEntity<List<WeakAreaSummary>> getWeakAreas(@PathVariable UUID studentId,
+                                                              Authentication authentication) {
+        if (!isAllowed(authentication, studentId)) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         log.debug("Frontend: fetching weak areas for studentId={}", studentId);
         List<WeakAreaRecord> weakAreas = weakAreaRepository.findByStudentIdOrderByMasteryAsc(studentId, 50);
         List<WeakAreaSummary> result = weakAreas.stream()
@@ -118,7 +126,9 @@ public class PerformanceFrontendController {
      * Falls back to a rule-based LOW-risk response when no data exists or AI sidecar is unavailable.
      */
     @GetMapping("/dropout-risk/{studentId}")
-    public ResponseEntity<DropoutRiskSummary> getDropoutRisk(@PathVariable UUID studentId) {
+    public ResponseEntity<DropoutRiskSummary> getDropoutRisk(@PathVariable UUID studentId,
+                                                             Authentication authentication) {
+        if (!isAllowed(authentication, studentId)) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         log.debug("Frontend: fetching dropout risk for studentId={}", studentId);
 
         Optional<ReadinessScore> latestErs = readinessScoreRepository.findLatestByStudentId(studentId);
@@ -164,6 +174,24 @@ public class PerformanceFrontendController {
     }
 
     // ─── Helpers ───────────────────────────────────────────────────────────────
+
+    /**
+     * Students may only read their own performance data.
+     * Parents, teachers, and admins may read any student's data.
+     */
+    private static boolean isAllowed(Authentication authentication, UUID studentId) {
+        if (authentication == null) return false;
+        boolean isStudent = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_STUDENT"));
+        if (isStudent) {
+            try {
+                return UUID.fromString((String) authentication.getPrincipal()).equals(studentId);
+            } catch (Exception e) {
+                return false;
+            }
+        }
+        return true; // PARENT, TEACHER, CENTER_ADMIN, INSTITUTION_ADMIN, SUPER_ADMIN
+    }
 
     private String deriveTrend(BigDecimal velocityPerWeek) {
         if (velocityPerWeek == null) return "STABLE";

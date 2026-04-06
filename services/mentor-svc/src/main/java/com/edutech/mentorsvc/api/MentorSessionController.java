@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -68,12 +69,24 @@ public class MentorSessionController {
             @RequestParam(required = false) UUID mentorId,
             @RequestParam(required = false) UUID studentId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size) {
+            @RequestParam(defaultValue = "50") int size,
+            Authentication authentication) {
         PageRequest pageRequest = PageRequest.of(page, size);
         List<MentorSessionResponse> all;
         if (mentorId != null) {
             all = getMentorSessionUseCase.getSessionsByMentor(mentorId);
         } else if (studentId != null) {
+            // Students may only query their own sessions
+            if (authentication != null && authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_STUDENT"))) {
+                try {
+                    if (!UUID.fromString((String) authentication.getPrincipal()).equals(studentId)) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+                    }
+                } catch (Exception e) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+                }
+            }
             all = getMentorSessionUseCase.getSessionsByStudent(studentId);
         } else {
             return ResponseEntity.ok(Page.empty(pageRequest));
