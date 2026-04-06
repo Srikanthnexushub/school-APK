@@ -1,8 +1,8 @@
 // src/components/ui/FooterBanner.tsx
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
-import { ExternalLink, Volume2, VolumeX, ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
+import { ExternalLink, Volume2, VolumeX, Play, Pause } from 'lucide-react';
 import api from '../../lib/api';
 
 interface BannerResponse {
@@ -23,6 +23,21 @@ interface BannerResponse {
   createdAt: string;
 }
 
+// Default 4K event video shown when no DB FOOTER_VIDEO banners exist
+const DEFAULT_BANNER: BannerResponse = {
+  id: '__default__',
+  title: 'Event Management Services',
+  subtitle: 'World-class events, conferences & galas — powered by NexusED',
+  videoUrl: 'https://assets.mixkit.co/videos/5227/5227-1080.mp4',
+  linkUrl: '',
+  linkLabel: '',
+  audience: 'ALL',
+  bannerType: 'FOOTER_VIDEO',
+  displayOrder: 0,
+  isActive: true,
+  createdAt: '',
+};
+
 export interface FooterBannerProps {
   audience: 'PARENT' | 'CENTER_ADMIN' | 'ALL';
 }
@@ -32,6 +47,8 @@ export default function FooterBanner({ audience }: FooterBannerProps) {
   const [current, setCurrent] = useState(0);
   const [muted, setMuted] = useState(true);
   const [paused, setPaused] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -45,10 +62,10 @@ export default function FooterBanner({ audience }: FooterBannerProps) {
     staleTime: 60 * 1000,
   });
 
-  // Show only FOOTER_VIDEO banners
-  const banners = allBanners.filter((b) => b.bannerType === 'FOOTER_VIDEO');
+  const dbBanners = allBanners.filter((b) => b.bannerType === 'FOOTER_VIDEO');
+  const banners = dbBanners.length > 0 ? dbBanners : [DEFAULT_BANNER];
 
-  // Auto-advance interval — stops when paused
+  // Auto-advance interval
   useEffect(() => {
     if (banners.length <= 1 || paused) {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -62,37 +79,37 @@ export default function FooterBanner({ audience }: FooterBannerProps) {
     };
   }, [banners.length, rotationMs, paused]);
 
-  // Play/pause the video element when paused state changes
+  // Play/pause
   useEffect(() => {
     if (!videoRef.current) return;
-    if (paused) {
-      videoRef.current.pause();
-    } else {
-      videoRef.current.play().catch(() => {});
-    }
+    if (paused) { videoRef.current.pause(); } else { videoRef.current.play().catch(() => {}); }
   }, [paused]);
 
-  // Reset video on banner change
+  // Reset on banner change
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.load();
       if (!paused) videoRef.current.play().catch(() => {});
     }
+    setProgress(0);
   }, [current]); // eslint-disable-line
 
-  if (banners.length === 0) return null;
+  const handleTimeUpdate = useCallback(() => {
+    const el = videoRef.current;
+    if (!el || !el.duration) return;
+    setProgress((el.currentTime / el.duration) * 100);
+  }, []);
 
   const banner = banners[current];
 
-  function prev() {
-    setCurrent((c) => (c - 1 + banners.length) % banners.length);
-  }
-  function next() {
-    setCurrent((c) => (c + 1) % banners.length);
-  }
-
   return (
-    <div className="relative overflow-hidden rounded-xl" style={{ height: 160 }}>
+    <div
+      className="relative overflow-hidden rounded-2xl"
+      style={{
+        minHeight: 220,
+        background: 'linear-gradient(135deg, #6d28d9 0%, #db2777 55%, #f97316 100%)',
+      }}
+    >
       <AnimatePresence mode="wait">
         <motion.div
           key={banner.id}
@@ -102,8 +119,8 @@ export default function FooterBanner({ audience }: FooterBannerProps) {
           transition={{ duration: 0.4 }}
           className="absolute inset-0"
         >
-          {/* Video background */}
-          {banner.videoUrl ? (
+          {/* Video */}
+          {banner.videoUrl && (
             <video
               ref={videoRef}
               src={banner.videoUrl}
@@ -113,100 +130,116 @@ export default function FooterBanner({ audience }: FooterBannerProps) {
               loop
               preload="metadata"
               poster={banner.imageUrl ?? undefined}
+              onTimeUpdate={handleTimeUpdate}
+              onPlay={() => setPlaying(true)}
+              onPause={() => setPlaying(false)}
               className="absolute inset-0 w-full h-full object-cover"
-            />
-          ) : banner.imageUrl ? (
-            <img
-              src={banner.imageUrl}
-              alt={banner.title}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          ) : (
-            <div
-              className="absolute inset-0"
-              style={{ background: banner.bgColor ?? 'linear-gradient(90deg, #312e81dd, #312e8199)' }}
+              style={{ zIndex: 0 }}
             />
           )}
 
-          {/* Dark overlay for text legibility */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/20" />
+          {/* Dark gradient overlay */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.05) 100%)',
+              zIndex: 1,
+            }}
+          />
 
-          {/* Content overlay */}
-          <div className="absolute inset-0 flex items-center px-4 gap-3">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-white truncate">{banner.title}</p>
-              {banner.subtitle && (
-                <p className="text-xs text-white/70 truncate mt-0.5">{banner.subtitle}</p>
-              )}
-            </div>
+          {/* Content — text at bottom like header VideoBanner */}
+          <div
+            className="relative z-10 flex flex-col justify-end h-full p-5 pb-8"
+            style={{ minHeight: 220 }}
+          >
+            <span
+              className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest mb-2 w-fit"
+              style={{ color: 'rgba(255,255,255,0.6)' }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              Advertisement
+            </span>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {banner.linkUrl && banner.linkLabel && (
-                <a
-                  href={banner.linkUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-white/90 hover:text-white border border-white/30 hover:border-white/60 px-2.5 py-1 rounded-lg transition-colors bg-black/20"
-                >
-                  {banner.linkLabel}
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              )}
+            <h2
+              className="text-lg font-bold leading-snug mb-1 drop-shadow-lg"
+              style={{ color: '#ffffff' }}
+            >
+              {banner.title}
+            </h2>
+            {banner.subtitle && (
+              <p
+                className="text-sm mb-3 max-w-md drop-shadow"
+                style={{ color: 'rgba(255,255,255,0.85)' }}
+              >
+                {banner.subtitle}
+              </p>
+            )}
+            {banner.linkUrl && banner.linkLabel && (
+              <a
+                href={banner.linkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-white/15 hover:bg-white/25 rounded-xl text-sm font-semibold border border-white/20 w-fit backdrop-blur-sm transition-colors"
+                style={{ color: '#ffffff' }}
+              >
+                {banner.linkLabel}
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
+          </div>
 
-              {/* Play / Pause toggle (only for video banners) */}
-              {banner.videoUrl && (
-                <button
-                  onClick={() => setPaused((p) => !p)}
-                  className="p-1.5 rounded-lg bg-black/30 border border-white/15 text-white/70 hover:text-white transition-colors"
-                >
-                  {paused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-                </button>
-              )}
-
-              {/* Mute toggle (only for video banners) */}
-              {banner.videoUrl && (
+          {/* Controls — top right on hover */}
+          <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+            {banner.videoUrl && (
+              <>
                 <button
                   onClick={() => setMuted((m) => !m)}
-                  className="p-1.5 rounded-lg bg-black/30 border border-white/15 text-white/70 hover:text-white transition-colors"
+                  className="p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors backdrop-blur-sm"
+                  style={{ color: 'rgba(255,255,255,0.8)' }}
+                  title={muted ? 'Unmute' : 'Mute'}
                 >
                   {muted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
                 </button>
-              )}
-            </div>
+                <button
+                  onClick={() => setPaused((p) => !p)}
+                  className="p-2 rounded-full bg-black/40 hover:bg-black/60 transition-colors backdrop-blur-sm"
+                  style={{ color: 'rgba(255,255,255,0.8)' }}
+                  title={playing ? 'Pause' : 'Play'}
+                >
+                  {paused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+                </button>
+              </>
+            )}
           </div>
-
-          {/* Prev / Next controls (only when multiple banners) */}
-          {banners.length > 1 && (
-            <>
-              <button
-                onClick={prev}
-                className="absolute left-2 top-1/2 -translate-y-1/2 p-1 rounded-full bg-black/30 border border-white/10 text-white/60 hover:text-white transition-colors"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={next}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full bg-black/30 border border-white/10 text-white/60 hover:text-white transition-colors"
-              >
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-
-              {/* Dot nav */}
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                {banners.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCurrent(i)}
-                    className={`w-1.5 h-1.5 rounded-full transition-all ${
-                      i === current ? 'bg-white scale-125' : 'bg-white/35'
-                    }`}
-                  />
-                ))}
-              </div>
-            </>
-          )}
         </motion.div>
       </AnimatePresence>
+
+      {/* Progress bar */}
+      {banner.videoUrl && (
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10 z-20">
+          <motion.div
+            className="h-full bg-white/70 rounded-full"
+            style={{ width: `${progress}%` }}
+            transition={{ duration: 0.1 }}
+          />
+        </div>
+      )}
+
+      {/* Dot nav for multiple banners */}
+      {banners.length > 1 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20">
+          {banners.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrent(i)}
+              className={`rounded-full transition-all ${
+                i === current ? 'w-5 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/70'
+              }`}
+              aria-label={`Go to banner ${i + 1}`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
