@@ -156,7 +156,7 @@ function VideoSlide({ banner, isActive, onEnded }: VideoSlideProps) {
       )}
 
       {/* Content overlay */}
-      <div className="relative z-10 flex flex-col justify-end h-full min-h-[220px] p-5 pb-8">
+      <div className="relative z-10 flex flex-col justify-end h-full min-h-[220px] p-5 pb-8" style={{ color: 'white' }}>
         {/* Tag */}
         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-white/60 uppercase tracking-widest mb-2 w-fit">
           <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
