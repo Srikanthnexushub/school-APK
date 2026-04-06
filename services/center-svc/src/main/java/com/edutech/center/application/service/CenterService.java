@@ -167,7 +167,12 @@ public class CenterService implements CreateCenterUseCase, UpdateCenterUseCase {
     public CenterResponse getCenter(UUID centerId, AuthPrincipal principal) {
         CoachingCenter center = centerRepository.findById(centerId)
             .orElseThrow(() -> new CenterNotFoundException(centerId));
-        boolean allowed = principal.belongsToCenter(centerId, center.getAdminUserId())
+        // Students and parents are always allowed to read center details — the info
+        // (name, city, board) is non-sensitive and needed to render the student portal.
+        // Previously only admins/teachers could access this, causing 403 for students
+        // whose JWT centerId was null (registered before Fix #348 centerId backfill).
+        boolean allowed = principal.isStudent() || principal.isParent()
+                || principal.belongsToCenter(centerId, center.getAdminUserId())
                 || (principal.isTeacher() && teacherRepository.existsByUserIdAndCenterId(principal.userId(), centerId));
         if (!allowed) {
             throw new CenterAccessDeniedException();

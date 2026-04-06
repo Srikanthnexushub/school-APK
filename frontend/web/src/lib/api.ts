@@ -84,6 +84,16 @@ api.interceptors.response.use(
       const newRefresh: string = data.refreshToken;
 
       setTokens(newAccess, newRefresh);
+
+      // Sync user object from the new JWT so stale fields (e.g. centerId that was
+      // null at first login but has since been set in the DB) are healed immediately
+      // without requiring a full logout/login cycle.
+      try {
+        const payload = JSON.parse(atob(newAccess.split('.')[1]));
+        const { updateUser } = useAuthStore.getState();
+        updateUser({ centerId: payload.centerId ?? undefined });
+      } catch { /* non-fatal */ }
+
       flushQueue(newAccess);
 
       original.headers.Authorization = `Bearer ${newAccess}`;
