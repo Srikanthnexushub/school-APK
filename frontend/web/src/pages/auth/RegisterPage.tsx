@@ -585,7 +585,9 @@ export default function RegisterPage() {
         email:    data.email,
         password: data.password,
         role:     selectedRole,
-        centerId: selectedRole === 'TEACHER' ? (teacherCenterId ?? undefined) : undefined,
+        centerId: selectedRole === 'TEACHER' ? (teacherCenterId ?? undefined)
+                : selectedRole === 'STUDENT'  ? (centerId ?? undefined)
+                : undefined,
         captchaToken: captchaToken!,
         deviceFingerprint: { userAgent: navigator.userAgent, deviceId, ipSubnet: '127.0.0' },
       });
