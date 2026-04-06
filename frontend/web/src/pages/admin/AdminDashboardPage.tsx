@@ -39,6 +39,7 @@ interface CenterResponse {
   logoUrl?: string;
   status: string;
   ownerId?: string;
+  centerType?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -84,6 +85,7 @@ interface CenterRow {
   students: number;
   batches: number;
   status: CenterStatus;
+  centerType?: string;
   createdAt: string;
 }
 
@@ -548,8 +550,9 @@ export default function AdminDashboardPage() {
       phone:    c.phone,
       students: batches.reduce((s, b) => s + b.enrolledCount, 0),
       batches:  batches.length,
-      status:   mapStatus(c.status),
-      createdAt: c.createdAt,
+      status:     mapStatus(c.status),
+      centerType: c.centerType,
+      createdAt:  c.createdAt,
       // extra fields for edit modal
       email:   c.email,
       state:   c.state,
@@ -792,7 +795,17 @@ export default function AdminDashboardPage() {
         {/* Centers table */}
         <div className="card lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-white text-sm">Coaching Centers</h3>
+            <h3 className="font-semibold text-white text-sm">
+              {(() => {
+                const types = [...new Set(centers.map(c => c.centerType).filter(Boolean))];
+                if (types.length === 1) {
+                  if (types[0] === 'SCHOOL') return 'Schools';
+                  if (types[0] === 'COLLEGE') return 'Colleges';
+                  return 'Coaching Centers';
+                }
+                return 'Centers';
+              })()}
+            </h3>
             <span className="text-xs text-white/30">{centers.length} centers</span>
           </div>
 
