@@ -200,12 +200,14 @@ function KpiCard({ label, value, sub, icon: Icon, color, delay }: {
 
 // ─── Add center modal ─────────────────────────────────────────────────────────
 
-function AddCenterModal({ onClose, onAdd, isSubmitting }: {
+function AddCenterModal({ onClose, onAdd, isSubmitting, myId }: {
   onClose: () => void;
-  onAdd: (data: AddCenterForm) => void;
+  onAdd: (data: AddCenterForm & { ownerId?: string }) => void;
   isSubmitting: boolean;
+  myId: string;
 }) {
-  const { register, handleSubmit, formState: { errors } } = useForm<AddCenterForm>({
+  const [ownerId, setOwnerId] = useState(myId);
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<AddCenterForm>({
     resolver: zodResolver(addCenterSchema),
   });
 
@@ -234,7 +236,7 @@ function AddCenterModal({ onClose, onAdd, isSubmitting }: {
             </button>
           </div>
 
-          <form onSubmit={handleSubmit(onAdd)} className="p-6 space-y-4">
+          <form onSubmit={handleSubmit(data => onAdd({ ...data, ownerId: ownerId || undefined }))} className="p-6 space-y-4">
             <div>
               <label className="block text-xs font-medium text-white/60 mb-1.5">Center Name</label>
               <div className="relative">
@@ -245,8 +247,10 @@ function AddCenterModal({ onClose, onAdd, isSubmitting }: {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-white/60 mb-1.5">Code (uppercase alphanumeric)</label>
-              <input {...register('code')} placeholder="NEXWF001" className="input w-full" />
+              <label className="block text-xs font-medium text-white/60 mb-1.5">Code <span className="text-white/25">(A–Z, 0–9 only)</span></label>
+              <input {...register('code')} placeholder="NEC001"
+                onChange={e => setValue('code', e.target.value.toUpperCase(), { shouldValidate: true })}
+                className="input w-full font-mono" />
               {errors.code && <p className="text-xs text-red-400 mt-1">{errors.code.message}</p>}
             </div>
 
@@ -292,6 +296,28 @@ function AddCenterModal({ onClose, onAdd, isSubmitting }: {
               <label className="block text-xs font-medium text-white/60 mb-1.5">Email</label>
               <input {...register('email')} type="email" placeholder="center@nexused.dev" className="input w-full" />
               {errors.email && <p className="text-xs text-red-400 mt-1">{errors.email.message}</p>}
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-white/60 mb-1.5">Owner User ID</label>
+              <div className="flex gap-1.5">
+                <input value={ownerId} onChange={e => setOwnerId(e.target.value)}
+                  placeholder="Auto-filled with your account ID"
+                  className="flex-1 min-w-0 input text-xs font-mono" />
+                <button type="button" title="Use my account ID"
+                  onClick={() => setOwnerId(myId)}
+                  className="flex-shrink-0 px-2.5 rounded-xl border border-white/10 bg-white/5 text-white/40 hover:text-brand-400 hover:border-brand-500/40 transition-colors text-xs">
+                  Me
+                </button>
+                <button type="button" title="Generate new UUID"
+                  onClick={() => setOwnerId(crypto.randomUUID())}
+                  className="flex-shrink-0 px-2.5 rounded-xl border border-white/10 bg-white/5 text-white/40 hover:text-brand-400 hover:border-brand-500/40 transition-colors text-xs">
+                  Gen
+                </button>
+              </div>
+              <p className="text-[11px] text-white/25 mt-1">
+                {ownerId === myId ? '✓ Using your account' : ownerId ? 'Custom ID' : 'Defaults to your account'}
+              </p>
             </div>
 
             <div className="flex gap-3 pt-2">
@@ -434,6 +460,7 @@ function Skeleton({ className }: { className?: string }) {
 
 export default function AdminDashboardPage() {
   const user = useAuthStore(s => s.user);
+  const myId = user?.id ?? '';
   const { theme } = useThemeStore();
   const isDark = theme === 'dark';
   const qc = useQueryClient();
@@ -449,21 +476,24 @@ export default function AdminDashboardPage() {
     queryFn: () => api.get('/api/v1/centers').then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }),
   });
 
-  // ── Fetch batches for every center (parallel) ──────────────────────────────
+  // ── Fetch platform-wide stats in ONE request (replaces N teacher queries) ──
+  const { data: auditStats } = useQuery<{
+    totalCenters: number; activeCenters: number;
+    totalBatches: number; totalEnrolled: number; totalTeachers: number;
+  }>({
+    queryKey: ['audit-stats'],
+    queryFn: () => api.get('/api/v1/centers/admin/audit/stats').then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+    enabled: rawCenters.length > 0,
+  });
+
+  // ── Fetch batches per center (needed for chart labels/subjects) ────────────
   const batchQueries = useQueries({
     queries: rawCenters.map((c) => ({
       queryKey: ['batches', c.id],
       queryFn: () => api.get(`/api/v1/centers/${c.id}/batches`).then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }) as Promise<BatchResponse[]>,
       enabled: !!c.id,
-    })),
-  });
-
-  // ── Fetch teachers for every center (parallel) ─────────────────────────────
-  const teacherQueries = useQueries({
-    queries: rawCenters.map((c) => ({
-      queryKey: ['teachers', c.id],
-      queryFn: () => api.get(`/api/v1/centers/${c.id}/teachers`).then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }) as Promise<TeacherResponse[]>,
-      enabled: !!c.id,
+      staleTime: 5 * 60 * 1000,
     })),
   });
 
@@ -474,14 +504,10 @@ export default function AdminDashboardPage() {
     [batchQueries.map((q) => q.data).join(',')]
   );
 
-  const totalTeachers = useMemo(
-    () => teacherQueries.reduce((sum, q) => sum + (q.data?.length ?? 0), 0),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [teacherQueries.map((q) => q.data?.length).join(',')]
-  );
-
-  const totalStudents = allBatches.reduce((s, b) => s + b.enrolledCount, 0);
-  const totalBatches  = allBatches.length;
+  // Use audit stats for totals (1 request) — fall back to batch-derived counts while loading
+  const totalTeachers = auditStats?.totalTeachers ?? 0;
+  const totalStudents = auditStats?.totalEnrolled ?? allBatches.reduce((s, b) => s + b.enrolledCount, 0);
+  const totalBatches  = auditStats?.totalBatches  ?? allBatches.length;
 
   // Build center rows with aggregated batch data
   const centers: CenterRow[] = rawCenters.map((c, idx) => {
@@ -503,7 +529,7 @@ export default function AdminDashboardPage() {
     } as CenterRow & { email?: string; state?: string; pincode?: string };
   });
 
-  const activeCenters = centers.filter((c) => c.status === 'Active').length;
+  const activeCenters = auditStats?.activeCenters ?? centers.filter((c) => c.status === 'Active').length;
 
   // ── Charts data ────────────────────────────────────────────────────────────
   const enrollmentByBatch = useMemo(
@@ -564,7 +590,7 @@ export default function AdminDashboardPage() {
 
   // ── Mutations ──────────────────────────────────────────────────────────────
   const createCenter = useMutation({
-    mutationFn: (data: AddCenterForm) =>
+    mutationFn: (data: AddCenterForm & { ownerId?: string }) =>
       api.post('/api/v1/centers', {
         name:    data.name,
         code:    data.code,
@@ -574,14 +600,15 @@ export default function AdminDashboardPage() {
         pincode: data.pincode,
         phone:   data.phone,
         email:   data.email,
+        ownerId: data.ownerId ?? null,
       }),
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['centers'] });
       setShowAddModal(false);
       toast.success(`Center "${vars.name}" added successfully`);
     },
-    onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Failed to add center';
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message ?? err?.response?.data?.error ?? err?.response?.data?.detail ?? 'Failed to add center';
       toast.error(msg);
     },
   });
@@ -594,8 +621,8 @@ export default function AdminDashboardPage() {
       setEditingCenter(null);
       toast.success(`Center "${vars.data.name}" updated successfully`);
     },
-    onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Failed to update center';
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message ?? err?.response?.data?.error ?? err?.response?.data?.detail ?? 'Failed to update center';
       toast.error(msg);
     },
   });
@@ -841,6 +868,7 @@ export default function AdminDashboardPage() {
             onClose={() => setShowAddModal(false)}
             onAdd={(data) => createCenter.mutate(data)}
             isSubmitting={createCenter.isPending}
+            myId={myId}
           />
         )}
       </AnimatePresence>

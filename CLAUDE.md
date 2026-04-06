@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 424+ frozen fixes as of Fix #326 (2026-04-05 — voice browser-native pipeline: SpeechRecognition+SpeechSynthesis replaces Deepgram+ElevenLabs).
+- Read `memory/frozen-fixes.md` before touching any file. 430+ frozen fixes as of Fix #332 (2026-04-06 — Banner UUID titles cleaned, N+1 teacher queries removed).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---

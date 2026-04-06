@@ -3,12 +3,13 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, X, Building2, MapPin, Phone, Mail, Globe,
-  CheckCircle2, AlertCircle, Clock, Pencil,
+  CheckCircle2, AlertCircle, Clock, Pencil, RefreshCw, User,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '../../lib/utils';
 import { toast } from 'sonner';
 import api from '../../lib/api';
+import { useAuthStore } from '../../stores/authStore';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -163,16 +164,22 @@ function CenterFormModal({
   onSubmit,
   onClose,
   isPending,
+  myId,
 }: {
   title: string;
   initial: CenterFormState;
   onSubmit: (data: CenterFormState) => void;
   onClose: () => void;
   isPending: boolean;
+  myId: string;
 }) {
   const [form, setForm] = useState<CenterFormState>(initial);
   const set = (k: keyof CenterFormState, v: string) => setForm(f => ({ ...f, [k]: v }));
-  const valid = form.name.trim() && form.code.trim();
+  const valid =
+    form.name.trim() && form.code.trim() &&
+    form.address.trim() && form.city.trim() && form.state.trim() &&
+    form.pincode.trim() && form.phone.trim() && form.email.trim() &&
+    /^[A-Z0-9]+$/.test(form.code.trim());
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -199,16 +206,34 @@ function CenterFormModal({
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-brand-500/50" />
             </div>
             <div>
-              <label className="block text-xs text-white/50 mb-1.5">Code *</label>
+              <label className="block text-xs text-white/50 mb-1.5">Code * <span className="text-white/25">(A–Z, 0–9 only)</span></label>
               <input value={form.code} onChange={e => set('code', e.target.value.toUpperCase())}
-                placeholder="NEC-001"
+                placeholder="NEC001"
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white font-mono placeholder-white/20 focus:outline-none focus:border-brand-500/50" />
+              {form.code && !/^[A-Z0-9]+$/.test(form.code) && (
+                <p className="text-[11px] text-red-400 mt-1">Only uppercase letters and numbers — no dashes or spaces</p>
+              )}
             </div>
             <div>
               <label className="block text-xs text-white/50 mb-1.5">Owner User ID</label>
-              <input value={form.ownerId} onChange={e => set('ownerId', e.target.value)}
-                placeholder="UUID"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white font-mono placeholder-white/20 focus:outline-none focus:border-brand-500/50" />
+              <div className="flex gap-1.5">
+                <input value={form.ownerId} onChange={e => set('ownerId', e.target.value)}
+                  placeholder="Auto-filled with your account ID"
+                  className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white/80 font-mono placeholder-white/25 focus:outline-none focus:border-brand-500/50" />
+                <button type="button" title="Use my account ID"
+                  onClick={() => set('ownerId', myId)}
+                  className="flex-shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-xl border border-white/10 bg-white/5 text-white/50 hover:text-brand-400 hover:border-brand-500/40 transition-colors text-xs">
+                  <User className="w-3.5 h-3.5" />
+                </button>
+                <button type="button" title="Generate a new UUID"
+                  onClick={() => set('ownerId', crypto.randomUUID())}
+                  className="flex-shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-xl border border-white/10 bg-white/5 text-white/50 hover:text-brand-400 hover:border-brand-500/40 transition-colors text-xs">
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <p className="text-[11px] text-white/25 mt-1">
+                {form.ownerId === myId ? '✓ Using your account' : form.ownerId ? 'Custom ID' : 'Leave blank — defaults to your account'}
+              </p>
             </div>
             <div className="col-span-2">
               <label className="block text-xs text-white/50 mb-1.5">Address</label>
@@ -309,6 +334,7 @@ function CenterFormModal({
 
 export default function AdminCentersPage() {
   const qc = useQueryClient();
+  const myId = useAuthStore(s => s.user?.id ?? '');
   const [showCreate, setShowCreate] = useState(false);
   const [editCenter, setEditCenter] = useState<CenterResponse | null>(null);
 
@@ -330,7 +356,7 @@ export default function AdminCentersPage() {
       centerType: data.centerType ?? 'COACHING_CENTER',
     }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-centers'] }); setShowCreate(false); toast.success('Center created'); },
-    onError: () => toast.error('Failed to create center'),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? err?.response?.data?.error ?? 'Failed to create center'),
   });
 
   const updateMutation = useMutation({
@@ -343,7 +369,7 @@ export default function AdminCentersPage() {
         centerType: data.centerType ?? 'COACHING_CENTER',
       }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-centers'] }); setEditCenter(null); toast.success('Center updated'); },
-    onError: () => toast.error('Failed to update center'),
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? err?.response?.data?.error ?? 'Failed to update center'),
   });
 
   const editFormInitial = editCenter ? {
@@ -417,10 +443,11 @@ export default function AdminCentersPage() {
         {showCreate && (
           <CenterFormModal
             title="Add Center"
-            initial={EMPTY_FORM}
+            initial={{ ...EMPTY_FORM, ownerId: myId }}
             onSubmit={data => createMutation.mutate(data)}
             onClose={() => setShowCreate(false)}
             isPending={createMutation.isPending}
+            myId={myId}
           />
         )}
         {editCenter && (
@@ -430,6 +457,7 @@ export default function AdminCentersPage() {
             onSubmit={data => updateMutation.mutate({ id: editCenter.id, data })}
             onClose={() => setEditCenter(null)}
             isPending={updateMutation.isPending}
+            myId={myId}
           />
         )}
       </AnimatePresence>

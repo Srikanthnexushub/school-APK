@@ -329,7 +329,7 @@ export default function LoginPage() {
 
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row items-stretch relative overflow-hidden" style={{ background: clr.pageBg }}>
+    <div className="min-h-screen relative overflow-hidden flex items-stretch justify-center" style={{ background: clr.pageBg }}>
       {/* Ambient aurora blobs — behind everything */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
         <div className="absolute -top-60 -left-60 w-[700px] h-[700px] rounded-full" style={{ background: `radial-gradient(circle, ${clr.aurora1} 0%, transparent 70%)`, filter: 'blur(80px)' }} />
@@ -359,6 +359,9 @@ export default function LoginPage() {
           )}
         </AnimatePresence>
       </motion.button>
+
+      {/* ── Two-panel centered wrapper ─────────────────────────────────── */}
+      <div className="relative z-10 w-full max-w-[1280px] flex flex-col lg:flex-row items-stretch min-h-screen">
 
       {/* ── LEFT PANEL: Neural Command Center ─────────────────────────── */}
       <div className="flex flex-col items-center justify-center lg:flex-1 relative px-5 py-6 lg:px-12 overflow-hidden">
@@ -714,6 +717,8 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      </div>{/* end two-panel centered wrapper */}
     </div>
   );
 }
