@@ -343,7 +343,7 @@ export default function RegisterPage() {
   const [institutionPhone, setInstitutionPhone] = useState('');
   const [instBranch, setInstBranch] = useState('');
   const [instBoard, setInstBoard] = useState<string[]>([]);
-  const [instCenterType, setInstCenterType] = useState<'COACHING_CENTER' | 'SCHOOL' | 'COLLEGE'>('COACHING_CENTER');
+  const [instCenterType, setInstCenterType] = useState<'COACHING_CENTER' | 'SCHOOL' | 'COLLEGE' | null>(null);
   const [instAddressLine1, setInstAddressLine1] = useState('');
   const [instAddressLine2, setInstAddressLine2] = useState('');
   const [instCountry, setInstCountry] = useState('');
@@ -500,6 +500,7 @@ export default function RegisterPage() {
 
     if (selectedRole === 'INSTITUTION_ADMIN') {
       if (!institutionName.trim()) { toast.error('Institution name is required'); return; }
+      if (!instCenterType) { toast.error('Please select an institution type (School, Coaching Center, or College)'); return; }
       if (!institutionPhone.trim()) { toast.error('Institution phone is required'); return; }
       if (!instAddressLine1.trim()) { toast.error('Address is required'); return; }
       if (!instCountry.trim()) { toast.error('Country is required'); return; }
@@ -653,7 +654,7 @@ export default function RegisterPage() {
             board:      instBoard.length > 0 ? instBoard.join(',') : undefined,
             pincode:    instPincode || undefined,
             country:    instCountry.trim() || undefined,
-            centerType: instCenterType,
+            centerType: instCenterType!,
           }, { headers: { Authorization: `Bearer ${token}` } });
           toast.success('Institution registered! You can now sign in.');
         } catch {
@@ -1009,7 +1010,7 @@ export default function RegisterPage() {
                 </div>
                 <MultiSelectDropdown label="Board" values={instBoard} onChange={setInstBoard} options={BOARD_OPTIONS} placeholder="Select board(s)…" required />
                 <div>
-                  <label className="block text-sm font-medium text-white/70 mb-1">Institution Type</label>
+                  <label className="block text-sm font-medium text-white/70 mb-1">Institution Type <span className="text-red-400">*</span></label>
                   <div className="grid grid-cols-3 gap-2">
                     {([
                       { value: 'COACHING_CENTER', label: 'Coaching Center' },
