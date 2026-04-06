@@ -6,6 +6,7 @@ import {
   FileText, Users, ArrowRight, RotateCcw, Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/authStore';
 import api from '../../lib/api';
 import { cn } from '../../lib/utils';
@@ -37,7 +38,15 @@ interface BulkImportConfirmResponse {
 
 export default function AdminBulkImportTeachersPage({ centerId: centerIdProp }: { centerId?: string }) {
   const storeCenterId = useAuthStore(s => s.user?.centerId);
-  const centerId = centerIdProp || storeCenterId;
+
+  // INSTITUTION_ADMIN has no centerId in JWT — fetch from centers API as fallback
+  const { data: fetchedCenters } = useQuery<{ id: string }[]>({
+    queryKey: ['centers-for-bulk'],
+    queryFn: () => api.get('/api/v1/centers').then(r => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }),
+    enabled: !centerIdProp && !storeCenterId,
+    staleTime: 5 * 60 * 1000,
+  });
+  const centerId = centerIdProp || storeCenterId || fetchedCenters?.[0]?.id;
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<BulkImportPreviewResponse | null>(null);
@@ -200,10 +209,16 @@ export default function AdminBulkImportTeachersPage({ centerId: centerIdProp }: 
       {file && !preview && (
         <button
           onClick={handlePreview}
-          disabled={isPreviewing}
-          className="w-full btn-primary flex items-center justify-center gap-2 py-3"
+          disabled={isPreviewing || !centerId}
+          className="w-full btn-primary flex items-center justify-center gap-2 py-3 disabled:opacity-50"
+          title={!centerId ? 'Loading center info…' : undefined}
         >
-          {isPreviewing ? <Loader2 className="w-5 h-5 animate-spin" /> : <><ArrowRight className="w-4 h-4" /> Validate CSV</>}
+          {isPreviewing
+            ? <Loader2 className="w-5 h-5 animate-spin" />
+            : !centerId
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Loading center…</>
+              : <><ArrowRight className="w-4 h-4" /> Validate CSV</>
+          }
         </button>
       )}
 
