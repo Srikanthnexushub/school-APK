@@ -72,7 +72,7 @@ public class BatchService implements CreateBatchUseCase, UpdateBatchUseCase {
 
         Batch batch = Batch.create(centerId, request.name(), request.code(),
                 request.subject(), request.teacherId(), request.maxStudents(),
-                request.startDate(), request.endDate(), request.mode());
+                request.startDate(), request.endDate(), request.mode(), request.grade());
 
         Batch saved = batchRepository.save(batch);
 
@@ -156,6 +156,6 @@ public class BatchService implements CreateBatchUseCase, UpdateBatchUseCase {
         return new BatchResponse(b.getId(), b.getCenterId(), b.getName(), b.getCode(),
                 b.getSubject(), b.getTeacherId(), b.getMaxStudents(), b.getEnrolledCount(),
                 b.getStartDate(), b.getEndDate(), b.getStatus(), b.getMode(),
-                b.getCreatedAt(), b.getUpdatedAt());
+                b.getCreatedAt(), b.getUpdatedAt(), b.getGrade());
     }
 }

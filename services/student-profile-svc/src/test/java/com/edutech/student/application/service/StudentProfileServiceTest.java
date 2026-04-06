@@ -75,6 +75,8 @@ class StudentProfileServiceTest {
                 Board.CBSE,
                 11,
                 null,
+                null,
+                null,
                 null
         );
     }
@@ -192,7 +194,8 @@ class StudentProfileServiceTest {
                 null,
                 null,
                 Stream.PCM,
-                2026
+                2026,
+                null
         );
 
         when(profileRepository.findById(STUDENT_ID)).thenReturn(Optional.of(profile));
@@ -211,7 +214,7 @@ class StudentProfileServiceTest {
     void updateProfile_notFound() {
         // arrange
         UpdateStudentProfileRequest request = new UpdateStudentProfileRequest(
-                null, null, "8888888888", null, null, null, null, null, null, null
+                null, null, "8888888888", null, null, null, null, null, null, null, null
         );
         when(profileRepository.findById(STUDENT_ID)).thenReturn(Optional.empty());
 

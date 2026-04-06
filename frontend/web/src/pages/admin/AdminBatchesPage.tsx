@@ -19,6 +19,7 @@ interface CenterResponse {
   name: string;
   code: string;
   status: string;
+  centerType?: string;
 }
 
 interface BatchResponse {
@@ -34,6 +35,7 @@ interface BatchResponse {
   endDate: string;
   status: 'ACTIVE' | 'INACTIVE' | 'COMPLETED' | 'UPCOMING';
   mode?: 'ONLINE' | 'OFFLINE';
+  grade?: string;
   createdAt: string;
 }
 
@@ -85,6 +87,7 @@ interface CreateBatchRequest {
   endDate: string;
   mode: 'ONLINE' | 'OFFLINE';
   centerId: string; // path param — used to determine URL; not sent in request body
+  grade?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -188,11 +191,12 @@ interface AddBatchFormState {
   endDate: string;
   mode: string;
   centerId: string;
+  grade: string;
 }
 
 const emptyForm: AddBatchFormState = {
   name: '', code: '', subject: '', teacherId: '',
-  maxStudents: '', startDate: '', endDate: '', mode: 'OFFLINE', centerId: '',
+  maxStudents: '', startDate: '', endDate: '', mode: 'OFFLINE', centerId: '', grade: '',
 };
 
 interface AddBatchFormProps {
@@ -206,6 +210,8 @@ interface AddBatchFormProps {
 function AddBatchForm({ centers, teachers, onSubmit, onCancel, isSubmitting }: AddBatchFormProps) {
   const [form, setForm] = useState<AddBatchFormState>({ ...emptyForm, centerId: centers[0]?.id ?? '' });
   const [errors, setErrors] = useState<Partial<AddBatchFormState>>({});
+
+  const selectedCenterType = centers.find((c) => c.id === form.centerId)?.centerType ?? null;
 
   function validate(): boolean {
     const e: Partial<AddBatchFormState> = {};
@@ -234,6 +240,7 @@ function AddBatchForm({ centers, teachers, onSubmit, onCancel, isSubmitting }: A
       endDate:     form.endDate,
       mode:        (form.mode || 'OFFLINE') as 'ONLINE' | 'OFFLINE',
       centerId:    form.centerId,
+      grade:       form.grade.trim() || undefined,
     });
   }
 
@@ -332,6 +339,43 @@ function AddBatchForm({ centers, teachers, onSubmit, onCancel, isSubmitting }: A
             >
               <option value="OFFLINE">Offline</option>
               <option value="ONLINE">Online</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-white/60 mb-1.5">
+              Grade / Class <span className="text-white/30">(optional)</span>
+            </label>
+            <select
+              value={form.grade}
+              onChange={(ev) => setForm((p) => ({ ...p, grade: ev.target.value }))}
+              className="input w-full"
+            >
+              <option value="">— All grades —</option>
+              {selectedCenterType === 'SCHOOL' && (
+                <>
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <option key={i + 1} value={String(i + 1)}>Class {i + 1}</option>
+                  ))}
+                </>
+              )}
+              {selectedCenterType === 'COLLEGE' && (
+                <>
+                  <option value="1">Year 1</option>
+                  <option value="2">Year 2</option>
+                  <option value="3">Year 3</option>
+                  <option value="4">Year 4</option>
+                </>
+              )}
+              {(selectedCenterType === 'COACHING_CENTER' || !selectedCenterType) && (
+                <>
+                  <option value="8">Class 8</option>
+                  <option value="9">Class 9</option>
+                  <option value="10">Class 10</option>
+                  <option value="11">Class 11</option>
+                  <option value="12">Class 12</option>
+                  <option value="13">Dropper / Repeater</option>
+                </>
+              )}
             </select>
           </div>
         </div>
@@ -958,7 +1002,14 @@ export default function AdminBatchesPage() {
                         <div className="font-medium text-white">{batch.name}</div>
                         <div className="text-xs text-white/40 mt-0.5 font-mono">{batch.code}</div>
                       </td>
-                      <td className="py-3 pr-4 text-white/70">{batch.subject}</td>
+                      <td className="py-3 pr-4">
+                        <span className="text-white/70">{batch.subject}</span>
+                        {batch.grade && (
+                          <span className="ml-1.5 text-xs text-white/40 bg-white/5 px-1.5 py-0.5 rounded">
+                            {batch.grade === '13' ? 'Dropper' : isNaN(Number(batch.grade)) ? batch.grade : `Class ${batch.grade}`}
+                          </span>
+                        )}
+                      </td>
                       <td className="py-3 pr-4">
                         <span className={cn(
                           'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',

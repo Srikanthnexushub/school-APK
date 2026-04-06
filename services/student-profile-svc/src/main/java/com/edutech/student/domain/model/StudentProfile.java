@@ -78,6 +78,10 @@ public class StudentProfile {
     @Column
     private Stream stream;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "college_program")
+    private CollegeProgram collegeProgram;
+
     @Column(name = "target_year")
     private Integer targetYear;
 
@@ -227,6 +231,11 @@ public class StudentProfile {
         this.updatedAt = Instant.now();
     }
 
+    public void setCollegeProgram(CollegeProgram collegeProgram) {
+        this.collegeProgram = collegeProgram;
+        this.updatedAt = Instant.now();
+    }
+
     public void setTargetYear(Integer targetYear) {
         this.targetYear = targetYear;
         this.updatedAt = Instant.now();
@@ -304,6 +313,10 @@ public class StudentProfile {
 
     public Stream getStream() {
         return stream;
+    }
+
+    public CollegeProgram getCollegeProgram() {
+        return collegeProgram;
     }
 
     public Integer getTargetYear() {

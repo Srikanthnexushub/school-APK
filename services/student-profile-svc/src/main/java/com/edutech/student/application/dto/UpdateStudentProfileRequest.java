@@ -1,5 +1,6 @@
 package com.edutech.student.application.dto;
 
+import com.edutech.student.domain.model.CollegeProgram;
 import com.edutech.student.domain.model.Gender;
 import com.edutech.student.domain.model.Stream;
 
@@ -13,5 +14,6 @@ public record UpdateStudentProfileRequest(
         String district,
         String country,
         Stream stream,
-        Integer targetYear
+        Integer targetYear,
+        CollegeProgram collegeProgram
 ) {}

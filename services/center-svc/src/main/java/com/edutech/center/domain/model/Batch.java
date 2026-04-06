@@ -60,6 +60,10 @@ public class Batch {
     @Column(nullable = false, length = 20)
     private BatchMode mode;
 
+    /** Grade/class for this batch: 1-12 for school, Y1-Y4 for college, null for coaching subject batches. VARCHAR(10) limit. */
+    @Column(length = 10)
+    private String grade;
+
     @Column(name = "created_at", updatable = false, nullable = false)
     private Instant createdAt;
 
@@ -76,7 +80,7 @@ public class Batch {
 
     private Batch(UUID id, UUID centerId, String name, String code, String subject,
                   UUID teacherId, int maxStudents, LocalDate startDate, LocalDate endDate,
-                  BatchMode mode) {
+                  BatchMode mode, String grade) {
         this.id = id;
         this.centerId = centerId;
         this.name = name;
@@ -89,15 +93,25 @@ public class Batch {
         this.endDate = endDate;
         this.status = BatchStatus.UPCOMING;
         this.mode = mode != null ? mode : BatchMode.OFFLINE;
+        this.grade = grade;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }
 
+    // Backward-compatible overload — preserves all existing test call sites
     public static Batch create(UUID centerId, String name, String code, String subject,
                                UUID teacherId, int maxStudents,
                                LocalDate startDate, LocalDate endDate, BatchMode mode) {
+        return create(centerId, name, code, subject, teacherId, maxStudents, startDate, endDate, mode, null);
+    }
+
+    // Full overload with grade
+    public static Batch create(UUID centerId, String name, String code, String subject,
+                               UUID teacherId, int maxStudents,
+                               LocalDate startDate, LocalDate endDate, BatchMode mode,
+                               String grade) {
         return new Batch(UUID.randomUUID(), centerId, name, code, subject,
-                teacherId, maxStudents, startDate, endDate, mode);
+                teacherId, maxStudents, startDate, endDate, mode, grade);
     }
 
     public void assignTeacher(UUID teacherId) {
@@ -160,6 +174,7 @@ public class Batch {
     public LocalDate getEndDate() { return endDate; }
     public BatchStatus getStatus() { return status; }
     public BatchMode getMode() { return mode; }
+    public String getGrade() { return grade; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public Instant getDeletedAt() { return deletedAt; }

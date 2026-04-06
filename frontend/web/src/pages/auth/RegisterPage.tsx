@@ -232,6 +232,52 @@ const TEACHER_SUBJECTS = [
   'Physical Education', 'Art', 'Music',
 ];
 
+const ALL_SUBJECTS = TEACHER_SUBJECTS;
+
+const COLLEGE_SUBJECTS = [
+  'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science',
+  'Electronics', 'Economics', 'Accountancy', 'Business Studies',
+  'History', 'Geography', 'English', 'Civil Engineering', 'Mechanical Engineering',
+  'Environmental Science', 'Statistics',
+];
+
+const COACHING_SUBJECTS = [
+  'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science',
+  'English', 'Economics', 'Accountancy', 'Business Studies',
+];
+
+function getTeacherSubjects(centerType: string | null): string[] {
+  if (centerType === 'COLLEGE') return COLLEGE_SUBJECTS;
+  if (centerType === 'COACHING_CENTER') return COACHING_SUBJECTS;
+  return ALL_SUBJECTS;
+}
+
+function getGradeOptions(centerType: string | null): { value: string; label: string }[] {
+  if (centerType === 'COLLEGE') {
+    return [
+      { value: '1', label: 'Year 1 (1st Year)' },
+      { value: '2', label: 'Year 2 (2nd Year)' },
+      { value: '3', label: 'Year 3 (3rd Year)' },
+      { value: '4', label: 'Year 4 (4th Year)' },
+    ];
+  }
+  if (centerType === 'COACHING_CENTER') {
+    return [
+      { value: '8',  label: 'Class 8' },
+      { value: '9',  label: 'Class 9' },
+      { value: '10', label: 'Class 10' },
+      { value: '11', label: 'Class 11' },
+      { value: '12', label: 'Class 12' },
+      { value: '13', label: 'Dropper / Repeater' },
+    ];
+  }
+  // SCHOOL or unknown — full range
+  return Array.from({ length: 12 }, (_, i) => ({
+    value: String(i + 1),
+    label: `Class ${i + 1}${i + 1 <= 5 ? ' (Primary)' : i + 1 <= 10 ? ' (Secondary)' : ' (Senior Secondary)'}`,
+  }));
+}
+
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 const registerSchema = z
@@ -295,9 +341,12 @@ export default function RegisterPage() {
 
   // Student academic + optional parent-guardian email for under-13
   const [studentBoard, setStudentBoard] = useState('');
-  const [studentGrade, setStudentGrade] = useState('10');
+  const [studentGrade, setStudentGrade] = useState('');
+  const [studentCenterType, setStudentCenterType] = useState<string | null>(null);
+  const [studentStream, setStudentStream] = useState<string>('');
+  const [studentCollegeProgram, setStudentCollegeProgram] = useState<string>('');
   const [parentGuardianEmail, setParentGuardianEmail] = useState('');
-  const [studentCentersList, setStudentCentersList] = useState<{ id: string; name: string }[]>([]);
+  const [studentCentersList, setStudentCentersList] = useState<{ id: string; name: string; centerType?: string }[]>([]);
   const [selectedStudentInstitutionName, setSelectedStudentInstitutionName] = useState('');
 
   // Student location
@@ -325,7 +374,8 @@ export default function RegisterPage() {
   // Teacher-specific
   const [teacherCenterId, setTeacherCenterId] = useState<string | null>(null);
   const [teacherCenterName, setTeacherCenterName] = useState<string | null>(null);
-  const [teacherCentersList, setTeacherCentersList] = useState<{ id: string; name: string }[]>([]);
+  const [teacherCentersList, setTeacherCentersList] = useState<{ id: string; name: string; centerType?: string }[]>([]);
+  const [teacherCenterType, setTeacherCenterType] = useState<string | null>(null);
   const [teacherCentersLoading, setTeacherCentersLoading] = useState(false);
   const [teacherSubjectsArr, setTeacherSubjectsArr] = useState<string[]>([]);
   const [teacherSubjectsOpen, setTeacherSubjectsOpen] = useState(false);
@@ -415,7 +465,7 @@ export default function RegisterPage() {
       .then((r) => {
         const data = r.data;
         const list = Array.isArray(data) ? data : (data.content ?? []);
-        const mapped = list.map((c: { id: string; name: string }) => ({ id: c.id, name: c.name }));
+        const mapped = list.map((c: { id: string; name: string; centerType?: string }) => ({ id: c.id, name: c.name, centerType: c.centerType }));
         if (selectedRole === 'TEACHER') { setTeacherCentersLoading(false); setTeacherCentersList(mapped); }
         if (selectedRole === 'STUDENT') setStudentCentersList(mapped);
       })
@@ -444,6 +494,7 @@ export default function RegisterPage() {
         setCenterId(resp.data.id);
         setCenterName(resp.data.name);
         setSelectedStudentInstitutionName(resp.data.name);
+        setStudentCenterType(resp.data.centerType ?? null);
       } catch {
         setCenterName(null);
         setCenterId(null);
@@ -451,6 +502,14 @@ export default function RegisterPage() {
     }, 600);
     return () => clearTimeout(timer);
   }, [studentInstitutionCode]);
+
+  useEffect(() => {
+    setStudentGrade('');
+    setStudentStream('');
+    setStudentCollegeProgram('');
+    setStudentCenterType(null);
+    setTeacherCenterType(null);
+  }, [selectedRole]);
 
   const pwChecks = {
     length: watchedPassword.length >= 8,
@@ -471,6 +530,12 @@ export default function RegisterPage() {
       if (!studentDistrict.trim()) { toast.error('District is required'); return; }
       if (!studentCity.trim()) { toast.error('City is required'); return; }
       if (!studentPincode.trim() || !/^\d{6}$/.test(studentPincode.trim())) { toast.error('Valid 6-digit pincode is required'); return; }
+      if (studentCenterType === 'SCHOOL' && studentGrade && parseInt(studentGrade) >= 11 && !studentStream) {
+        toast.error('Stream is required for Class 11 and 12'); return;
+      }
+      if (studentCenterType === 'COLLEGE' && !studentCollegeProgram) {
+        toast.error('Program / Course is required for college students'); return;
+      }
       const under13 = calculateAge(data.dateOfBirth) < 13;
       setIsUnder13(under13);
       if (under13 && !parentGuardianEmail.trim()) { toast.error('Parent/guardian email is required for users under 13'); return; }
@@ -630,6 +695,8 @@ export default function RegisterPage() {
             institutionName: centerName || manualInstitutionName || undefined,
             board:           studentBoard || undefined,
             currentClass:    parseInt(studentGrade) || undefined,
+            stream:          (studentCenterType === 'SCHOOL' && parseInt(studentGrade) >= 11 && studentStream) ? studentStream : undefined,
+            collegeProgram:  (studentCenterType === 'COLLEGE' && studentCollegeProgram) ? studentCollegeProgram : undefined,
             subjects:        [],
             parentGuardianEmail: under13 ? parentGuardianEmail || undefined : undefined,
           }, { headers: { Authorization: `Bearer ${token}` } });
@@ -821,10 +888,12 @@ export default function RegisterPage() {
                         setCenterId(found.id);
                         setCenterName(found.name);
                         setManualInstitutionName('');
+                        setStudentCenterType(found.centerType ?? null);
                       } else {
                         setCenterId(null);
                         setCenterName(null);
                         setManualInstitutionName(v);
+                        setStudentCenterType(null);
                       }
                     }}
                     options={studentCentersList.map(c => c.name)}
@@ -845,14 +914,69 @@ export default function RegisterPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-white/70 mb-1.5">Grade</label>
-                    <select value={studentGrade} onChange={(e) => setStudentGrade(e.target.value)} className="input w-full">
-                      <option value="10">Grade 10</option>
-                      <option value="11">Grade 11</option>
-                      <option value="12">Grade 12</option>
+                    <label className="block text-sm font-medium text-white/70 mb-1.5">
+                      {studentCenterType === 'COLLEGE' ? 'Year / Semester' : 'Class / Grade'} <span className="text-red-400">*</span>
+                    </label>
+                    <select
+                      value={studentGrade}
+                      onChange={(e) => { setStudentGrade(e.target.value); setStudentStream(''); setStudentCollegeProgram(''); }}
+                      className="input w-full"
+                    >
+                      <option value="">— Select {studentCenterType === 'COLLEGE' ? 'year' : 'class'} —</option>
+                      {getGradeOptions(studentCenterType).map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
+                {studentCenterType === 'COLLEGE' && (
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-1.5">
+                      Program / Course <span className="text-red-400">*</span>
+                    </label>
+                    <select value={studentCollegeProgram} onChange={(e) => setStudentCollegeProgram(e.target.value)} className="input w-full">
+                      <option value="">— Select program —</option>
+                      <optgroup label="Undergraduate">
+                        <option value="BTECH">B.Tech / B.E.</option>
+                        <option value="MBBS">MBBS / BDS</option>
+                        <option value="BCA">BCA</option>
+                        <option value="BCOM">B.Com</option>
+                        <option value="BA">B.A.</option>
+                        <option value="BSC">B.Sc</option>
+                        <option value="BED">B.Ed</option>
+                        <option value="LLB">LLB</option>
+                        <option value="BARCH">B.Arch</option>
+                      </optgroup>
+                      <optgroup label="Postgraduate">
+                        <option value="MBA">MBA</option>
+                        <option value="MCA">MCA</option>
+                        <option value="MTECH">M.Tech / M.E.</option>
+                        <option value="MSC">M.Sc</option>
+                        <option value="MA">M.A.</option>
+                      </optgroup>
+                      <optgroup label="Other">
+                        <option value="PHD">Ph.D</option>
+                        <option value="DIPLOMA">Diploma</option>
+                        <option value="OTHER">Other</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                )}
+                {studentCenterType === 'SCHOOL' && studentGrade && parseInt(studentGrade) >= 11 && (
+                  <div>
+                    <label className="block text-sm font-medium text-white/70 mb-1.5">
+                      Stream <span className="text-red-400">*</span>
+                    </label>
+                    <select value={studentStream} onChange={(e) => setStudentStream(e.target.value)} className="input w-full">
+                      <option value="">— Select stream —</option>
+                      <option value="PCM">Science — PCM (Physics, Chemistry, Maths)</option>
+                      <option value="PCB">Science — PCB (Physics, Chemistry, Biology)</option>
+                      <option value="COMMERCE">Commerce</option>
+                      <option value="ARTS">Arts / Humanities</option>
+                      <option value="VOCATIONAL">Vocational</option>
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-white/70 mb-1.5">Gender</label>
                   <select value={selectedGender} onChange={(e) => setSelectedGender(e.target.value)} className="input w-full">
@@ -942,6 +1066,7 @@ export default function RegisterPage() {
                       const found = teacherCentersList.find(c => c.name === v);
                       setTeacherCenterId(found?.id ?? null);
                       setTeacherCenterName(found?.name ?? (v || null));
+                      setTeacherCenterType(found?.centerType ?? null);
                     }}
                     options={teacherCentersLoading ? [] : teacherCentersList.map(c => c.name)}
                     placeholder={teacherCentersLoading ? 'Loading institutions…' : 'Search institution to join…'}
@@ -962,7 +1087,7 @@ export default function RegisterPage() {
                     </button>
                     {teacherSubjectsOpen && (
                       <div className="absolute z-50 mt-1 w-full bg-surface-100 border border-white/10 rounded-xl shadow-xl max-h-48 overflow-y-auto divide-y divide-white/5">
-                        {TEACHER_SUBJECTS.map((subj) => (
+                        {getTeacherSubjects(teacherCenterType).map((subj) => (
                           <label key={subj} className="flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 cursor-pointer">
                             <input type="checkbox" checked={teacherSubjectsArr.includes(subj)}
                               onChange={() => setTeacherSubjectsArr((prev) =>

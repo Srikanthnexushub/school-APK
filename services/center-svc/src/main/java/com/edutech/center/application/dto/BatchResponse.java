@@ -22,5 +22,6 @@ public record BatchResponse(
     BatchStatus status,
     BatchMode mode,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    String grade
 ) {}

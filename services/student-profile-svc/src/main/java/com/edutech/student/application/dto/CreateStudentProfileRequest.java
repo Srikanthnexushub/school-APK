@@ -1,7 +1,9 @@
 package com.edutech.student.application.dto;
 
 import com.edutech.student.domain.model.Board;
+import com.edutech.student.domain.model.CollegeProgram;
 import com.edutech.student.domain.model.Gender;
+import com.edutech.student.domain.model.Stream;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -26,7 +28,9 @@ public record CreateStudentProfileRequest(
         String pincode,
         String country,
         Board board,
-        @Min(10) @Max(13) Integer currentClass,
+        @Min(1) @Max(13) Integer currentClass,
         List<String> subjects,
-        String institutionName
+        String institutionName,
+        Stream stream,
+        CollegeProgram collegeProgram
 ) {}

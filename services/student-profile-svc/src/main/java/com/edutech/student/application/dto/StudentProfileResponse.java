@@ -1,6 +1,7 @@
 package com.edutech.student.application.dto;
 
 import com.edutech.student.domain.model.Board;
+import com.edutech.student.domain.model.CollegeProgram;
 import com.edutech.student.domain.model.Gender;
 import com.edutech.student.domain.model.ProfileStatus;
 import com.edutech.student.domain.model.Stream;
@@ -27,6 +28,7 @@ public record StudentProfileResponse(
         Board board,
         Integer currentClass,
         Stream stream,
+        CollegeProgram collegeProgram,
         Integer targetYear,
         ProfileStatus status,
         Instant createdAt,

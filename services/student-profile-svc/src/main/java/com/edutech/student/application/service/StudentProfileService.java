@@ -70,6 +70,8 @@ public class StudentProfileService implements CreateStudentProfileUseCase,
         );
 
         profile.setSubjects(request.subjects() != null ? request.subjects() : List.of());
+        if (request.stream() != null) profile.selectStream(request.stream());
+        if (request.collegeProgram() != null) profile.setCollegeProgram(request.collegeProgram());
 
         StudentProfile saved = profileRepository.save(profile);
         log.info("Student profile created: id={} userId={}", saved.getId(), saved.getUserId());
@@ -119,6 +121,9 @@ public class StudentProfileService implements CreateStudentProfileUseCase,
         }
         if (request.targetYear() != null) {
             profile.setTargetYear(request.targetYear());
+        }
+        if (request.collegeProgram() != null) {
+            profile.setCollegeProgram(request.collegeProgram());
         }
 
         StudentProfile saved = profileRepository.save(profile);
@@ -198,6 +203,7 @@ public class StudentProfileService implements CreateStudentProfileUseCase,
                 p.getCurrentBoard(),
                 p.getCurrentClass(),
                 p.getStream(),
+                p.getCollegeProgram(),
                 p.getTargetYear(),
                 p.getStatus(),
                 p.getCreatedAt(),

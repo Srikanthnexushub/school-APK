@@ -82,6 +82,8 @@ class StudentProfileSubjectsTest {
                 Board.CBSE,
                 11,
                 subjectList,
+                null,
+                null,
                 null
         );
 
@@ -118,6 +120,8 @@ class StudentProfileSubjectsTest {
                 null,
                 Board.CBSE,
                 11,
+                null,
+                null,
                 null,
                 null
         );
