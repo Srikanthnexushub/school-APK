@@ -571,6 +571,7 @@ function AddChildModal({
         firstName: personal.firstName,
         lastName: personal.lastName,
         phoneNumber: personal.phone || undefined,
+        centerId: academic.institutionId || undefined, // set immediately if institution selected
       });
       const { userId } = registerRes.data as { userId: string; email: string };
 

@@ -208,6 +208,9 @@ export default function StudentDashboardPage() {
   });
 
   const enrollment = enrollmentQuery.data;
+  // Fallback to JWT centerId when student has no batch enrollment yet
+  // (e.g. newly added via parent portal before admin enrolls them in a batch)
+  const effectiveCenterId = enrollment?.centerId || (user?.centerId ?? '');
 
   const batchQuery = useQuery<BatchDetails | null>({
     queryKey: ['student-batch-detail', enrollment?.centerId, enrollment?.batchId],
@@ -219,10 +222,10 @@ export default function StudentDashboardPage() {
   });
 
   const centerQuery = useQuery<CenterDetails | null>({
-    queryKey: ['student-center-detail', enrollment?.centerId],
+    queryKey: ['student-center-detail', effectiveCenterId],
     queryFn: () =>
-      api.get(`/api/v1/centers/${enrollment!.centerId}`).then((r) => r.data),
-    enabled: !!enrollment?.centerId,
+      api.get(`/api/v1/centers/${effectiveCenterId}`).then((r) => r.data),
+    enabled: !!effectiveCenterId,
     staleTime: 10 * 60 * 1000,
     retry: false,
   });

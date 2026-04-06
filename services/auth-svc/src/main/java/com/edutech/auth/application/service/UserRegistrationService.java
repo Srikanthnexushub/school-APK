@@ -128,9 +128,12 @@ public class UserRegistrationService implements RegisterUserUseCase {
             request.lastName(),
             request.phoneNumber()
         );
+        if (request.centerId() != null) {
+            user.assignCenter(request.centerId());
+        }
 
         User saved = userRepository.save(user);
-        log.info("Child account created by parent: id={} email={}", saved.getId(), saved.getEmail());
+        log.info("Child account created by parent: id={} email={} centerId={}", saved.getId(), saved.getEmail(), saved.getCenterId());
 
         return new RegisterChildResponse(saved.getId(), saved.getEmail());
     }

@@ -57,7 +57,8 @@ export default function StudentAttendancePage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const centerId = enrollment?.centerId;
+  // Fallback to JWT centerId when student has no batch enrollment yet
+  const centerId = enrollment?.centerId || (user?.centerId ?? '') || undefined;
   const batchId = enrollment?.batchId;
 
   const { data: summary, isLoading } = useQuery<AttendanceSummary | null>({

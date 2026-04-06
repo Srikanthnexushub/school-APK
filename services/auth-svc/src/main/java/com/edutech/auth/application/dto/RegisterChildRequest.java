@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+import java.util.UUID;
+
 public record RegisterChildRequest(
     @NotBlank @Email String email,
     @NotBlank @Size(min = 8, max = 128)
@@ -13,5 +15,6 @@ public record RegisterChildRequest(
     String password,
     @NotBlank @Size(max = 100) String firstName,
     @NotBlank @Size(max = 100) String lastName,
-    @Size(max = 20) String phoneNumber
+    @Size(max = 20) String phoneNumber,
+    UUID centerId   // optional — set immediately if parent selects an institution
 ) {}
