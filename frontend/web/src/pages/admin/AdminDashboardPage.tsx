@@ -77,6 +77,7 @@ type CenterStatus = 'Active' | 'Inactive' | 'Pending';
 interface CenterRow {
   id: string;
   name: string;
+  code: string;
   city: string;
   address: string;
   phone: string;
@@ -493,7 +494,6 @@ export default function AdminDashboardPage() {
       queryKey: ['batches', c.id],
       queryFn: () => api.get(`/api/v1/centers/${c.id}/batches`).then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }) as Promise<BatchResponse[]>,
       enabled: !!c.id,
-      staleTime: 5 * 60 * 1000,
     })),
   });
 
@@ -515,6 +515,7 @@ export default function AdminDashboardPage() {
     return {
       id:       c.id,
       name:     c.name,
+      code:     c.code,
       city:     c.city,
       address:  c.address,
       phone:    c.phone,
@@ -604,6 +605,7 @@ export default function AdminDashboardPage() {
       }),
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['centers'] });
+      qc.invalidateQueries({ queryKey: ['audit-stats'] });
       setShowAddModal(false);
       toast.success(`Center "${vars.name}" added successfully`);
     },
@@ -618,6 +620,7 @@ export default function AdminDashboardPage() {
       api.put(`/api/v1/centers/${id}`, data),
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['centers'] });
+      qc.invalidateQueries({ queryKey: ['audit-stats'] });
       setEditingCenter(null);
       toast.success(`Center "${vars.data.name}" updated successfully`);
     },
@@ -777,6 +780,7 @@ export default function AdminDashboardPage() {
                 <thead>
                   <tr className="text-left text-xs text-white/30 uppercase tracking-wider border-b border-white/5">
                     <th className="pb-2 pr-4">Center</th>
+                    <th className="pb-2 pr-4">Code</th>
                     <th className="pb-2 pr-4">Students</th>
                     <th className="pb-2 pr-4">Batches</th>
                     <th className="pb-2 pr-4">Status</th>
@@ -793,6 +797,11 @@ export default function AdminDashboardPage() {
                           <div className="text-xs text-white/40 mt-0.5 flex items-center gap-1">
                             <MapPin className="w-3 h-3" /> {center.city}
                           </div>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <span className="font-mono text-xs text-cyan-400/80 bg-cyan-500/10 px-2 py-0.5 rounded">
+                            {center.code}
+                          </span>
                         </td>
                         <td className="py-3 pr-4 text-white/70 font-medium">{center.students}</td>
                         <td className="py-3 pr-4 text-white/70">{center.batches}</td>
