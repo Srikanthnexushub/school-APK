@@ -28,8 +28,8 @@ interface StudentLinkResponse {
 interface FeePaymentResponse {
   id: string;
   parentId: string;
-  studentId: string;
-  centerId: string;
+  studentId: string | null;
+  centerId: string | null;
   batchId?: string;
   feeType?: string;
   amountPaid: number;
@@ -627,7 +627,7 @@ export default function ParentFeesPage() {
                         {formatDate(p.paymentDate || p.createdAt)}
                       </td>
                       <td className="py-3 pr-4 text-white/70 whitespace-nowrap">
-                        {student?.studentName ?? p.studentId.slice(0, 8) + '…'}
+                        {student?.studentName ?? (p.studentId ? p.studentId.slice(0, 8) + '…' : '—')}
                       </td>
                       <td className="py-3 pr-4">
                         <span className="text-xs bg-white/5 text-white/50 px-2 py-0.5 rounded-lg">

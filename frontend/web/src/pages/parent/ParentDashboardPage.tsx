@@ -35,9 +35,9 @@ interface ParentProfileResponse {
 interface StudentLinkResponse {
   id: string;
   parentId: string;
-  studentId: string;
+  studentId: string | null;
   studentName: string;
-  centerId: string;
+  centerId: string | null;
   status: string;
   createdAt: string;
 }
@@ -412,7 +412,7 @@ export default function ParentDashboardPage() {
                 <Avatar name={s.studentName} size="sm" />
                 <div>
                   <div className="text-sm font-semibold text-white">{s.studentName}</div>
-                  <div className="text-xs text-white/40">ID: {s.studentId.slice(0, 8)}…</div>
+                  <div className="text-xs text-white/40">ID: {s.studentId ? s.studentId.slice(0, 8) + '…' : '—'}</div>
                 </div>
               </button>
               <button
@@ -533,7 +533,7 @@ export default function ParentDashboardPage() {
                 <Avatar name={selectedLink.studentName} size="sm" />
                 <div>
                   <div className="text-sm font-semibold text-white leading-snug">{selectedLink.studentName}</div>
-                  <div className="text-xs text-white/30">Center: {selectedLink.centerId.slice(0, 8)}…</div>
+                  <div className="text-xs text-white/30">Center: {selectedLink.centerId ? selectedLink.centerId.slice(0, 8) + '…' : '—'}</div>
                 </div>
               </div>
               <div className={cn(
