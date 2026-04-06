@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 451+ frozen fixes as of Fix #351 (2026-04-07 — Parent portal crash: null centerId/studentId .slice() on parent-added-via-child-portal).
+- Read `memory/frozen-fixes.md` before touching any file. 452+ frozen fixes as of Fix #352 (2026-04-07 — Assessments scoped to student's own center).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
