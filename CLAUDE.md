@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 437+ frozen fixes as of Fix #337 (2026-04-06 — Dashboard flicker regression: restored staleTime+refetchOnWindowFocus:false on batchQueries and centersQuery).
+- Read `memory/frozen-fixes.md` before touching any file. 438+ frozen fixes as of Fix #338 (2026-04-06 — Teacher bulk-import test CSV generated).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
@@ -140,7 +140,7 @@ Patterns → `memory/frontend-patterns.md`, `memory/project-architecture.md`, `m
 
 ## Key Features — All Frozen
 
-Full list → `memory/frozen-fixes.md` (424 fixes, latest: Fix #326 — voice browser-native pipeline: SpeechRecognition+SpeechSynthesis (2026-04-05)).
+Full list → `memory/frozen-fixes.md` (438 fixes, latest: Fix #338 — Teacher bulk-import test CSV generated (2026-04-06)).
 Read it before touching any existing file.
 
 ### ⚠️ PERMANENT RULES FROM E2E BUG SWEEP (2026-03-25)
