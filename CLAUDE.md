@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 439+ frozen fixes as of Fix #339 (2026-04-06 — VideoBanner force white text in both light and dark mode).
+- Read `memory/frozen-fixes.md` before touching any file. 440+ frozen fixes as of Fix #340 (2026-04-06 — VideoBanner inline white text + AdvertisementBanner hide broken image).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
