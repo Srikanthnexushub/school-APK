@@ -158,16 +158,16 @@ function VideoSlide({ banner, isActive, onEnded }: VideoSlideProps) {
       {/* Content overlay */}
       <div className="relative z-10 flex flex-col justify-end h-full min-h-[220px] p-5 pb-8" style={{ color: 'white' }}>
         {/* Tag */}
-        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-white/60 uppercase tracking-widest mb-2 w-fit">
+        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest mb-2 w-fit" style={{ color: 'rgba(255,255,255,0.6)' }}>
           <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
           Advertisement
         </span>
 
-        <h2 className="text-lg font-bold text-white leading-snug mb-1 drop-shadow-lg">
+        <h2 className="text-lg font-bold leading-snug mb-1 drop-shadow-lg" style={{ color: '#ffffff' }}>
           {banner.title}
         </h2>
         {banner.subtitle && (
-          <p className="text-sm text-white/70 mb-3 max-w-md drop-shadow">{banner.subtitle}</p>
+          <p className="text-sm mb-3 max-w-md drop-shadow" style={{ color: 'rgba(255,255,255,0.85)' }}>{banner.subtitle}</p>
         )}
         {banner.linkUrl && banner.linkLabel && (
           <a

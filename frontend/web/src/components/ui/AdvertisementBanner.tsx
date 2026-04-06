@@ -117,13 +117,14 @@ export default function AdvertisementBanner({ audience }: AdvertisementBannerPro
             )}
           </div>
 
-          {/* Right image */}
+          {/* Right image — hidden on broken load */}
           {banner.imageUrl && (
             <div className="hidden sm:flex w-48 h-full flex-shrink-0 items-center justify-center overflow-hidden">
               <img
                 src={banner.imageUrl}
                 alt={banner.title}
                 className="h-full w-full object-cover opacity-90"
+                onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }}
               />
             </div>
           )}
