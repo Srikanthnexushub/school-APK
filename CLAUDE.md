@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 441+ frozen fixes as of Fix #341 (2026-04-06 — Teacher portal dashboard label fix).
+- Read `memory/frozen-fixes.md` before touching any file. 442+ frozen fixes as of Fix #342 (2026-04-06 — FooterBanner 4K event video + header-style layout).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
