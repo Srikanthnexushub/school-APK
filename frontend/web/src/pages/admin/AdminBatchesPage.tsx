@@ -663,6 +663,7 @@ export default function AdminBatchesPage() {
   const [showForm, setShowForm] = useState(false);
   const [expandedHealth, setExpandedHealth] = useState(true);
   const [studentsBatch, setStudentsBatch] = useState<BatchResponse | null>(null);
+  const [selectedCenterId, setSelectedCenterId] = useState('');
 
   // ── Fetch centers to get centerId ──────────────────────────────────────────
   const { data: centers = [], isLoading: centersLoading } = useQuery<CenterResponse[]>({
@@ -674,7 +675,8 @@ export default function AdminBatchesPage() {
       }),
   });
 
-  const centerId = centers[0]?.id ?? '';
+  const centerId = selectedCenterId || centers[0]?.id || '';
+  const selectedCenter = centers.find((c) => c.id === centerId) ?? centers[0];
 
   // ── Fetch teachers ─────────────────────────────────────────────────────────
   const { data: teachers = [] } = useQuery<TeacherResponse[]>({
@@ -723,8 +725,10 @@ export default function AdminBatchesPage() {
       return api.post(`/api/v1/centers/${reqCenterId || centerId}/batches`, body);
     },
     onSuccess: (_, vars) => {
-      qc.invalidateQueries({ queryKey: ['batches', centerId] });
-      qc.invalidateQueries({ queryKey: ['batches-health', centerId] });
+      const createdUnder = vars.centerId || centerId;
+      qc.invalidateQueries({ queryKey: ['batches', createdUnder] });
+      qc.invalidateQueries({ queryKey: ['batches-health', createdUnder] });
+      setSelectedCenterId(createdUnder);
       setShowForm(false);
       toast.success(`Batch "${vars.name}" created successfully`);
     },
@@ -748,10 +752,23 @@ export default function AdminBatchesPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Batches</h1>
           <p className="text-white/50 text-sm mt-0.5">
-            Manage and monitor all batches{centers[0] ? ` — ${centers[0].name}` : ''}.
+            Manage and monitor all batches{selectedCenter ? ` — ${selectedCenter.name}` : ''}.
           </p>
         </div>
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          {centers.length > 1 && (
+            <select
+              value={centerId}
+              onChange={(e) => setSelectedCenterId(e.target.value)}
+              className="bg-white/5 border border-white/10 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+            >
+              {centers.map((c) => (
+                <option key={c.id} value={c.id} className="bg-gray-900">
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          )}
           {!showForm && (
             <button
               onClick={() => setShowForm(true)}
