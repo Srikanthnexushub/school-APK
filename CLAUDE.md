@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 447+ frozen fixes as of Fix #347 (2026-04-06 — Phase 1-4: grade range 1-13, institution-type-aware forms, teacher subjects, batch grade field).
+- Read `memory/frozen-fixes.md` before touching any file. 448+ frozen fixes as of Fix #348 (2026-04-06 — Student centerId never passed to auth during self-registration).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
