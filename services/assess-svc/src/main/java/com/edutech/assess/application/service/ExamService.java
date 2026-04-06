@@ -183,13 +183,18 @@ public class ExamService implements CreateExamUseCase, PublishExamUseCase, ListP
     }
 
     @Transactional(readOnly = true)
-    public Page<StudentExamResponse> listPublishedExams(UUID studentId, Pageable pageable) {
+    public Page<StudentExamResponse> listPublishedExams(UUID studentId, UUID centerId, Pageable pageable) {
+        // Scope to the student's own center only — never leak exams across centers.
+        // If centerId is null the student is not yet linked to a center; return empty.
+        List<Exam> published = centerId != null
+                ? examRepository.findPublishedByCenterId(centerId)
+                : List.of();
         Map<UUID, ExamEnrollment> enrollmentByExamId = enrollmentRepository.findByStudentId(studentId)
                 .stream()
                 .filter(e -> e.getStatus() == EnrollmentStatus.ENROLLED || e.getStatus() == EnrollmentStatus.COMPLETED)
                 .collect(Collectors.toMap(ExamEnrollment::getExamId, Function.identity(),
                         (existing, replacement) -> existing));
-        List<StudentExamResponse> all = examRepository.findAllPublished().stream()
+        List<StudentExamResponse> all = published.stream()
                 .map(exam -> toStudentResponse(exam, enrollmentByExamId.get(exam.getId()),
                         questionRepository.countByExamId(exam.getId())))
                 .toList();

@@ -23,4 +23,7 @@ interface SpringDataExamRepository extends JpaRepository<Exam, UUID> {
 
     @Query("SELECT e FROM Exam e WHERE e.status = 'PUBLISHED' AND e.deletedAt IS NULL ORDER BY e.createdAt DESC")
     List<Exam> findAllPublished();
+
+    @Query("SELECT e FROM Exam e WHERE e.centerId = :centerId AND e.status = 'PUBLISHED' AND e.deletedAt IS NULL ORDER BY e.createdAt DESC")
+    List<Exam> findPublishedByCenterId(@Param("centerId") UUID centerId);
 }

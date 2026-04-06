@@ -77,7 +77,7 @@ public class ExamController {
                 return ResponseEntity.ok(examService.listByCenter(effectiveCenterId, PageRequest.of(page, size)));
             }
         }
-        return ResponseEntity.ok(examService.listPublishedExams(principal.userId(), PageRequest.of(page, size)));
+        return ResponseEntity.ok(examService.listPublishedExams(principal.userId(), principal.centerId(), PageRequest.of(page, size)));
     }
 
     @PutMapping("/{examId}/publish")

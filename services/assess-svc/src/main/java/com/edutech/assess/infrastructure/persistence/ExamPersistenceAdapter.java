@@ -42,4 +42,9 @@ class ExamPersistenceAdapter implements ExamRepository {
     public List<Exam> findAllPublished() {
         return repository.findAllPublished();
     }
+
+    @Override
+    public List<Exam> findPublishedByCenterId(UUID centerId) {
+        return repository.findPublishedByCenterId(centerId);
+    }
 }
