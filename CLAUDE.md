@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 436+ frozen fixes as of Fix #336 (2026-04-06 — student/parent portals for COLLEGE/COACHING_CENTER: centerId set on register-child, JWT fallback in student dashboard/attendance).
+- Read `memory/frozen-fixes.md` before touching any file. 437+ frozen fixes as of Fix #337 (2026-04-06 — Dashboard flicker regression: restored staleTime+refetchOnWindowFocus:false on batchQueries and centersQuery).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---

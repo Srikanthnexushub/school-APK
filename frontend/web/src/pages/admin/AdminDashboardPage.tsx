@@ -498,6 +498,8 @@ export default function AdminDashboardPage() {
   } = useQuery<CenterResponse[]>({
     queryKey: ['centers'],
     queryFn: () => api.get('/api/v1/centers').then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }),
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // ── Fetch platform-wide stats in ONE request (replaces N teacher queries) ──
@@ -517,6 +519,8 @@ export default function AdminDashboardPage() {
       queryKey: ['batches', c.id],
       queryFn: () => api.get(`/api/v1/centers/${c.id}/batches`).then((r) => { const d = r.data; return Array.isArray(d) ? d : (d.content ?? []); }) as Promise<BatchResponse[]>,
       enabled: !!c.id,
+      staleTime: 30 * 1000,
+      refetchOnWindowFocus: false,
     })),
   });
 
