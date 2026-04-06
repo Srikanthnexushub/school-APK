@@ -109,7 +109,7 @@ function VideoSlide({ banner, isActive, onEnded }: VideoSlideProps) {
   return (
     <div
       className="relative w-full overflow-hidden rounded-2xl"
-      style={{ minHeight: 220 }}
+      style={{ minHeight: 220, background: 'linear-gradient(135deg, #6d28d9 0%, #db2777 55%, #f97316 100%)' }}
       onMouseEnter={() => setShowControls(true)}
       onMouseLeave={() => setShowControls(false)}
     >
