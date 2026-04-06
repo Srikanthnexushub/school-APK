@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 455+ frozen fixes as of Fix #355 (2026-04-07 — Admin dashboard center section heading dynamic by institution type).
+- Read `memory/frozen-fixes.md` before touching any file. 456+ frozen fixes as of Fix #356 (2026-04-07 — Bulk import validate CSV silently fails for INSTITUTION_ADMIN).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
