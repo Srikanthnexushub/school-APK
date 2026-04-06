@@ -4,7 +4,7 @@
 **ANY modification to ANY code, test, config, migration, or database requires EXPLICIT USER PERMISSION before acting.**
 - Ask first. Act only after the user says yes. No exceptions — including "small" fixes and "obvious" improvements.
 - NEVER declare a fix "done" without verifying end-to-end (DB → backend → API → frontend).
-- Read `memory/frozen-fixes.md` before touching any file. 431+ frozen fixes as of Fix #333 (2026-04-06 — Batch listing multi-center fix, center switcher dropdown).
+- Read `memory/frozen-fixes.md` before touching any file. 435+ frozen fixes as of Fix #335 (2026-04-06 — CenterPicker auto-select + institution type picker in Add Center modal).
 - ⛔ Freezing ≠ verified. Test first, freeze after.
 
 ---
