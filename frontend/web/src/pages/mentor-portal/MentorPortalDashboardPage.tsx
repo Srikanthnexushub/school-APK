@@ -267,10 +267,10 @@ export default function MentorPortalDashboardPage() {
       >
         <div className="absolute top-0 right-0 w-64 h-64 bg-brand-600/10 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
         <div className="relative z-10 flex items-center gap-5">
-          <Avatar name={user?.name ?? 'Mentor'} size="xl" />
+          <Avatar name={user?.name ?? 'Teacher'} size="xl" />
           <div>
-            <p className="text-brand-400 text-sm font-medium mb-1">Mentor Portal</p>
-            <h1 className="text-3xl font-bold text-white">Welcome, {user?.name?.split(' ')[0] ?? 'Mentor'}</h1>
+            <p className="text-brand-400 text-sm font-medium mb-1">Teacher Portal</p>
+            <h1 className="text-3xl font-bold text-white">Welcome, {user?.name?.split(' ')[0] ?? 'Teacher'}</h1>
             <p className="text-white/50 mt-1">You have <span className="text-amber-400 font-semibold">{stats.pendingBookings} pending</span> booking requests.</p>
           </div>
         </div>
