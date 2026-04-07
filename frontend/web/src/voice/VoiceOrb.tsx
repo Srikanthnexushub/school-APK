@@ -1,6 +1,6 @@
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Mic, Loader2, Volume2, AlertCircle, Radio, Send } from 'lucide-react';
+import { Mic, Loader2, Volume2, AlertCircle, Radio } from 'lucide-react';
 import type { VoiceState, UseVoiceAgentReturn } from './useVoiceAgent';
 import type { VoicePersonaConfig } from './voicePersonas';
 import { VoiceWaveform } from './VoiceWaveform';
@@ -25,17 +25,9 @@ interface VoiceOrbProps {
  */
 export function VoiceOrb({ agent, size = 96 }: VoiceOrbProps) {
   const { state, persona, transcript, messages, error, inputLevel,
-          startListening, stopListening, connect, disconnect, sendText } = agent;
-  const [textInput, setTextInput] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
+          startListening, stopListening, connect, disconnect } = agent;
 
   const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
-
-  const handleSendText = useCallback(() => {
-    if (!textInput.trim()) return;
-    sendText(textInput.trim());
-    setTextInput('');
-  }, [textInput, sendText]);
 
   const handleOrbClick = useCallback(() => {
     if (state === 'idle')      { connect(); return; }
@@ -187,33 +179,6 @@ export function VoiceOrb({ agent, size = 96 }: VoiceOrbProps) {
           </motion.p>
         )}
       </AnimatePresence>
-
-      {/* ── Text input ───────────────────────────────────────────────────── */}
-      {(state === 'ready' || state === 'listening' || state === 'speaking') && (
-        <div className="flex items-center gap-1 w-full px-2 mt-1">
-          <input
-            ref={inputRef}
-            type="text"
-            value={textInput}
-            onChange={e => setTextInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); handleSendText(); } }}
-            onPointerDown={e => e.stopPropagation()}
-            placeholder="Type a message…"
-            className="flex-1 text-xs bg-white/5 border rounded-lg px-2 py-1.5 text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-1"
-            style={{ borderColor: `${persona?.accentHex ?? '#818cf8'}30`,
-                     ['--tw-ring-color' as string]: persona?.accentHex ?? '#818cf8' }}
-          />
-          <button
-            onClick={e => { e.stopPropagation(); handleSendText(); }}
-            onPointerDown={e => e.stopPropagation()}
-            disabled={!textInput.trim()}
-            className="p-1.5 rounded-lg disabled:opacity-30 transition-colors"
-            style={{ color: persona?.accentHex ?? '#818cf8' }}
-          >
-            <Send size={12} />
-          </button>
-        </div>
-      )}
 
       {/* ── Disconnect ────────────────────────────────────────────────────── */}
       {state !== 'idle' && (

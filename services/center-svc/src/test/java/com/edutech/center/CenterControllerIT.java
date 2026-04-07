@@ -448,4 +448,71 @@ class CenterControllerIT {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
     }
+
+    // =========================================================================
+    // REGRESSION — Fix #349: STUDENT and PARENT must not receive 403 on
+    // GET /api/v1/centers/{centerId}.  Prior to the fix, CenterService.getCenter()
+    // only checked belongsToCenter() which requires a matching centerId in the JWT;
+    // students registered before the centerId-backfill had null → always 403.
+    // =========================================================================
+
+    @Test
+    @DisplayName("REGRESSION Fix#349 — GET /api/v1/centers/{id} as STUDENT returns 200 (not 403)")
+    void getCenter_asStudent_returns200() {
+        // Create center as super-admin
+        String code = "C10" + R;
+        CenterResponse created = restTemplate.exchange(
+                "/api/v1/centers",
+                HttpMethod.POST,
+                authEntity(buildCenterRequest(code)),
+                CenterResponse.class).getBody();
+        UUID centerId = created.id();
+
+        // Switch to STUDENT — centerId intentionally null to simulate pre-backfill JWT
+        AuthPrincipal studentPrincipal = new AuthPrincipal(UUID.randomUUID(), "student@test.com",
+                Role.STUDENT, null, "fp-student");
+        mockAuth(studentPrincipal);
+
+        ResponseEntity<CenterResponse> response = restTemplate.exchange(
+                "/api/v1/centers/" + centerId,
+                HttpMethod.GET,
+                authEntity(),
+                CenterResponse.class);
+
+        assertThat(response.getStatusCode())
+                .as("Student must be allowed to read center details (Fix #349)")
+                .isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().id()).isEqualTo(centerId);
+    }
+
+    @Test
+    @DisplayName("REGRESSION Fix#349 — GET /api/v1/centers/{id} as PARENT returns 200 (not 403)")
+    void getCenter_asParent_returns200() {
+        // Create center as super-admin
+        String code = "C11" + R;
+        CenterResponse created = restTemplate.exchange(
+                "/api/v1/centers",
+                HttpMethod.POST,
+                authEntity(buildCenterRequest(code)),
+                CenterResponse.class).getBody();
+        UUID centerId = created.id();
+
+        // Switch to PARENT with null centerId
+        AuthPrincipal parentPrincipal = new AuthPrincipal(UUID.randomUUID(), "parent@test.com",
+                Role.PARENT, null, "fp-parent");
+        mockAuth(parentPrincipal);
+
+        ResponseEntity<CenterResponse> response = restTemplate.exchange(
+                "/api/v1/centers/" + centerId,
+                HttpMethod.GET,
+                authEntity(),
+                CenterResponse.class);
+
+        assertThat(response.getStatusCode())
+                .as("Parent must be allowed to read center details (Fix #349)")
+                .isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().id()).isEqualTo(centerId);
+    }
 }

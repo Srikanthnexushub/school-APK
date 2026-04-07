@@ -7,6 +7,7 @@ import com.edutech.assess.application.dto.ExamResponse;
 import com.edutech.assess.application.dto.AddQuestionRequest;
 import com.edutech.assess.application.dto.QuestionResponse;
 import com.edutech.assess.application.dto.RescheduleExamRequest;
+import com.edutech.assess.application.dto.StudentExamResponse;
 import com.edutech.assess.application.dto.SubmissionResponse;
 import com.edutech.assess.application.service.ExamService;
 import com.edutech.assess.application.service.QuestionService;
@@ -39,6 +40,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -486,5 +490,71 @@ class ExamCrudIT {
         assertThat(fromDb).isPresent();
         assertThat(fromDb.get().getStartAt()).isEqualTo(newStart);
         assertThat(fromDb.get().getEndAt()).isEqualTo(newEnd);
+    }
+
+    // ---------------------------------------------------------------------------
+    // REGRESSION — Fix #352: listPublishedExams must be scoped to student's center.
+    // Prior to the fix, findAllPublished() returned every center's exams system-wide.
+    // ---------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("REGRESSION Fix#352 — listPublishedExams(centerId=null) returns empty (no cross-center leak)")
+    void listPublishedExams_withNullCenterId_returnsEmpty() {
+        // Create and publish an exam in CENTER_ID
+        ExamResponse exam = examService.createExam(new CreateExamRequest(
+                "Regression Exam A", null, BATCH_ID, CENTER_ID,
+                ExamMode.ONLINE, 60, 1, null, null, 50.0, 20.0
+        ), adminPrincipal);
+        examService.publishExam(exam.id(), adminPrincipal);
+
+        // Student with centerId=null must see ZERO exams (not the exam above)
+        Page<StudentExamResponse> result = examService.listPublishedExams(
+                STUDENT_ID, null, PageRequest.of(0, 50));
+
+        assertThat(result.getContent())
+                .as("Student with null centerId must not see any exams (Fix #352)")
+                .isEmpty();
+    }
+
+    @Test
+    @DisplayName("REGRESSION Fix#352 — listPublishedExams(centerId=OTHER) does not return exams from CENTER_ID")
+    void listPublishedExams_withDifferentCenterId_doesNotLeakExams() {
+        UUID otherCenter = UUID.randomUUID();
+        AuthPrincipal otherAdmin = new AuthPrincipal(UUID.randomUUID(), "admin2@test.com",
+                Role.SUPER_ADMIN, otherCenter, "fp-admin2");
+
+        // Create and publish exam in CENTER_ID (our center)
+        ExamResponse exam = examService.createExam(new CreateExamRequest(
+                "Regression Exam B — CENTER_ID", null, BATCH_ID, CENTER_ID,
+                ExamMode.ONLINE, 60, 1, null, null, 50.0, 20.0
+        ), adminPrincipal);
+        examService.publishExam(exam.id(), adminPrincipal);
+
+        // Student from OTHER center must not see it
+        Page<StudentExamResponse> result = examService.listPublishedExams(
+                STUDENT_ID, otherCenter, PageRequest.of(0, 50));
+
+        assertThat(result.getContent())
+                .as("Student from a different center must not see exams from CENTER_ID (Fix #352)")
+                .noneMatch(e -> e.id().equals(exam.id()));
+    }
+
+    @Test
+    @DisplayName("REGRESSION Fix#352 — listPublishedExams(centerId=CENTER_ID) returns exams from own center")
+    void listPublishedExams_withCorrectCenterId_returnsOwnExams() {
+        // Create and publish exam in CENTER_ID
+        ExamResponse exam = examService.createExam(new CreateExamRequest(
+                "Regression Exam C — own center", null, BATCH_ID, CENTER_ID,
+                ExamMode.ONLINE, 60, 1, null, null, 50.0, 20.0
+        ), adminPrincipal);
+        examService.publishExam(exam.id(), adminPrincipal);
+
+        // Student from same center must see it
+        Page<StudentExamResponse> result = examService.listPublishedExams(
+                STUDENT_ID, CENTER_ID, PageRequest.of(0, 50));
+
+        assertThat(result.getContent())
+                .as("Student must see published exams from their own center (Fix #352)")
+                .anyMatch(e -> e.id().equals(exam.id()));
     }
 }
